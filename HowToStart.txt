@@ -1,0 +1,73 @@
+Panduan Menjalankan SINARA
+=========================================
+
+Prasyarat
+-----------------------------------------
+1. .NET SDK 8 atau lebih baru
+2. Docker Desktop aktif
+3. Port tersedia:
+   - 8080 (ERP Web)
+   - 8081 (ERP API)
+   - 5432 (PostgreSQL dev override)
+   - 6379 (Redis dev override)
+   - 5050 (pgAdmin dev override)
+
+Langkah Setup
+-----------------------------------------
+1. Buka terminal di root proyek:
+   D:\Projek\SINARA
+
+2. Siapkan file environment:
+   - Copy `.env.example` menjadi `.env`
+   - Sesuaikan password/konfigurasi jika diperlukan
+
+3. Restore dependency .NET:
+   dotnet restore ERP.sln
+
+4. Jalankan build awal:
+   dotnet build ERP.sln
+
+Menjalankan dengan Docker (Direkomendasikan)
+-----------------------------------------
+1. Jalankan mode dev (termasuk pgAdmin):
+   docker-compose -f docker-compose.yml -f docker-compose.override.yml up -d --build
+
+2. Cek container:
+   docker-compose ps
+
+3. Cek log API dan Web:
+   docker-compose logs -f erp-api erp-web
+
+4. Akses layanan:
+   - Web: http://localhost:8080
+   - API: http://localhost:8081
+   - pgAdmin: http://localhost:5050
+
+Menjalankan Tanpa Docker (Opsional)
+-----------------------------------------
+1. Jalankan API:
+   dotnet run --project ERP.API
+
+2. Jalankan Web (terminal lain):
+   dotnet run --project ERP.Web
+
+3. Pastikan PostgreSQL dan Redis lokal sudah aktif sesuai appsettings.
+
+Stop dan Bersihkan
+-----------------------------------------
+- Stop service:
+  docker-compose down
+
+- Stop + hapus volume data:
+  docker-compose down -v
+
+Troubleshooting Singkat
+-----------------------------------------
+- Jika restore/build gagal, jalankan ulang:
+  dotnet restore ERP.sln
+
+- Jika port bentrok, ubah mapping port di docker-compose.override.yml
+
+- Jika container API gagal start, cek:
+  1) kredensial PostgreSQL pada `.env`
+  2) status health `erp-db` dan `erp-redis`

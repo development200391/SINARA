@@ -1,0 +1,32 @@
+version: '3.9'
+
+services:
+
+  erp-db:
+    ports:
+      - "5432:5432"
+
+  erp-redis:
+    ports:
+      - "6379:6379"
+
+  erp-pgadmin:
+    image: dpage/pgadmin4
+    container_name: erp_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@erp.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    networks:
+      - erp_network
+    depends_on:
+      - erp-db
+
+  erp-api:
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+
+  erp-web:
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
