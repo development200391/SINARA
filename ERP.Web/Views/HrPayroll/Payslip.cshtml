@@ -1,0 +1,49 @@
+@model ERP.Web.ViewModels.HR.HrPayslipViewModel
+
+<div class="card border-0 shadow-sm payslip-print-area">
+    <div class="card-body p-4 p-md-5">
+        <div class="d-flex justify-content-between align-items-start mb-4">
+            <div>
+                <p class="text-uppercase small mb-1">SINARA ERP</p>
+                <h1 class="h4 mb-0">Payslip</h1>
+            </div>
+            <div class="text-end">
+                <div class="small text-muted">Period</div>
+                <div class="fw-semibold">@Model.Payslip.PeriodMonth/@Model.Payslip.PeriodYear</div>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <div class="col-md-6">
+                <div class="small text-muted">Employee</div>
+                <div class="fw-semibold">@Model.Payslip.EmployeeCode - @Model.Payslip.EmployeeName</div>
+            </div>
+            <div class="col-md-3">
+                <div class="small text-muted">Department</div>
+                <div>@Model.Payslip.DepartmentName</div>
+            </div>
+            <div class="col-md-3">
+                <div class="small text-muted">Position</div>
+                <div>@Model.Payslip.PositionName</div>
+            </div>
+        </div>
+
+        <div class="table-responsive mb-4">
+            <table class="table table-sm">
+                <tbody>
+                    <tr><th>Basic Salary</th><td class="text-end">@Model.Payslip.BasicSalary.ToString("N2")</td></tr>
+                    <tr><th>Allowances</th><td class="text-end">@Model.Payslip.Allowances.ToString("N2")</td></tr>
+                    <tr><th>Deductions</th><td class="text-end">@Model.Payslip.Deductions.ToString("N2")</td></tr>
+                    <tr><th>Gross Salary</th><td class="text-end">@Model.Payslip.GrossSalary.ToString("N2")</td></tr>
+                    <tr><th>Tax</th><td class="text-end">@Model.Payslip.TaxAmount.ToString("N2")</td></tr>
+                    <tr class="table-light"><th>Net Salary</th><td class="text-end fw-semibold">@Model.Payslip.NetSalary.ToString("N2")</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="d-flex gap-2 no-print">
+            <button class="btn btn-primary" type="button" onclick="window.print()">Print</button>
+            <a class="btn btn-outline-secondary" asp-action="Details" asp-route-runId="@Model.Payslip.PayrollRunId">Back</a>
+        </div>
+    </div>
+</div>

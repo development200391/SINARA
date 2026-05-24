@@ -1,3 +1,4 @@
+using ERP.Application.DTOs.Common;
 using ERP.Domain.Enums;
 
 namespace ERP.Application.DTOs.HR;
@@ -20,7 +21,9 @@ public sealed class EmployeeDetailDto
     public string? Email { get; set; }
     public string? Phone { get; set; }
     public int DepartmentId { get; set; }
+    public string DepartmentName { get; set; } = string.Empty;
     public int PositionId { get; set; }
+    public string PositionName { get; set; } = string.Empty;
     public DateOnly HireDate { get; set; }
     public DateOnly? TerminationDate { get; set; }
     public EmploymentStatus EmploymentStatus { get; set; }
@@ -43,3 +46,8 @@ public sealed class UpdateEmployeeRequest : CreateEmployeeRequest
     public DateOnly? TerminationDate { get; set; }
 }
 
+public sealed class EmployeePagedRequest : PagedRequest
+{
+    public int? DepartmentId { get; set; }
+    public EmploymentStatus? EmploymentStatus { get; set; }
+}

@@ -1,0 +1,78 @@
+@model ERP.Web.ViewModels.HR.HrLeaveBalanceIndexViewModel
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">Leave Balance</h1>
+
+        <form method="get" class="row g-2 mb-3">
+            <div class="col-md-3">
+                <input type="text" class="form-control" name="search" value="@Model.Search" placeholder="@T["common.search"] employee / leave type" />
+            </div>
+            <div class="col-md-2">
+                <input type="number" class="form-control" name="year" value="@Model.Year" placeholder="Year" min="2000" max="9999" />
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" name="employeeId">
+                    <option value="">All Employee</option>
+                    @foreach (var employee in Model.Employees)
+                    {
+                        <option value="@employee.Id" selected="@(Model.EmployeeId == employee.Id)">@employee.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" name="leaveTypeId">
+                    <option value="">All Leave Type</option>
+                    @foreach (var leaveType in Model.LeaveTypes)
+                    {
+                        <option value="@leaveType.Id" selected="@(Model.LeaveTypeId == leaveType.Id)">@leaveType.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-outline-secondary">@T["common.search"]</button>
+            </div>
+        </form>
+
+        <div class="table-responsive">
+            <table class="table table-sm align-middle">
+                <thead>
+                    <tr>
+                        <th>Employee</th>
+                        <th>Leave Type</th>
+                        <th>Year</th>
+                        <th>Max</th>
+                        <th>Used</th>
+                        <th>Remaining</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @if (Model.Balances.Items.Count == 0)
+                {
+                    <tr><td colspan="6" class="text-center text-muted py-4">@T["msg.no_data"]</td></tr>
+                }
+                else
+                {
+                    foreach (var item in Model.Balances.Items)
+                    {
+                        <tr>
+                            <td>@item.EmployeeCode - @item.EmployeeName</td>
+                            <td>@item.LeaveTypeCode - @item.LeaveTypeName</td>
+                            <td>@item.Year</td>
+                            <td>@item.MaxDaysPerYear</td>
+                            <td>@item.UsedDays</td>
+                            <td>@item.RemainingDays</td>
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>
+        </div>
+
+        @{
+            ViewData["Page"] = Model.Balances.Page;
+            ViewData["TotalPages"] = Model.Balances.TotalPages;
+        }
+        <partial name="~/Views/Shared/_Pagination.cshtml" />
+    </div>
+</div>

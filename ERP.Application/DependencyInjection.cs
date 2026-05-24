@@ -1,6 +1,7 @@
 using ERP.Application.Options;
 using ERP.Application.Services;
 using ERP.Application.Services.Config;
+using ERP.Application.Services.HR;
 using ERP.Domain.Entities.System;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
@@ -24,6 +25,9 @@ public static class DependencyInjection
         services.AddScoped<IMenuService, MenuService>();
         services.AddScoped<IModuleService, ModuleService>();
         services.AddScoped<IAppSettingsService, AppSettingsService>();
+
+        services.AddScoped<ILeaveService, LeaveService>();
+        services.AddScoped<IPayrollService, PayrollService>();
 
         return services;
     }

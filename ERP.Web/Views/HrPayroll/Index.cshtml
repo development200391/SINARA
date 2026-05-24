@@ -1,0 +1,81 @@
+@model ERP.Web.ViewModels.HR.HrPayrollIndexViewModel
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h1 class="h5 mb-0">Payroll Runs</h1>
+            <a class="btn btn-primary btn-sm" asp-action="Run">Run Payroll</a>
+        </div>
+
+        <form method="get" class="row g-2 mb-3">
+            <div class="col-md-3">
+                <input type="text" class="form-control" name="search" value="@Model.Search" placeholder="@T["common.search"] period" />
+            </div>
+            <div class="col-md-2">
+                <input type="number" class="form-control" name="month" value="@Model.Month" min="1" max="12" placeholder="Month" />
+            </div>
+            <div class="col-md-2">
+                <input type="number" class="form-control" name="year" value="@Model.Year" min="2000" max="9999" placeholder="Year" />
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" name="status">
+                    <option value="">All Status</option>
+                    @foreach (var value in Enum.GetValues<ERP.Domain.Enums.PayrollStatus>())
+                    {
+                        <option value="@((int)value)" selected="@(Model.Status == value)">@value</option>
+                    }
+                </select>
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-outline-secondary">@T["common.search"]</button>
+            </div>
+        </form>
+
+        <div class="table-responsive">
+            <table class="table table-sm align-middle">
+                <thead>
+                    <tr>
+                        <th>Period</th>
+                        <th>Status</th>
+                        <th>Total Employee</th>
+                        <th>Total Net Salary</th>
+                        <th>Processed At</th>
+                        <th class="text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @if (Model.Runs.Items.Count == 0)
+                {
+                    <tr><td colspan="6" class="text-center text-muted py-4">@T["msg.no_data"]</td></tr>
+                }
+                else
+                {
+                    foreach (var run in Model.Runs.Items)
+                    {
+                        <tr>
+                            <td>@run.PeriodMonth/@run.PeriodYear</td>
+                            <td>
+                                <span class="badge @(run.Status switch { ERP.Domain.Enums.PayrollStatus.Completed => "text-bg-success", ERP.Domain.Enums.PayrollStatus.Processing => "text-bg-warning", _ => "text-bg-secondary" })">
+                                    @run.Status
+                                </span>
+                            </td>
+                            <td>@run.TotalEmployees</td>
+                            <td>@run.TotalNetSalary.ToString("N2")</td>
+                            <td>@(run.ProcessedAt?.ToLocalTime().ToString("yyyy-MM-dd HH:mm") ?? "-")</td>
+                            <td class="text-end">
+                                <a class="btn btn-sm btn-outline-primary" asp-action="Details" asp-route-runId="@run.Id">Details</a>
+                            </td>
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>
+        </div>
+
+        @{
+            ViewData["Page"] = Model.Runs.Page;
+            ViewData["TotalPages"] = Model.Runs.TotalPages;
+        }
+        <partial name="~/Views/Shared/_Pagination.cshtml" />
+    </div>
+</div>

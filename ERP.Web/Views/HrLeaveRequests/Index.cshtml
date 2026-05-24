@@ -1,0 +1,87 @@
+@model ERP.Web.ViewModels.HR.HrLeaveRequestsIndexViewModel
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h1 class="h5 mb-0">Leave Requests</h1>
+            <a class="btn btn-primary btn-sm" asp-action="Create">@T["common.add_new"]</a>
+        </div>
+
+        <form method="get" class="row g-2 mb-3">
+            <div class="col-md-4">
+                <input type="text" class="form-control" name="search" value="@Model.Search" placeholder="@T["common.search"] leave requests" />
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" name="status">
+                    <option value="">All Status</option>
+                    @foreach (var value in Enum.GetValues<ERP.Domain.Enums.LeaveStatus>())
+                    {
+                        <option value="@((int)value)" selected="@(Model.Status == value)">@value</option>
+                    }
+                </select>
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-outline-secondary">@T["common.search"]</button>
+            </div>
+        </form>
+
+        <div class="table-responsive">
+            <table class="table table-sm align-middle">
+                <thead>
+                    <tr>
+                        <th>Employee</th>
+                        <th>Leave Type</th>
+                        <th>Period</th>
+                        <th>Days</th>
+                        <th>Status</th>
+                        <th>Reason</th>
+                        <th class="text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @if (Model.Requests.Items.Count == 0)
+                {
+                    <tr><td colspan="7" class="text-center text-muted py-4">@T["msg.no_data"]</td></tr>
+                }
+                else
+                {
+                    foreach (var item in Model.Requests.Items)
+                    {
+                        <tr>
+                            <td>@item.EmployeeCode - @item.EmployeeName</td>
+                            <td>@item.LeaveTypeCode - @item.LeaveTypeName</td>
+                            <td>@item.StartDate.ToString("yyyy-MM-dd") s/d @item.EndDate.ToString("yyyy-MM-dd")</td>
+                            <td>@item.TotalDays</td>
+                            <td>
+                                <span class="badge @(item.Status switch { ERP.Domain.Enums.LeaveStatus.Approved => "text-bg-success", ERP.Domain.Enums.LeaveStatus.Rejected => "text-bg-danger", _ => "text-bg-warning" })">
+                                    @item.Status
+                                </span>
+                            </td>
+                            <td>@item.Reason</td>
+                            <td class="text-end">
+                                @if (item.Status == ERP.Domain.Enums.LeaveStatus.Pending)
+                                {
+                                    <form asp-action="Approve" asp-route-id="@item.Id" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-outline-success" onclick="return confirm('Approve request ini?');">Approve</button>
+                                    </form>
+                                    <form asp-action="Reject" asp-route-id="@item.Id" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Reject request ini?');">Reject</button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>
+        </div>
+
+        @{
+            ViewData["Page"] = Model.Requests.Page;
+            ViewData["TotalPages"] = Model.Requests.TotalPages;
+        }
+        <partial name="~/Views/Shared/_Pagination.cshtml" />
+    </div>
+</div>

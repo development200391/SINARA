@@ -1,0 +1,60 @@
+@model ERP.Web.ViewModels.HR.HrLeaveRequestCreateViewModel
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">Create Leave Request</h1>
+
+        <form method="post" class="row g-3">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="col-md-6">
+                <label asp-for="EmployeeId" class="form-label">Employee</label>
+                <select asp-for="EmployeeId" class="form-select">
+                    <option value="">Select Employee</option>
+                    @foreach (var employee in Model.Employees)
+                    {
+                        <option value="@employee.Id">@employee.Name</option>
+                    }
+                </select>
+                <span asp-validation-for="EmployeeId" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="LeaveTypeId" class="form-label">Leave Type</label>
+                <select asp-for="LeaveTypeId" class="form-select">
+                    <option value="">Select Leave Type</option>
+                    @foreach (var leaveType in Model.LeaveTypes)
+                    {
+                        <option value="@leaveType.Id">@leaveType.Name</option>
+                    }
+                </select>
+                <span asp-validation-for="LeaveTypeId" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="StartDate" class="form-label">Start Date</label>
+                <input asp-for="StartDate" class="form-control" type="date" />
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="EndDate" class="form-label">End Date</label>
+                <input asp-for="EndDate" class="form-control" type="date" />
+            </div>
+
+            <div class="col-12">
+                <label asp-for="Reason" class="form-label">Reason</label>
+                <textarea asp-for="Reason" class="form-control" rows="3"></textarea>
+            </div>
+
+            <div class="col-12 d-flex gap-2">
+                <button type="submit" class="btn btn-primary">@T["common.save"]</button>
+                <a asp-action="Index" class="btn btn-outline-secondary">@T["common.cancel"]</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

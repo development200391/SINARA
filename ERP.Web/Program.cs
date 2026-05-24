@@ -26,6 +26,12 @@ builder.Services.AddHttpClient<IConfigApiClient, ConfigApiClient>((serviceProvid
 });
 
 builder.Services.AddScoped<ITextLocalizer, TextLocalizer>();
+builder.Services.AddHttpClient<IHrApiClient, HrApiClient>((serviceProvider, client) =>
+{
+    var options = serviceProvider.GetRequiredService<IOptions<ApiSettings>>().Value;
+    var baseUrl = options.BaseUrl?.TrimEnd('/') ?? "http://localhost:8081";
+    client.BaseAddress = new Uri($"{baseUrl}/");
+});
 
 builder.Services
     .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -63,3 +69,5 @@ app.MapControllerRoute(
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.Run();
+
+

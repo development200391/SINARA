@@ -1,6 +1,8 @@
 using ERP.Application.Services;
 using ERP.Domain.Entities.Config;
+using ERP.Domain.Entities.HR;
 using ERP.Domain.Entities.System;
+using ERP.Domain.Enums;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,6 +16,8 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
 
         await SeedModulesAsync(now, ct);
         await SeedRolesAsync(now, ct);
+        await SeedHrMasterDataAsync(now, ct);
+        await SeedLeaveTypesAsync(now, ct);
         await SeedAdminUserAsync(now, ct);
         await SeedMenusAsync(now, ct);
         await SeedSuperAdminPermissionsAsync(ct);
@@ -59,6 +63,46 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         }
 
         await dbContext.SaveChangesAsync(ct);
+    }
+
+    private async Task SeedHrMasterDataAsync(DateTimeOffset now, CancellationToken ct)
+    {
+        var itDepartment = await EnsureDepartmentAsync("Information Technology", "IT", true, now, ct);
+        var hrDepartment = await EnsureDepartmentAsync("Human Resources", "HRD", true, now, ct);
+
+        var itStaff = await EnsurePositionAsync("IT Staff", "IT_STAFF", itDepartment.Id, 1, true, now, ct);
+        var hrStaff = await EnsurePositionAsync("HR Staff", "HR_STAFF", hrDepartment.Id, 1, true, now, ct);
+
+        await EnsureEmployeeAsync(
+            employeeCode: "EMP001",
+            fullName: "Andi Saputra",
+            email: "andi.saputra@sinara.local",
+            phone: "081200000001",
+            departmentId: itDepartment.Id,
+            positionId: itStaff.Id,
+            hireDate: new DateOnly(2024, 1, 10),
+            employmentStatus: EmploymentStatus.Active,
+            now,
+            ct);
+
+        await EnsureEmployeeAsync(
+            employeeCode: "EMP002",
+            fullName: "Bunga Lestari",
+            email: "bunga.lestari@sinara.local",
+            phone: "081200000002",
+            departmentId: hrDepartment.Id,
+            positionId: hrStaff.Id,
+            hireDate: new DateOnly(2024, 2, 5),
+            employmentStatus: EmploymentStatus.Active,
+            now,
+            ct);
+    }
+
+    private async Task SeedLeaveTypesAsync(DateTimeOffset now, CancellationToken ct)
+    {
+        await EnsureLeaveTypeAsync("Cuti Tahunan", "ANNUAL", 12, true, true, now, ct);
+        await EnsureLeaveTypeAsync("Cuti Sakit", "SICK", 12, false, true, now, ct);
+        await EnsureLeaveTypeAsync("Cuti Tanpa Bayar", "UNPAID", 30, false, true, now, ct);
     }
 
     private async Task SeedAdminUserAsync(DateTimeOffset now, CancellationToken ct)
@@ -233,6 +277,166 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
             Icon = icon,
             SortOrder = sortOrder,
             IsActive = true,
+            CreatedBy = "system",
+            CreatedAt = now
+        });
+
+        await dbContext.SaveChangesAsync(ct);
+    }
+
+    private async Task<HrDepartment> EnsureDepartmentAsync(string name, string code, bool isActive, DateTimeOffset now, CancellationToken ct)
+    {
+        var existing = await dbContext.HrDepartments
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(x => x.Code == code, ct);
+
+        if (existing is not null)
+        {
+            existing.Name = name;
+            existing.IsActive = isActive;
+            existing.UpdatedBy = "system";
+            existing.UpdatedAt = now;
+            await dbContext.SaveChangesAsync(ct);
+            return existing;
+        }
+
+        var entity = new HrDepartment
+        {
+            Name = name,
+            Code = code,
+            IsActive = isActive,
+            CreatedBy = "system",
+            CreatedAt = now
+        };
+
+        dbContext.HrDepartments.Add(entity);
+        await dbContext.SaveChangesAsync(ct);
+        return entity;
+    }
+
+    private async Task<HrPosition> EnsurePositionAsync(
+        string name,
+        string code,
+        int departmentId,
+        int level,
+        bool isActive,
+        DateTimeOffset now,
+        CancellationToken ct)
+    {
+        var existing = await dbContext.HrPositions
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(x => x.Code == code, ct);
+
+        if (existing is not null)
+        {
+            existing.Name = name;
+            existing.DepartmentId = departmentId;
+            existing.Level = level;
+            existing.IsActive = isActive;
+            existing.UpdatedBy = "system";
+            existing.UpdatedAt = now;
+            await dbContext.SaveChangesAsync(ct);
+            return existing;
+        }
+
+        var entity = new HrPosition
+        {
+            Name = name,
+            Code = code,
+            DepartmentId = departmentId,
+            Level = level,
+            IsActive = isActive,
+            CreatedBy = "system",
+            CreatedAt = now
+        };
+
+        dbContext.HrPositions.Add(entity);
+        await dbContext.SaveChangesAsync(ct);
+        return entity;
+    }
+
+    private async Task<HrEmployee> EnsureEmployeeAsync(
+        string employeeCode,
+        string fullName,
+        string? email,
+        string? phone,
+        int departmentId,
+        int positionId,
+        DateOnly hireDate,
+        EmploymentStatus employmentStatus,
+        DateTimeOffset now,
+        CancellationToken ct)
+    {
+        var existing = await dbContext.HrEmployees
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(x => x.EmployeeCode == employeeCode, ct);
+
+        if (existing is not null)
+        {
+            existing.FullName = fullName;
+            existing.Email = email;
+            existing.Phone = phone;
+            existing.DepartmentId = departmentId;
+            existing.PositionId = positionId;
+            existing.HireDate = hireDate;
+            existing.EmploymentStatus = employmentStatus;
+            existing.UpdatedBy = "system";
+            existing.UpdatedAt = now;
+            await dbContext.SaveChangesAsync(ct);
+            return existing;
+        }
+
+        var entity = new HrEmployee
+        {
+            EmployeeCode = employeeCode,
+            FullName = fullName,
+            Email = email,
+            Phone = phone,
+            DepartmentId = departmentId,
+            PositionId = positionId,
+            HireDate = hireDate,
+            EmploymentStatus = employmentStatus,
+            CreatedBy = "system",
+            CreatedAt = now
+        };
+
+        dbContext.HrEmployees.Add(entity);
+        await dbContext.SaveChangesAsync(ct);
+        return entity;
+    }
+
+    private async Task EnsureLeaveTypeAsync(
+        string name,
+        string code,
+        int maxDaysPerYear,
+        bool isCarryOver,
+        bool isActive,
+        DateTimeOffset now,
+        CancellationToken ct)
+    {
+        var existing = await dbContext.HrLeaveTypes
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(x => x.Code == code, ct);
+
+        if (existing is not null)
+        {
+            existing.Name = name;
+            existing.MaxDaysPerYear = maxDaysPerYear;
+            existing.IsCarryOver = isCarryOver;
+            existing.IsActive = isActive;
+            existing.UpdatedBy = "system";
+            existing.UpdatedAt = now;
+            await dbContext.SaveChangesAsync(ct);
+            return;
+        }
+
+        dbContext.HrLeaveTypes.Add(new HrLeaveType
+        {
+            Name = name,
+            Code = code,
+            MaxDaysPerYear = maxDaysPerYear,
+            IsCarryOver = isCarryOver,
+            IsActive = isActive,
             CreatedBy = "system",
             CreatedAt = now
         });

@@ -1,0 +1,33 @@
+@model ERP.Web.ViewModels.HR.HrPayrollRunViewModel
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">Run Payroll</h1>
+
+        <form method="post" class="row g-3">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="col-md-6">
+                <label asp-for="Month" class="form-label"></label>
+                <input asp-for="Month" class="form-control" type="number" min="1" max="12" />
+                <span asp-validation-for="Month" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="Year" class="form-label"></label>
+                <input asp-for="Year" class="form-control" type="number" min="2000" max="9999" />
+                <span asp-validation-for="Year" class="text-danger"></span>
+            </div>
+
+            <div class="col-12 d-flex gap-2">
+                <button type="submit" class="btn btn-primary">Run</button>
+                <a asp-action="Index" class="btn btn-outline-secondary">@T["common.cancel"]</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,6 +1,6 @@
 namespace ERP.Application.DTOs.Common;
 
-public sealed class PagedRequest
+public class PagedRequest
 {
     private const int MaxPageSize = 200;
 
