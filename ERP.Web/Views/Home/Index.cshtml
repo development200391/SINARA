@@ -1,0 +1,9 @@
+@{
+    var fullName = User.FindFirst("full_name")?.Value ?? User.Identity?.Name ?? "User";
+}
+
+<div class="page-hero p-4 p-md-5 rounded-4">
+    <p class="text-uppercase fw-semibold small mb-2">SINARA ERP</p>
+    <h1 class="display-6 fw-bold mb-3">Selamat datang, @fullName</h1>
+    <p class="mb-0 text-secondary">Fase 3 aktif: autentikasi, login web, dan layout dasar sudah berjalan.</p>
+</div>

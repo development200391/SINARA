@@ -4,7 +4,6 @@ using ERP.Infrastructure.Cache;
 using ERP.Infrastructure.Data;
 using ERP.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.StackExchangeRedis;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using StackExchange.Redis;
@@ -25,19 +24,20 @@ public static class DependencyInjection
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IDataSeeder, DataSeeder>();
 
+        var redisConnectionString = configuration["Redis:ConnectionString"] ?? "localhost:6379";
+        var redisOptions = ConfigurationOptions.Parse(redisConnectionString);
+        redisOptions.AbortOnConnectFail = false;
+        redisOptions.ConnectRetry = 5;
+        redisOptions.ConnectTimeout = 10000;
+        redisOptions.SyncTimeout = 10000;
+
         services.AddStackExchangeRedisCache(options =>
         {
-            options.Configuration = configuration["Redis:ConnectionString"];
+            options.ConfigurationOptions = redisOptions;
             options.InstanceName = configuration["Redis:InstanceName"];
         });
 
-        services.AddSingleton<IConnectionMultiplexer>(_ =>
-        {
-            var redisConn = configuration["Redis:ConnectionString"] ?? "localhost:6379";
-            var options = ConfigurationOptions.Parse(redisConn);
-            options.AbortOnConnectFail = false;
-            return ConnectionMultiplexer.Connect(options);
-        });
+        services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(redisOptions));
 
         services.AddSingleton<ICacheService, RedisCacheService>();
 

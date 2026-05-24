@@ -1,0 +1,25 @@
+@{
+    var fullName = User.FindFirst("full_name")?.Value ?? User.Identity?.Name ?? "User";
+    var role = User.FindFirst(ClaimTypes.Role)?.Value ?? "Role";
+    var initial = string.IsNullOrWhiteSpace(fullName) ? "U" : fullName.Substring(0, 1).ToUpperInvariant();
+}
+
+<div class="dropdown">
+    <button class="btn btn-light border rounded-circle avatar-circle dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+        @initial
+    </button>
+    <ul class="dropdown-menu dropdown-menu-end">
+        <li class="px-3 py-2">
+            <div class="fw-semibold">@fullName</div>
+            <div class="text-muted small">@role</div>
+        </li>
+        <li><hr class="dropdown-divider" /></li>
+        <li><a class="dropdown-item" href="#">Profile</a></li>
+        <li>
+            <form asp-controller="Auth" asp-action="Logout" method="post" class="px-3 py-1">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-link dropdown-item p-0 text-start">Logout</button>
+            </form>
+        </li>
+    </ul>
+</div>

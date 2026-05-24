@@ -32,6 +32,7 @@ services:
       JwtSettings__Audience: ${JWT_AUDIENCE}
       JwtSettings__ExpiryMinutes: ${JWT_EXPIRY_MINUTES}
       JwtSettings__RefreshTokenExpiryDays: ${REFRESH_TOKEN_EXPIRY_DAYS}
+      JwtSettings__SigningKey: ${JWT_SIGNING_KEY:-ChangeMe_SigningKey_AtLeast_32_Chars_Long_12345}
     depends_on:
       erp-redis:
         condition: service_healthy
@@ -66,3 +67,4 @@ volumes:
 networks:
   erp_network:
     driver: bridge
+

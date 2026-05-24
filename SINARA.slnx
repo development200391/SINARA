@@ -1,3 +1,8 @@
 <Solution>
+  <Project Path="ERP.API/ERP.API.csproj" />
+  <Project Path="ERP.Application/ERP.Application.csproj" />
+  <Project Path="ERP.Domain/ERP.Domain.csproj" />
+  <Project Path="ERP.Infrastructure/ERP.Infrastructure.csproj" />
+  <Project Path="ERP.Web/ERP.Web.csproj" />
   <Project Path="SINARA/SINARA.csproj" />
 </Solution>

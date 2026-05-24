@@ -1,0 +1,29 @@
+:root {
+    --sinara-bg: #f4f6f8;
+    --sinara-primary: #0f766e;
+    --sinara-text: #0f172a;
+}
+
+body {
+    background: radial-gradient(circle at top right, #dff3f0, transparent 40%), var(--sinara-bg);
+    color: var(--sinara-text);
+}
+
+.login-page {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #e2f7f4, #f9fbfc);
+}
+
+.page-hero {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+}
+
+.avatar-circle {
+    width: 40px;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+}
