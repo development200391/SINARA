@@ -14,7 +14,8 @@
     </PackageReference>
     <PackageReference Include="StackExchange.Redis" Version="2.*" />
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="8.*" />
-    <PackageReference Include="Serilog.Sinks.PostgreSQL.Alternative" Version="4.*" />
+    <PackageReference Include="Microsoft.Extensions.Identity.Core" Version="8.*" />
+    <PackageReference Include="Serilog.Sinks.PostgreSQL.Alternative" Version="4.0.0" />
   </ItemGroup>
 
   <PropertyGroup>
