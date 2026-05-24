@@ -27,3 +27,21 @@ body {
     justify-content: center;
     font-weight: 700;
 }
+
+.dropdown-menu-large {
+    min-width: 18rem;
+}
+
+.table td,
+.table th {
+    vertical-align: middle;
+}
+
+.menu-handle,
+#menuSortBody tr[data-menu-row="true"] {
+    cursor: move;
+}
+
+#menuSortBody tr.dragging {
+    opacity: 0.45;
+}

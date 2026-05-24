@@ -1,0 +1,57 @@
+@model ERP.Web.ViewModels.Config.ConfigAuditIndexViewModel
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">Audit Log</h1>
+
+        <form method="get" class="row g-2 mb-3">
+            <div class="col-md-4">
+                <input type="text" class="form-control" name="search" value="@Model.Search" placeholder="@T["common.search"] audit" />
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-outline-secondary">@T["common.search"]</button>
+            </div>
+        </form>
+
+        <div class="table-responsive">
+            <table class="table table-sm align-middle">
+                <thead>
+                    <tr>
+                        <th>Created At</th>
+                        <th>User</th>
+                        <th>Action</th>
+                        <th>Entity</th>
+                        <th>Entity Id</th>
+                        <th>IP</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @if (Model.Logs.Items.Count == 0)
+                {
+                    <tr><td colspan="6" class="text-center text-muted py-4">@T["msg.no_data"]</td></tr>
+                }
+                else
+                {
+                    foreach (var item in Model.Logs.Items)
+                    {
+                        <tr>
+                            <td>@item.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</td>
+                            <td>@item.Username</td>
+                            <td>@item.Action</td>
+                            <td>@item.EntityName</td>
+                            <td>@item.EntityId</td>
+                            <td>@item.IpAddress</td>
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>
+        </div>
+
+        @{
+            ViewData["Page"] = Model.Logs.Page;
+            ViewData["TotalPages"] = Model.Logs.TotalPages;
+        }
+        <partial name="~/Views/Shared/_Pagination.cshtml" />
+    </div>
+</div>

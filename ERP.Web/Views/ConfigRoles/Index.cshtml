@@ -1,0 +1,42 @@
+@model ERP.Web.ViewModels.Config.ConfigRolesIndexViewModel
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">Roles & Permissions</h1>
+
+        <div class="table-responsive">
+            <table class="table table-sm align-middle">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Description</th>
+                        <th>System</th>
+                        <th>Status</th>
+                        <th class="text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @if (Model.Roles.Count == 0)
+                {
+                    <tr><td colspan="5" class="text-center text-muted py-4">@T["msg.no_data"]</td></tr>
+                }
+                else
+                {
+                    foreach (var role in Model.Roles)
+                    {
+                        <tr>
+                            <td>@role.Name</td>
+                            <td>@role.Description</td>
+                            <td>@(role.IsSystem ? "Yes" : "No")</td>
+                            <td>@(role.IsActive ? "Active" : "Inactive")</td>
+                            <td class="text-end">
+                                <a class="btn btn-sm btn-outline-primary" asp-action="Permissions" asp-route-id="@role.Id">Permission Matrix</a>
+                            </td>
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

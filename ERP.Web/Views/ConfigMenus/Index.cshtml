@@ -1,0 +1,204 @@
+@model ERP.Web.ViewModels.Config.ConfigMenusIndexViewModel
+
+@if (TempData["ErrorMessage"] is string errorMessage)
+{
+    <div class="alert alert-danger" role="alert">@errorMessage</div>
+}
+
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div>
+            <h1 class="h5 mb-1">Menu Configuration</h1>
+            <p class="text-muted mb-0">Drag row untuk ubah urutan menu, lalu simpan.</p>
+        </div>
+        <a asp-action="Create" asp-route-moduleId="@Model.SelectedModuleId" class="btn btn-primary">@T["common.add_new"] Menu</a>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-5 col-lg-4">
+                <label class="form-label">Module</label>
+                <select class="form-select" name="moduleId" onchange="this.form.submit()">
+                    @foreach (var module in Model.Modules)
+                    {
+                        <option value="@module.Id" selected="@(module.Id == Model.SelectedModuleId)">@module.Name (@module.Code)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-outline-secondary">Load</button>
+            </div>
+        </form>
+
+        @if (Model.SelectedModule is not null)
+        {
+            <hr />
+            <h2 class="h6 mb-3">Module Settings</h2>
+            <form asp-action="UpdateModule" asp-route-id="@Model.SelectedModule.Id" method="post" class="row g-3">
+                @Html.AntiForgeryToken()
+
+                <div class="col-md-4">
+                    <label class="form-label">Name</label>
+                    <input class="form-control" name="name" value="@Model.SelectedModule.Name" required />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Icon</label>
+                    <input class="form-control" name="icon" value="@Model.SelectedModule.Icon" placeholder="bi-gear" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Sort</label>
+                    <input class="form-control" type="number" min="1" name="sortOrder" value="@Model.SelectedModule.SortOrder" required />
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="isActive" value="true" id="moduleActive" @(Model.SelectedModule.IsActive ? "checked" : null) />
+                        <input type="hidden" name="isActive" value="false" />
+                        <label class="form-check-label" for="moduleActive">Active</label>
+                    </div>
+                </div>
+                <div class="col-md-1 d-flex align-items-end">
+                    <button type="submit" class="btn btn-outline-primary w-100">Save</button>
+                </div>
+            </form>
+        }
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <form asp-action="Reorder" method="post" id="reorderForm">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="moduleId" value="@Model.SelectedModuleId" />
+
+            <div class="table-responsive">
+                <table class="table table-sm align-middle" id="menuTable">
+                    <thead>
+                        <tr>
+                            <th style="width: 56px;">Move</th>
+                            <th style="width: 72px;">Sort</th>
+                            <th>Name</th>
+                            <th>URL</th>
+                            <th>Parent</th>
+                            <th style="width: 96px;">Status</th>
+                            <th style="width: 180px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="menuSortBody">
+                    @if (Model.MenuRows.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-4">@T["msg.no_data"]</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var row in Model.MenuRows)
+                        {
+                            <tr draggable="true" data-menu-row="true">
+                                <td class="text-center text-muted menu-handle" title="Drag to reorder">
+                                    <i class="bi bi-grip-vertical"></i>
+                                </td>
+                                <td>
+                                    @row.Menu.SortOrder
+                                    <input type="hidden" name="orderedMenuIds" value="@row.Menu.Id" />
+                                </td>
+                                <td>
+                                    <div style="padding-left:@(row.Level * 1.25)rem">
+                                        @if (row.Level > 0)
+                                        {
+                                            <span class="text-muted me-1">&gt;</span>
+                                        }
+                                        @if (!string.IsNullOrWhiteSpace(row.Menu.Icon))
+                                        {
+                                            <i class="bi @row.Menu.Icon me-1 text-muted"></i>
+                                        }
+                                        @row.Menu.Name
+                                    </div>
+                                </td>
+                                <td class="text-muted">@row.Menu.Url</td>
+                                <td>@(string.IsNullOrWhiteSpace(row.ParentName) ? "-" : row.ParentName)</td>
+                                <td>
+                                    <span class="badge @(row.Menu.IsActive ? "bg-success-subtle text-success-emphasis" : "bg-secondary-subtle text-secondary-emphasis")">
+                                        @(row.Menu.IsActive ? "Active" : "Inactive")
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="d-flex gap-2">
+                                        <a asp-action="Edit" asp-route-id="@row.Menu.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+                                        <button
+                                            type="submit"
+                                            class="btn btn-sm btn-outline-danger"
+                                            formaction="@Url.Action("Delete", "ConfigMenus", new { id = row.Menu.Id })"
+                                            formmethod="post"
+                                            name="moduleId"
+                                            value="@Model.SelectedModuleId"
+                                            onclick="return confirm('Hapus menu ini?');">
+                                            Delete
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    </tbody>
+                </table>
+            </div>
+
+            @if (Model.MenuRows.Count > 0)
+            {
+                <button type="submit" class="btn btn-primary mt-2">Save Order</button>
+            }
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+(function () {
+    const tbody = document.getElementById('menuSortBody');
+    if (!tbody) {
+        return;
+    }
+
+    let draggedRow = null;
+
+    const rows = () => Array.from(tbody.querySelectorAll('tr[data-menu-row="true"]'));
+
+    rows().forEach(function (row) {
+        row.addEventListener('dragstart', function () {
+            draggedRow = row;
+            row.classList.add('dragging');
+        });
+
+        row.addEventListener('dragend', function () {
+            row.classList.remove('dragging');
+            draggedRow = null;
+        });
+
+        row.addEventListener('dragover', function (event) {
+            event.preventDefault();
+        });
+
+        row.addEventListener('drop', function (event) {
+            event.preventDefault();
+            if (!draggedRow || draggedRow === row) {
+                return;
+            }
+
+            const rowRect = row.getBoundingClientRect();
+            const shouldInsertBefore = (event.clientY - rowRect.top) < (rowRect.height / 2);
+
+            if (shouldInsertBefore) {
+                tbody.insertBefore(draggedRow, row);
+            } else {
+                tbody.insertBefore(draggedRow, row.nextSibling);
+            }
+        });
+    });
+})();
+</script>
+}
+
+

@@ -14,11 +14,11 @@
             <div class="text-muted small">@role</div>
         </li>
         <li><hr class="dropdown-divider" /></li>
-        <li><a class="dropdown-item" href="#">Profile</a></li>
+        <li><a class="dropdown-item" href="#">@T["layout.profile"]</a></li>
         <li>
             <form asp-controller="Auth" asp-action="Logout" method="post" class="px-3 py-1">
                 @Html.AntiForgeryToken()
-                <button type="submit" class="btn btn-link dropdown-item p-0 text-start">Logout</button>
+                <button type="submit" class="btn btn-link dropdown-item p-0 text-start">@T["layout.logout"]</button>
             </form>
         </li>
     </ul>

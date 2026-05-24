@@ -4,7 +4,7 @@
 
 <nav aria-label="breadcrumb" class="mb-3">
     <ol class="breadcrumb mb-0">
-        <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Home</a></li>
+        <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">@T["layout.home"]</a></li>
         @if (!string.IsNullOrWhiteSpace(breadcrumb))
         {
             <li class="breadcrumb-item active" aria-current="page">@breadcrumb</li>

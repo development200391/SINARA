@@ -1,6 +1,6 @@
 @model ERP.Web.ViewModels.Auth.LoginViewModel
 @{
-    ViewData["Title"] = "Login";
+    ViewData["Title"] = T["auth.login"];
     Layout = null;
 }
 <!DOCTYPE html>
@@ -22,7 +22,7 @@
                     <div class="card-body p-4 p-lg-5">
                         <div class="text-center mb-4">
                             <p class="small text-uppercase mb-1">SINARA ERP</p>
-                            <h1 class="h4 mb-0">Login</h1>
+                            <h1 class="h4 mb-0">@T["auth.login"]</h1>
                         </div>
 
                         <form asp-action="Login" asp-controller="Auth" method="post" novalidate>
@@ -32,13 +32,13 @@
                             <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
                             <div class="mb-3">
-                                <label asp-for="Username" class="form-label"></label>
+                                <label asp-for="Username" class="form-label">@T["auth.username"]</label>
                                 <input asp-for="Username" class="form-control" autocomplete="username" />
                                 <span asp-validation-for="Username" class="text-danger"></span>
                             </div>
 
                             <div class="mb-3">
-                                <label asp-for="Password" class="form-label"></label>
+                                <label asp-for="Password" class="form-label">@T["auth.password"]</label>
                                 <div class="input-group">
                                     <input asp-for="Password" class="form-control" autocomplete="current-password" id="passwordInput" />
                                     <button class="btn btn-outline-secondary" type="button" id="togglePassword" aria-label="Toggle password visibility">
@@ -50,12 +50,12 @@
 
                             <div class="form-check mb-3">
                                 <input asp-for="RememberMe" class="form-check-input" />
-                                <label asp-for="RememberMe" class="form-check-label"></label>
+                                <label asp-for="RememberMe" class="form-check-label">@T["auth.remember_me"]</label>
                             </div>
 
                             <button type="submit" class="btn btn-primary w-100" id="loginButton">
                                 <span class="spinner-border spinner-border-sm me-2 d-none" id="loginSpinner" role="status" aria-hidden="true"></span>
-                                <span>Sign In</span>
+                                <span>@T["auth.sign_in"]</span>
                             </button>
                         </form>
                     </div>

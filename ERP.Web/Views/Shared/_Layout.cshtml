@@ -18,7 +18,7 @@
                     <span class="navbar-toggler-icon"></span>
                 </button>
                 <div class="collapse navbar-collapse" id="mainNav">
-                    <partial name="_NavMenu" />
+                    @await Component.InvokeAsync("NavMenu")
                     <div class="ms-auto d-flex align-items-center gap-3">
                         <partial name="_LanguageSwitcher" />
                         <partial name="_UserDropdown" />
@@ -30,6 +30,12 @@
 
     <main class="container-fluid px-3 px-md-4 py-4">
         <partial name="_Breadcrumb" />
+
+        @if (TempData["SuccessMessage"] is string successMessage)
+        {
+            <div class="alert alert-success" role="alert">@successMessage</div>
+        }
+
         @RenderBody()
     </main>
 

@@ -1,4 +1,9 @@
+@{
+    var returnUrl = Context.Request.Path + Context.Request.QueryString;
+    var current = T.CurrentLanguage;
+}
+
 <div class="btn-group btn-group-sm" role="group" aria-label="Language switcher">
-    <button type="button" class="btn btn-outline-secondary active">EN</button>
-    <button type="button" class="btn btn-outline-secondary">ID</button>
+    <a class="btn btn-outline-secondary @(current == "en" ? "active" : string.Empty)" href="/language/set?culture=en&returnUrl=@Uri.EscapeDataString(returnUrl)">EN</a>
+    <a class="btn btn-outline-secondary @(current == "id" ? "active" : string.Empty)" href="/language/set?culture=id&returnUrl=@Uri.EscapeDataString(returnUrl)">ID</a>
 </div>

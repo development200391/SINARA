@@ -1,0 +1,56 @@
+@model IEnumerable<ERP.Application.DTOs.Config.NavigationModuleDto>
+
+<ul class="navbar-nav me-auto mb-2 mb-lg-0">
+@foreach (var module in Model)
+{
+    <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            @if (!string.IsNullOrWhiteSpace(module.ModuleIcon))
+            {
+                <i class="bi @module.ModuleIcon me-1"></i>
+            }
+            @module.ModuleName
+        </a>
+        <ul class="dropdown-menu dropdown-menu-large">
+            @for (var i = 0; i < module.Menus.Count; i++)
+            {
+                var menu = module.Menus[i];
+
+                if (menu.Children.Count == 0)
+                {
+                    <li>
+                        <a class="dropdown-item" href="@(string.IsNullOrWhiteSpace(menu.Url) ? "#" : menu.Url)">
+                            @if (!string.IsNullOrWhiteSpace(menu.Icon))
+                            {
+                                <i class="bi @menu.Icon me-2"></i>
+                            }
+                            @menu.Name
+                        </a>
+                    </li>
+                }
+                else
+                {
+                    <li><h6 class="dropdown-header">@menu.Name</h6></li>
+                    foreach (var child in menu.Children)
+                    {
+                        <li>
+                            <a class="dropdown-item" href="@(string.IsNullOrWhiteSpace(child.Url) ? "#" : child.Url)">
+                                @if (!string.IsNullOrWhiteSpace(child.Icon))
+                                {
+                                    <i class="bi @child.Icon me-2"></i>
+                                }
+                                @child.Name
+                            </a>
+                        </li>
+                    }
+                }
+
+                if (i < module.Menus.Count - 1)
+                {
+                    <li><hr class="dropdown-divider" /></li>
+                }
+            }
+        </ul>
+    </li>
+}
+</ul>

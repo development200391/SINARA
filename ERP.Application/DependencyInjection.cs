@@ -1,5 +1,6 @@
 using ERP.Application.Options;
 using ERP.Application.Services;
+using ERP.Application.Services.Config;
 using ERP.Domain.Entities.System;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
@@ -14,8 +15,15 @@ public static class DependencyInjection
         services.Configure<JwtSettings>(configuration.GetSection(JwtSettings.SectionName));
 
         services.AddScoped<IPasswordHasher<SysUser>, PasswordHasher<SysUser>>();
+
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IAuditService, AuditService>();
+
+        services.AddScoped<IUserService, UserService>();
+        services.AddScoped<IRoleService, RoleService>();
+        services.AddScoped<IMenuService, MenuService>();
+        services.AddScoped<IModuleService, ModuleService>();
+        services.AddScoped<IAppSettingsService, AppSettingsService>();
 
         return services;
     }

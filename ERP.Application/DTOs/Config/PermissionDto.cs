@@ -3,7 +3,7 @@ namespace ERP.Application.DTOs.Config;
 public sealed class PermissionMatrixDto
 {
     public int RoleId { get; set; }
-    public IReadOnlyList<MenuPermissionDto> Permissions { get; set; } = [];
+    public List<MenuPermissionDto> Permissions { get; set; } = [];
 }
 
 public sealed class MenuPermissionDto
