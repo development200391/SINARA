@@ -17,6 +17,7 @@ public sealed class HrAttendanceController(IHrApiClient hrApiClient) : Controlle
 {
     private const int DefaultPageSize = 20;
     private const string DefaultSortBy = "date";
+    private const string DefaultReportSortBy = "employeeName";
     private static readonly string[] DateTimeInputFormats = ["yyyy-MM-ddTHH:mm", "yyyy-MM-ddTHH:mm:ss"];
     private static readonly string[] TimeInputFormats = ["HH:mm", "HH:mm:ss"];
 
@@ -112,6 +113,147 @@ public sealed class HrAttendanceController(IHrApiClient hrApiClient) : Controlle
         });
     }
 
+    [HttpGet("report")]
+    public async Task<IActionResult> Report(
+        int page = 1,
+        int pageSize = DefaultPageSize,
+        string? sortBy = DefaultReportSortBy,
+        string? sortDirection = "asc",
+        string? period = null,
+        int? departmentId = null,
+        int? employeeId = null,
+        string? status = null,
+        CancellationToken ct = default)
+    {
+        var accessToken = GetAccessToken();
+        if (string.IsNullOrWhiteSpace(accessToken))
+        {
+            return RedirectToAction("Login", "Auth", new { returnUrl = Request.Path + Request.QueryString });
+        }
+
+        var normalizedPage = page <= 0 ? 1 : page;
+        var normalizedPageSize = NormalizePageSize(pageSize);
+        var normalizedSortBy = NormalizeAttendanceReportSortBy(sortBy);
+        var normalizedSortDirection = NormalizeSortDirection(sortDirection);
+        var normalizedStatus = NormalizeAttendanceReportStatus(status);
+        var (periodYear, periodMonth, normalizedPeriod) = NormalizeAttendanceReportPeriod(period);
+
+        var settingsTask = hrApiClient.GetAttendanceSettingAsync(accessToken, ct);
+        var departmentsTask = hrApiClient.GetDepartmentOptionsAsync(accessToken, ct);
+        var employeesTask = hrApiClient.GetEmployeeOptionsAsync(accessToken, ct);
+
+        await Task.WhenAll(settingsTask, departmentsTask, employeesTask);
+
+        var attendanceSetting = await settingsTask ?? new AttendanceSettingDto();
+        var (periodStart, periodEnd, periodDisplay) = BuildAttendanceReportPeriodRange(periodYear, periodMonth, attendanceSetting);
+
+        var attendanceItems = await GetAttendanceReportItemsAsync(
+            accessToken,
+            periodStart,
+            periodEnd,
+            departmentId,
+            employeeId,
+            ct);
+
+        var lateThresholdTime = attendanceSetting.WorkStart.AddMinutes(Math.Max(0, attendanceSetting.CheckInToleranceMinutes));
+
+        var groupedRows = attendanceItems
+            .GroupBy(x => new { x.EmployeeId, x.EmployeeName, x.DepartmentName })
+            .Select(group =>
+            {
+                var presentCount = 0;
+                var lateCount = 0;
+                var absentCount = 0;
+                var leaveCount = 0;
+
+                foreach (var item in group)
+                {
+                    if (item.Status == AttendanceStatus.Absent)
+                    {
+                        absentCount++;
+                        continue;
+                    }
+
+                    if (IsAttendanceReportLeave(item))
+                    {
+                        leaveCount++;
+                        continue;
+                    }
+
+                    if (IsAttendanceReportLate(item, lateThresholdTime))
+                    {
+                        lateCount++;
+                        continue;
+                    }
+
+                    presentCount++;
+                }
+
+                return new HrAttendanceReportRowViewModel
+                {
+                    EmployeeId = group.Key.EmployeeId,
+                    EmployeeName = group.Key.EmployeeName,
+                    DepartmentName = group.Key.DepartmentName,
+                    PresentCount = presentCount,
+                    LateCount = lateCount,
+                    AbsentCount = absentCount,
+                    LeaveCount = leaveCount,
+                    DominantStatus = DetermineAttendanceReportDominantStatus(presentCount, lateCount, absentCount, leaveCount)
+                };
+            })
+            .ToList();
+
+        IEnumerable<HrAttendanceReportRowViewModel> filteredRows = groupedRows;
+
+        if (!string.IsNullOrWhiteSpace(normalizedStatus))
+        {
+            filteredRows = filteredRows.Where(x => string.Equals(x.DominantStatus, normalizedStatus, StringComparison.OrdinalIgnoreCase));
+        }
+
+        var sortedRows = ApplyAttendanceReportSorting(filteredRows, normalizedSortBy, normalizedSortDirection).ToList();
+
+        var totalEmployees = sortedRows.Count;
+        var totalPresenceDays = sortedRows.Sum(x => x.PresentCount + x.LateCount);
+        var totalWorkDays = sortedRows.Sum(x => x.PresentCount + x.LateCount + x.AbsentCount + x.LeaveCount);
+        var totalLateCount = sortedRows.Sum(x => x.LateCount);
+        var totalAbsentCount = sortedRows.Sum(x => x.AbsentCount);
+        var attendancePercentage = totalWorkDays <= 0
+            ? 0m
+            : Math.Round((decimal)totalPresenceDays * 100m / totalWorkDays, 1);
+
+        var pagedRows = sortedRows
+            .Skip((normalizedPage - 1) * normalizedPageSize)
+            .Take(normalizedPageSize)
+            .ToList();
+
+        ViewData["Title"] = "Attendance Report";
+        ViewData["Breadcrumb"] = "HR / Attendance / Report";
+
+        return View(new HrAttendanceReportViewModel
+        {
+            PageSize = normalizedPageSize,
+            SortBy = normalizedSortBy,
+            SortDirection = normalizedSortDirection,
+            Period = normalizedPeriod,
+            PeriodDisplay = periodDisplay,
+            DepartmentIdFilter = departmentId,
+            EmployeeIdFilter = employeeId,
+            StatusFilter = normalizedStatus,
+            TotalEmployees = totalEmployees,
+            TotalPresenceDays = totalPresenceDays,
+            TotalWorkDays = totalWorkDays,
+            TotalLateCount = totalLateCount,
+            TotalAbsentCount = totalAbsentCount,
+            AttendancePercentage = attendancePercentage,
+            Departments = (await departmentsTask)
+                .OrderBy(x => x.Name)
+                .ToList(),
+            Employees = (await employeesTask)
+                .OrderBy(x => x.Name)
+                .ToList(),
+            Reports = PagedResult<HrAttendanceReportRowViewModel>.Create(pagedRows, totalEmployees, normalizedPage, normalizedPageSize)
+        });
+    }
     [HttpGet("setting")]
     public async Task<IActionResult> Setting(CancellationToken ct = default)
     {
@@ -405,6 +547,222 @@ public sealed class HrAttendanceController(IHrApiClient hrApiClient) : Controlle
         model.Employees = employees;
     }
 
+    private async Task<IReadOnlyList<AttendanceReportDto>> GetAttendanceReportItemsAsync(
+        string accessToken,
+        DateOnly periodStart,
+        DateOnly periodEnd,
+        int? departmentId,
+        int? employeeId,
+        CancellationToken ct)
+    {
+        var records = new List<AttendanceReportDto>();
+        var page = 1;
+        const int pageSize = 500;
+
+        while (true)
+        {
+            var response = await hrApiClient.GetAttendancesAsync(accessToken, new AttendanceReportRequest
+            {
+                Page = page,
+                PageSize = pageSize,
+                SortBy = "date",
+                SortDirection = "asc",
+                DepartmentId = departmentId,
+                EmployeeId = employeeId,
+                DateFrom = periodStart,
+                DateTo = periodEnd
+            }, ct);
+
+            if (response is null || response.Items.Count == 0)
+            {
+                break;
+            }
+
+            records.AddRange(response.Items);
+
+            if (page >= response.TotalPages)
+            {
+                break;
+            }
+
+            page++;
+        }
+
+        return records;
+    }
+
+    private static string DetermineAttendanceReportDominantStatus(int presentCount, int lateCount, int absentCount, int leaveCount)
+    {
+        if (absentCount >= leaveCount && absentCount >= lateCount && absentCount > 0)
+        {
+            return "Absent";
+        }
+
+        if (leaveCount >= lateCount && leaveCount > 0)
+        {
+            return "Cuti";
+        }
+
+        if (lateCount > 0)
+        {
+            return "Terlambat";
+        }
+
+        return "Hadir";
+    }
+
+    private static bool IsAttendanceReportLeave(AttendanceReportDto item)
+    {
+        if (item.Status == AttendanceStatus.HalfDay)
+        {
+            return true;
+        }
+
+        return !string.IsNullOrWhiteSpace(item.Notes)
+            && item.Notes.Contains("cuti", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsAttendanceReportLate(AttendanceReportDto item, TimeOnly lateThreshold)
+    {
+        if (item.Status == AttendanceStatus.Late)
+        {
+            return true;
+        }
+
+        if (!item.CheckIn.HasValue)
+        {
+            return false;
+        }
+
+        var localCheckIn = item.CheckIn.Value.ToLocalTime().TimeOfDay;
+        var thresholdTime = lateThreshold.ToTimeSpan();
+        return localCheckIn > thresholdTime;
+    }
+
+    private static IEnumerable<HrAttendanceReportRowViewModel> ApplyAttendanceReportSorting(
+        IEnumerable<HrAttendanceReportRowViewModel> rows,
+        string sortBy,
+        string sortDirection)
+    {
+        var isDesc = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+
+        return sortBy switch
+        {
+            "departmentName" => isDesc
+                ? rows.OrderByDescending(x => x.DepartmentName).ThenBy(x => x.EmployeeName)
+                : rows.OrderBy(x => x.DepartmentName).ThenBy(x => x.EmployeeName),
+
+            "hadir" => isDesc
+                ? rows.OrderByDescending(x => x.PresentCount).ThenBy(x => x.EmployeeName)
+                : rows.OrderBy(x => x.PresentCount).ThenBy(x => x.EmployeeName),
+
+            "terlambat" => isDesc
+                ? rows.OrderByDescending(x => x.LateCount).ThenBy(x => x.EmployeeName)
+                : rows.OrderBy(x => x.LateCount).ThenBy(x => x.EmployeeName),
+
+            "absent" => isDesc
+                ? rows.OrderByDescending(x => x.AbsentCount).ThenBy(x => x.EmployeeName)
+                : rows.OrderBy(x => x.AbsentCount).ThenBy(x => x.EmployeeName),
+
+            "cuti" => isDesc
+                ? rows.OrderByDescending(x => x.LeaveCount).ThenBy(x => x.EmployeeName)
+                : rows.OrderBy(x => x.LeaveCount).ThenBy(x => x.EmployeeName),
+
+            "status" => isDesc
+                ? rows.OrderByDescending(x => GetAttendanceReportStatusRank(x.DominantStatus)).ThenBy(x => x.EmployeeName)
+                : rows.OrderBy(x => GetAttendanceReportStatusRank(x.DominantStatus)).ThenBy(x => x.EmployeeName),
+
+            _ => isDesc
+                ? rows.OrderByDescending(x => x.EmployeeName)
+                : rows.OrderBy(x => x.EmployeeName)
+        };
+    }
+
+    private static int GetAttendanceReportStatusRank(string? status)
+    {
+        return status?.Trim().ToLowerInvariant() switch
+        {
+            "hadir" => 0,
+            "terlambat" => 1,
+            "cuti" => 2,
+            "absent" => 3,
+            _ => 4
+        };
+    }
+
+    private static string NormalizeAttendanceReportSortBy(string? sortBy)
+    {
+        if (string.IsNullOrWhiteSpace(sortBy))
+        {
+            return DefaultReportSortBy;
+        }
+
+        return sortBy.Trim().ToLowerInvariant() switch
+        {
+            "employeename" => "employeeName",
+            "departmentname" => "departmentName",
+            "hadir" => "hadir",
+            "terlambat" => "terlambat",
+            "absent" => "absent",
+            "cuti" => "cuti",
+            "status" => "status",
+            _ => DefaultReportSortBy
+        };
+    }
+
+    private static string? NormalizeAttendanceReportStatus(string? status)
+    {
+        if (string.IsNullOrWhiteSpace(status))
+        {
+            return null;
+        }
+
+        return status.Trim().ToLowerInvariant() switch
+        {
+            "hadir" => "Hadir",
+            "terlambat" => "Terlambat",
+            "absent" => "Absent",
+            "cuti" => "Cuti",
+            _ => null
+        };
+    }
+
+    private static (int Year, int Month, string Period) NormalizeAttendanceReportPeriod(string? period)
+    {
+        if (!string.IsNullOrWhiteSpace(period)
+            && DateTime.TryParseExact(period.Trim(), "yyyy-MM", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedPeriod))
+        {
+            return (parsedPeriod.Year, parsedPeriod.Month, parsedPeriod.ToString("yyyy-MM", CultureInfo.InvariantCulture));
+        }
+
+        var now = DateTime.Today;
+        return (now.Year, now.Month, now.ToString("yyyy-MM", CultureInfo.InvariantCulture));
+    }
+
+    private static (DateOnly Start, DateOnly End, string Display) BuildAttendanceReportPeriodRange(
+        int year,
+        int month,
+        AttendanceSettingDto attendanceSetting)
+    {
+        var normalizedStartDay = Math.Clamp(attendanceSetting.AttendancePeriodStartDay, 1, 31);
+        var normalizedEndDay = Math.Clamp(attendanceSetting.AttendancePeriodEndDay, 1, 31);
+
+        var periodEnd = CreateSafeDate(year, month, normalizedEndDay);
+        DateOnly periodStart;
+
+        if (normalizedStartDay > normalizedEndDay)
+        {
+            var previousMonth = periodEnd.AddMonths(-1);
+            periodStart = CreateSafeDate(previousMonth.Year, previousMonth.Month, normalizedStartDay);
+        }
+        else
+        {
+            periodStart = CreateSafeDate(periodEnd.Year, periodEnd.Month, normalizedStartDay);
+        }
+
+        var periodDisplay = $"{periodStart:dd MMM yyyy} - {periodEnd:dd MMM yyyy}";
+        return (periodStart, periodEnd, periodDisplay);
+    }
     private static HrAttendanceSettingViewModel MapSettingViewModel(AttendanceSettingDto dto)
     {
         return new HrAttendanceSettingViewModel
@@ -538,5 +896,10 @@ public sealed class HrAttendanceController(IHrApiClient hrApiClient) : Controlle
 
     private string? GetAccessToken() => User.FindFirstValue("access_token");
 }
+
+
+
+
+
 
 

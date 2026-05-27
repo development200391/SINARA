@@ -1,0 +1,158 @@
+@model ERP.Web.ViewModels.HR.HrAttendanceReportViewModel
+@using ERP.Web.ViewModels.Shared
+@using Microsoft.AspNetCore.Html
+@using System.Globalization
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-1">Attendance Report</h1>
+        <p class="text-muted mb-4">Periode aktif: @Model.PeriodDisplay</p>
+
+        <form method="get" class="row g-3 align-items-end mb-4">
+            <div class="col-lg-3 col-md-6">
+                <label class="form-label text-uppercase small fw-semibold">Periode</label>
+                <input type="month" class="form-control" name="period" value="@Model.Period" />
+            </div>
+
+            <div class="col-lg-3 col-md-6">
+                <label class="form-label text-uppercase small fw-semibold">Departemen</label>
+                <select class="form-select" name="departmentId">
+                    <option value="">Semua Departemen</option>
+                    @foreach (var department in Model.Departments)
+                    {
+                        <option value="@department.Id" selected="@(Model.DepartmentIdFilter == department.Id)">@department.Name</option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-lg-3 col-md-6">
+                <label class="form-label text-uppercase small fw-semibold">Karyawan</label>
+                <select class="form-select" name="employeeId">
+                    <option value="">Semua Karyawan</option>
+                    @foreach (var employee in Model.Employees)
+                    {
+                        <option value="@employee.Id" selected="@(Model.EmployeeIdFilter == employee.Id)">@employee.Name</option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-lg-3 col-md-6">
+                <label class="form-label text-uppercase small fw-semibold">Status</label>
+                <select class="form-select" name="status">
+                    <option value="" selected="@(string.IsNullOrWhiteSpace(Model.StatusFilter))">Semua Status</option>
+                    <option value="Hadir" selected="@(string.Equals(Model.StatusFilter, "Hadir", StringComparison.OrdinalIgnoreCase))">Hadir</option>
+                    <option value="Terlambat" selected="@(string.Equals(Model.StatusFilter, "Terlambat", StringComparison.OrdinalIgnoreCase))">Terlambat</option>
+                    <option value="Absent" selected="@(string.Equals(Model.StatusFilter, "Absent", StringComparison.OrdinalIgnoreCase))">Absent</option>
+                    <option value="Cuti" selected="@(string.Equals(Model.StatusFilter, "Cuti", StringComparison.OrdinalIgnoreCase))">Cuti</option>
+                </select>
+            </div>
+
+            <input type="hidden" name="sortBy" value="@Model.SortBy" />
+            <input type="hidden" name="sortDirection" value="@Model.SortDirection" />
+            <input type="hidden" name="pageSize" value="@Model.PageSize" />
+
+            <div class="col-12">
+                <button type="submit" class="btn btn-outline-primary px-4">
+                    <i class="bi bi-funnel"></i>
+                    Terapkan Filter
+                </button>
+            </div>
+        </form>
+
+        <div class="row g-3 mb-4">
+            <div class="col-lg-3 col-md-6">
+                <div class="border rounded p-3 h-100">
+                    <div class="text-muted small">Total Karyawan</div>
+                    <div class="fs-3 fw-semibold">@Model.TotalEmployees.ToString("N0", CultureInfo.InvariantCulture)</div>
+                    <div class="text-muted small">aktif pada periode ini</div>
+                </div>
+            </div>
+
+            <div class="col-lg-3 col-md-6">
+                <div class="border rounded p-3 h-100">
+                    <div class="text-muted small">Kehadiran</div>
+                    <div class="fs-3 fw-semibold text-success">@Model.AttendancePercentage.ToString("0.#", CultureInfo.InvariantCulture)%</div>
+                    <div class="text-muted small">@Model.TotalPresenceDays.ToString("N0", CultureInfo.InvariantCulture) / @Model.TotalWorkDays.ToString("N0", CultureInfo.InvariantCulture) hari kerja</div>
+                </div>
+            </div>
+
+            <div class="col-lg-3 col-md-6">
+                <div class="border rounded p-3 h-100">
+                    <div class="text-muted small">Terlambat</div>
+                    <div class="fs-3 fw-semibold text-warning">@Model.TotalLateCount.ToString("N0", CultureInfo.InvariantCulture)</div>
+                    <div class="text-muted small">kejadian periode ini</div>
+                </div>
+            </div>
+
+            <div class="col-lg-3 col-md-6">
+                <div class="border rounded p-3 h-100">
+                    <div class="text-muted small">Absent Tanpa Keterangan</div>
+                    <div class="fs-3 fw-semibold text-danger">@Model.TotalAbsentCount.ToString("N0", CultureInfo.InvariantCulture)</div>
+                    <div class="text-muted small">hari tidak masuk</div>
+                </div>
+            </div>
+        </div>
+
+        @{
+            var selectedDepartmentId = Model.DepartmentIdFilter?.ToString(CultureInfo.InvariantCulture);
+            var selectedEmployeeId = Model.EmployeeIdFilter?.ToString(CultureInfo.InvariantCulture);
+
+            var gridModel = new PagedGridViewModel
+            {
+                Columns =
+                [
+                    new PagedGridColumnViewModel { Key = "employeeName", Title = "Nama Karyawan", Sortable = true },
+                    new PagedGridColumnViewModel { Key = "departmentName", Title = "Departemen", Sortable = true },
+                    new PagedGridColumnViewModel { Key = "hadir", Title = "Hadir", Sortable = true, CellClass = "text-end" },
+                    new PagedGridColumnViewModel { Key = "terlambat", Title = "Terlambat", Sortable = true, CellClass = "text-end" },
+                    new PagedGridColumnViewModel { Key = "absent", Title = "Absent", Sortable = true, CellClass = "text-end" },
+                    new PagedGridColumnViewModel { Key = "cuti", Title = "Cuti", Sortable = true, CellClass = "text-end" },
+                    new PagedGridColumnViewModel { Key = "status", Title = "Status", Sortable = true }
+                ],
+                Rows = Model.Reports.Items.Select(item => new PagedGridRowViewModel
+                {
+                    Cells =
+                    [
+                        new PagedGridCellViewModel { Text = item.EmployeeName },
+                        new PagedGridCellViewModel { Text = item.DepartmentName },
+                        new PagedGridCellViewModel { Text = item.PresentCount.ToString("N0", CultureInfo.InvariantCulture), CellClass = "text-end" },
+                        new PagedGridCellViewModel { Text = item.LateCount.ToString("N0", CultureInfo.InvariantCulture), CellClass = "text-end" },
+                        new PagedGridCellViewModel { Text = item.AbsentCount.ToString("N0", CultureInfo.InvariantCulture), CellClass = "text-end" },
+                        new PagedGridCellViewModel { Text = item.LeaveCount.ToString("N0", CultureInfo.InvariantCulture), CellClass = "text-end" },
+                        new PagedGridCellViewModel
+                        {
+                            Html = new HtmlString(item.DominantStatus switch
+                            {
+                                "Absent" => "<span class=\"badge text-bg-danger\">Absent</span>",
+                                "Cuti" => "<span class=\"badge text-bg-info\">Cuti</span>",
+                                "Terlambat" => "<span class=\"badge text-bg-warning\">Terlambat</span>",
+                                _ => "<span class=\"badge text-bg-success\">Hadir</span>"
+                            })
+                        }
+                    ]
+                }).ToList(),
+                EmptyMessage = T["msg.no_data"],
+                Page = Model.Reports.Page,
+                TotalPages = Model.Reports.TotalPages,
+                PageSize = Model.PageSize,
+                SortBy = Model.SortBy,
+                SortDirection = Model.SortDirection,
+                EnableSearch = false,
+                RouteValues = new Dictionary<string, string?>
+                {
+                    ["period"] = Model.Period,
+                    ["departmentId"] = selectedDepartmentId,
+                    ["employeeId"] = selectedEmployeeId,
+                    ["status"] = Model.StatusFilter
+                },
+                Actions = new PagedGridActionConfigViewModel
+                {
+                    ActionColumnTitle = "Action"
+                }
+            };
+        }
+
+        @await Component.InvokeAsync("PagedGrid", gridModel)
+    </div>
+</div>
+
