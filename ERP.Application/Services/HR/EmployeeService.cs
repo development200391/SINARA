@@ -1,3 +1,4 @@
+using System.Globalization;
 using ERP.Application.DTOs.Common;
 using ERP.Application.DTOs.HR;
 using ERP.Domain.Entities.HR;
@@ -9,6 +10,8 @@ namespace ERP.Application.Services.HR;
 public sealed class EmployeeService(IUnitOfWork unitOfWork) : IEmployeeService
 {
     private const string DefaultSortBy = "fullName";
+    private const string EmployeeCodePrefix = "EMP";
+    private const int EmployeeCodeDigits = 7;
 
     public async Task<PagedResult<EmployeeListDto>> GetPagedAsync(EmployeePagedRequest request, CancellationToken ct = default)
     {
@@ -146,17 +149,16 @@ public sealed class EmployeeService(IUnitOfWork unitOfWork) : IEmployeeService
 
     public async Task<EmployeeDetailDto> CreateAsync(CreateEmployeeRequest request, CancellationToken ct = default)
     {
-        var normalizedCode = NormalizeRequiredText(request.EmployeeCode, "Employee code is required.");
+        var generatedCode = await GenerateNextEmployeeCodeAsync(ct);
         var normalizedFullName = NormalizeRequiredText(request.FullName, "Employee full name is required.");
         var normalizedEmail = NormalizeText(request.Email);
         var normalizedPhone = NormalizeText(request.Phone);
 
         await ValidateDepartmentAndPositionAsync(request.DepartmentId, request.PositionId, ct);
-        await EnsureUniqueEmployeeCodeAsync(normalizedCode, null, ct);
 
         var entity = new HrEmployee
         {
-            EmployeeCode = normalizedCode,
+            EmployeeCode = generatedCode,
             FullName = normalizedFullName,
             Email = normalizedEmail,
             Phone = normalizedPhone,
@@ -185,7 +187,6 @@ public sealed class EmployeeService(IUnitOfWork unitOfWork) : IEmployeeService
             return null;
         }
 
-        var normalizedCode = NormalizeRequiredText(request.EmployeeCode, "Employee code is required.");
         var normalizedFullName = NormalizeRequiredText(request.FullName, "Employee full name is required.");
         var normalizedEmail = NormalizeText(request.Email);
         var normalizedPhone = NormalizeText(request.Phone);
@@ -196,9 +197,7 @@ public sealed class EmployeeService(IUnitOfWork unitOfWork) : IEmployeeService
         }
 
         await ValidateDepartmentAndPositionAsync(request.DepartmentId, request.PositionId, ct);
-        await EnsureUniqueEmployeeCodeAsync(normalizedCode, id, ct);
 
-        entity.EmployeeCode = normalizedCode;
         entity.FullName = normalizedFullName;
         entity.Email = normalizedEmail;
         entity.Phone = normalizedPhone;
@@ -317,22 +316,47 @@ public sealed class EmployeeService(IUnitOfWork unitOfWork) : IEmployeeService
         };
     }
 
-    private async Task EnsureUniqueEmployeeCodeAsync(string employeeCode, int? currentId, CancellationToken ct)
+    private async Task<string> GenerateNextEmployeeCodeAsync(CancellationToken ct)
     {
-        var normalizedCode = employeeCode.ToLowerInvariant();
-
-        var exists = await unitOfWork.Repository<HrEmployee>()
+        var existingCodes = await unitOfWork.Repository<HrEmployee>()
             .Query()
             .IgnoreQueryFilters()
-            .AnyAsync(x =>
-                x.Id != (currentId ?? 0) &&
-                x.EmployeeCode.ToLower() == normalizedCode,
-                ct);
+            .AsNoTracking()
+            .Select(x => x.EmployeeCode)
+            .ToListAsync(ct);
 
-        if (exists)
+        var maxNumber = 0;
+
+        foreach (var code in existingCodes)
         {
-            throw new InvalidOperationException("Employee code already exists.");
+            var parsedNumber = ParseEmployeeCodeNumber(code);
+            if (parsedNumber > maxNumber)
+            {
+                maxNumber = parsedNumber;
+            }
         }
+
+        var nextNumber = maxNumber + 1;
+        return EmployeeCodePrefix + nextNumber.ToString($"D{EmployeeCodeDigits}", CultureInfo.InvariantCulture);
+    }
+
+    private static int ParseEmployeeCodeNumber(string? employeeCode)
+    {
+        if (string.IsNullOrWhiteSpace(employeeCode))
+        {
+            return 0;
+        }
+
+        var normalized = employeeCode.Trim();
+        if (!normalized.StartsWith(EmployeeCodePrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            return 0;
+        }
+
+        var numberPart = normalized[EmployeeCodePrefix.Length..];
+        return int.TryParse(numberPart, NumberStyles.None, CultureInfo.InvariantCulture, out var parsed)
+            ? parsed
+            : 0;
     }
 
     private async Task ValidateDepartmentAndPositionAsync(int departmentId, int positionId, CancellationToken ct)

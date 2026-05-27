@@ -8,7 +8,6 @@ public sealed class HrEmployeeEditViewModel
 {
     public int Id { get; set; }
 
-    [Required]
     [MaxLength(20)]
     public string EmployeeCode { get; set; } = string.Empty;
 

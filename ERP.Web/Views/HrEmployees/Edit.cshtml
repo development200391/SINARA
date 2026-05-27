@@ -11,9 +11,8 @@
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
             <div class="col-md-4">
-                <label asp-for="EmployeeCode" class="form-label"></label>
-                <input asp-for="EmployeeCode" class="form-control" />
-                <span asp-validation-for="EmployeeCode" class="text-danger"></span>
+                <label class="form-label">@T["label.employee_code"]</label>
+                <input type="text" class="form-control" value="@Model.EmployeeCode" disabled />
             </div>
 
             <div class="col-md-8">
