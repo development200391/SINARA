@@ -27,7 +27,7 @@ public interface IConfigApiClient
     Task<bool> DeleteMenuAsync(string accessToken, int id, CancellationToken ct = default);
     Task<bool> ReorderMenusAsync(string accessToken, int moduleId, IReadOnlyList<int> orderedMenuIds, CancellationToken ct = default);
 
-    Task<PagedResult<AuditLogDto>?> GetAuditLogsAsync(string accessToken, PagedRequest request, CancellationToken ct = default);
+    Task<PagedResult<AuditLogDto>?> GetAuditLogsAsync(string accessToken, AuditLogPagedRequest request, CancellationToken ct = default);
 
     Task<AppSettingsDto?> GetSettingsAsync(string accessToken, CancellationToken ct = default);
     Task<AppSettingsDto?> UpdateSettingsAsync(string accessToken, AppSettingsDto request, CancellationToken ct = default);

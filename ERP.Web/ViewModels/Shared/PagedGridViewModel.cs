@@ -37,6 +37,39 @@ public sealed class PagedGridColumnViewModel
     public bool Sortable { get; init; }
     public string HeaderClass { get; init; } = string.Empty;
     public string CellClass { get; init; } = string.Empty;
+    public PagedGridFilterViewModel? Filter { get; init; }
+}
+
+public enum PagedGridFilterType
+{
+    DateRange,
+    Select,
+    Checkbox,
+    MultiSelect
+}
+
+public sealed class PagedGridFilterViewModel
+{
+    public PagedGridFilterType Type { get; init; }
+    public string QueryKey { get; init; } = string.Empty;
+    public string? QueryKeyTo { get; init; }
+    public string? Value { get; init; }
+    public string? ValueTo { get; init; }
+    public bool IsChecked { get; init; }
+    public string CheckedValue { get; init; } = "true";
+    public string? Placeholder { get; init; }
+    public string? PlaceholderTo { get; init; }
+    public string EmptyOptionLabel { get; init; } = "All";
+    public string Label { get; init; } = "Yes";
+    public int Size { get; init; } = 4;
+    public IReadOnlyList<string> Values { get; init; } = [];
+    public IReadOnlyList<PagedGridFilterOptionViewModel> Options { get; init; } = [];
+}
+
+public sealed class PagedGridFilterOptionViewModel
+{
+    public string Value { get; init; } = string.Empty;
+    public string Label { get; init; } = string.Empty;
 }
 
 public sealed class PagedGridRowViewModel

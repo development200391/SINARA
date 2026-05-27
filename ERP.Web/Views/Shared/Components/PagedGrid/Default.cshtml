@@ -23,6 +23,82 @@
     var searchInputId = $"search-{Guid.NewGuid():N}";
     var searchPlaceholder = string.IsNullOrWhiteSpace(Model.SearchPlaceholder) ? "Search" : Model.SearchPlaceholder;
 
+    var hasColumnFilters = Model.Columns.Any(x => x.Filter is not null);
+    var filterFormId = $"grid-filter-{Guid.NewGuid():N}";
+    var filterSubmitScript = $"document.getElementById('{filterFormId}')?.requestSubmit();";
+
+    void AddFilterRouteValues(Dictionary<string, string?> values)
+    {
+        foreach (var column in Model.Columns)
+        {
+            var filter = column.Filter;
+            if (filter is null || string.IsNullOrWhiteSpace(filter.QueryKey))
+            {
+                continue;
+            }
+
+            switch (filter.Type)
+            {
+                case ERP.Web.ViewModels.Shared.PagedGridFilterType.DateRange:
+                    values[filter.QueryKey] = filter.Value;
+
+                    if (!string.IsNullOrWhiteSpace(filter.QueryKeyTo))
+                    {
+                        values[filter.QueryKeyTo] = filter.ValueTo;
+                    }
+                    break;
+
+                case ERP.Web.ViewModels.Shared.PagedGridFilterType.Select:
+                    values[filter.QueryKey] = filter.Value;
+                    break;
+
+                case ERP.Web.ViewModels.Shared.PagedGridFilterType.Checkbox:
+                    values[filter.QueryKey] = filter.IsChecked
+                        ? (string.IsNullOrWhiteSpace(filter.CheckedValue) ? "true" : filter.CheckedValue)
+                        : null;
+                    break;
+
+                case ERP.Web.ViewModels.Shared.PagedGridFilterType.MultiSelect:
+                    var normalizedValues = filter.Values
+                        .Where(x => !string.IsNullOrWhiteSpace(x))
+                        .Select(x => x.Trim())
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .ToArray();
+
+                    values[filter.QueryKey] = normalizedValues.Length > 0
+                        ? string.Join(",", normalizedValues)
+                        : null;
+                    break;
+            }
+        }
+    }
+
+    HashSet<string> GetFilterQueryKeys()
+    {
+        var keys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var column in Model.Columns)
+        {
+            var filter = column.Filter;
+            if (filter is null)
+            {
+                continue;
+            }
+
+            if (!string.IsNullOrWhiteSpace(filter.QueryKey))
+            {
+                keys.Add(filter.QueryKey);
+            }
+
+            if (!string.IsNullOrWhiteSpace(filter.QueryKeyTo))
+            {
+                keys.Add(filter.QueryKeyTo);
+            }
+        }
+
+        return keys;
+    }
+
     Dictionary<string, string?> BuildRouteValues(
         string? page = null,
         int? pageSize = null,
@@ -41,6 +117,8 @@
             values[Model.SearchQueryKey] = search ?? Model.SearchValue;
         }
 
+        AddFilterRouteValues(values);
+
         values[Model.PageSizeQueryKey] = (pageSize ?? safePageSize).ToString(CultureInfo.InvariantCulture);
         values[Model.SortByQueryKey] = sortBy ?? currentSortBy;
         values[Model.SortDirectionQueryKey] = sortDirection ?? normalizedSortDirection;
@@ -55,6 +133,8 @@
 
     var searchFormRouteValues = BuildRouteValues(page: "1");
     var pageSizeFormRouteValues = BuildRouteValues(page: "1");
+    var filterFormRouteValues = BuildRouteValues(page: "1");
+    var filterQueryKeys = GetFilterQueryKeys();
 }
 
 @if (Model.EnableSearch || !string.IsNullOrWhiteSpace(Model.ExportUrl))
@@ -84,6 +164,21 @@
             <a class="btn btn-sm sinara-btn-theme-outline text-nowrap ms-auto" href="@Model.ExportUrl">@Model.ExportButtonText</a>
         }
     </div>
+}
+
+@if (hasColumnFilters)
+{
+    <form id="@filterFormId" method="get">
+        @foreach (var route in filterFormRouteValues)
+        {
+            if (filterQueryKeys.Contains(route.Key))
+            {
+                continue;
+            }
+
+            <input type="hidden" name="@route.Key" value="@route.Value" />
+        }
+    </form>
 }
 
 <div class="table-responsive">
@@ -117,6 +212,112 @@
                     </th>
                 }
             </tr>
+
+            @if (hasColumnFilters)
+            {
+                <tr class="sinara-grid-filter-row">
+                    @foreach (var column in Model.Columns)
+                    {
+                        var filter = column.Filter;
+
+                        <th class="@column.HeaderClass">
+                            @if (filter is null || string.IsNullOrWhiteSpace(filter.QueryKey))
+                            {
+                                <span class="visually-hidden">No filter</span>
+                            }
+                            else if (filter.Type == ERP.Web.ViewModels.Shared.PagedGridFilterType.DateRange)
+                            {
+                                var dateFromId = $"filter-{column.Key}-from-{Guid.NewGuid():N}";
+                                var dateToId = $"filter-{column.Key}-to-{Guid.NewGuid():N}";
+                                var placeholderFrom = string.IsNullOrWhiteSpace(filter.Placeholder) ? "From" : filter.Placeholder;
+                                var placeholderTo = string.IsNullOrWhiteSpace(filter.PlaceholderTo) ? "To" : filter.PlaceholderTo;
+
+                                <div class="d-flex gap-1 sinara-grid-filter-date">
+                                    <label class="visually-hidden" for="@dateFromId">@placeholderFrom</label>
+                                    <input id="@dateFromId"
+                                           type="date"
+                                           class="form-control form-control-sm sinara-grid-filter-control"
+                                           name="@filter.QueryKey"
+                                           value="@filter.Value"
+                                           form="@filterFormId"
+                                           onchange="@filterSubmitScript" />
+
+                                    @if (!string.IsNullOrWhiteSpace(filter.QueryKeyTo))
+                                    {
+                                        <label class="visually-hidden" for="@dateToId">@placeholderTo</label>
+                                        <input id="@dateToId"
+                                               type="date"
+                                               class="form-control form-control-sm sinara-grid-filter-control"
+                                               name="@filter.QueryKeyTo"
+                                               value="@filter.ValueTo"
+                                               form="@filterFormId"
+                                               onchange="@filterSubmitScript" />
+                                    }
+                                </div>
+                            }
+                            else if (filter.Type == ERP.Web.ViewModels.Shared.PagedGridFilterType.Select)
+                            {
+                                var selectId = $"filter-{column.Key}-select-{Guid.NewGuid():N}";
+
+                                <label class="visually-hidden" for="@selectId">@column.Title filter</label>
+                                <select id="@selectId"
+                                        class="form-select form-select-sm sinara-grid-filter-control"
+                                        name="@filter.QueryKey"
+                                        form="@filterFormId"
+                                        onchange="@filterSubmitScript">
+                                    <option value="" selected="@string.IsNullOrWhiteSpace(filter.Value)">@filter.EmptyOptionLabel</option>
+                                    @foreach (var option in filter.Options)
+                                    {
+                                        <option value="@option.Value" selected="@string.Equals(option.Value, filter.Value, StringComparison.OrdinalIgnoreCase)">@option.Label</option>
+                                    }
+                                </select>
+                            }
+                            else if (filter.Type == ERP.Web.ViewModels.Shared.PagedGridFilterType.Checkbox)
+                            {
+                                var checkboxId = $"filter-{column.Key}-checkbox-{Guid.NewGuid():N}";
+                                var checkedValue = string.IsNullOrWhiteSpace(filter.CheckedValue) ? "true" : filter.CheckedValue;
+
+                                <div class="form-check sinara-grid-filter-check mb-0">
+                                    <input id="@checkboxId"
+                                           type="checkbox"
+                                           class="form-check-input"
+                                           name="@filter.QueryKey"
+                                           value="@checkedValue"
+                                           checked="@filter.IsChecked"
+                                           form="@filterFormId"
+                                           onchange="@filterSubmitScript" />
+                                    <label class="form-check-label small" for="@checkboxId">@filter.Label</label>
+                                </div>
+                            }
+                            else if (filter.Type == ERP.Web.ViewModels.Shared.PagedGridFilterType.MultiSelect)
+                            {
+                                var multiSelectId = $"filter-{column.Key}-multi-{Guid.NewGuid():N}";
+                                var selectedValues = filter.Values
+                                    .Where(x => !string.IsNullOrWhiteSpace(x))
+                                    .Select(x => x.Trim())
+                                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                                    .ToList();
+                                var selectedValueSet = new HashSet<string>(selectedValues, StringComparer.OrdinalIgnoreCase);
+                                var multiSelectSize = filter.Size < 2 ? 2 : filter.Size;
+
+                                <label class="visually-hidden" for="@multiSelectId">@column.Title filter</label>
+                                <select id="@multiSelectId"
+                                        class="form-select form-select-sm sinara-grid-filter-control sinara-grid-filter-multi"
+                                        name="@filter.QueryKey"
+                                        multiple
+                                        size="@multiSelectSize"
+                                        form="@filterFormId"
+                                        onblur="@filterSubmitScript">
+                                    @foreach (var option in filter.Options)
+                                    {
+                                        <option value="@option.Value" selected="@selectedValueSet.Contains(option.Value)">@option.Label</option>
+                                    }
+                                </select>
+                            }
+                        </th>
+                    }
+                </tr>
+            }
         </thead>
         <tbody>
         @if (Model.Rows.Count == 0)
@@ -195,3 +396,6 @@
         </nav>
     }
 </div>
+
+
+

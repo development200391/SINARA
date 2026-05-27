@@ -37,7 +37,7 @@ public sealed class AuditService(IUnitOfWork unitOfWork) : IAuditService
         await unitOfWork.SaveChangesAsync(ct);
     }
 
-    public async Task<PagedResult<AuditLogDto>> GetPagedAsync(PagedRequest request, CancellationToken ct = default)
+    public async Task<PagedResult<AuditLogDto>> GetPagedAsync(AuditLogPagedRequest request, CancellationToken ct = default)
     {
         var page = request.Page <= 0 ? 1 : request.Page;
         var pageSize = request.PageSize <= 0 ? 20 : request.PageSize;
@@ -52,7 +52,44 @@ public sealed class AuditService(IUnitOfWork unitOfWork) : IAuditService
             query = query.Where(x =>
                 (x.Username != null && x.Username.ToLower().Contains(search)) ||
                 x.Action.ToLower().Contains(search) ||
-                (x.EntityName != null && x.EntityName.ToLower().Contains(search)));
+                (x.EntityName != null && x.EntityName.ToLower().Contains(search)) ||
+                (x.EntityId != null && x.EntityId.ToLower().Contains(search)) ||
+                (x.IpAddress != null && x.IpAddress.ToLower().Contains(search)));
+        }
+
+        if (request.DateFrom.HasValue)
+        {
+            var fromDate = request.DateFrom.Value;
+            var fromUtc = new DateTimeOffset(fromDate.Year, fromDate.Month, fromDate.Day, 0, 0, 0, TimeSpan.Zero);
+            query = query.Where(x => x.CreatedAt >= fromUtc);
+        }
+
+        if (request.DateTo.HasValue)
+        {
+            var toDate = request.DateTo.Value.AddDays(1);
+            var toUtcExclusive = new DateTimeOffset(toDate.Year, toDate.Month, toDate.Day, 0, 0, 0, TimeSpan.Zero);
+            query = query.Where(x => x.CreatedAt < toUtcExclusive);
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Status))
+        {
+            var status = request.Status.Trim().ToLowerInvariant();
+            query = query.Where(x => x.Action.ToLower() == status);
+        }
+
+        if (request.HasIpOnly)
+        {
+            query = query.Where(x => x.IpAddress != null && x.IpAddress != string.Empty);
+        }
+
+        var entityNames = ParseCsv(request.EntityNames);
+        if (entityNames.Count > 0)
+        {
+            var normalizedEntityNames = entityNames
+                .Select(x => x.ToLowerInvariant())
+                .ToArray();
+
+            query = query.Where(x => x.EntityName != null && normalizedEntityNames.Contains(x.EntityName.ToLower()));
         }
 
         var sortBy = request.SortBy?.Trim().ToLowerInvariant();
@@ -96,5 +133,17 @@ public sealed class AuditService(IUnitOfWork unitOfWork) : IAuditService
 
         return PagedResult<AuditLogDto>.Create(items, totalCount, page, pageSize);
     }
-}
 
+    private static IReadOnlyList<string> ParseCsv(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return [];
+        }
+
+        return value
+            .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+}

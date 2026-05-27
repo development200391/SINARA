@@ -202,3 +202,45 @@ body {
 #menuSortBody tr.dragging {
     opacity: 0.45;
 }
+
+.sinara-paged-grid .sinara-grid-filter-row th {
+    background-color: rgba(var(--sinara-primary-rgb), 0.08);
+    color: var(--sinara-text);
+    border-top: 0;
+}
+
+.sinara-grid-filter-control {
+    min-width: 140px;
+}
+
+.sinara-grid-filter-date .sinara-grid-filter-control {
+    min-width: 120px;
+}
+
+.sinara-grid-filter-multi {
+    min-width: 160px;
+}
+
+.sinara-grid-filter-check {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    white-space: nowrap;
+}
+
+.sinara-grid-filter-check .form-check-input {
+    float: none;
+    margin-top: 0;
+}
+
+@media (max-width: 768px) {
+    .sinara-grid-search-input {
+        width: 100%;
+        min-width: 160px;
+    }
+
+    .sinara-grid-filter-control,
+    .sinara-grid-filter-multi {
+        min-width: 120px;
+    }
+}

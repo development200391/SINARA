@@ -99,11 +99,39 @@ public sealed class ConfigApiClient(HttpClient httpClient, ILogger<ConfigApiClie
         return response?.IsSuccessStatusCode == true;
     }
 
-    public Task<PagedResult<AuditLogDto>?> GetAuditLogsAsync(string accessToken, PagedRequest request, CancellationToken ct = default)
+    public Task<PagedResult<AuditLogDto>?> GetAuditLogsAsync(string accessToken, AuditLogPagedRequest request, CancellationToken ct = default)
     {
-        var sortBy = Uri.EscapeDataString(request.SortBy ?? string.Empty);
-        var sortDirection = Uri.EscapeDataString(request.SortDirection ?? string.Empty);
-        var query = $"api/v1/config/audit-logs?page={request.Page}&pageSize={request.PageSize}&search={Uri.EscapeDataString(request.Search ?? string.Empty)}&sortBy={sortBy}&sortDirection={sortDirection}";
+        var parameters = new List<string>
+        {
+            $"page={request.Page}",
+            $"pageSize={request.PageSize}",
+            $"search={Uri.EscapeDataString(request.Search ?? string.Empty)}",
+            $"sortBy={Uri.EscapeDataString(request.SortBy ?? string.Empty)}",
+            $"sortDirection={Uri.EscapeDataString(request.SortDirection ?? string.Empty)}",
+            $"hasIpOnly={(request.HasIpOnly ? "true" : "false")}"
+        };
+
+        if (request.DateFrom.HasValue)
+        {
+            parameters.Add($"dateFrom={request.DateFrom.Value:yyyy-MM-dd}");
+        }
+
+        if (request.DateTo.HasValue)
+        {
+            parameters.Add($"dateTo={request.DateTo.Value:yyyy-MM-dd}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Status))
+        {
+            parameters.Add($"status={Uri.EscapeDataString(request.Status.Trim())}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.EntityNames))
+        {
+            parameters.Add($"entityNames={Uri.EscapeDataString(request.EntityNames)}");
+        }
+
+        var query = $"api/v1/config/audit-logs?{string.Join("&", parameters)}";
         return SendAsync<PagedResult<AuditLogDto>>(HttpMethod.Get, query, accessToken, null, ct);
     }
 

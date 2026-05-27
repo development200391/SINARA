@@ -1,21 +1,82 @@
 @model ERP.Web.ViewModels.Config.ConfigAuditIndexViewModel
 @using ERP.Web.ViewModels.Shared
+@using System.Globalization
 
 <div class="card border-0 shadow-sm">
     <div class="card-body">
         <h1 class="h5 mb-3">Audit Log</h1>
 
         @{
+            var statusFilterOptions = Model.StatusOptions
+                .Select(x => new PagedGridFilterOptionViewModel { Value = x, Label = x })
+                .ToList();
+
+            var entityFilterOptions = Model.EntityNameOptions
+                .Select(x => new PagedGridFilterOptionViewModel { Value = x, Label = x })
+                .ToList();
+
             var gridModel = new PagedGridViewModel
             {
                 Columns =
                 [
-                    new PagedGridColumnViewModel { Key = "createdAt", Title = "Created At", Sortable = true },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "createdAt",
+                        Title = "Created At",
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.DateRange,
+                            QueryKey = "dateFrom",
+                            QueryKeyTo = "dateTo",
+                            Value = Model.DateFrom?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                            ValueTo = Model.DateTo?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+                        }
+                    },
                     new PagedGridColumnViewModel { Key = "username", Title = "User", Sortable = true },
-                    new PagedGridColumnViewModel { Key = "action", Title = "Action", Sortable = true },
-                    new PagedGridColumnViewModel { Key = "entityName", Title = "Entity", Sortable = true },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "action",
+                        Title = "Action",
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "status",
+                            Value = Model.Status,
+                            EmptyOptionLabel = "All Status",
+                            Options = statusFilterOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "entityName",
+                        Title = "Entity",
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.MultiSelect,
+                            QueryKey = "entityNames",
+                            Values = Model.SelectedEntityNames,
+                            Options = entityFilterOptions,
+                            Size = 3
+                        }
+                    },
                     new PagedGridColumnViewModel { Key = "entityId", Title = "Entity Id", Sortable = true },
-                    new PagedGridColumnViewModel { Key = "ipAddress", Title = "IP", Sortable = true }
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "ipAddress",
+                        Title = "IP",
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Checkbox,
+                            QueryKey = "hasIpOnly",
+                            IsChecked = Model.HasIpOnly,
+                            CheckedValue = "true",
+                            Label = "Has IP"
+                        }
+                    }
                 ],
                 Rows = Model.Logs.Items.Select(item => new PagedGridRowViewModel
                 {
@@ -43,7 +104,12 @@
                 {
                     search = Model.Search,
                     sortBy = Model.SortBy,
-                    sortDirection = Model.SortDirection
+                    sortDirection = Model.SortDirection,
+                    dateFrom = Model.DateFrom?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                    dateTo = Model.DateTo?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                    status = Model.Status,
+                    hasIpOnly = Model.HasIpOnly,
+                    entityNames = string.Join(",", Model.SelectedEntityNames)
                 }),
                 ExportButtonText = "Export XML"
             };
@@ -52,3 +118,4 @@
         @await Component.InvokeAsync("PagedGrid", gridModel)
     </div>
 </div>
+

@@ -1,5 +1,5 @@
-using ERP.Application.DTOs.Common;
 using ERP.Application.DTOs.Config;
+using ERP.Application.DTOs.Common;
 
 namespace ERP.Application.Services;
 
@@ -16,5 +16,5 @@ public interface IAuditService
         string? ipAddress,
         CancellationToken ct = default);
 
-    Task<PagedResult<AuditLogDto>> GetPagedAsync(PagedRequest request, CancellationToken ct = default);
+    Task<PagedResult<AuditLogDto>> GetPagedAsync(AuditLogPagedRequest request, CancellationToken ct = default);
 }
