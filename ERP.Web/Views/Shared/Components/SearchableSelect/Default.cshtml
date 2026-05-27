@@ -1,0 +1,217 @@
+@model ERP.Web.ViewModels.Shared.SearchableSelectViewModel
+
+@{
+    var normalizedId = string.IsNullOrWhiteSpace(Model.Id) ? Model.Name : Model.Id;
+    var selectedValue = Model.SelectedValue ?? string.Empty;
+    var selectedOption = Model.Options.FirstOrDefault(x => string.Equals(x.Value, selectedValue, StringComparison.OrdinalIgnoreCase));
+    var selectedLabel = selectedOption?.Label ?? Model.EmptyOptionLabel;
+    var buttonClass = string.IsNullOrWhiteSpace(Model.CssClass) ? "form-select" : Model.CssClass;
+}
+
+<div class="dropdown sinara-searchable-select" data-searchable-select>
+    <input type="hidden"
+           id="@normalizedId"
+           name="@Model.Name"
+           value="@selectedValue"
+           data-searchable-select-value />
+
+    <button type="button"
+            class="@buttonClass text-start"
+            data-searchable-select-toggle
+            data-bs-toggle="dropdown"
+            aria-expanded="false"
+            @(Model.IsDisabled ? "disabled" : null)>
+        <span data-searchable-select-label>@selectedLabel</span>
+    </button>
+
+    <div class="dropdown-menu w-100 p-2">
+        <input type="search"
+               class="form-control form-control-sm mb-2"
+               placeholder="@Model.SearchPlaceholder"
+               autocomplete="off"
+               data-searchable-select-input
+               @(Model.IsDisabled ? "disabled" : null) />
+
+        <div class="list-group list-group-flush border rounded" style="max-height:240px; overflow-y:auto;">
+            <button type="button"
+                    class="list-group-item list-group-item-action @(string.IsNullOrWhiteSpace(selectedValue) ? "active" : string.Empty)"
+                    data-searchable-select-option
+                    data-always-visible="true"
+                    data-value=""
+                    data-label="@Model.EmptyOptionLabel"
+                    data-filter="@Model.EmptyOptionLabel.ToLowerInvariant()">
+                @Model.EmptyOptionLabel
+            </button>
+
+            @foreach (var option in Model.Options)
+            {
+                var isSelected = string.Equals(selectedValue, option.Value, StringComparison.OrdinalIgnoreCase);
+                var optionClass = $"list-group-item list-group-item-action {(isSelected ? "active" : string.Empty)} {(option.IsDisabled ? "disabled" : string.Empty)}";
+
+                <button type="button"
+                        class="@optionClass"
+                        data-searchable-select-option
+                        data-value="@option.Value"
+                        data-label="@option.Label"
+                        data-filter="@option.Label.ToLowerInvariant()"
+                        aria-disabled="@option.IsDisabled"
+                        tabindex="@(option.IsDisabled ? "-1" : "0")">
+                    @option.Label
+                </button>
+            }
+        </div>
+
+        <div class="small text-muted mt-2 d-none" data-searchable-select-empty>No matching data.</div>
+    </div>
+</div>
+
+<script>
+(function () {
+    if (window.sinaraSearchableSelectBound) {
+        return;
+    }
+
+    window.sinaraSearchableSelectBound = true;
+
+    function getHost(element) {
+        if (!(element instanceof Element)) {
+            return null;
+        }
+
+        return element.closest('[data-searchable-select]');
+    }
+
+    function getOptions(host) {
+        if (!(host instanceof Element)) {
+            return [];
+        }
+
+        return Array.from(host.querySelectorAll('[data-searchable-select-option]'));
+    }
+
+    function setSelected(host, value, label) {
+        var hidden = host.querySelector('[data-searchable-select-value]');
+        var labelNode = host.querySelector('[data-searchable-select-label]');
+
+        if (hidden instanceof HTMLInputElement) {
+            hidden.value = value;
+        }
+
+        if (labelNode) {
+            labelNode.textContent = label;
+        }
+
+        var options = getOptions(host);
+        for (var i = 0; i < options.length; i++) {
+            var option = options[i];
+            option.classList.toggle('active', (option.getAttribute('data-value') || '') === value);
+        }
+    }
+
+    function applyFilter(host, keyword) {
+        var text = (keyword || '').trim().toLowerCase();
+        var options = getOptions(host);
+        var visibleCount = 0;
+
+        for (var i = 0; i < options.length; i++) {
+            var option = options[i];
+            var alwaysVisible = option.getAttribute('data-always-visible') === 'true';
+            var filterText = (option.getAttribute('data-filter') || option.textContent || '').toLowerCase();
+            var shouldShow = alwaysVisible || text.length === 0 || filterText.indexOf(text) !== -1;
+
+            option.classList.toggle('d-none', !shouldShow);
+            if (shouldShow) {
+                visibleCount++;
+            }
+        }
+
+        var emptyNode = host.querySelector('[data-searchable-select-empty]');
+        if (emptyNode) {
+            emptyNode.classList.toggle('d-none', visibleCount > 0);
+        }
+    }
+
+    document.addEventListener('input', function (event) {
+        var input = event.target;
+        if (!(input instanceof HTMLInputElement) || !input.hasAttribute('data-searchable-select-input')) {
+            return;
+        }
+
+        var host = getHost(input);
+        if (!host) {
+            return;
+        }
+
+        applyFilter(host, input.value);
+    });
+
+    document.addEventListener('click', function (event) {
+        var target = event.target;
+        if (!(target instanceof Element)) {
+            return;
+        }
+
+        var option = target.closest('[data-searchable-select-option]');
+        if (!(option instanceof HTMLElement)) {
+            return;
+        }
+
+        if (option.classList.contains('disabled') || option.getAttribute('aria-disabled') === 'true') {
+            return;
+        }
+
+        var host = getHost(option);
+        if (!host) {
+            return;
+        }
+
+        var value = option.getAttribute('data-value') || '';
+        var label = option.getAttribute('data-label') || (option.textContent || '').trim();
+        setSelected(host, value, label);
+
+        var toggle = host.querySelector('[data-searchable-select-toggle]');
+        if (toggle && window.bootstrap && window.bootstrap.Dropdown) {
+            window.bootstrap.Dropdown.getOrCreateInstance(toggle).hide();
+        }
+    });
+
+    document.addEventListener('shown.bs.dropdown', function (event) {
+        var target = event.target;
+        if (!(target instanceof Element)) {
+            return;
+        }
+
+        var host = target.matches('[data-searchable-select]') ? target : getHost(target);
+        if (!host) {
+            return;
+        }
+
+        var input = host.querySelector('[data-searchable-select-input]');
+        if (input instanceof HTMLInputElement) {
+            window.setTimeout(function () {
+                input.focus();
+                input.select();
+            }, 0);
+        }
+    });
+
+    document.addEventListener('hidden.bs.dropdown', function (event) {
+        var target = event.target;
+        if (!(target instanceof Element)) {
+            return;
+        }
+
+        var host = target.matches('[data-searchable-select]') ? target : getHost(target);
+        if (!host) {
+            return;
+        }
+
+        var input = host.querySelector('[data-searchable-select-input]');
+        if (input instanceof HTMLInputElement) {
+            input.value = '';
+        }
+
+        applyFilter(host, '');
+    });
+})();
+</script>
