@@ -244,3 +244,40 @@ body {
         min-width: 120px;
     }
 }
+
+.sinara-paged-grid .sinara-paged-grid-header th.sinara-grid-col-filtered {
+    box-shadow: inset 0 -3px 0 #facc15;
+}
+
+.sinara-grid-filter-toggle {
+    --bs-btn-color: var(--sinara-grid-header-text);
+    --bs-btn-border-color: rgba(var(--sinara-navbar-text-rgb), 0.45);
+    --bs-btn-hover-color: var(--sinara-grid-header-text);
+    --bs-btn-hover-bg: rgba(var(--sinara-navbar-text-rgb), 0.18);
+    --bs-btn-hover-border-color: rgba(var(--sinara-navbar-text-rgb), 0.72);
+    --bs-btn-active-color: var(--sinara-grid-header-text);
+    --bs-btn-active-bg: rgba(var(--sinara-navbar-text-rgb), 0.24);
+    --bs-btn-active-border-color: rgba(var(--sinara-navbar-text-rgb), 0.78);
+    padding: 0.05rem 0.45rem;
+    line-height: 1;
+    font-weight: 700;
+}
+
+.sinara-grid-filter-toggle.active {
+    background-color: rgba(var(--sinara-navbar-text-rgb), 0.28);
+    border-color: rgba(var(--sinara-navbar-text-rgb), 0.92);
+}
+
+.sinara-grid-filter-menu {
+    min-width: 15rem;
+    max-width: 18rem;
+}
+
+.sinara-grid-filter-menu .sinara-grid-filter-control {
+    width: 100%;
+    min-width: 0;
+}
+
+.sinara-grid-filter-menu .sinara-grid-filter-multi {
+    min-width: 0;
+}
