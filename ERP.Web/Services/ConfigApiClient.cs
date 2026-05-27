@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using ERP.Application.DTOs.Common;
@@ -181,7 +182,13 @@ public sealed class ConfigApiClient(HttpClient httpClient, ILogger<ConfigApiClie
                 request.Content = JsonContent.Create(body);
             }
 
-            return await httpClient.SendAsync(request, ct);
+            var response = await httpClient.SendAsync(request, ct);
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                throw new ApiUnauthorizedException(uri);
+            }
+
+            return response;
         }
         catch (HttpRequestException ex)
         {
@@ -190,4 +197,3 @@ public sealed class ConfigApiClient(HttpClient httpClient, ILogger<ConfigApiClie
         }
     }
 }
-

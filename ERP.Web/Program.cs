@@ -2,6 +2,7 @@ using ERP.Web.Models;
 using ERP.Web.Services;
 using ERP.Web.Services.Exports;
 using ERP.Web.Services.Localization;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.Extensions.Options;
 
@@ -66,6 +67,27 @@ app.UseRouting();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.Use(async (context, next) =>
+{
+    try
+    {
+        await next();
+    }
+    catch (ApiUnauthorizedException)
+    {
+        if (context.Response.HasStarted)
+        {
+            throw;
+        }
+
+        await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+
+        var returnUrl = $"{context.Request.Path}{context.Request.QueryString}";
+        var loginUrl = $"/auth/login?returnUrl={Uri.EscapeDataString(returnUrl)}";
+        context.Response.Redirect(loginUrl);
+    }
+});
 
 app.MapControllerRoute(
     name: "default",
