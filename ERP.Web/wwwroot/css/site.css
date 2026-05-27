@@ -181,17 +181,13 @@ body {
 }
 
 .sinara-grid-toolbar {
-    row-gap: 0.5rem;
+    flex-wrap: nowrap;
+    margin-bottom: 0;
 }
 
 .sinara-grid-search-input {
+    width: 280px;
     min-width: 220px;
-}
-
-@media (max-width: 576px) {
-    .sinara-grid-search-input {
-        min-width: 100%;
-    }
 }
 .table td,
 .table th {

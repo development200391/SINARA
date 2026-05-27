@@ -59,10 +59,10 @@
 
 @if (Model.EnableSearch || !string.IsNullOrWhiteSpace(Model.ExportUrl))
 {
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
         @if (Model.EnableSearch)
         {
-            <form method="get" class="d-flex flex-wrap align-items-center gap-2 sinara-grid-toolbar">
+            <form method="get" class="d-flex align-items-center gap-2 flex-nowrap sinara-grid-toolbar">
                 @foreach (var route in searchFormRouteValues)
                 {
                     if (string.Equals(route.Key, Model.SearchQueryKey, StringComparison.OrdinalIgnoreCase))
@@ -75,13 +75,13 @@
 
                 <label class="visually-hidden" for="@searchInputId">Search</label>
                 <input id="@searchInputId" type="text" class="form-control form-control-sm sinara-grid-search-input" name="@Model.SearchQueryKey" value="@Model.SearchValue" placeholder="@searchPlaceholder" />
-                <button type="submit" class="btn btn-sm sinara-btn-theme-outline">@Model.SearchButtonText</button>
+                <button type="submit" class="btn btn-sm sinara-btn-theme-outline text-nowrap">@Model.SearchButtonText</button>
             </form>
         }
 
         @if (!string.IsNullOrWhiteSpace(Model.ExportUrl))
         {
-            <a class="btn btn-sm sinara-btn-theme-outline ms-auto" href="@Model.ExportUrl">@Model.ExportButtonText</a>
+            <a class="btn btn-sm sinara-btn-theme-outline text-nowrap ms-auto" href="@Model.ExportUrl">@Model.ExportButtonText</a>
         }
     </div>
 }
