@@ -15,10 +15,12 @@ public sealed class UserService(
 {
     private const string UserPermissionsKeyPrefix = "ERP_cfg:permissions:user:";
 
-    public async Task<PagedResult<UserDto>> GetPagedAsync(PagedRequest request, CancellationToken ct = default)
+    public async Task<PagedResult<UserDto>> GetPagedAsync(UserPagedRequest request, CancellationToken ct = default)
     {
         var page = request.Page <= 0 ? 1 : request.Page;
         var pageSize = request.PageSize <= 0 ? 20 : request.PageSize;
+        var normalizedSortBy = NormalizeSortBy(request.SortBy);
+        var normalizedSortDirection = NormalizeSortDirection(request.SortDirection);
 
         var query = unitOfWork.Repository<SysUser>()
             .Query()
@@ -36,10 +38,29 @@ public sealed class UserService(
                 x.Email.ToLower().Contains(search));
         }
 
+        if (!string.IsNullOrWhiteSpace(request.Username))
+        {
+            var usernameFilter = request.Username.Trim().ToLowerInvariant();
+            query = query.Where(x => x.Username.ToLower().Contains(usernameFilter));
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.FullName))
+        {
+            var fullNameFilter = request.FullName.Trim().ToLowerInvariant();
+            query = query.Where(x => x.FullName.ToLower().Contains(fullNameFilter));
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Email))
+        {
+            var emailFilter = request.Email.Trim().ToLowerInvariant();
+            query = query.Where(x => x.Email.ToLower().Contains(emailFilter));
+        }
+
         var total = await query.CountAsync(ct);
 
+        query = ApplySorting(query, normalizedSortBy, normalizedSortDirection);
+
         var users = await query
-            .OrderBy(x => x.Username)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .Select(x => new UserDto
@@ -154,6 +175,50 @@ public sealed class UserService(
         await SafeCacheAsync(() => cacheService.RemoveAsync($"{UserPermissionsKeyPrefix}{id}", ct));
 
         return true;
+    }
+
+    private static string NormalizeSortBy(string? sortBy)
+    {
+        if (string.IsNullOrWhiteSpace(sortBy))
+        {
+            return "username";
+        }
+
+        return sortBy.Trim().ToLowerInvariant() switch
+        {
+            "username" => "username",
+            "fullname" => "fullName",
+            "email" => "email",
+            "isactive" => "isActive",
+            _ => "username"
+        };
+    }
+
+    private static string NormalizeSortDirection(string? sortDirection) =>
+        string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase) ? "desc" : "asc";
+
+    private static IQueryable<SysUser> ApplySorting(IQueryable<SysUser> query, string sortBy, string sortDirection)
+    {
+        var isDesc = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+
+        return sortBy switch
+        {
+            "fullName" => isDesc
+                ? query.OrderByDescending(x => x.FullName).ThenBy(x => x.Username)
+                : query.OrderBy(x => x.FullName).ThenBy(x => x.Username),
+
+            "email" => isDesc
+                ? query.OrderByDescending(x => x.Email).ThenBy(x => x.Username)
+                : query.OrderBy(x => x.Email).ThenBy(x => x.Username),
+
+            "isActive" => isDesc
+                ? query.OrderByDescending(x => x.IsActive).ThenBy(x => x.Username)
+                : query.OrderBy(x => x.IsActive).ThenBy(x => x.Username),
+
+            _ => isDesc
+                ? query.OrderByDescending(x => x.Username)
+                : query.OrderBy(x => x.Username)
+        };
     }
 
     private async Task SyncUserRolesAsync(int userId, IReadOnlyList<string> requestedRoles, CancellationToken ct)

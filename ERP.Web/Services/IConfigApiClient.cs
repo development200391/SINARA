@@ -7,7 +7,7 @@ public interface IConfigApiClient
 {
     Task<IReadOnlyList<NavigationModuleDto>> GetNavigationAsync(string accessToken, CancellationToken ct = default);
 
-    Task<PagedResult<UserDto>?> GetUsersAsync(string accessToken, PagedRequest request, CancellationToken ct = default);
+    Task<PagedResult<UserDto>?> GetUsersAsync(string accessToken, UserPagedRequest request, CancellationToken ct = default);
     Task<UserDto?> GetUserByIdAsync(string accessToken, int id, CancellationToken ct = default);
     Task<UserDto?> CreateUserAsync(string accessToken, UserDto request, CancellationToken ct = default);
     Task<UserDto?> UpdateUserAsync(string accessToken, int id, UserDto request, CancellationToken ct = default);

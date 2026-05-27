@@ -11,11 +11,47 @@
             {
                 Columns =
                 [
-                    new PagedGridColumnViewModel { Key = "username", Title = "Username" },
-                    new PagedGridColumnViewModel { Key = "fullName", Title = T["label.full_name"] },
-                    new PagedGridColumnViewModel { Key = "email", Title = "Email" },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "username",
+                        Title = "Username",
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Text,
+                            QueryKey = "username",
+                            Value = Model.UsernameFilter,
+                            Placeholder = "Filter username"
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "fullName",
+                        Title = T["label.full_name"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Text,
+                            QueryKey = "fullName",
+                            Value = Model.FullNameFilter,
+                            Placeholder = "Filter full name"
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "email",
+                        Title = "Email",
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Text,
+                            QueryKey = "email",
+                            Value = Model.EmailFilter,
+                            Placeholder = "Filter email"
+                        }
+                    },
                     new PagedGridColumnViewModel { Key = "roles", Title = "Roles" },
-                    new PagedGridColumnViewModel { Key = "isActive", Title = "Status" }
+                    new PagedGridColumnViewModel { Key = "isActive", Title = "Status", Sortable = true }
                 ],
                 Rows = Model.Users.Items.Select(user => new PagedGridRowViewModel
                 {
@@ -44,6 +80,8 @@
                 Page = Model.Users.Page,
                 TotalPages = Model.Users.TotalPages,
                 PageSize = Model.PageSize,
+                SortBy = Model.SortBy,
+                SortDirection = Model.SortDirection,
                 EnableSearch = true,
                 SearchValue = Model.Search,
                 SearchPlaceholder = $"{T["common.search"]} users",
@@ -64,4 +102,3 @@
         @await Component.InvokeAsync("PagedGrid", gridModel)
     </div>
 </div>
-

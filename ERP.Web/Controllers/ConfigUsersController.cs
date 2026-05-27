@@ -13,9 +13,19 @@ namespace ERP.Web.Controllers;
 public sealed class ConfigUsersController(IConfigApiClient configApiClient) : Controller
 {
     private const int DefaultPageSize = 20;
+    private const string DefaultSortBy = "username";
 
     [HttpGet("")]
-    public async Task<IActionResult> Index(int page = 1, int pageSize = DefaultPageSize, string? search = null, CancellationToken ct = default)
+    public async Task<IActionResult> Index(
+        int page = 1,
+        int pageSize = DefaultPageSize,
+        string? search = null,
+        string? sortBy = DefaultSortBy,
+        string? sortDirection = "asc",
+        string? username = null,
+        string? fullName = null,
+        string? email = null,
+        CancellationToken ct = default)
     {
         var accessToken = GetAccessToken();
         if (string.IsNullOrWhiteSpace(accessToken))
@@ -25,18 +35,33 @@ public sealed class ConfigUsersController(IConfigApiClient configApiClient) : Co
 
         var normalizedPage = page <= 0 ? 1 : page;
         var normalizedPageSize = NormalizePageSize(pageSize);
+        var normalizedSortBy = NormalizeSortBy(sortBy);
+        var normalizedSortDirection = NormalizeSortDirection(sortDirection);
+        var normalizedUsername = NormalizeTextFilter(username);
+        var normalizedFullName = NormalizeTextFilter(fullName);
+        var normalizedEmail = NormalizeTextFilter(email);
 
-        var result = await configApiClient.GetUsersAsync(accessToken, new PagedRequest
+        var result = await configApiClient.GetUsersAsync(accessToken, new UserPagedRequest
         {
             Page = normalizedPage,
             PageSize = normalizedPageSize,
-            Search = search
+            Search = search,
+            SortBy = normalizedSortBy,
+            SortDirection = normalizedSortDirection,
+            Username = normalizedUsername,
+            FullName = normalizedFullName,
+            Email = normalizedEmail
         }, ct);
 
         var model = new ConfigUsersIndexViewModel
         {
             Search = search,
             PageSize = normalizedPageSize,
+            SortBy = normalizedSortBy,
+            SortDirection = normalizedSortDirection,
+            UsernameFilter = normalizedUsername,
+            FullNameFilter = normalizedFullName,
+            EmailFilter = normalizedEmail,
             Users = result ?? PagedResult<UserDto>.Create([], 0, normalizedPage, normalizedPageSize)
         };
 
@@ -221,6 +246,29 @@ public sealed class ConfigUsersController(IConfigApiClient configApiClient) : Co
     }
 
     private static int NormalizePageSize(int pageSize) => pageSize is 20 or 50 or 100 ? pageSize : DefaultPageSize;
+
+    private static string NormalizeSortBy(string? sortBy)
+    {
+        if (string.IsNullOrWhiteSpace(sortBy))
+        {
+            return DefaultSortBy;
+        }
+
+        return sortBy.Trim().ToLowerInvariant() switch
+        {
+            "username" => "username",
+            "fullname" => "fullName",
+            "email" => "email",
+            "isactive" => "isActive",
+            _ => DefaultSortBy
+        };
+    }
+
+    private static string NormalizeSortDirection(string? sortDirection) =>
+        string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase) ? "desc" : "asc";
+
+    private static string? NormalizeTextFilter(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     private string? GetAccessToken() => User.FindFirstValue("access_token");
 }

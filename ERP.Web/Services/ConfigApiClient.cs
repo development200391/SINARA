@@ -14,9 +14,33 @@ public sealed class ConfigApiClient(HttpClient httpClient, ILogger<ConfigApiClie
             ?? [];
     }
 
-    public Task<PagedResult<UserDto>?> GetUsersAsync(string accessToken, PagedRequest request, CancellationToken ct = default)
+    public Task<PagedResult<UserDto>?> GetUsersAsync(string accessToken, UserPagedRequest request, CancellationToken ct = default)
     {
-        var query = $"api/v1/config/users?page={request.Page}&pageSize={request.PageSize}&search={Uri.EscapeDataString(request.Search ?? string.Empty)}";
+        var parameters = new List<string>
+        {
+            $"page={request.Page}",
+            $"pageSize={request.PageSize}",
+            $"search={Uri.EscapeDataString(request.Search ?? string.Empty)}",
+            $"sortBy={Uri.EscapeDataString(request.SortBy ?? string.Empty)}",
+            $"sortDirection={Uri.EscapeDataString(request.SortDirection ?? string.Empty)}"
+        };
+
+        if (!string.IsNullOrWhiteSpace(request.Username))
+        {
+            parameters.Add($"username={Uri.EscapeDataString(request.Username.Trim())}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.FullName))
+        {
+            parameters.Add($"fullName={Uri.EscapeDataString(request.FullName.Trim())}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Email))
+        {
+            parameters.Add($"email={Uri.EscapeDataString(request.Email.Trim())}");
+        }
+
+        var query = $"api/v1/config/users?{string.Join("&", parameters)}";
         return SendAsync<PagedResult<UserDto>>(HttpMethod.Get, query, accessToken, null, ct);
     }
 
@@ -197,3 +221,4 @@ public sealed class ConfigApiClient(HttpClient httpClient, ILogger<ConfigApiClie
         }
     }
 }
+

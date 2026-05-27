@@ -55,7 +55,10 @@ public sealed class PagedGridColumnViewModel
 
 public enum PagedGridFilterType
 {
+    Text,
+    DatePicker,
     DateRange,
+    NumberRange,
     Select,
     Checkbox,
     MultiSelect

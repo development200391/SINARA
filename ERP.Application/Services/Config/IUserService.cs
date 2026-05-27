@@ -5,7 +5,7 @@ namespace ERP.Application.Services.Config;
 
 public interface IUserService
 {
-    Task<PagedResult<UserDto>> GetPagedAsync(PagedRequest request, CancellationToken ct = default);
+    Task<PagedResult<UserDto>> GetPagedAsync(UserPagedRequest request, CancellationToken ct = default);
     Task<UserDto?> GetByIdAsync(int id, CancellationToken ct = default);
     Task<UserDto> CreateAsync(UserDto request, CancellationToken ct = default);
     Task<UserDto?> UpdateAsync(int id, UserDto request, CancellationToken ct = default);

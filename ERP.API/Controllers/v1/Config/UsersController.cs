@@ -9,7 +9,7 @@ namespace ERP.API.Controllers.v1.Config;
 public sealed class UsersController(IUserService userService) : ConfigControllerBase
 {
     [HttpGet]
-    public async Task<IActionResult> GetPaged([FromQuery] PagedRequest request, CancellationToken ct)
+    public async Task<IActionResult> GetPaged([FromQuery] UserPagedRequest request, CancellationToken ct)
     {
         var result = await userService.GetPagedAsync(request, ct);
         return Ok(result);

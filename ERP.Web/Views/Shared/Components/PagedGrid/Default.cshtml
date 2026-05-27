@@ -37,7 +37,16 @@
 
         return filter.Type switch
         {
+            ERP.Web.ViewModels.Shared.PagedGridFilterType.Text =>
+                !string.IsNullOrWhiteSpace(filter.Value),
+
+            ERP.Web.ViewModels.Shared.PagedGridFilterType.DatePicker =>
+                !string.IsNullOrWhiteSpace(filter.Value),
+
             ERP.Web.ViewModels.Shared.PagedGridFilterType.DateRange =>
+                !string.IsNullOrWhiteSpace(filter.Value) || !string.IsNullOrWhiteSpace(filter.ValueTo),
+
+            ERP.Web.ViewModels.Shared.PagedGridFilterType.NumberRange =>
                 !string.IsNullOrWhiteSpace(filter.Value) || !string.IsNullOrWhiteSpace(filter.ValueTo),
 
             ERP.Web.ViewModels.Shared.PagedGridFilterType.Select =>
@@ -77,7 +86,24 @@
 
             switch (filter.Type)
             {
+                case ERP.Web.ViewModels.Shared.PagedGridFilterType.Text:
+                    values[filter.QueryKey] = filter.Value;
+                    break;
+
+                case ERP.Web.ViewModels.Shared.PagedGridFilterType.DatePicker:
+                    values[filter.QueryKey] = filter.Value;
+                    break;
+
                 case ERP.Web.ViewModels.Shared.PagedGridFilterType.DateRange:
+                    values[filter.QueryKey] = filter.Value;
+
+                    if (!string.IsNullOrWhiteSpace(filter.QueryKeyTo))
+                    {
+                        values[filter.QueryKeyTo] = filter.ValueTo;
+                    }
+                    break;
+
+                case ERP.Web.ViewModels.Shared.PagedGridFilterType.NumberRange:
                     values[filter.QueryKey] = filter.Value;
 
                     if (!string.IsNullOrWhiteSpace(filter.QueryKeyTo))
@@ -324,6 +350,65 @@
                                                 }
                                             </div>
                                         }
+                                        else if (filter.Type == ERP.Web.ViewModels.Shared.PagedGridFilterType.DatePicker)
+                                        {
+                                            var datePickerId = $"filter-{column.Key}-date-{Guid.NewGuid():N}";
+                                            var placeholder = string.IsNullOrWhiteSpace(filter.Placeholder) ? column.Title : filter.Placeholder;
+
+                                            <label class="small text-muted" for="@datePickerId">@placeholder</label>
+                                            <input id="@datePickerId"
+                                                   type="date"
+                                                   class="form-control form-control-sm sinara-grid-filter-control"
+                                                   name="@filter.QueryKey"
+                                                   value="@filter.Value"
+                                                   form="@filterFormId"
+                                                   onchange="@filterSubmitScript" />
+                                        }
+                                        else if (filter.Type == ERP.Web.ViewModels.Shared.PagedGridFilterType.NumberRange)
+                                        {
+                                            var numberFromId = $"filter-{column.Key}-number-from-{Guid.NewGuid():N}";
+                                            var numberToId = $"filter-{column.Key}-number-to-{Guid.NewGuid():N}";
+                                            var placeholderFrom = string.IsNullOrWhiteSpace(filter.Placeholder) ? "From" : filter.Placeholder;
+                                            var placeholderTo = string.IsNullOrWhiteSpace(filter.PlaceholderTo) ? "To" : filter.PlaceholderTo;
+
+                                            <div class="d-flex flex-column gap-2">
+                                                <label class="small text-muted" for="@numberFromId">@placeholderFrom</label>
+                                                <input id="@numberFromId"
+                                                       type="number"
+                                                       class="form-control form-control-sm sinara-grid-filter-control"
+                                                       name="@filter.QueryKey"
+                                                       value="@filter.Value"
+                                                       form="@filterFormId"
+                                                       onchange="@filterSubmitScript" />
+
+                                                @if (!string.IsNullOrWhiteSpace(filter.QueryKeyTo))
+                                                {
+                                                    <label class="small text-muted" for="@numberToId">@placeholderTo</label>
+                                                    <input id="@numberToId"
+                                                           type="number"
+                                                           class="form-control form-control-sm sinara-grid-filter-control"
+                                                           name="@filter.QueryKeyTo"
+                                                           value="@filter.ValueTo"
+                                                           form="@filterFormId"
+                                                           onchange="@filterSubmitScript" />
+                                                }
+                                            </div>
+                                        }
+                                        else if (filter.Type == ERP.Web.ViewModels.Shared.PagedGridFilterType.Text)
+                                        {
+                                            var textFilterId = $"filter-{column.Key}-text-{Guid.NewGuid():N}";
+                                            var placeholder = string.IsNullOrWhiteSpace(filter.Placeholder) ? column.Title : filter.Placeholder;
+
+                                            <label class="small text-muted" for="@textFilterId">@placeholder</label>
+                                            <input id="@textFilterId"
+                                                   type="text"
+                                                   class="form-control form-control-sm sinara-grid-filter-control"
+                                                   name="@filter.QueryKey"
+                                                   value="@filter.Value"
+                                                   placeholder="@placeholder"
+                                                   form="@filterFormId"
+                                                   onchange="@filterSubmitScript" />
+                                        }
                                         else if (filter.Type == ERP.Web.ViewModels.Shared.PagedGridFilterType.Select)
                                         {
                                             var selectId = $"filter-{column.Key}-select-{Guid.NewGuid():N}";
@@ -506,3 +591,6 @@
         </nav>
     }
 </div>
+
+
+
