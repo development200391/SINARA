@@ -1,0 +1,135 @@
+@model ERP.Web.ViewModels.HR.HrAttendanceSettingViewModel
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">Attendance Setting</h1>
+
+        <form method="post" class="row g-3">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="col-md-3">
+                <label asp-for="AttendancePeriodStartDay" class="form-label">Periode Attendance Start Day</label>
+                <input asp-for="AttendancePeriodStartDay" class="form-control" type="number" min="1" max="31" />
+                <span asp-validation-for="AttendancePeriodStartDay" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-3">
+                <label asp-for="AttendancePeriodEndDay" class="form-label">Periode Attendance End Day</label>
+                <input asp-for="AttendancePeriodEndDay" class="form-control" type="number" min="1" max="31" />
+                <span asp-validation-for="AttendancePeriodEndDay" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Periode Saat Ini</label>
+                <div id="attendancePeriodPreview" class="form-control bg-light fw-semibold">@Model.CurrentPeriodPreview</div>
+                <small class="text-muted">Contoh: jika sekarang Januari dan setting 26 / 25, hasilnya 26 Dec - 25 Jan.</small>
+            </div>
+
+            <div class="col-md-3">
+                <label asp-for="CheckInToleranceMinutes" class="form-label">Check-in Tolerance (min)</label>
+                <input asp-for="CheckInToleranceMinutes" class="form-control" type="number" min="0" />
+                <span asp-validation-for="CheckInToleranceMinutes" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-3">
+                <label asp-for="LateToleranceMinutes" class="form-label">Late Tolerance (min)</label>
+                <input asp-for="LateToleranceMinutes" class="form-control" type="number" min="0" />
+                <span asp-validation-for="LateToleranceMinutes" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-3">
+                <label asp-for="WorkStart" class="form-label">Work Start</label>
+                <input asp-for="WorkStart" class="form-control" type="time" step="60" />
+                <span asp-validation-for="WorkStart" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-3">
+                <label asp-for="WorkEnd" class="form-label">Work End</label>
+                <input asp-for="WorkEnd" class="form-control" type="time" step="60" />
+                <span asp-validation-for="WorkEnd" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-3">
+                <label asp-for="BreakStart" class="form-label">Break Start</label>
+                <input asp-for="BreakStart" class="form-control" type="time" step="60" />
+                <span asp-validation-for="BreakStart" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-3">
+                <label asp-for="BreakEnd" class="form-label">Break End</label>
+                <input asp-for="BreakEnd" class="form-control" type="time" step="60" />
+                <span asp-validation-for="BreakEnd" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-3">
+                <label asp-for="MinimumOtMinutes" class="form-label">Minimum OT (min)</label>
+                <input asp-for="MinimumOtMinutes" class="form-control" type="number" min="0" />
+                <span asp-validation-for="MinimumOtMinutes" class="text-danger"></span>
+            </div>
+
+            <div class="col-12 d-flex gap-2">
+                <button type="submit" class="btn btn-primary">@T["common.save"]</button>
+                <a asp-action="Index" class="btn btn-outline-secondary">@T["common.cancel"]</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (() => {
+            const startInput = document.getElementById("AttendancePeriodStartDay");
+            const endInput = document.getElementById("AttendancePeriodEndDay");
+            const preview = document.getElementById("attendancePeriodPreview");
+
+            if (!startInput || !endInput || !preview) {
+                return;
+            }
+
+            const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            const today = new Date();
+
+            const clampDay = (value) => {
+                const parsed = Number.parseInt(value, 10);
+                if (Number.isNaN(parsed)) {
+                    return 1;
+                }
+
+                return Math.max(1, Math.min(31, parsed));
+            };
+
+            const createSafeDate = (year, monthIndex, day) => {
+                const maxDay = new Date(year, monthIndex + 1, 0).getDate();
+                return new Date(year, monthIndex, Math.min(day, maxDay));
+            };
+
+            const formatDate = (date) => {
+                const day = String(date.getDate()).padStart(2, "0");
+                return `${day} ${monthNames[date.getMonth()]}`;
+            };
+
+            const refreshPreview = () => {
+                const startDay = clampDay(startInput.value);
+                const endDay = clampDay(endInput.value);
+
+                const endDate = createSafeDate(today.getFullYear(), today.getMonth(), endDay);
+                let startDate;
+
+                if (startDay > endDay) {
+                    const previousMonth = new Date(endDate.getFullYear(), endDate.getMonth() - 1, 1);
+                    startDate = createSafeDate(previousMonth.getFullYear(), previousMonth.getMonth(), startDay);
+                } else {
+                    startDate = createSafeDate(endDate.getFullYear(), endDate.getMonth(), startDay);
+                }
+
+                preview.textContent = `${formatDate(startDate)} - ${formatDate(endDate)}`;
+            };
+
+            startInput.addEventListener("input", refreshPreview);
+            endInput.addEventListener("input", refreshPreview);
+            refreshPreview();
+        })();
+    </script>
+}

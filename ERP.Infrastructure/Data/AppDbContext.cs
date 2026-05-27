@@ -26,6 +26,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<HrPosition> HrPositions => Set<HrPosition>();
     public DbSet<HrEmployee> HrEmployees => Set<HrEmployee>();
     public DbSet<HrAttendanceRecord> HrAttendanceRecords => Set<HrAttendanceRecord>();
+    public DbSet<HrAttendanceSetting> HrAttendanceSettings => Set<HrAttendanceSetting>();
     public DbSet<HrLeaveType> HrLeaveTypes => Set<HrLeaveType>();
     public DbSet<HrLeaveRequest> HrLeaveRequests => Set<HrLeaveRequest>();
     public DbSet<HrPayrollRun> HrPayrollRuns => Set<HrPayrollRun>();
@@ -49,6 +50,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         ConfigureHrPosition(modelBuilder.Entity<HrPosition>());
         ConfigureHrEmployee(modelBuilder.Entity<HrEmployee>());
         ConfigureHrAttendanceRecord(modelBuilder.Entity<HrAttendanceRecord>());
+        ConfigureHrAttendanceSetting(modelBuilder.Entity<HrAttendanceSetting>());
         ConfigureHrLeaveType(modelBuilder.Entity<HrLeaveType>());
         ConfigureHrLeaveRequest(modelBuilder.Entity<HrLeaveRequest>());
         ConfigureHrPayrollRun(modelBuilder.Entity<HrPayrollRun>());
@@ -379,6 +381,25 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         builder.HasIndex(x => new { x.EmployeeId, x.Date }).IsUnique();
     }
 
+    private static void ConfigureHrAttendanceSetting(EntityTypeBuilder<HrAttendanceSetting> builder)
+    {
+        builder.ToTable("hr_attendance_settings");
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.SingletonKey).HasMaxLength(20).HasDefaultValue("default").IsRequired();
+        builder.Property(x => x.AttendancePeriodStartDay).HasDefaultValue(26).IsRequired();
+        builder.Property(x => x.AttendancePeriodEndDay).HasDefaultValue(25).IsRequired();
+        builder.Property(x => x.CheckInToleranceMinutes).HasDefaultValue(10).IsRequired();
+        builder.Property(x => x.LateToleranceMinutes).HasDefaultValue(15).IsRequired();
+        builder.Property(x => x.WorkStart).HasColumnType("time").IsRequired();
+        builder.Property(x => x.WorkEnd).HasColumnType("time").IsRequired();
+        builder.Property(x => x.BreakStart).HasColumnType("time").IsRequired();
+        builder.Property(x => x.BreakEnd).HasColumnType("time").IsRequired();
+        builder.Property(x => x.MinimumOtMinutes).HasDefaultValue(60).IsRequired();
+
+        builder.HasIndex(x => x.SingletonKey).IsUnique();
+    }
+
     private static void ConfigureHrLeaveType(EntityTypeBuilder<HrLeaveType> builder)
     {
         builder.ToTable("hr_leave_types");
@@ -494,5 +515,3 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         }
     }
 }
-
-

@@ -18,6 +18,7 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         await SeedRolesAsync(now, ct);
         await SeedHrMasterDataAsync(now, ct);
         await SeedLeaveTypesAsync(now, ct);
+        await SeedAttendanceSettingAsync(now, ct);
         await SeedAdminUserAsync(now, ct);
         await SeedMenusAsync(now, ct);
         await SeedSuperAdminPermissionsAsync(ct);
@@ -105,6 +106,44 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         await EnsureLeaveTypeAsync("Cuti Tanpa Bayar", "UNPAID", 30, false, true, now, ct);
     }
 
+    private async Task SeedAttendanceSettingAsync(DateTimeOffset now, CancellationToken ct)
+    {
+        var existing = await dbContext.HrAttendanceSettings
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(x => x.SingletonKey == "default", ct);
+
+        if (existing is not null)
+        {
+            if (existing.IsDeleted)
+            {
+                existing.IsDeleted = false;
+                existing.DeletedAt = null;
+                existing.UpdatedBy = "system";
+                existing.UpdatedAt = now;
+                await dbContext.SaveChangesAsync(ct);
+            }
+
+            return;
+        }
+
+        dbContext.HrAttendanceSettings.Add(new HrAttendanceSetting
+        {
+            SingletonKey = "default",
+            AttendancePeriodStartDay = 26,
+            AttendancePeriodEndDay = 25,
+            CheckInToleranceMinutes = 10,
+            LateToleranceMinutes = 15,
+            WorkStart = new TimeOnly(8, 0),
+            WorkEnd = new TimeOnly(17, 0),
+            BreakStart = new TimeOnly(12, 0),
+            BreakEnd = new TimeOnly(13, 0),
+            MinimumOtMinutes = 60,
+            CreatedBy = "system",
+            CreatedAt = now
+        });
+
+        await dbContext.SaveChangesAsync(ct);
+    }
     private async Task SeedAdminUserAsync(DateTimeOffset now, CancellationToken ct)
     {
         var adminUser = await dbContext.SysUsers
@@ -173,6 +212,7 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         var hrAttendance = await EnsureMenuAsync(hrModule.Id, null, "Attendance", null, "bi-calendar-check", 2, now, ct);
         await EnsureMenuAsync(hrModule.Id, hrAttendance.Id, "Daily Attendance", "/hr/attendance", "bi-clock", 1, now, ct);
         await EnsureMenuAsync(hrModule.Id, hrAttendance.Id, "Attendance Report", "/hr/attendance/report", "bi-file-earmark-text", 2, now, ct);
+        await EnsureMenuAsync(hrModule.Id, hrAttendance.Id, "Attendance Setting", "/hr/attendance/setting", "bi-sliders2", 3, now, ct);
 
         var hrPayroll = await EnsureMenuAsync(hrModule.Id, null, "Payroll", null, "bi-cash-stack", 3, now, ct);
         await EnsureMenuAsync(hrModule.Id, hrPayroll.Id, "Payroll Run", "/hr/payroll", "bi-gear-wide-connected", 1, now, ct);

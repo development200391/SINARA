@@ -338,6 +338,16 @@ public sealed class HrApiClient(HttpClient httpClient, ILogger<HrApiClient> logg
         return response?.IsSuccessStatusCode == true;
     }
 
+    public Task<AttendanceSettingDto?> GetAttendanceSettingAsync(string accessToken, CancellationToken ct = default)
+    {
+        return SendAsync<AttendanceSettingDto>(HttpMethod.Get, "api/v1/hr/attendance/settings", accessToken, null, ct);
+    }
+
+    public Task<AttendanceSettingDto?> UpdateAttendanceSettingAsync(string accessToken, AttendanceSettingDto request, CancellationToken ct = default)
+    {
+        return SendAsync<AttendanceSettingDto>(HttpMethod.Put, "api/v1/hr/attendance/settings", accessToken, request, ct);
+    }
+
     public Task<PagedResult<LeaveRequestDto>?> GetLeaveRequestsAsync(string accessToken, LeaveRequestPagedRequest request, CancellationToken ct = default)
     {
         var query =
@@ -496,4 +506,5 @@ public sealed class HrApiClient(HttpClient httpClient, ILogger<HrApiClient> logg
         }
     }
 }
+
 

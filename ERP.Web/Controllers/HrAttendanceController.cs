@@ -18,6 +18,7 @@ public sealed class HrAttendanceController(IHrApiClient hrApiClient) : Controlle
     private const int DefaultPageSize = 20;
     private const string DefaultSortBy = "date";
     private static readonly string[] DateTimeInputFormats = ["yyyy-MM-ddTHH:mm", "yyyy-MM-ddTHH:mm:ss"];
+    private static readonly string[] TimeInputFormats = ["HH:mm", "HH:mm:ss"];
 
     [HttpGet("")]
     public async Task<IActionResult> Index(
@@ -109,6 +110,98 @@ public sealed class HrAttendanceController(IHrApiClient hrApiClient) : Controlle
             Departments = departments,
             Attendances = attendances ?? PagedResult<AttendanceReportDto>.Create([], 0, normalizedPage, normalizedPageSize)
         });
+    }
+
+    [HttpGet("setting")]
+    public async Task<IActionResult> Setting(CancellationToken ct = default)
+    {
+        var accessToken = GetAccessToken();
+        if (string.IsNullOrWhiteSpace(accessToken))
+        {
+            return RedirectToAction("Login", "Auth", new { returnUrl = Request.Path + Request.QueryString });
+        }
+
+        var settings = await hrApiClient.GetAttendanceSettingAsync(accessToken, ct) ?? new AttendanceSettingDto();
+        var model = MapSettingViewModel(settings);
+        model.CurrentPeriodPreview = BuildAttendancePeriodPreview(
+            model.AttendancePeriodStartDay,
+            model.AttendancePeriodEndDay,
+            DateOnly.FromDateTime(DateTime.Today));
+
+        ViewData["Title"] = "Attendance Setting";
+        ViewData["Breadcrumb"] = "HR / Attendance / Setting";
+
+        return View(model);
+    }
+
+    [HttpPost("setting")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Setting(HrAttendanceSettingViewModel model, CancellationToken ct = default)
+    {
+        var accessToken = GetAccessToken();
+        if (string.IsNullOrWhiteSpace(accessToken))
+        {
+            return RedirectToAction("Login", "Auth", new { returnUrl = Request.Path + Request.QueryString });
+        }
+
+        model.CurrentPeriodPreview = BuildAttendancePeriodPreview(
+            model.AttendancePeriodStartDay,
+            model.AttendancePeriodEndDay,
+            DateOnly.FromDateTime(DateTime.Today));
+
+        var workStart = ParseTimeOnly(model.WorkStart, nameof(model.WorkStart), ModelState);
+        var workEnd = ParseTimeOnly(model.WorkEnd, nameof(model.WorkEnd), ModelState);
+        var breakStart = ParseTimeOnly(model.BreakStart, nameof(model.BreakStart), ModelState);
+        var breakEnd = ParseTimeOnly(model.BreakEnd, nameof(model.BreakEnd), ModelState);
+
+        if (workStart.HasValue && workEnd.HasValue && workEnd.Value <= workStart.Value)
+        {
+            ModelState.AddModelError(nameof(model.WorkEnd), "Work end time must be later than work start time.");
+        }
+
+        if (breakStart.HasValue && breakEnd.HasValue && breakEnd.Value <= breakStart.Value)
+        {
+            ModelState.AddModelError(nameof(model.BreakEnd), "Break end time must be later than break start time.");
+        }
+
+        if (workStart.HasValue && workEnd.HasValue && breakStart.HasValue && breakEnd.HasValue)
+        {
+            if (breakStart.Value < workStart.Value || breakEnd.Value > workEnd.Value)
+            {
+                ModelState.AddModelError(nameof(model.BreakStart), "Break time must be within work schedule.");
+            }
+        }
+
+        if (!ModelState.IsValid)
+        {
+            ViewData["Title"] = "Attendance Setting";
+            ViewData["Breadcrumb"] = "HR / Attendance / Setting";
+            return View(model);
+        }
+
+        var updated = await hrApiClient.UpdateAttendanceSettingAsync(accessToken, new AttendanceSettingDto
+        {
+            AttendancePeriodStartDay = model.AttendancePeriodStartDay,
+            AttendancePeriodEndDay = model.AttendancePeriodEndDay,
+            CheckInToleranceMinutes = model.CheckInToleranceMinutes,
+            LateToleranceMinutes = model.LateToleranceMinutes,
+            WorkStart = workStart!.Value,
+            WorkEnd = workEnd!.Value,
+            BreakStart = breakStart!.Value,
+            BreakEnd = breakEnd!.Value,
+            MinimumOtMinutes = model.MinimumOtMinutes
+        }, ct);
+
+        if (updated is null)
+        {
+            ModelState.AddModelError(string.Empty, "Failed to save attendance setting.");
+            ViewData["Title"] = "Attendance Setting";
+            ViewData["Breadcrumb"] = "HR / Attendance / Setting";
+            return View(model);
+        }
+
+        TempData["SuccessMessage"] = "Attendance setting saved.";
+        return RedirectToAction(nameof(Setting));
     }
 
     [HttpGet("details/{id:int}")]
@@ -311,6 +404,67 @@ public sealed class HrAttendanceController(IHrApiClient hrApiClient) : Controlle
         }
 
         model.Employees = employees;
+    }
+
+    private static HrAttendanceSettingViewModel MapSettingViewModel(AttendanceSettingDto dto)
+    {
+        return new HrAttendanceSettingViewModel
+        {
+            AttendancePeriodStartDay = dto.AttendancePeriodStartDay,
+            AttendancePeriodEndDay = dto.AttendancePeriodEndDay,
+            CheckInToleranceMinutes = dto.CheckInToleranceMinutes,
+            LateToleranceMinutes = dto.LateToleranceMinutes,
+            WorkStart = dto.WorkStart.ToString("HH:mm", CultureInfo.InvariantCulture),
+            WorkEnd = dto.WorkEnd.ToString("HH:mm", CultureInfo.InvariantCulture),
+            BreakStart = dto.BreakStart.ToString("HH:mm", CultureInfo.InvariantCulture),
+            BreakEnd = dto.BreakEnd.ToString("HH:mm", CultureInfo.InvariantCulture),
+            MinimumOtMinutes = dto.MinimumOtMinutes
+        };
+    }
+
+    private static string BuildAttendancePeriodPreview(int startDay, int endDay, DateOnly referenceDate)
+    {
+        var normalizedStartDay = Math.Clamp(startDay, 1, 31);
+        var normalizedEndDay = Math.Clamp(endDay, 1, 31);
+
+        var endDate = CreateSafeDate(referenceDate.Year, referenceDate.Month, normalizedEndDay);
+        DateOnly startDate;
+
+        if (normalizedStartDay > normalizedEndDay)
+        {
+            var previousMonth = endDate.AddMonths(-1);
+            startDate = CreateSafeDate(previousMonth.Year, previousMonth.Month, normalizedStartDay);
+        }
+        else
+        {
+            startDate = CreateSafeDate(endDate.Year, endDate.Month, normalizedStartDay);
+        }
+
+        return $"{startDate:dd MMM} - {endDate:dd MMM}";
+    }
+
+    private static DateOnly CreateSafeDate(int year, int month, int day)
+    {
+        var maxDay = DateTime.DaysInMonth(year, month);
+        return new DateOnly(year, month, Math.Min(day, maxDay));
+    }
+
+    private static TimeOnly? ParseTimeOnly(string? value, string fieldName, ModelStateDictionary modelState)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            modelState.AddModelError(fieldName, "Time is required.");
+            return null;
+        }
+
+        var normalized = value.Trim();
+        if (!TimeOnly.TryParseExact(normalized, TimeInputFormats, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed))
+        {
+            modelState.AddModelError(fieldName, "Invalid time format. Use HH:mm.");
+            return null;
+        }
+
+        return parsed;
     }
 
     private static string? FormatDateTimeLocal(DateTimeOffset? value)
