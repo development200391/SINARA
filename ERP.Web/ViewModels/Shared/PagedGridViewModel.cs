@@ -23,11 +23,24 @@ public sealed class PagedGridViewModel
     public string? ExportUrl { get; init; }
     public string ExportButtonText { get; init; } = "Export Excel";
 
+    public PagedGridActionConfigViewModel Actions { get; init; } = new();
+
     public IReadOnlyDictionary<string, string?> RouteValues { get; init; } = new Dictionary<string, string?>();
     public string PageQueryKey { get; init; } = "page";
     public string PageSizeQueryKey { get; init; } = "pageSize";
     public string SortByQueryKey { get; init; } = "sortBy";
     public string SortDirectionQueryKey { get; init; } = "sortDirection";
+}
+
+public sealed class PagedGridActionConfigViewModel
+{
+    public string ActionColumnTitle { get; init; } = "Action";
+    public string? AddUrl { get; init; }
+    public string AddButtonText { get; init; } = "Tambah";
+    public string DetailButtonText { get; init; } = "Detail";
+    public string EditButtonText { get; init; } = "Ubah";
+    public string DeleteButtonText { get; init; } = "Hapus";
+    public string DeleteConfirmMessage { get; init; } = "Delete this data?";
 }
 
 public sealed class PagedGridColumnViewModel
@@ -75,6 +88,15 @@ public sealed class PagedGridFilterOptionViewModel
 public sealed class PagedGridRowViewModel
 {
     public IReadOnlyList<PagedGridCellViewModel> Cells { get; init; } = [];
+    public PagedGridRowActionViewModel? Actions { get; init; }
+}
+
+public sealed class PagedGridRowActionViewModel
+{
+    public string? DetailUrl { get; init; }
+    public string? EditUrl { get; init; }
+    public string? DeleteUrl { get; init; }
+    public string? DeleteConfirmMessage { get; init; }
 }
 
 public sealed class PagedGridCellViewModel

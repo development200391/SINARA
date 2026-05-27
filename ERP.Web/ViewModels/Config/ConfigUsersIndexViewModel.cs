@@ -6,5 +6,6 @@ namespace ERP.Web.ViewModels.Config;
 public sealed class ConfigUsersIndexViewModel
 {
     public string? Search { get; set; }
+    public int PageSize { get; set; } = 20;
     public PagedResult<UserDto> Users { get; set; } = PagedResult<UserDto>.Create([], 0, 1, 20);
 }

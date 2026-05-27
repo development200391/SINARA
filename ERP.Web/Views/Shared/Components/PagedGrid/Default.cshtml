@@ -1,5 +1,6 @@
 @model ERP.Web.ViewModels.Shared.PagedGridViewModel
 @using System.Globalization
+@using System.Text.Encodings.Web
 
 @{
     var safeTotalPages = Model.TotalPages <= 0 ? 1 : Model.TotalPages;
@@ -50,6 +51,18 @@
 
             _ => false
         };
+    }
+
+    bool HasRowActions(ERP.Web.ViewModels.Shared.PagedGridRowActionViewModel? action)
+    {
+        if (action is null)
+        {
+            return false;
+        }
+
+        return !string.IsNullOrWhiteSpace(action.DetailUrl)
+            || !string.IsNullOrWhiteSpace(action.EditUrl)
+            || !string.IsNullOrWhiteSpace(action.DeleteUrl);
     }
 
     void AddFilterRouteValues(Dictionary<string, string?> values)
@@ -162,6 +175,8 @@
     var filterQueryKeys = GetFilterQueryKeys();
     var hasActiveFilters = Model.Columns.Any(x => IsFilterActive(x.Filter));
     var clearFilterRouteValues = BuildRouteValues(page: "1");
+    var hasAddAction = !string.IsNullOrWhiteSpace(Model.Actions.AddUrl);
+    var hasRowActions = Model.Rows.Any(x => HasRowActions(x.Actions));
 
     foreach (var key in filterQueryKeys)
     {
@@ -169,7 +184,7 @@
     }
 }
 
-@if (Model.EnableSearch || !string.IsNullOrWhiteSpace(Model.ExportUrl) || hasColumnFilters)
+@if (Model.EnableSearch || !string.IsNullOrWhiteSpace(Model.ExportUrl) || hasColumnFilters || hasAddAction)
 {
     <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
         @if (Model.EnableSearch)
@@ -191,12 +206,17 @@
             </form>
         }
 
-        @if (hasColumnFilters || !string.IsNullOrWhiteSpace(Model.ExportUrl))
+        @if (hasAddAction || hasColumnFilters || !string.IsNullOrWhiteSpace(Model.ExportUrl))
         {
             <div class="d-flex align-items-center gap-2 ms-auto">
+                @if (hasAddAction)
+                {
+                    <a class="btn btn-sm sinara-btn-theme-outline text-nowrap" href="@Model.Actions.AddUrl">@Model.Actions.AddButtonText</a>
+                }
+
                 @if (hasColumnFilters)
                 {
-                    <a class="btn btn-sm sinara-btn-theme-outline text-nowrap @(hasActiveFilters ? "sinara-btn-theme-outline" : "btn-outline-secondary")" asp-all-route-data="clearFilterRouteValues">Clear Filter</a>
+                    <a class="btn btn-sm text-nowrap @(hasActiveFilters ? "sinara-btn-theme-outline" : "btn-outline-secondary")" asp-all-route-data="clearFilterRouteValues">Clear Filter</a>
                 }
 
                 @if (!string.IsNullOrWhiteSpace(Model.ExportUrl))
@@ -369,19 +389,26 @@
                         </div>
                     </th>
                 }
+
+                @if (hasRowActions)
+                {
+                    <th class="text-end">@Model.Actions.ActionColumnTitle</th>
+                }
             </tr>
         </thead>
         <tbody>
         @if (Model.Rows.Count == 0)
         {
             <tr>
-                <td colspan="@(Model.Columns.Count == 0 ? 1 : Model.Columns.Count)" class="text-center text-muted py-4">@Model.EmptyMessage</td>
+                <td colspan="@(Model.Columns.Count + (hasRowActions ? 1 : 0))" class="text-center text-muted py-4">@Model.EmptyMessage</td>
             </tr>
         }
         else
         {
             foreach (var row in Model.Rows)
             {
+                var rowActions = row.Actions;
+
                 <tr>
                 @for (var index = 0; index < Model.Columns.Count; index++)
                 {
@@ -397,6 +424,37 @@
                         else
                         {
                             @cell?.Text
+                        }
+                    </td>
+                }
+
+                @if (hasRowActions)
+                {
+                    var deleteConfirmMessage = rowActions?.DeleteConfirmMessage ?? Model.Actions.DeleteConfirmMessage;
+                    var encodedDeleteConfirmMessage = JavaScriptEncoder.Default.Encode(deleteConfirmMessage);
+
+                    <td class="text-end">
+                        @if (HasRowActions(rowActions))
+                        {
+                            <div class="d-inline-flex flex-wrap justify-content-end gap-1">
+                                @if (!string.IsNullOrWhiteSpace(rowActions?.DetailUrl))
+                                {
+                                    <a class="btn btn-sm btn-outline-secondary" href="@rowActions.DetailUrl">@Model.Actions.DetailButtonText</a>
+                                }
+
+                                @if (!string.IsNullOrWhiteSpace(rowActions?.EditUrl))
+                                {
+                                    <a class="btn btn-sm btn-outline-primary" href="@rowActions.EditUrl">@Model.Actions.EditButtonText</a>
+                                }
+
+                                @if (!string.IsNullOrWhiteSpace(rowActions?.DeleteUrl))
+                                {
+                                    <form method="post" action="@rowActions.DeleteUrl" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('@encodedDeleteConfirmMessage')">@Model.Actions.DeleteButtonText</button>
+                                    </form>
+                                }
+                            </div>
                         }
                     </td>
                 }
@@ -448,4 +506,3 @@
         </nav>
     }
 </div>
-

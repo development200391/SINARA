@@ -1,0 +1,44 @@
+@model ERP.Application.DTOs.Config.UserDto
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">User Details</h1>
+
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label text-muted small">Username</label>
+                <div class="form-control-plaintext">@Model.Username</div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label text-muted small">@T["label.full_name"]</label>
+                <div class="form-control-plaintext">@Model.FullName</div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label text-muted small">Email</label>
+                <div class="form-control-plaintext">@Model.Email</div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label text-muted small">Phone</label>
+                <div class="form-control-plaintext">@(string.IsNullOrWhiteSpace(Model.Phone) ? "-" : Model.Phone)</div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label text-muted small">Roles</label>
+                <div class="form-control-plaintext">@string.Join(", ", Model.Roles)</div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label text-muted small">Status</label>
+                <div class="form-control-plaintext">
+                    <span class="badge @(Model.IsActive ? "text-bg-success" : "text-bg-secondary")">
+                        @(Model.IsActive ? "Active" : "Inactive")
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4 d-flex gap-2">
+            <a class="btn btn-primary" asp-action="Edit" asp-route-id="@Model.Id">@T["common.edit"]</a>
+            <a class="btn btn-outline-secondary" asp-action="Index">@T["common.cancel"]</a>
+        </div>
+    </div>
+</div>
+

@@ -12,8 +12,10 @@ namespace ERP.Web.Controllers;
 [Route("config/users")]
 public sealed class ConfigUsersController(IConfigApiClient configApiClient) : Controller
 {
+    private const int DefaultPageSize = 20;
+
     [HttpGet("")]
-    public async Task<IActionResult> Index(int page = 1, string? search = null, CancellationToken ct = default)
+    public async Task<IActionResult> Index(int page = 1, int pageSize = DefaultPageSize, string? search = null, CancellationToken ct = default)
     {
         var accessToken = GetAccessToken();
         if (string.IsNullOrWhiteSpace(accessToken))
@@ -21,23 +23,48 @@ public sealed class ConfigUsersController(IConfigApiClient configApiClient) : Co
             return RedirectToAction("Login", "Auth", new { returnUrl = Request.Path + Request.QueryString });
         }
 
+        var normalizedPage = page <= 0 ? 1 : page;
+        var normalizedPageSize = NormalizePageSize(pageSize);
+
         var result = await configApiClient.GetUsersAsync(accessToken, new PagedRequest
         {
-            Page = page,
-            PageSize = 20,
+            Page = normalizedPage,
+            PageSize = normalizedPageSize,
             Search = search
         }, ct);
 
         var model = new ConfigUsersIndexViewModel
         {
             Search = search,
-            Users = result ?? PagedResult<UserDto>.Create([], 0, page, 20)
+            PageSize = normalizedPageSize,
+            Users = result ?? PagedResult<UserDto>.Create([], 0, normalizedPage, normalizedPageSize)
         };
 
         ViewData["Title"] = "Users";
         ViewData["Breadcrumb"] = "Configuration / Users";
 
         return View(model);
+    }
+
+    [HttpGet("details/{id:int}")]
+    public async Task<IActionResult> Details(int id, CancellationToken ct = default)
+    {
+        var accessToken = GetAccessToken();
+        if (string.IsNullOrWhiteSpace(accessToken))
+        {
+            return RedirectToAction("Login", "Auth", new { returnUrl = Request.Path + Request.QueryString });
+        }
+
+        var user = await configApiClient.GetUserByIdAsync(accessToken, id, ct);
+        if (user is null)
+        {
+            return NotFound();
+        }
+
+        ViewData["Title"] = "User Details";
+        ViewData["Breadcrumb"] = "Configuration / Users / Details";
+
+        return View(user);
     }
 
     [HttpGet("create")]
@@ -192,6 +219,8 @@ public sealed class ConfigUsersController(IConfigApiClient configApiClient) : Co
 
         return RedirectToAction(nameof(Index));
     }
+
+    private static int NormalizePageSize(int pageSize) => pageSize is 20 or 50 or 100 ? pageSize : DefaultPageSize;
 
     private string? GetAccessToken() => User.FindFirstValue("access_token");
 }
