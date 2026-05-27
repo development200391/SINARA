@@ -101,7 +101,9 @@ public sealed class ConfigApiClient(HttpClient httpClient, ILogger<ConfigApiClie
 
     public Task<PagedResult<AuditLogDto>?> GetAuditLogsAsync(string accessToken, PagedRequest request, CancellationToken ct = default)
     {
-        var query = $"api/v1/config/audit-logs?page={request.Page}&pageSize={request.PageSize}&search={Uri.EscapeDataString(request.Search ?? string.Empty)}";
+        var sortBy = Uri.EscapeDataString(request.SortBy ?? string.Empty);
+        var sortDirection = Uri.EscapeDataString(request.SortDirection ?? string.Empty);
+        var query = $"api/v1/config/audit-logs?page={request.Page}&pageSize={request.PageSize}&search={Uri.EscapeDataString(request.Search ?? string.Empty)}&sortBy={sortBy}&sortDirection={sortDirection}";
         return SendAsync<PagedResult<AuditLogDto>>(HttpMethod.Get, query, accessToken, null, ct);
     }
 
@@ -160,3 +162,4 @@ public sealed class ConfigApiClient(HttpClient httpClient, ILogger<ConfigApiClie
         }
     }
 }
+

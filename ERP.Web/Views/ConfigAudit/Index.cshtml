@@ -1,10 +1,15 @@
 @model ERP.Web.ViewModels.Config.ConfigAuditIndexViewModel
+@using ERP.Web.ViewModels.Shared
 
 <div class="card border-0 shadow-sm">
     <div class="card-body">
         <h1 class="h5 mb-3">Audit Log</h1>
 
         <form method="get" class="row g-2 mb-3">
+            <input type="hidden" name="pageSize" value="@Model.PageSize" />
+            <input type="hidden" name="sortBy" value="@Model.SortBy" />
+            <input type="hidden" name="sortDirection" value="@Model.SortDirection" />
+
             <div class="col-md-4">
                 <input type="text" class="form-control" name="search" value="@Model.Search" placeholder="@T["common.search"] audit" />
             </div>
@@ -13,45 +18,43 @@
             </div>
         </form>
 
-        <div class="table-responsive">
-            <table class="table table-sm align-middle">
-                <thead>
-                    <tr>
-                        <th>Created At</th>
-                        <th>User</th>
-                        <th>Action</th>
-                        <th>Entity</th>
-                        <th>Entity Id</th>
-                        <th>IP</th>
-                    </tr>
-                </thead>
-                <tbody>
-                @if (Model.Logs.Items.Count == 0)
-                {
-                    <tr><td colspan="6" class="text-center text-muted py-4">@T["msg.no_data"]</td></tr>
-                }
-                else
-                {
-                    foreach (var item in Model.Logs.Items)
-                    {
-                        <tr>
-                            <td>@item.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</td>
-                            <td>@item.Username</td>
-                            <td>@item.Action</td>
-                            <td>@item.EntityName</td>
-                            <td>@item.EntityId</td>
-                            <td>@item.IpAddress</td>
-                        </tr>
-                    }
-                }
-                </tbody>
-            </table>
-        </div>
-
         @{
-            ViewData["Page"] = Model.Logs.Page;
-            ViewData["TotalPages"] = Model.Logs.TotalPages;
+            var gridModel = new PagedGridViewModel
+            {
+                Columns =
+                [
+                    new PagedGridColumnViewModel { Key = "createdAt", Title = "Created At", Sortable = true },
+                    new PagedGridColumnViewModel { Key = "username", Title = "User", Sortable = true },
+                    new PagedGridColumnViewModel { Key = "action", Title = "Action", Sortable = true },
+                    new PagedGridColumnViewModel { Key = "entityName", Title = "Entity", Sortable = true },
+                    new PagedGridColumnViewModel { Key = "entityId", Title = "Entity Id", Sortable = true },
+                    new PagedGridColumnViewModel { Key = "ipAddress", Title = "IP", Sortable = true }
+                ],
+                Rows = Model.Logs.Items.Select(item => new PagedGridRowViewModel
+                {
+                    Cells =
+                    [
+                        new PagedGridCellViewModel { Text = item.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") },
+                        new PagedGridCellViewModel { Text = item.Username },
+                        new PagedGridCellViewModel { Text = item.Action },
+                        new PagedGridCellViewModel { Text = item.EntityName },
+                        new PagedGridCellViewModel { Text = item.EntityId },
+                        new PagedGridCellViewModel { Text = item.IpAddress }
+                    ]
+                }).ToList(),
+                EmptyMessage = T["msg.no_data"],
+                Page = Model.Logs.Page,
+                TotalPages = Model.Logs.TotalPages,
+                PageSize = Model.PageSize,
+                SortBy = Model.SortBy,
+                SortDirection = Model.SortDirection,
+                RouteValues = new Dictionary<string, string?>
+                {
+                    ["search"] = Model.Search
+                }
+            };
         }
-        <partial name="~/Views/Shared/_Pagination.cshtml" />
+
+        @await Component.InvokeAsync("PagedGrid", gridModel)
     </div>
 </div>

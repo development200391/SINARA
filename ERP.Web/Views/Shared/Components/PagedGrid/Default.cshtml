@@ -1,0 +1,158 @@
+@model ERP.Web.ViewModels.Shared.PagedGridViewModel
+@using System.Globalization
+
+@{
+    var safeTotalPages = Model.TotalPages <= 0 ? 1 : Model.TotalPages;
+    var safePage = Model.Page <= 0 ? 1 : Math.Min(Model.Page, safeTotalPages);
+    var safePageSize = Model.PageSize <= 0 ? 20 : Model.PageSize;
+    var currentSortBy = Model.SortBy?.Trim();
+    var normalizedSortDirection = string.Equals(Model.SortDirection, "asc", StringComparison.OrdinalIgnoreCase) ? "asc" : "desc";
+    var pageSizeOptions = Model.PageSizeOptions
+        .Where(x => x > 0)
+        .Distinct()
+        .OrderBy(x => x)
+        .ToList();
+
+    if (!pageSizeOptions.Contains(safePageSize))
+    {
+        pageSizeOptions.Add(safePageSize);
+        pageSizeOptions = pageSizeOptions.Distinct().OrderBy(x => x).ToList();
+    }
+
+    var pageSizeSelectId = $"page-size-{Guid.NewGuid():N}";
+
+    Dictionary<string, string?> BuildRouteValues()
+    {
+        var values = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+        foreach (var route in Model.RouteValues)
+        {
+            values[route.Key] = route.Value;
+        }
+
+        values[Model.PageSizeQueryKey] = safePageSize.ToString(CultureInfo.InvariantCulture);
+        values[Model.SortByQueryKey] = currentSortBy;
+        values[Model.SortDirectionQueryKey] = normalizedSortDirection;
+
+        return values;
+    }
+}
+
+<div class="table-responsive">
+    <table class="table table-sm align-middle">
+        <thead>
+            <tr>
+                @foreach (var column in Model.Columns)
+                {
+                    <th class="@column.HeaderClass">
+                        @if (column.Sortable)
+                        {
+                            var isCurrentSort = string.Equals(currentSortBy, column.Key, StringComparison.OrdinalIgnoreCase);
+                            var nextSortDirection = isCurrentSort && normalizedSortDirection == "asc" ? "desc" : "asc";
+                            var sortRouteValues = BuildRouteValues();
+                            sortRouteValues[Model.PageQueryKey] = "1";
+                            sortRouteValues[Model.SortByQueryKey] = column.Key;
+                            sortRouteValues[Model.SortDirectionQueryKey] = nextSortDirection;
+
+                            <a class="link-dark text-decoration-none d-inline-flex align-items-center gap-1" asp-all-route-data="sortRouteValues">
+                                <span>@column.Title</span>
+                                @if (isCurrentSort)
+                                {
+                                    <small class="text-muted">@(normalizedSortDirection == "asc" ? "ASC" : "DESC")</small>
+                                }
+                            </a>
+                        }
+                        else
+                        {
+                            @column.Title
+                        }
+                    </th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+        @if (Model.Rows.Count == 0)
+        {
+            <tr>
+                <td colspan="@(Model.Columns.Count == 0 ? 1 : Model.Columns.Count)" class="text-center text-muted py-4">@Model.EmptyMessage</td>
+            </tr>
+        }
+        else
+        {
+            foreach (var row in Model.Rows)
+            {
+                <tr>
+                @for (var index = 0; index < Model.Columns.Count; index++)
+                {
+                    var column = Model.Columns[index];
+                    var cell = index < row.Cells.Count ? row.Cells[index] : null;
+                    var cellClasses = string.Join(" ", new[] { column.CellClass, cell?.CellClass }.Where(x => !string.IsNullOrWhiteSpace(x)));
+
+                    <td class="@cellClasses">
+                        @if (cell?.Html is not null)
+                        {
+                            @cell.Html
+                        }
+                        else
+                        {
+                            @cell?.Text
+                        }
+                    </td>
+                }
+                </tr>
+            }
+        }
+        </tbody>
+    </table>
+</div>
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3">
+    <form method="get" class="d-flex align-items-center gap-2">
+        @foreach (var route in Model.RouteValues)
+        {
+            if (string.Equals(route.Key, Model.PageQueryKey, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(route.Key, Model.PageSizeQueryKey, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(route.Key, Model.SortByQueryKey, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(route.Key, Model.SortDirectionQueryKey, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            <input type="hidden" name="@route.Key" value="@route.Value" />
+        }
+
+        <input type="hidden" name="@Model.PageQueryKey" value="1" />
+        <input type="hidden" name="@Model.SortByQueryKey" value="@currentSortBy" />
+        <input type="hidden" name="@Model.SortDirectionQueryKey" value="@normalizedSortDirection" />
+
+        <label class="form-label mb-0" for="@pageSizeSelectId">Page</label>
+        <select id="@pageSizeSelectId" class="form-select form-select-sm w-auto" name="@Model.PageSizeQueryKey" onchange="this.form.submit()">
+            @foreach (var size in pageSizeOptions)
+            {
+                <option value="@size" selected="@(safePageSize == size)">@size</option>
+            }
+        </select>
+    </form>
+
+    @if (safeTotalPages > 1)
+    {
+        var previousRouteValues = BuildRouteValues();
+        previousRouteValues[Model.PageQueryKey] = Math.Max(safePage - 1, 1).ToString(CultureInfo.InvariantCulture);
+
+        var nextRouteValues = BuildRouteValues();
+        nextRouteValues[Model.PageQueryKey] = Math.Min(safePage + 1, safeTotalPages).ToString(CultureInfo.InvariantCulture);
+
+        <nav aria-label="Page navigation">
+            <ul class="pagination mb-0">
+                <li class="page-item @(safePage <= 1 ? "disabled" : string.Empty)">
+                    <a class="page-link" asp-all-route-data="previousRouteValues">Previous</a>
+                </li>
+                <li class="page-item disabled">
+                    <span class="page-link">Page @safePage of @safeTotalPages</span>
+                </li>
+                <li class="page-item @(safePage >= safeTotalPages ? "disabled" : string.Empty)">
+                    <a class="page-link" asp-all-route-data="nextRouteValues">Next</a>
+                </li>
+            </ul>
+        </nav>
+    }
+</div>

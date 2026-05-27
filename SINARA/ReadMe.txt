@@ -9,5 +9,3 @@ docker compose ps
 admin
 Admin@123!
 
-buat buid aja
-docker compose -f docker-compose.yml -f docker-compose.override.yml up -d --build erp-api erp-web```

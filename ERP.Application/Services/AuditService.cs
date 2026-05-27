@@ -55,10 +55,28 @@ public sealed class AuditService(IUnitOfWork unitOfWork) : IAuditService
                 (x.EntityName != null && x.EntityName.ToLower().Contains(search)));
         }
 
+        var sortBy = request.SortBy?.Trim().ToLowerInvariant();
+        var sortDirection = string.Equals(request.SortDirection, "asc", StringComparison.OrdinalIgnoreCase) ? "asc" : "desc";
+
         var totalCount = await query.CountAsync(ct);
 
-        var items = await query
-            .OrderByDescending(x => x.CreatedAt)
+        var sortedQuery = (sortBy, sortDirection) switch
+        {
+            ("username", "asc") => query.OrderBy(x => x.Username).ThenByDescending(x => x.CreatedAt),
+            ("username", "desc") => query.OrderByDescending(x => x.Username).ThenByDescending(x => x.CreatedAt),
+            ("action", "asc") => query.OrderBy(x => x.Action).ThenByDescending(x => x.CreatedAt),
+            ("action", "desc") => query.OrderByDescending(x => x.Action).ThenByDescending(x => x.CreatedAt),
+            ("entityname", "asc") => query.OrderBy(x => x.EntityName).ThenByDescending(x => x.CreatedAt),
+            ("entityname", "desc") => query.OrderByDescending(x => x.EntityName).ThenByDescending(x => x.CreatedAt),
+            ("entityid", "asc") => query.OrderBy(x => x.EntityId).ThenByDescending(x => x.CreatedAt),
+            ("entityid", "desc") => query.OrderByDescending(x => x.EntityId).ThenByDescending(x => x.CreatedAt),
+            ("ipaddress", "asc") => query.OrderBy(x => x.IpAddress).ThenByDescending(x => x.CreatedAt),
+            ("ipaddress", "desc") => query.OrderByDescending(x => x.IpAddress).ThenByDescending(x => x.CreatedAt),
+            ("createdat", "asc") => query.OrderBy(x => x.CreatedAt),
+            _ => query.OrderByDescending(x => x.CreatedAt)
+        };
+
+        var items = await sortedQuery
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .Select(x => new AuditLogDto
@@ -79,3 +97,4 @@ public sealed class AuditService(IUnitOfWork unitOfWork) : IAuditService
         return PagedResult<AuditLogDto>.Create(items, totalCount, page, pageSize);
     }
 }
+
