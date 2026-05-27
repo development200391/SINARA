@@ -242,7 +242,7 @@
 
                 @if (hasColumnFilters)
                 {
-                    <a class="btn btn-sm text-nowrap @(hasActiveFilters ? "sinara-btn-theme-outline" : "btn-outline-secondary")" asp-all-route-data="clearFilterRouteValues">Clear Filter</a>
+                    <a class="btn btn-sm sinara-btn-theme-outline text-nowrap @(hasActiveFilters ? "sinara-btn-theme-outline" : "btn-outline-secondary")" asp-all-route-data="clearFilterRouteValues">Clear Filter</a>
                 }
 
                 @if (!string.IsNullOrWhiteSpace(Model.ExportUrl))
