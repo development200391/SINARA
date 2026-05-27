@@ -1,5 +1,6 @@
 using ERP.Web.Models;
 using ERP.Web.Services;
+using ERP.Web.Services.Exports;
 using ERP.Web.Services.Localization;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.Extensions.Options;
@@ -26,6 +27,8 @@ builder.Services.AddHttpClient<IConfigApiClient, ConfigApiClient>((serviceProvid
 });
 
 builder.Services.AddScoped<ITextLocalizer, TextLocalizer>();
+builder.Services.AddScoped<IAuditLogExcelExportService, AuditLogExcelExportService>();
+
 builder.Services.AddHttpClient<IHrApiClient, HrApiClient>((serviceProvider, client) =>
 {
     var options = serviceProvider.GetRequiredService<IOptions<ApiSettings>>().Value;
@@ -69,5 +72,3 @@ app.MapControllerRoute(
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.Run();
-
-

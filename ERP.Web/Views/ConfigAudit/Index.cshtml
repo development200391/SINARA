@@ -48,6 +48,13 @@
                 PageSize = Model.PageSize,
                 SortBy = Model.SortBy,
                 SortDirection = Model.SortDirection,
+                ExportUrl = Url.Action("Export", "ConfigAudit", new
+                {
+                    search = Model.Search,
+                    sortBy = Model.SortBy,
+                    sortDirection = Model.SortDirection
+                }),
+                ExportButtonText = "Export Excel",
                 RouteValues = new Dictionary<string, string?>
                 {
                     ["search"] = Model.Search

@@ -1,4 +1,4 @@
-﻿@model ERP.Web.ViewModels.Shared.PagedGridViewModel
+@model ERP.Web.ViewModels.Shared.PagedGridViewModel
 @using System.Globalization
 
 @{
@@ -106,32 +106,39 @@
 </div>
 
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3">
-    <form method="get" class="d-flex align-items-center gap-2">
-        @foreach (var route in Model.RouteValues)
+    <div class="d-flex flex-wrap align-items-center gap-2">
+        <form method="get" class="d-flex align-items-center gap-2">
+            @foreach (var route in Model.RouteValues)
+            {
+                if (string.Equals(route.Key, Model.PageQueryKey, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(route.Key, Model.PageSizeQueryKey, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(route.Key, Model.SortByQueryKey, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(route.Key, Model.SortDirectionQueryKey, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                <input type="hidden" name="@route.Key" value="@route.Value" />
+            }
+
+            <input type="hidden" name="@Model.PageQueryKey" value="1" />
+            <input type="hidden" name="@Model.SortByQueryKey" value="@currentSortBy" />
+            <input type="hidden" name="@Model.SortDirectionQueryKey" value="@normalizedSortDirection" />
+
+            <label class="form-label mb-0" for="@pageSizeSelectId">Page</label>
+            <select id="@pageSizeSelectId" class="form-select form-select-sm w-auto" name="@Model.PageSizeQueryKey" onchange="this.form.submit()">
+                @foreach (var size in pageSizeOptions)
+                {
+                    <option value="@size" selected="@(safePageSize == size)">@size</option>
+                }
+            </select>
+        </form>
+
+        @if (!string.IsNullOrWhiteSpace(Model.ExportUrl))
         {
-            if (string.Equals(route.Key, Model.PageQueryKey, StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(route.Key, Model.PageSizeQueryKey, StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(route.Key, Model.SortByQueryKey, StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(route.Key, Model.SortDirectionQueryKey, StringComparison.OrdinalIgnoreCase))
-            {
-                continue;
-            }
-
-            <input type="hidden" name="@route.Key" value="@route.Value" />
+            <a class="btn btn-sm btn-outline-success" href="@Model.ExportUrl">@Model.ExportButtonText</a>
         }
-
-        <input type="hidden" name="@Model.PageQueryKey" value="1" />
-        <input type="hidden" name="@Model.SortByQueryKey" value="@currentSortBy" />
-        <input type="hidden" name="@Model.SortDirectionQueryKey" value="@normalizedSortDirection" />
-
-        <label class="form-label mb-0" for="@pageSizeSelectId">Page</label>
-        <select id="@pageSizeSelectId" class="form-select form-select-sm w-auto" name="@Model.PageSizeQueryKey" onchange="this.form.submit()">
-            @foreach (var size in pageSizeOptions)
-            {
-                <option value="@size" selected="@(safePageSize == size)">@size</option>
-            }
-        </select>
-    </form>
+    </div>
 
     @if (safeTotalPages > 1)
     {
@@ -156,4 +163,3 @@
         </nav>
     }
 </div>
-

@@ -13,6 +13,8 @@ public sealed class PagedGridViewModel
     public IReadOnlyList<int> PageSizeOptions { get; init; } = [20, 50, 100];
     public string? SortBy { get; init; }
     public string SortDirection { get; init; } = "desc";
+    public string? ExportUrl { get; init; }
+    public string ExportButtonText { get; init; } = "Export Excel";
     public IReadOnlyDictionary<string, string?> RouteValues { get; init; } = new Dictionary<string, string?>();
     public string PageQueryKey { get; init; } = "page";
     public string PageSizeQueryKey { get; init; } = "pageSize";
