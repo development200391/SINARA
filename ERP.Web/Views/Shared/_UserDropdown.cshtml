@@ -2,10 +2,20 @@
     var fullName = User.FindFirst("full_name")?.Value ?? User.Identity?.Name ?? "User";
     var role = User.FindFirst(ClaimTypes.Role)?.Value ?? "Role";
     var initial = string.IsNullOrWhiteSpace(fullName) ? "U" : fullName.Substring(0, 1).ToUpperInvariant();
+
+    var themeColors = new (string Name, string Hex)[]
+    {
+        ("Teal", "#0f766e"),
+        ("Blue", "#2563eb"),
+        ("Red", "#dc2626"),
+        ("Amber", "#b45309"),
+        ("Green", "#15803d"),
+        ("Slate", "#334155")
+    };
 }
 
-<div class="dropdown">
-    <button class="btn btn-light border rounded-circle avatar-circle dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+<div class="dropdown" data-bs-auto-close="outside">
+    <button class="btn sinara-user-toggle border rounded-circle avatar-circle dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
         @initial
     </button>
     <ul class="dropdown-menu dropdown-menu-end">
@@ -15,6 +25,29 @@
         </li>
         <li><hr class="dropdown-divider" /></li>
         <li><a class="dropdown-item" href="#">@T["layout.profile"]</a></li>
+
+        <li><hr class="dropdown-divider" /></li>
+        <li class="px-3 py-2 sinara-theme-panel">
+            <div class="small text-muted mb-2">Theme Color</div>
+            <div class="d-flex flex-wrap gap-2 mb-2">
+                @foreach (var color in themeColors)
+                {
+                    <button type="button"
+                            class="sinara-theme-swatch"
+                            data-theme-color="@color.Hex"
+                            title="@color.Name"
+                            aria-label="Theme @color.Name"
+                            style="background-color: @color.Hex;">
+                    </button>
+                }
+            </div>
+            <div class="d-flex align-items-center justify-content-between gap-2">
+                <input id="sinara-theme-color-input" class="form-control form-control-color sinara-theme-color-input" type="color" value="#0f766e" title="Choose custom theme color" />
+                <button id="sinara-theme-reset" type="button" class="btn btn-sm btn-link text-decoration-none p-0">Reset</button>
+            </div>
+        </li>
+
+        <li><hr class="dropdown-divider" /></li>
         <li>
             <form asp-controller="Auth" asp-action="Logout" method="post" class="px-3 py-1">
                 @Html.AntiForgeryToken()

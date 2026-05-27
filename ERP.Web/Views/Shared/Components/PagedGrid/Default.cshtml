@@ -38,8 +38,8 @@
 }
 
 <div class="table-responsive">
-    <table class="table table-sm align-middle">
-        <thead>
+    <table class="table table-sm align-middle sinara-paged-grid">
+        <thead class="sinara-paged-grid-header">
             <tr>
                 @foreach (var column in Model.Columns)
                 {
@@ -53,11 +53,11 @@
                             sortRouteValues[Model.SortByQueryKey] = column.Key;
                             sortRouteValues[Model.SortDirectionQueryKey] = nextSortDirection;
 
-                            <a class="link-dark text-decoration-none d-inline-flex align-items-center gap-1" asp-all-route-data="sortRouteValues">
+                            <a class="sinara-grid-sort-link text-decoration-none d-inline-flex align-items-center gap-1" asp-all-route-data="sortRouteValues">
                                 <span>@column.Title</span>
                                 @if (isCurrentSort)
                                 {
-                                    <small class="text-muted">@(normalizedSortDirection == "asc" ? "ASC" : "DESC")</small>
+                                    <small>@(normalizedSortDirection == "asc" ? "ASC" : "DESC")</small>
                                 }
                             </a>
                         }
