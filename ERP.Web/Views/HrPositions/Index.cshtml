@@ -1,0 +1,93 @@
+@model ERP.Web.ViewModels.HR.HrPositionsIndexViewModel
+@using ERP.Web.ViewModels.Shared
+@using Microsoft.AspNetCore.Html
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">Positions</h1>
+
+        @{
+            var selectedDepartmentId = Model.DepartmentId?.ToString();
+            var selectedIsActive = Model.IsActive.HasValue
+                ? (Model.IsActive.Value ? "true" : "false")
+                : null;
+
+            var departmentFilterOptions = Model.Departments
+                .OrderBy(x => x.Name)
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = x.Id.ToString(),
+                    Label = $"{x.Code} - {x.Name}"
+                })
+                .ToList();
+
+            var statusFilterOptions = new List<PagedGridFilterOptionViewModel>
+            {
+                new() { Value = "true", Label = "Active" },
+                new() { Value = "false", Label = "Inactive" }
+            };
+
+            var gridModel = new PagedGridViewModel
+            {
+                Columns =
+                [
+                    new PagedGridColumnViewModel { Key = "code", Title = "Code" },
+                    new PagedGridColumnViewModel { Key = "name", Title = "Name" },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "departmentName",
+                        Title = T["label.department"],
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "departmentId",
+                            Value = selectedDepartmentId,
+                            EmptyOptionLabel = "All Department",
+                            Options = departmentFilterOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel { Key = "level", Title = "Level" },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "isActive",
+                        Title = "Status",
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "isActive",
+                            Value = selectedIsActive,
+                            EmptyOptionLabel = "All Status",
+                            Options = statusFilterOptions
+                        }
+                    }
+                ],
+                Rows = Model.Positions.Items.Select(item => new PagedGridRowViewModel
+                {
+                    Cells =
+                    [
+                        new PagedGridCellViewModel { Text = item.Code },
+                        new PagedGridCellViewModel { Text = item.Name },
+                        new PagedGridCellViewModel { Text = item.DepartmentName },
+                        new PagedGridCellViewModel { Text = item.Level.ToString() },
+                        new PagedGridCellViewModel
+                        {
+                            Html = new HtmlString(item.IsActive
+                                ? "<span class=\"badge text-bg-success\">Active</span>"
+                                : "<span class=\"badge text-bg-secondary\">Inactive</span>")
+                        }
+                    ]
+                }).ToList(),
+                EmptyMessage = T["msg.no_data"],
+                Page = Model.Positions.Page,
+                TotalPages = Model.Positions.TotalPages,
+                PageSize = Model.PageSize,
+                EnableSearch = true,
+                SearchValue = Model.Search,
+                SearchPlaceholder = $"{T["common.search"]} positions",
+                SearchButtonText = T["common.search"]
+            };
+        }
+
+        @await Component.InvokeAsync("PagedGrid", gridModel)
+    </div>
+</div>

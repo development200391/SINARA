@@ -16,4 +16,5 @@ public sealed class DepartmentDto
 
 public sealed class DepartmentPagedRequest : PagedRequest
 {
+    public bool? IsActive { get; set; }
 }

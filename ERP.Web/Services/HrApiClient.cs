@@ -8,6 +8,76 @@ namespace ERP.Web.Services;
 
 public sealed class HrApiClient(HttpClient httpClient, ILogger<HrApiClient> logger) : IHrApiClient
 {
+    public Task<PagedResult<EmployeeListDto>?> GetEmployeesAsync(string accessToken, EmployeePagedRequest request, CancellationToken ct = default)
+    {
+        var parameters = new List<string>
+        {
+            $"page={request.Page}",
+            $"pageSize={request.PageSize}",
+            $"search={Uri.EscapeDataString(request.Search ?? string.Empty)}"
+        };
+
+        if (request.DepartmentId.HasValue)
+        {
+            parameters.Add($"departmentId={request.DepartmentId.Value}");
+        }
+
+        if (request.EmploymentStatus.HasValue)
+        {
+            parameters.Add($"employmentStatus={(int)request.EmploymentStatus.Value}");
+        }
+
+        var query = $"api/v1/hr/employees?{string.Join("&", parameters)}";
+        return SendAsync<PagedResult<EmployeeListDto>>(HttpMethod.Get, query, accessToken, null, ct);
+    }
+
+    public Task<PagedResult<DepartmentDto>?> GetDepartmentsAsync(string accessToken, DepartmentPagedRequest request, CancellationToken ct = default)
+    {
+        var parameters = new List<string>
+        {
+            $"page={request.Page}",
+            $"pageSize={request.PageSize}",
+            $"search={Uri.EscapeDataString(request.Search ?? string.Empty)}"
+        };
+
+        if (request.IsActive.HasValue)
+        {
+            parameters.Add($"isActive={(request.IsActive.Value ? "true" : "false")}");
+        }
+
+        var query = $"api/v1/hr/departments?{string.Join("&", parameters)}";
+        return SendAsync<PagedResult<DepartmentDto>>(HttpMethod.Get, query, accessToken, null, ct);
+    }
+
+    public async Task<IReadOnlyList<DepartmentDto>> GetDepartmentOptionsAsync(string accessToken, CancellationToken ct = default)
+    {
+        return await SendAsync<IReadOnlyList<DepartmentDto>>(HttpMethod.Get, "api/v1/hr/departments/all", accessToken, null, ct)
+            ?? [];
+    }
+
+    public Task<PagedResult<PositionDto>?> GetPositionsAsync(string accessToken, PositionPagedRequest request, CancellationToken ct = default)
+    {
+        var parameters = new List<string>
+        {
+            $"page={request.Page}",
+            $"pageSize={request.PageSize}",
+            $"search={Uri.EscapeDataString(request.Search ?? string.Empty)}"
+        };
+
+        if (request.DepartmentId.HasValue)
+        {
+            parameters.Add($"departmentId={request.DepartmentId.Value}");
+        }
+
+        if (request.IsActive.HasValue)
+        {
+            parameters.Add($"isActive={(request.IsActive.Value ? "true" : "false")}");
+        }
+
+        var query = $"api/v1/hr/positions?{string.Join("&", parameters)}";
+        return SendAsync<PagedResult<PositionDto>>(HttpMethod.Get, query, accessToken, null, ct);
+    }
+
     public Task<PagedResult<LeaveRequestDto>?> GetLeaveRequestsAsync(string accessToken, LeaveRequestPagedRequest request, CancellationToken ct = default)
     {
         var query =

@@ -26,6 +26,9 @@ public static class DependencyInjection
         services.AddScoped<IModuleService, ModuleService>();
         services.AddScoped<IAppSettingsService, AppSettingsService>();
 
+        services.AddScoped<IEmployeeService, EmployeeService>();
+        services.AddScoped<IDepartmentService, DepartmentService>();
+        services.AddScoped<IPositionService, PositionService>();
         services.AddScoped<ILeaveService, LeaveService>();
         services.AddScoped<IPayrollService, PayrollService>();
 

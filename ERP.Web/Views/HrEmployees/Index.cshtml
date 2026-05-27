@@ -1,0 +1,99 @@
+@model ERP.Web.ViewModels.HR.HrEmployeesIndexViewModel
+@using ERP.Domain.Enums
+@using ERP.Web.ViewModels.Shared
+@using Microsoft.AspNetCore.Html
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">Employees</h1>
+
+        @{
+            var selectedDepartmentId = Model.DepartmentId?.ToString();
+            var selectedEmploymentStatus = Model.EmploymentStatus.HasValue
+                ? ((int)Model.EmploymentStatus.Value).ToString()
+                : null;
+
+            var departmentFilterOptions = Model.Departments
+                .OrderBy(x => x.Name)
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = x.Id.ToString(),
+                    Label = $"{x.Code} - {x.Name}"
+                })
+                .ToList();
+
+            var statusFilterOptions = new List<PagedGridFilterOptionViewModel>
+            {
+                new() { Value = ((int)EmploymentStatus.Active).ToString(), Label = "Active" },
+                new() { Value = ((int)EmploymentStatus.Inactive).ToString(), Label = "Inactive" },
+                new() { Value = ((int)EmploymentStatus.OnLeave).ToString(), Label = "On Leave" }
+            };
+
+            var gridModel = new PagedGridViewModel
+            {
+                Columns =
+                [
+                    new PagedGridColumnViewModel { Key = "employeeCode", Title = T["label.employee_code"] },
+                    new PagedGridColumnViewModel { Key = "fullName", Title = T["label.full_name"] },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "departmentName",
+                        Title = T["label.department"],
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "departmentId",
+                            Value = selectedDepartmentId,
+                            EmptyOptionLabel = "All Department",
+                            Options = departmentFilterOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel { Key = "positionName", Title = T["label.position"] },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "employmentStatus",
+                        Title = "Status",
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "employmentStatus",
+                            Value = selectedEmploymentStatus,
+                            EmptyOptionLabel = "All Status",
+                            Options = statusFilterOptions
+                        }
+                    }
+                ],
+                Rows = Model.Employees.Items.Select(employee => new PagedGridRowViewModel
+                {
+                    Cells =
+                    [
+                        new PagedGridCellViewModel { Text = employee.EmployeeCode },
+                        new PagedGridCellViewModel { Text = employee.FullName },
+                        new PagedGridCellViewModel { Text = employee.DepartmentName },
+                        new PagedGridCellViewModel { Text = employee.PositionName },
+                        new PagedGridCellViewModel
+                        {
+                            Html = new HtmlString(employee.EmploymentStatus switch
+                            {
+                                EmploymentStatus.Active => "<span class=\"badge text-bg-success\">Active</span>",
+                                EmploymentStatus.Inactive => "<span class=\"badge text-bg-secondary\">Inactive</span>",
+                                EmploymentStatus.OnLeave => "<span class=\"badge text-bg-warning\">On Leave</span>",
+                                _ => "<span class=\"badge text-bg-secondary\">Unknown</span>"
+                            })
+                        }
+                    ]
+                }).ToList(),
+                EmptyMessage = T["msg.no_data"],
+                Page = Model.Employees.Page,
+                TotalPages = Model.Employees.TotalPages,
+                PageSize = Model.PageSize,
+                EnableSearch = true,
+                SearchValue = Model.Search,
+                SearchPlaceholder = $"{T["common.search"]} employees",
+                SearchButtonText = T["common.search"]
+            };
+        }
+
+        @await Component.InvokeAsync("PagedGrid", gridModel)
+    </div>
+</div>

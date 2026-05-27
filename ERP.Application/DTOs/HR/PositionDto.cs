@@ -16,4 +16,5 @@ public sealed class PositionDto
 public sealed class PositionPagedRequest : PagedRequest
 {
     public int? DepartmentId { get; set; }
+    public bool? IsActive { get; set; }
 }
