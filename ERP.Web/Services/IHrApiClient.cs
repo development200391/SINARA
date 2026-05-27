@@ -26,6 +26,12 @@ public interface IHrApiClient
     Task<PositionDto?> CreatePositionAsync(string accessToken, PositionDto request, CancellationToken ct = default);
     Task<PositionDto?> UpdatePositionAsync(string accessToken, int id, PositionDto request, CancellationToken ct = default);
     Task<bool> DeletePositionAsync(string accessToken, int id, CancellationToken ct = default);
+    Task<PagedResult<AttendanceReportDto>?> GetAttendancesAsync(string accessToken, AttendanceReportRequest request, CancellationToken ct = default);
+    Task<AttendanceDto?> GetAttendanceByIdAsync(string accessToken, int id, CancellationToken ct = default);
+    Task<IReadOnlyList<AttendanceDto>> GetAttendancesByEmployeeAsync(string accessToken, int employeeId, CancellationToken ct = default);
+    Task<AttendanceDto?> CreateAttendanceAsync(string accessToken, AttendanceRecordRequest request, CancellationToken ct = default);
+    Task<AttendanceDto?> UpdateAttendanceAsync(string accessToken, int id, AttendanceRecordRequest request, CancellationToken ct = default);
+    Task<bool> DeleteAttendanceAsync(string accessToken, int id, CancellationToken ct = default);
 
     Task<PagedResult<LeaveRequestDto>?> GetLeaveRequestsAsync(string accessToken, LeaveRequestPagedRequest request, CancellationToken ct = default);
     Task<LeaveRequestOptionsDto?> GetLeaveRequestOptionsAsync(string accessToken, CancellationToken ct = default);
@@ -46,3 +52,4 @@ public interface IHrApiClient
     Task<IReadOnlyList<PayrollRunDetailDto>> GetPayrollRunDetailsAsync(string accessToken, int runId, CancellationToken ct = default);
     Task<PayslipDto?> GetPayslipAsync(string accessToken, int runId, int employeeId, CancellationToken ct = default);
 }
+

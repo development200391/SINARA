@@ -1,0 +1,69 @@
+@model ERP.Web.ViewModels.HR.HrAttendanceEditViewModel
+@using ERP.Domain.Enums
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">Edit Attendance</h1>
+
+        <form method="post" class="row g-3">
+            @Html.AntiForgeryToken()
+            <input asp-for="Id" type="hidden" />
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="col-md-6">
+                <label asp-for="EmployeeId" class="form-label">Employee</label>
+                <select asp-for="EmployeeId" class="form-select">
+                    <option value="">Select Employee</option>
+                    @foreach (var employee in Model.Employees)
+                    {
+                        <option value="@employee.Id" selected="@(Model.EmployeeId == employee.Id)">@employee.Name</option>
+                    }
+                </select>
+                <span asp-validation-for="EmployeeId" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="Date" class="form-label">Date</label>
+                <input asp-for="Date" class="form-control" type="date" />
+                <span asp-validation-for="Date" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="CheckInLocal" class="form-label"></label>
+                <input asp-for="CheckInLocal" class="form-control" type="datetime-local" />
+                <span asp-validation-for="CheckInLocal" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="CheckOutLocal" class="form-label"></label>
+                <input asp-for="CheckOutLocal" class="form-control" type="datetime-local" />
+                <span asp-validation-for="CheckOutLocal" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-4">
+                <label asp-for="Status" class="form-label">Status</label>
+                <select asp-for="Status" class="form-select">
+                    @foreach (var status in Enum.GetValues<AttendanceStatus>())
+                    {
+                        <option value="@status" selected="@(Model.Status == status)">@status</option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-md-8">
+                <label asp-for="Notes" class="form-label">Notes</label>
+                <textarea asp-for="Notes" class="form-control" rows="3"></textarea>
+                <span asp-validation-for="Notes" class="text-danger"></span>
+            </div>
+
+            <div class="col-12 d-flex gap-2">
+                <button type="submit" class="btn btn-primary">@T["common.save"]</button>
+                <a asp-action="Index" class="btn btn-outline-secondary">@T["common.cancel"]</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

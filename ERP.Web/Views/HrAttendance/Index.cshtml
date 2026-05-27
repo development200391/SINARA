@@ -1,0 +1,204 @@
+@model ERP.Web.ViewModels.HR.HrAttendanceIndexViewModel
+@using ERP.Domain.Enums
+@using ERP.Web.ViewModels.Shared
+@using Microsoft.AspNetCore.Html
+@using System.Globalization
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">Attendance</h1>
+
+        @{
+            var selectedDepartmentId = Model.DepartmentIdFilter?.ToString(CultureInfo.InvariantCulture);
+            var selectedStatus = Model.StatusFilter.HasValue
+                ? ((int)Model.StatusFilter.Value).ToString(CultureInfo.InvariantCulture)
+                : null;
+
+            var departmentFilterOptions = Model.Departments
+                .OrderBy(x => x.Name)
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = x.Id.ToString(CultureInfo.InvariantCulture),
+                    Label = $"{x.Code} - {x.Name}"
+                })
+                .ToList();
+
+            var statusFilterOptions = new List<PagedGridFilterOptionViewModel>
+            {
+                new() { Value = ((int)AttendanceStatus.Present).ToString(CultureInfo.InvariantCulture), Label = "Present" },
+                new() { Value = ((int)AttendanceStatus.Absent).ToString(CultureInfo.InvariantCulture), Label = "Absent" },
+                new() { Value = ((int)AttendanceStatus.Late).ToString(CultureInfo.InvariantCulture), Label = "Late" },
+                new() { Value = ((int)AttendanceStatus.HalfDay).ToString(CultureInfo.InvariantCulture), Label = "Half Day" }
+            };
+
+            var gridModel = new PagedGridViewModel
+            {
+                Columns =
+                [
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "employeeCode",
+                        Title = T["label.employee_code"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Text,
+                            QueryKey = "employeeCode",
+                            Value = Model.EmployeeCodeFilter,
+                            Placeholder = "Filter employee code"
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "employeeName",
+                        Title = T["label.full_name"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Text,
+                            QueryKey = "employeeName",
+                            Value = Model.EmployeeNameFilter,
+                            Placeholder = "Filter employee name"
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "departmentName",
+                        Title = T["label.department"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "departmentId",
+                            Value = selectedDepartmentId,
+                            EmptyOptionLabel = "All Department",
+                            Options = departmentFilterOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "date",
+                        Title = "Date",
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.DateRange,
+                            QueryKey = "dateFrom",
+                            QueryKeyTo = "dateTo",
+                            Value = Model.DateFromFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                            ValueTo = Model.DateToFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "checkIn",
+                        Title = "Check In",
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.DateRange,
+                            QueryKey = "checkInFrom",
+                            QueryKeyTo = "checkInTo",
+                            Value = Model.CheckInFromFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                            ValueTo = Model.CheckInToFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "checkOut",
+                        Title = "Check Out",
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.DateRange,
+                            QueryKey = "checkOutFrom",
+                            QueryKeyTo = "checkOutTo",
+                            Value = Model.CheckOutFromFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                            ValueTo = Model.CheckOutToFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "status",
+                        Title = "Status",
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "status",
+                            Value = selectedStatus,
+                            EmptyOptionLabel = "All Status",
+                            Options = statusFilterOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "notes",
+                        Title = "Notes",
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Text,
+                            QueryKey = "notes",
+                            Value = Model.NotesFilter,
+                            Placeholder = "Filter notes"
+                        }
+                    }
+                ],
+                Rows = Model.Attendances.Items.Select(item => new PagedGridRowViewModel
+                {
+                    Cells =
+                    [
+                        new PagedGridCellViewModel { Text = item.EmployeeCode },
+                        new PagedGridCellViewModel { Text = item.EmployeeName },
+                        new PagedGridCellViewModel { Text = item.DepartmentName },
+                        new PagedGridCellViewModel { Text = item.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) },
+                        new PagedGridCellViewModel { Text = item.CheckIn?.ToLocalTime().ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) ?? "-" },
+                        new PagedGridCellViewModel { Text = item.CheckOut?.ToLocalTime().ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) ?? "-" },
+                        new PagedGridCellViewModel
+                        {
+                            Html = new HtmlString(item.Status switch
+                            {
+                                AttendanceStatus.Present => "<span class=\"badge text-bg-success\">Present</span>",
+                                AttendanceStatus.Absent => "<span class=\"badge text-bg-danger\">Absent</span>",
+                                AttendanceStatus.Late => "<span class=\"badge text-bg-warning\">Late</span>",
+                                AttendanceStatus.HalfDay => "<span class=\"badge text-bg-info\">Half Day</span>",
+                                _ => "<span class=\"badge text-bg-secondary\">Unknown</span>"
+                            })
+                        },
+                        new PagedGridCellViewModel { Text = string.IsNullOrWhiteSpace(item.Notes) ? "-" : item.Notes }
+                    ],
+                    Actions = new PagedGridRowActionViewModel
+                    {
+                        DetailUrl = Url.Action("Details", "HrAttendance", new { id = item.Id }),
+                        EditUrl = Url.Action("Edit", "HrAttendance", new { id = item.Id }),
+                        DeleteUrl = Url.Action("Delete", "HrAttendance", new { id = item.Id }),
+                        DeleteConfirmMessage = "Delete this attendance record?"
+                    }
+                }).ToList(),
+                EmptyMessage = T["msg.no_data"],
+                Page = Model.Attendances.Page,
+                TotalPages = Model.Attendances.TotalPages,
+                PageSize = Model.PageSize,
+                SortBy = Model.SortBy,
+                SortDirection = Model.SortDirection,
+                EnableSearch = true,
+                SearchValue = Model.Search,
+                SearchPlaceholder = "Search attendance",
+                SearchButtonText = T["common.search"],
+                Actions = new PagedGridActionConfigViewModel
+                {
+                    ActionColumnTitle = "Action",
+                    AddUrl = Url.Action("Create", "HrAttendance"),
+                    AddButtonText = T["common.add_new"],
+                    DetailButtonText = "Detail",
+                    EditButtonText = T["common.edit"],
+                    DeleteButtonText = T["common.delete"],
+                    DeleteConfirmMessage = "Delete this attendance record?"
+                }
+            };
+        }
+
+        @await Component.InvokeAsync("PagedGrid", gridModel)
+    </div>
+</div>

@@ -237,6 +237,107 @@ public sealed class HrApiClient(HttpClient httpClient, ILogger<HrApiClient> logg
         return response?.IsSuccessStatusCode == true;
     }
 
+    public Task<PagedResult<AttendanceReportDto>?> GetAttendancesAsync(string accessToken, AttendanceReportRequest request, CancellationToken ct = default)
+    {
+        var parameters = new List<string>();
+        AddPagedParameters(parameters, request);
+
+        if (!string.IsNullOrWhiteSpace(request.EmployeeCode))
+        {
+            parameters.Add($"employeeCode={Uri.EscapeDataString(request.EmployeeCode.Trim())}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.EmployeeName))
+        {
+            parameters.Add($"employeeName={Uri.EscapeDataString(request.EmployeeName.Trim())}");
+        }
+
+        if (request.EmployeeId.HasValue)
+        {
+            parameters.Add($"employeeId={request.EmployeeId.Value}");
+        }
+
+        if (request.DepartmentId.HasValue)
+        {
+            parameters.Add($"departmentId={request.DepartmentId.Value}");
+        }
+
+        if (request.DateFrom.HasValue)
+        {
+            parameters.Add($"dateFrom={request.DateFrom.Value:yyyy-MM-dd}");
+        }
+
+        if (request.DateTo.HasValue)
+        {
+            parameters.Add($"dateTo={request.DateTo.Value:yyyy-MM-dd}");
+        }
+
+        if (request.CheckInFrom.HasValue)
+        {
+            parameters.Add($"checkInFrom={request.CheckInFrom.Value:yyyy-MM-dd}");
+        }
+
+        if (request.CheckInTo.HasValue)
+        {
+            parameters.Add($"checkInTo={request.CheckInTo.Value:yyyy-MM-dd}");
+        }
+
+        if (request.CheckOutFrom.HasValue)
+        {
+            parameters.Add($"checkOutFrom={request.CheckOutFrom.Value:yyyy-MM-dd}");
+        }
+
+        if (request.CheckOutTo.HasValue)
+        {
+            parameters.Add($"checkOutTo={request.CheckOutTo.Value:yyyy-MM-dd}");
+        }
+
+        if (request.Status.HasValue)
+        {
+            parameters.Add($"status={(int)request.Status.Value}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Notes))
+        {
+            parameters.Add($"notes={Uri.EscapeDataString(request.Notes.Trim())}");
+        }
+
+        var query = $"api/v1/hr/attendance?{string.Join("&", parameters)}";
+        return SendAsync<PagedResult<AttendanceReportDto>>(HttpMethod.Get, query, accessToken, null, ct);
+    }
+
+    public Task<AttendanceDto?> GetAttendanceByIdAsync(string accessToken, int id, CancellationToken ct = default)
+    {
+        return SendAsync<AttendanceDto>(HttpMethod.Get, $"api/v1/hr/attendance/{id}", accessToken, null, ct);
+    }
+
+    public async Task<IReadOnlyList<AttendanceDto>> GetAttendancesByEmployeeAsync(string accessToken, int employeeId, CancellationToken ct = default)
+    {
+        if (employeeId <= 0)
+        {
+            return [];
+        }
+
+        return await SendAsync<IReadOnlyList<AttendanceDto>>(HttpMethod.Get, $"api/v1/hr/attendance/by-employee/{employeeId}", accessToken, null, ct)
+            ?? [];
+    }
+
+    public Task<AttendanceDto?> CreateAttendanceAsync(string accessToken, AttendanceRecordRequest request, CancellationToken ct = default)
+    {
+        return SendAsync<AttendanceDto>(HttpMethod.Post, "api/v1/hr/attendance", accessToken, request, ct);
+    }
+
+    public Task<AttendanceDto?> UpdateAttendanceAsync(string accessToken, int id, AttendanceRecordRequest request, CancellationToken ct = default)
+    {
+        return SendAsync<AttendanceDto>(HttpMethod.Put, $"api/v1/hr/attendance/{id}", accessToken, request, ct);
+    }
+
+    public async Task<bool> DeleteAttendanceAsync(string accessToken, int id, CancellationToken ct = default)
+    {
+        var response = await SendRawAsync(HttpMethod.Delete, $"api/v1/hr/attendance/{id}", accessToken, null, ct);
+        return response?.IsSuccessStatusCode == true;
+    }
+
     public Task<PagedResult<LeaveRequestDto>?> GetLeaveRequestsAsync(string accessToken, LeaveRequestPagedRequest request, CancellationToken ct = default)
     {
         var query =
@@ -395,3 +496,4 @@ public sealed class HrApiClient(HttpClient httpClient, ILogger<HrApiClient> logg
         }
     }
 }
+

@@ -1,0 +1,66 @@
+@model ERP.Application.DTOs.HR.AttendanceDto
+@using ERP.Domain.Enums
+@using System.Globalization
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">Attendance Details</h1>
+
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label text-muted small">Employee Code</label>
+                <div class="form-control-plaintext">@Model.EmployeeCode</div>
+            </div>
+            <div class="col-md-8">
+                <label class="form-label text-muted small">Employee Name</label>
+                <div class="form-control-plaintext">@Model.EmployeeName</div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label text-muted small">Department</label>
+                <div class="form-control-plaintext">@Model.DepartmentName</div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label text-muted small">Date</label>
+                <div class="form-control-plaintext">@Model.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)</div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label text-muted small">Check In</label>
+                <div class="form-control-plaintext">@(Model.CheckIn?.ToLocalTime().ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) ?? "-")</div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label text-muted small">Check Out</label>
+                <div class="form-control-plaintext">@(Model.CheckOut?.ToLocalTime().ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) ?? "-")</div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label text-muted small">Status</label>
+                <div class="form-control-plaintext">
+                    @if (Model.Status == AttendanceStatus.Present)
+                    {
+                        <span class="badge text-bg-success">Present</span>
+                    }
+                    else if (Model.Status == AttendanceStatus.Absent)
+                    {
+                        <span class="badge text-bg-danger">Absent</span>
+                    }
+                    else if (Model.Status == AttendanceStatus.Late)
+                    {
+                        <span class="badge text-bg-warning">Late</span>
+                    }
+                    else
+                    {
+                        <span class="badge text-bg-info">Half Day</span>
+                    }
+                </div>
+            </div>
+            <div class="col-md-12">
+                <label class="form-label text-muted small">Notes</label>
+                <div class="form-control-plaintext">@(string.IsNullOrWhiteSpace(Model.Notes) ? "-" : Model.Notes)</div>
+            </div>
+        </div>
+
+        <div class="mt-4 d-flex gap-2">
+            <a class="btn btn-primary" asp-action="Edit" asp-route-id="@Model.Id">@T["common.edit"]</a>
+            <a class="btn btn-outline-secondary" asp-action="Index">@T["common.cancel"]</a>
+        </div>
+    </div>
+</div>

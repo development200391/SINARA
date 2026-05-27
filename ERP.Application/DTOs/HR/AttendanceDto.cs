@@ -7,6 +7,10 @@ public sealed class AttendanceDto
 {
     public int Id { get; set; }
     public int EmployeeId { get; set; }
+    public string EmployeeCode { get; set; } = string.Empty;
+    public string EmployeeName { get; set; } = string.Empty;
+    public int DepartmentId { get; set; }
+    public string DepartmentName { get; set; } = string.Empty;
     public DateOnly Date { get; set; }
     public DateTimeOffset? CheckIn { get; set; }
     public DateTimeOffset? CheckOut { get; set; }
@@ -41,9 +45,16 @@ public sealed class AttendanceReportDto
 
 public sealed class AttendanceReportRequest : PagedRequest
 {
-    public DateOnly? StartDate { get; set; }
-    public DateOnly? EndDate { get; set; }
+    public string? EmployeeCode { get; set; }
+    public string? EmployeeName { get; set; }
     public int? EmployeeId { get; set; }
     public int? DepartmentId { get; set; }
+    public DateOnly? DateFrom { get; set; }
+    public DateOnly? DateTo { get; set; }
+    public DateOnly? CheckInFrom { get; set; }
+    public DateOnly? CheckInTo { get; set; }
+    public DateOnly? CheckOutFrom { get; set; }
+    public DateOnly? CheckOutTo { get; set; }
     public AttendanceStatus? Status { get; set; }
+    public string? Notes { get; set; }
 }
