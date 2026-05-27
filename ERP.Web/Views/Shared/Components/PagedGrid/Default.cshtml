@@ -52,49 +52,39 @@
 
         return values;
     }
+
+    var searchFormRouteValues = BuildRouteValues(page: "1");
+    var pageSizeFormRouteValues = BuildRouteValues(page: "1");
 }
 
-<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-    <form method="get" class="d-flex flex-wrap align-items-center gap-2 sinara-grid-toolbar">
-        @foreach (var route in Model.RouteValues)
-        {
-            if (string.Equals(route.Key, Model.PageQueryKey, StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(route.Key, Model.PageSizeQueryKey, StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(route.Key, Model.SortByQueryKey, StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(route.Key, Model.SortDirectionQueryKey, StringComparison.OrdinalIgnoreCase) ||
-                (Model.EnableSearch && string.Equals(route.Key, Model.SearchQueryKey, StringComparison.OrdinalIgnoreCase)))
-            {
-                continue;
-            }
-
-            <input type="hidden" name="@route.Key" value="@route.Value" />
-        }
-
-        <input type="hidden" name="@Model.PageQueryKey" value="1" />
-        <input type="hidden" name="@Model.SortByQueryKey" value="@currentSortBy" />
-        <input type="hidden" name="@Model.SortDirectionQueryKey" value="@normalizedSortDirection" />
-
+@if (Model.EnableSearch || !string.IsNullOrWhiteSpace(Model.ExportUrl))
+{
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
         @if (Model.EnableSearch)
         {
-            <label class="visually-hidden" for="@searchInputId">Search</label>
-            <input id="@searchInputId" type="text" class="form-control form-control-sm sinara-grid-search-input" name="@Model.SearchQueryKey" value="@Model.SearchValue" placeholder="@searchPlaceholder" />
-            <button type="submit" class="btn btn-sm sinara-btn-theme-outline">@Model.SearchButtonText</button>
+            <form method="get" class="d-flex flex-wrap align-items-center gap-2 sinara-grid-toolbar">
+                @foreach (var route in searchFormRouteValues)
+                {
+                    if (string.Equals(route.Key, Model.SearchQueryKey, StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    <input type="hidden" name="@route.Key" value="@route.Value" />
+                }
+
+                <label class="visually-hidden" for="@searchInputId">Search</label>
+                <input id="@searchInputId" type="text" class="form-control form-control-sm sinara-grid-search-input" name="@Model.SearchQueryKey" value="@Model.SearchValue" placeholder="@searchPlaceholder" />
+                <button type="submit" class="btn btn-sm sinara-btn-theme-outline">@Model.SearchButtonText</button>
+            </form>
         }
 
-        <label class="form-label mb-0" for="@pageSizeSelectId">Page</label>
-        <select id="@pageSizeSelectId" class="form-select form-select-sm w-auto" name="@Model.PageSizeQueryKey" onchange="this.form.submit()">
-            @foreach (var size in pageSizeOptions)
-            {
-                <option value="@size" selected="@(safePageSize == size)">@size</option>
-            }
-        </select>
-    </form>
-
-    @if (!string.IsNullOrWhiteSpace(Model.ExportUrl))
-    {
-        <a class="btn btn-sm sinara-btn-theme-outline" href="@Model.ExportUrl">@Model.ExportButtonText</a>
-    }
-</div>
+        @if (!string.IsNullOrWhiteSpace(Model.ExportUrl))
+        {
+            <a class="btn btn-sm sinara-btn-theme-outline ms-auto" href="@Model.ExportUrl">@Model.ExportButtonText</a>
+        }
+    </div>
+}
 
 <div class="table-responsive">
     <table class="table table-sm align-middle sinara-paged-grid">
@@ -164,12 +154,32 @@
     </table>
 </div>
 
-@if (safeTotalPages > 1)
-{
-    var previousRouteValues = BuildRouteValues(page: Math.Max(safePage - 1, 1).ToString(CultureInfo.InvariantCulture));
-    var nextRouteValues = BuildRouteValues(page: Math.Min(safePage + 1, safeTotalPages).ToString(CultureInfo.InvariantCulture));
+<div class="d-flex flex-wrap justify-content-end align-items-center gap-2 mt-3">
+    <form method="get" class="d-flex align-items-center gap-2">
+        @foreach (var route in pageSizeFormRouteValues)
+        {
+            if (string.Equals(route.Key, Model.PageSizeQueryKey, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
 
-    <div class="d-flex justify-content-end mt-3">
+            <input type="hidden" name="@route.Key" value="@route.Value" />
+        }
+
+        <label class="form-label mb-0" for="@pageSizeSelectId">Page</label>
+        <select id="@pageSizeSelectId" class="form-select form-select-sm w-auto" name="@Model.PageSizeQueryKey" onchange="this.form.submit()">
+            @foreach (var size in pageSizeOptions)
+            {
+                <option value="@size" selected="@(safePageSize == size)">@size</option>
+            }
+        </select>
+    </form>
+
+    @if (safeTotalPages > 1)
+    {
+        var previousRouteValues = BuildRouteValues(page: Math.Max(safePage - 1, 1).ToString(CultureInfo.InvariantCulture));
+        var nextRouteValues = BuildRouteValues(page: Math.Min(safePage + 1, safeTotalPages).ToString(CultureInfo.InvariantCulture));
+
         <nav aria-label="Page navigation">
             <ul class="pagination mb-0">
                 <li class="page-item @(safePage <= 1 ? "disabled" : string.Empty)">
@@ -183,5 +193,5 @@
                 </li>
             </ul>
         </nav>
-    </div>
-}
+    }
+</div>
