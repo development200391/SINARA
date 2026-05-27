@@ -1,4 +1,4 @@
-@model ERP.Web.ViewModels.Shared.PagedGridViewModel
+﻿@model ERP.Web.ViewModels.Shared.PagedGridViewModel
 @using System.Globalization
 
 @{
@@ -57,7 +57,7 @@
                                 <span>@column.Title</span>
                                 @if (isCurrentSort)
                                 {
-                                    <small>@(normalizedSortDirection == "asc" ? "ASC" : "DESC")</small>
+                                    <small aria-hidden="true">@(normalizedSortDirection == "asc" ? "↑" : "↓")</small>
                                 }
                             </a>
                         }
@@ -156,3 +156,4 @@
         </nav>
     }
 </div>
+
