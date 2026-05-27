@@ -237,7 +237,10 @@
             <div class="d-flex align-items-center gap-2 ms-auto">
                 @if (hasAddAction)
                 {
-                    <a class="btn btn-sm sinara-btn-theme-outline text-nowrap" href="@Model.Actions.AddUrl">@Model.Actions.AddButtonText</a>
+                    <a class="btn btn-sm sinara-btn-theme-outline text-nowrap d-inline-flex align-items-center gap-1" href="@Model.Actions.AddUrl">
+                        <i class="bi bi-plus-circle" aria-hidden="true"></i>
+                        <span>@Model.Actions.AddButtonText</span>
+                    </a>
                 }
 
                 @if (hasColumnFilters)
@@ -524,19 +527,28 @@
                             <div class="d-inline-flex flex-wrap justify-content-end gap-1">
                                 @if (!string.IsNullOrWhiteSpace(rowActions?.DetailUrl))
                                 {
-                                    <a class="btn btn-sm btn-outline-secondary" href="@rowActions.DetailUrl">@Model.Actions.DetailButtonText</a>
+                                    <a class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1" href="@rowActions.DetailUrl">
+                                        <i class="bi bi-eye" aria-hidden="true"></i>
+                                        <span>@Model.Actions.DetailButtonText</span>
+                                    </a>
                                 }
 
                                 @if (!string.IsNullOrWhiteSpace(rowActions?.EditUrl))
                                 {
-                                    <a class="btn btn-sm btn-outline-primary" href="@rowActions.EditUrl">@Model.Actions.EditButtonText</a>
+                                    <a class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1" href="@rowActions.EditUrl">
+                                        <i class="bi bi-pencil-square" aria-hidden="true"></i>
+                                        <span>@Model.Actions.EditButtonText</span>
+                                    </a>
                                 }
 
                                 @if (!string.IsNullOrWhiteSpace(rowActions?.DeleteUrl))
                                 {
                                     <form method="post" action="@rowActions.DeleteUrl" class="d-inline">
                                         @Html.AntiForgeryToken()
-                                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('@encodedDeleteConfirmMessage')">@Model.Actions.DeleteButtonText</button>
+                                        <button type="submit" class="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1" onclick="return confirm('@encodedDeleteConfirmMessage')">
+                                            <i class="bi bi-trash" aria-hidden="true"></i>
+                                            <span>@Model.Actions.DeleteButtonText</span>
+                                        </button>
                                     </form>
                                 }
                             </div>
@@ -591,6 +603,4 @@
         </nav>
     }
 </div>
-
-
 
