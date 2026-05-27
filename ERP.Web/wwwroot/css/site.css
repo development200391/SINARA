@@ -146,6 +146,16 @@ body {
     margin-bottom: 0;
 }
 
+.sinara-paged-grid tbody tr.sinara-grid-data-row {
+    transition: background-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.sinara-paged-grid tbody tr.sinara-grid-data-row:hover > td,
+.sinara-paged-grid tbody tr.sinara-grid-data-row:focus-within > td {
+    background-color: rgba(var(--sinara-primary-rgb), 0.12);
+    box-shadow: inset 0 1px 0 rgba(var(--sinara-primary-rgb), 0.16), inset 0 -1px 0 rgba(var(--sinara-primary-rgb), 0.16);
+}
+
 .sinara-paged-grid .sinara-paged-grid-header th {
     background-color: var(--sinara-grid-header-bg);
     color: var(--sinara-grid-header-text);
@@ -281,3 +291,5 @@ body {
 .sinara-grid-filter-menu .sinara-grid-filter-multi {
     min-width: 0;
 }
+
+

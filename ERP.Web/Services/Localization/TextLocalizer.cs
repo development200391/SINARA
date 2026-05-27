@@ -16,6 +16,7 @@ public sealed class TextLocalizer(IHttpContextAccessor httpContextAccessor) : IT
             ["common.delete"] = "Delete",
             ["common.search"] = "Search",
             ["common.add_new"] = "Add New",
+            ["common.clear_filter"] = "Clear Filter",
             ["msg.save_success"] = "Data saved successfully.",
             ["msg.delete_success"] = "Data deleted successfully.",
             ["msg.no_data"] = "No data available.",
@@ -53,6 +54,7 @@ public sealed class TextLocalizer(IHttpContextAccessor httpContextAccessor) : IT
             ["common.delete"] = "Hapus",
             ["common.search"] = "Cari",
             ["common.add_new"] = "Tambah Baru",
+            ["common.clear_filter"] = "Bersihkan Filter",
             ["msg.save_success"] = "Data berhasil disimpan.",
             ["msg.delete_success"] = "Data berhasil dihapus.",
             ["msg.no_data"] = "Tidak ada data.",
@@ -129,3 +131,4 @@ public sealed class TextLocalizer(IHttpContextAccessor httpContextAccessor) : IT
         return !string.IsNullOrWhiteSpace(code) && Resources.ContainsKey(code);
     }
 }
+
