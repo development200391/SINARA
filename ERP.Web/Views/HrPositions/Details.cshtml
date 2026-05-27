@@ -1,0 +1,37 @@
+@model ERP.Application.DTOs.HR.PositionDto
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">Position Details</h1>
+
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label text-muted small">Code</label>
+                <div class="form-control-plaintext">@Model.Code</div>
+            </div>
+            <div class="col-md-8">
+                <label class="form-label text-muted small">Name</label>
+                <div class="form-control-plaintext">@Model.Name</div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label text-muted small">Department</label>
+                <div class="form-control-plaintext">@Model.DepartmentName</div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label text-muted small">Level</label>
+                <div class="form-control-plaintext">@Model.Level</div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label text-muted small">Status</label>
+                <div class="form-control-plaintext">
+                    <span class="badge @(Model.IsActive ? "text-bg-success" : "text-bg-secondary")">@(Model.IsActive ? "Active" : "Inactive")</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4 d-flex gap-2">
+            <a class="btn btn-primary" asp-action="Edit" asp-route-id="@Model.Id">@T["common.edit"]</a>
+            <a class="btn btn-outline-secondary" asp-action="Index">@T["common.cancel"]</a>
+        </div>
+    </div>
+</div>

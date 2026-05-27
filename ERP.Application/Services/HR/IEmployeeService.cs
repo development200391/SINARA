@@ -6,6 +6,7 @@ namespace ERP.Application.Services.HR;
 public interface IEmployeeService
 {
     Task<PagedResult<EmployeeListDto>> GetPagedAsync(EmployeePagedRequest request, CancellationToken ct = default);
+    Task<IReadOnlyList<LookupDto>> GetOptionsAsync(CancellationToken ct = default);
     Task<EmployeeDetailDto?> GetByIdAsync(int id, CancellationToken ct = default);
     Task<EmployeeDetailDto> CreateAsync(CreateEmployeeRequest request, CancellationToken ct = default);
     Task<EmployeeDetailDto?> UpdateAsync(int id, UpdateEmployeeRequest request, CancellationToken ct = default);

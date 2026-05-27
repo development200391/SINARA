@@ -1,0 +1,92 @@
+@model ERP.Web.ViewModels.HR.HrEmployeeEditViewModel
+@using ERP.Domain.Enums
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">Create Employee</h1>
+
+        <form method="post" class="row g-3">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="col-md-4">
+                <label asp-for="EmployeeCode" class="form-label"></label>
+                <input asp-for="EmployeeCode" class="form-control" />
+                <span asp-validation-for="EmployeeCode" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-8">
+                <label asp-for="FullName" class="form-label"></label>
+                <input asp-for="FullName" class="form-control" />
+                <span asp-validation-for="FullName" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="Email" class="form-label"></label>
+                <input asp-for="Email" class="form-control" />
+                <span asp-validation-for="Email" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="Phone" class="form-label"></label>
+                <input asp-for="Phone" class="form-control" />
+                <span asp-validation-for="Phone" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-4">
+                <label asp-for="DepartmentId" class="form-label">Department</label>
+                <select asp-for="DepartmentId" class="form-select">
+                    <option value="">Select Department</option>
+                    @foreach (var department in Model.Departments)
+                    {
+                        <option value="@department.Id" selected="@(Model.DepartmentId == department.Id)">@department.Code - @department.Name</option>
+                    }
+                </select>
+                <span asp-validation-for="DepartmentId" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-4">
+                <label asp-for="PositionId" class="form-label">Position</label>
+                <select asp-for="PositionId" class="form-select">
+                    <option value="">Select Position</option>
+                    @foreach (var position in Model.Positions)
+                    {
+                        <option value="@position.Id" selected="@(Model.PositionId == position.Id)">@position.DepartmentName - @position.Name (L@position.Level)</option>
+                    }
+                </select>
+                <span asp-validation-for="PositionId" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-4">
+                <label asp-for="EmploymentStatus" class="form-label">Status</label>
+                <select asp-for="EmploymentStatus" class="form-select">
+                    @foreach (var status in Enum.GetValues<EmploymentStatus>())
+                    {
+                        <option value="@status" selected="@(Model.EmploymentStatus == status)">@status</option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="HireDate" class="form-label"></label>
+                <input asp-for="HireDate" class="form-control" type="date" />
+                <span asp-validation-for="HireDate" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="TerminationDate" class="form-label"></label>
+                <input asp-for="TerminationDate" class="form-control" type="date" />
+                <span asp-validation-for="TerminationDate" class="text-danger"></span>
+            </div>
+
+            <div class="col-12 d-flex gap-2">
+                <button type="submit" class="btn btn-primary">@T["common.save"]</button>
+                <a asp-action="Index" class="btn btn-outline-secondary">@T["common.cancel"]</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

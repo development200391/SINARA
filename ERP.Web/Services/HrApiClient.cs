@@ -10,16 +10,37 @@ public sealed class HrApiClient(HttpClient httpClient, ILogger<HrApiClient> logg
 {
     public Task<PagedResult<EmployeeListDto>?> GetEmployeesAsync(string accessToken, EmployeePagedRequest request, CancellationToken ct = default)
     {
-        var parameters = new List<string>
+        var parameters = new List<string>();
+        AddPagedParameters(parameters, request);
+
+        if (!string.IsNullOrWhiteSpace(request.EmployeeCode))
         {
-            $"page={request.Page}",
-            $"pageSize={request.PageSize}",
-            $"search={Uri.EscapeDataString(request.Search ?? string.Empty)}"
-        };
+            parameters.Add($"employeeCode={Uri.EscapeDataString(request.EmployeeCode.Trim())}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.FullName))
+        {
+            parameters.Add($"fullName={Uri.EscapeDataString(request.FullName.Trim())}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Email))
+        {
+            parameters.Add($"email={Uri.EscapeDataString(request.Email.Trim())}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Phone))
+        {
+            parameters.Add($"phone={Uri.EscapeDataString(request.Phone.Trim())}");
+        }
 
         if (request.DepartmentId.HasValue)
         {
             parameters.Add($"departmentId={request.DepartmentId.Value}");
+        }
+
+        if (request.PositionId.HasValue)
+        {
+            parameters.Add($"positionId={request.PositionId.Value}");
         }
 
         if (request.EmploymentStatus.HasValue)
@@ -27,18 +48,81 @@ public sealed class HrApiClient(HttpClient httpClient, ILogger<HrApiClient> logg
             parameters.Add($"employmentStatus={(int)request.EmploymentStatus.Value}");
         }
 
+        if (request.HireDateFrom.HasValue)
+        {
+            parameters.Add($"hireDateFrom={request.HireDateFrom.Value:yyyy-MM-dd}");
+        }
+
+        if (request.HireDateTo.HasValue)
+        {
+            parameters.Add($"hireDateTo={request.HireDateTo.Value:yyyy-MM-dd}");
+        }
+
+        if (request.TerminationDateFrom.HasValue)
+        {
+            parameters.Add($"terminationDateFrom={request.TerminationDateFrom.Value:yyyy-MM-dd}");
+        }
+
+        if (request.TerminationDateTo.HasValue)
+        {
+            parameters.Add($"terminationDateTo={request.TerminationDateTo.Value:yyyy-MM-dd}");
+        }
+
         var query = $"api/v1/hr/employees?{string.Join("&", parameters)}";
         return SendAsync<PagedResult<EmployeeListDto>>(HttpMethod.Get, query, accessToken, null, ct);
     }
 
+    public async Task<IReadOnlyList<LookupDto>> GetEmployeeOptionsAsync(string accessToken, CancellationToken ct = default)
+    {
+        return await SendAsync<IReadOnlyList<LookupDto>>(HttpMethod.Get, "api/v1/hr/employees/options", accessToken, null, ct)
+            ?? [];
+    }
+
+    public Task<EmployeeDetailDto?> GetEmployeeByIdAsync(string accessToken, int id, CancellationToken ct = default)
+    {
+        return SendAsync<EmployeeDetailDto>(HttpMethod.Get, $"api/v1/hr/employees/{id}", accessToken, null, ct);
+    }
+
+    public Task<EmployeeDetailDto?> CreateEmployeeAsync(string accessToken, CreateEmployeeRequest request, CancellationToken ct = default)
+    {
+        return SendAsync<EmployeeDetailDto>(HttpMethod.Post, "api/v1/hr/employees", accessToken, request, ct);
+    }
+
+    public Task<EmployeeDetailDto?> UpdateEmployeeAsync(string accessToken, int id, UpdateEmployeeRequest request, CancellationToken ct = default)
+    {
+        return SendAsync<EmployeeDetailDto>(HttpMethod.Put, $"api/v1/hr/employees/{id}", accessToken, request, ct);
+    }
+
+    public async Task<bool> DeleteEmployeeAsync(string accessToken, int id, CancellationToken ct = default)
+    {
+        var response = await SendRawAsync(HttpMethod.Delete, $"api/v1/hr/employees/{id}", accessToken, null, ct);
+        return response?.IsSuccessStatusCode == true;
+    }
+
     public Task<PagedResult<DepartmentDto>?> GetDepartmentsAsync(string accessToken, DepartmentPagedRequest request, CancellationToken ct = default)
     {
-        var parameters = new List<string>
+        var parameters = new List<string>();
+        AddPagedParameters(parameters, request);
+
+        if (!string.IsNullOrWhiteSpace(request.Code))
         {
-            $"page={request.Page}",
-            $"pageSize={request.PageSize}",
-            $"search={Uri.EscapeDataString(request.Search ?? string.Empty)}"
-        };
+            parameters.Add($"code={Uri.EscapeDataString(request.Code.Trim())}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Name))
+        {
+            parameters.Add($"name={Uri.EscapeDataString(request.Name.Trim())}");
+        }
+
+        if (request.ManagerId.HasValue)
+        {
+            parameters.Add($"managerId={request.ManagerId.Value}");
+        }
+
+        if (request.ParentDepartmentId.HasValue)
+        {
+            parameters.Add($"parentDepartmentId={request.ParentDepartmentId.Value}");
+        }
 
         if (request.IsActive.HasValue)
         {
@@ -55,18 +139,55 @@ public sealed class HrApiClient(HttpClient httpClient, ILogger<HrApiClient> logg
             ?? [];
     }
 
+    public Task<DepartmentDto?> GetDepartmentByIdAsync(string accessToken, int id, CancellationToken ct = default)
+    {
+        return SendAsync<DepartmentDto>(HttpMethod.Get, $"api/v1/hr/departments/{id}", accessToken, null, ct);
+    }
+
+    public Task<DepartmentDto?> CreateDepartmentAsync(string accessToken, DepartmentDto request, CancellationToken ct = default)
+    {
+        return SendAsync<DepartmentDto>(HttpMethod.Post, "api/v1/hr/departments", accessToken, request, ct);
+    }
+
+    public Task<DepartmentDto?> UpdateDepartmentAsync(string accessToken, int id, DepartmentDto request, CancellationToken ct = default)
+    {
+        return SendAsync<DepartmentDto>(HttpMethod.Put, $"api/v1/hr/departments/{id}", accessToken, request, ct);
+    }
+
+    public async Task<bool> DeleteDepartmentAsync(string accessToken, int id, CancellationToken ct = default)
+    {
+        var response = await SendRawAsync(HttpMethod.Delete, $"api/v1/hr/departments/{id}", accessToken, null, ct);
+        return response?.IsSuccessStatusCode == true;
+    }
+
     public Task<PagedResult<PositionDto>?> GetPositionsAsync(string accessToken, PositionPagedRequest request, CancellationToken ct = default)
     {
-        var parameters = new List<string>
+        var parameters = new List<string>();
+        AddPagedParameters(parameters, request);
+
+        if (!string.IsNullOrWhiteSpace(request.Code))
         {
-            $"page={request.Page}",
-            $"pageSize={request.PageSize}",
-            $"search={Uri.EscapeDataString(request.Search ?? string.Empty)}"
-        };
+            parameters.Add($"code={Uri.EscapeDataString(request.Code.Trim())}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Name))
+        {
+            parameters.Add($"name={Uri.EscapeDataString(request.Name.Trim())}");
+        }
 
         if (request.DepartmentId.HasValue)
         {
             parameters.Add($"departmentId={request.DepartmentId.Value}");
+        }
+
+        if (request.LevelFrom.HasValue)
+        {
+            parameters.Add($"levelFrom={request.LevelFrom.Value}");
+        }
+
+        if (request.LevelTo.HasValue)
+        {
+            parameters.Add($"levelTo={request.LevelTo.Value}");
         }
 
         if (request.IsActive.HasValue)
@@ -76,6 +197,44 @@ public sealed class HrApiClient(HttpClient httpClient, ILogger<HrApiClient> logg
 
         var query = $"api/v1/hr/positions?{string.Join("&", parameters)}";
         return SendAsync<PagedResult<PositionDto>>(HttpMethod.Get, query, accessToken, null, ct);
+    }
+
+    public async Task<IReadOnlyList<PositionDto>> GetPositionOptionsAsync(string accessToken, CancellationToken ct = default)
+    {
+        return await SendAsync<IReadOnlyList<PositionDto>>(HttpMethod.Get, "api/v1/hr/positions/all", accessToken, null, ct)
+            ?? [];
+    }
+
+    public async Task<IReadOnlyList<PositionDto>> GetPositionsByDepartmentAsync(string accessToken, int departmentId, CancellationToken ct = default)
+    {
+        if (departmentId <= 0)
+        {
+            return [];
+        }
+
+        return await SendAsync<IReadOnlyList<PositionDto>>(HttpMethod.Get, $"api/v1/hr/positions/by-department/{departmentId}", accessToken, null, ct)
+            ?? [];
+    }
+
+    public Task<PositionDto?> GetPositionByIdAsync(string accessToken, int id, CancellationToken ct = default)
+    {
+        return SendAsync<PositionDto>(HttpMethod.Get, $"api/v1/hr/positions/{id}", accessToken, null, ct);
+    }
+
+    public Task<PositionDto?> CreatePositionAsync(string accessToken, PositionDto request, CancellationToken ct = default)
+    {
+        return SendAsync<PositionDto>(HttpMethod.Post, "api/v1/hr/positions", accessToken, request, ct);
+    }
+
+    public Task<PositionDto?> UpdatePositionAsync(string accessToken, int id, PositionDto request, CancellationToken ct = default)
+    {
+        return SendAsync<PositionDto>(HttpMethod.Put, $"api/v1/hr/positions/{id}", accessToken, request, ct);
+    }
+
+    public async Task<bool> DeletePositionAsync(string accessToken, int id, CancellationToken ct = default)
+    {
+        var response = await SendRawAsync(HttpMethod.Delete, $"api/v1/hr/positions/{id}", accessToken, null, ct);
+        return response?.IsSuccessStatusCode == true;
     }
 
     public Task<PagedResult<LeaveRequestDto>?> GetLeaveRequestsAsync(string accessToken, LeaveRequestPagedRequest request, CancellationToken ct = default)
@@ -179,6 +338,15 @@ public sealed class HrApiClient(HttpClient httpClient, ILogger<HrApiClient> logg
     public Task<PayslipDto?> GetPayslipAsync(string accessToken, int runId, int employeeId, CancellationToken ct = default)
     {
         return SendAsync<PayslipDto>(HttpMethod.Get, $"api/v1/hr/payroll/{runId}/payslip/{employeeId}", accessToken, null, ct);
+    }
+
+    private static void AddPagedParameters(List<string> parameters, PagedRequest request)
+    {
+        parameters.Add($"page={request.Page}");
+        parameters.Add($"pageSize={request.PageSize}");
+        parameters.Add($"search={Uri.EscapeDataString(request.Search ?? string.Empty)}");
+        parameters.Add($"sortBy={Uri.EscapeDataString(request.SortBy ?? string.Empty)}");
+        parameters.Add($"sortDirection={Uri.EscapeDataString(request.SortDirection ?? string.Empty)}");
     }
 
     private async Task<T?> SendAsync<T>(HttpMethod method, string uri, string accessToken, object? body, CancellationToken ct)

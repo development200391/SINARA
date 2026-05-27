@@ -8,10 +8,16 @@ namespace ERP.Application.Services.HR;
 
 public sealed class DepartmentService(IUnitOfWork unitOfWork) : IDepartmentService
 {
+    private const string DefaultSortBy = "name";
+
     public async Task<PagedResult<DepartmentDto>> GetPagedAsync(DepartmentPagedRequest request, CancellationToken ct = default)
     {
         var page = request.Page <= 0 ? 1 : request.Page;
         var pageSize = request.PageSize <= 0 ? 20 : request.PageSize;
+        var normalizedSortBy = NormalizeSortBy(request.SortBy);
+        var normalizedSortDirection = NormalizeSortDirection(request.SortDirection);
+        var normalizedCode = NormalizeText(request.Code);
+        var normalizedName = NormalizeText(request.Name);
 
         var query = unitOfWork.Repository<HrDepartment>()
             .Query()
@@ -19,11 +25,6 @@ public sealed class DepartmentService(IUnitOfWork unitOfWork) : IDepartmentServi
             .Include(x => x.Manager)
             .Include(x => x.ParentDepartment)
             .AsQueryable();
-
-        if (request.IsActive.HasValue)
-        {
-            query = query.Where(x => x.IsActive == request.IsActive.Value);
-        }
 
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
@@ -35,11 +36,38 @@ public sealed class DepartmentService(IUnitOfWork unitOfWork) : IDepartmentServi
                 (x.ParentDepartment != null && x.ParentDepartment.Name.ToLower().Contains(search)));
         }
 
+        if (!string.IsNullOrWhiteSpace(normalizedCode))
+        {
+            var code = normalizedCode.ToLowerInvariant();
+            query = query.Where(x => x.Code.ToLower().Contains(code));
+        }
+
+        if (!string.IsNullOrWhiteSpace(normalizedName))
+        {
+            var name = normalizedName.ToLowerInvariant();
+            query = query.Where(x => x.Name.ToLower().Contains(name));
+        }
+
+        if (request.ManagerId.HasValue)
+        {
+            query = query.Where(x => x.ManagerId == request.ManagerId.Value);
+        }
+
+        if (request.ParentDepartmentId.HasValue)
+        {
+            query = query.Where(x => x.ParentDepartmentId == request.ParentDepartmentId.Value);
+        }
+
+        if (request.IsActive.HasValue)
+        {
+            query = query.Where(x => x.IsActive == request.IsActive.Value);
+        }
+
         var total = await query.CountAsync(ct);
 
+        query = ApplySorting(query, normalizedSortBy, normalizedSortDirection);
+
         var entities = await query
-            .OrderBy(x => x.Name)
-            .ThenBy(x => x.Code)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(ct);
@@ -187,6 +215,34 @@ public sealed class DepartmentService(IUnitOfWork unitOfWork) : IDepartmentServi
         return true;
     }
 
+    private static IQueryable<HrDepartment> ApplySorting(IQueryable<HrDepartment> query, string sortBy, string sortDirection)
+    {
+        var isDesc = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+
+        return sortBy switch
+        {
+            "code" => isDesc
+                ? query.OrderByDescending(x => x.Code).ThenBy(x => x.Name)
+                : query.OrderBy(x => x.Code).ThenBy(x => x.Name),
+
+            "managerName" => isDesc
+                ? query.OrderByDescending(x => x.Manager != null ? x.Manager.FullName : string.Empty).ThenBy(x => x.Name)
+                : query.OrderBy(x => x.Manager != null ? x.Manager.FullName : string.Empty).ThenBy(x => x.Name),
+
+            "parentDepartmentName" => isDesc
+                ? query.OrderByDescending(x => x.ParentDepartment != null ? x.ParentDepartment.Name : string.Empty).ThenBy(x => x.Name)
+                : query.OrderBy(x => x.ParentDepartment != null ? x.ParentDepartment.Name : string.Empty).ThenBy(x => x.Name),
+
+            "isActive" => isDesc
+                ? query.OrderByDescending(x => x.IsActive).ThenBy(x => x.Name)
+                : query.OrderBy(x => x.IsActive).ThenBy(x => x.Name),
+
+            _ => isDesc
+                ? query.OrderByDescending(x => x.Name).ThenBy(x => x.Code)
+                : query.OrderBy(x => x.Name).ThenBy(x => x.Code)
+        };
+    }
+
     private async Task EnsureUniqueCodeAsync(string code, int? currentId, CancellationToken ct)
     {
         var codeLower = code.ToLowerInvariant();
@@ -277,6 +333,27 @@ public sealed class DepartmentService(IUnitOfWork unitOfWork) : IDepartmentServi
         }
     }
 
+    private static string NormalizeSortBy(string? sortBy)
+    {
+        if (string.IsNullOrWhiteSpace(sortBy))
+        {
+            return DefaultSortBy;
+        }
+
+        return sortBy.Trim().ToLowerInvariant() switch
+        {
+            "code" => "code",
+            "name" => "name",
+            "managername" => "managerName",
+            "parentdepartmentname" => "parentDepartmentName",
+            "isactive" => "isActive",
+            _ => DefaultSortBy
+        };
+    }
+
+    private static string NormalizeSortDirection(string? sortDirection) =>
+        string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase) ? "desc" : "asc";
+
     private static string NormalizeRequiredText(string? value, string errorMessage)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -286,6 +363,8 @@ public sealed class DepartmentService(IUnitOfWork unitOfWork) : IDepartmentServi
 
         return value.Trim();
     }
+
+    private static string? NormalizeText(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     private static DepartmentDto MapDepartment(HrDepartment entity)
     {

@@ -1,0 +1,65 @@
+@model ERP.Application.DTOs.HR.EmployeeDetailDto
+@using ERP.Domain.Enums
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">Employee Details</h1>
+
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label text-muted small">Employee Code</label>
+                <div class="form-control-plaintext">@Model.EmployeeCode</div>
+            </div>
+            <div class="col-md-8">
+                <label class="form-label text-muted small">@T["label.full_name"]</label>
+                <div class="form-control-plaintext">@Model.FullName</div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label text-muted small">Email</label>
+                <div class="form-control-plaintext">@(string.IsNullOrWhiteSpace(Model.Email) ? "-" : Model.Email)</div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label text-muted small">Phone</label>
+                <div class="form-control-plaintext">@(string.IsNullOrWhiteSpace(Model.Phone) ? "-" : Model.Phone)</div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label text-muted small">Department</label>
+                <div class="form-control-plaintext">@Model.DepartmentName</div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label text-muted small">Position</label>
+                <div class="form-control-plaintext">@Model.PositionName</div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label text-muted small">@T["label.hire_date"]</label>
+                <div class="form-control-plaintext">@Model.HireDate.ToString("yyyy-MM-dd")</div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label text-muted small">Termination Date</label>
+                <div class="form-control-plaintext">@(Model.TerminationDate?.ToString("yyyy-MM-dd") ?? "-")</div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label text-muted small">Status</label>
+                <div class="form-control-plaintext">
+                    @if (Model.EmploymentStatus == EmploymentStatus.Active)
+                    {
+                        <span class="badge text-bg-success">Active</span>
+                    }
+                    else if (Model.EmploymentStatus == EmploymentStatus.Inactive)
+                    {
+                        <span class="badge text-bg-secondary">Inactive</span>
+                    }
+                    else
+                    {
+                        <span class="badge text-bg-warning">On Leave</span>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4 d-flex gap-2">
+            <a class="btn btn-primary" asp-action="Edit" asp-route-id="@Model.Id">@T["common.edit"]</a>
+            <a class="btn btn-outline-secondary" asp-action="Index">@T["common.cancel"]</a>
+        </div>
+    </div>
+</div>

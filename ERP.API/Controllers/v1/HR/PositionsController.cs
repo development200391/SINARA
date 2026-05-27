@@ -14,6 +14,13 @@ public sealed class PositionsController(IPositionService positionService) : HrCo
         return Ok(result);
     }
 
+    [HttpGet("all")]
+    public async Task<IActionResult> GetAll(CancellationToken ct)
+    {
+        var result = await positionService.GetAllAsync(ct);
+        return Ok(result);
+    }
+
     [HttpGet("by-department/{departmentId:int}")]
     public async Task<IActionResult> GetByDepartment(int departmentId, CancellationToken ct)
     {

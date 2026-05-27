@@ -16,5 +16,9 @@ public sealed class DepartmentDto
 
 public sealed class DepartmentPagedRequest : PagedRequest
 {
+    public string? Code { get; set; }
+    public string? Name { get; set; }
+    public int? ManagerId { get; set; }
+    public int? ParentDepartmentId { get; set; }
     public bool? IsActive { get; set; }
 }

@@ -6,11 +6,26 @@ namespace ERP.Web.Services;
 public interface IHrApiClient
 {
     Task<PagedResult<EmployeeListDto>?> GetEmployeesAsync(string accessToken, EmployeePagedRequest request, CancellationToken ct = default);
+    Task<IReadOnlyList<LookupDto>> GetEmployeeOptionsAsync(string accessToken, CancellationToken ct = default);
+    Task<EmployeeDetailDto?> GetEmployeeByIdAsync(string accessToken, int id, CancellationToken ct = default);
+    Task<EmployeeDetailDto?> CreateEmployeeAsync(string accessToken, CreateEmployeeRequest request, CancellationToken ct = default);
+    Task<EmployeeDetailDto?> UpdateEmployeeAsync(string accessToken, int id, UpdateEmployeeRequest request, CancellationToken ct = default);
+    Task<bool> DeleteEmployeeAsync(string accessToken, int id, CancellationToken ct = default);
 
     Task<PagedResult<DepartmentDto>?> GetDepartmentsAsync(string accessToken, DepartmentPagedRequest request, CancellationToken ct = default);
     Task<IReadOnlyList<DepartmentDto>> GetDepartmentOptionsAsync(string accessToken, CancellationToken ct = default);
+    Task<DepartmentDto?> GetDepartmentByIdAsync(string accessToken, int id, CancellationToken ct = default);
+    Task<DepartmentDto?> CreateDepartmentAsync(string accessToken, DepartmentDto request, CancellationToken ct = default);
+    Task<DepartmentDto?> UpdateDepartmentAsync(string accessToken, int id, DepartmentDto request, CancellationToken ct = default);
+    Task<bool> DeleteDepartmentAsync(string accessToken, int id, CancellationToken ct = default);
 
     Task<PagedResult<PositionDto>?> GetPositionsAsync(string accessToken, PositionPagedRequest request, CancellationToken ct = default);
+    Task<IReadOnlyList<PositionDto>> GetPositionOptionsAsync(string accessToken, CancellationToken ct = default);
+    Task<IReadOnlyList<PositionDto>> GetPositionsByDepartmentAsync(string accessToken, int departmentId, CancellationToken ct = default);
+    Task<PositionDto?> GetPositionByIdAsync(string accessToken, int id, CancellationToken ct = default);
+    Task<PositionDto?> CreatePositionAsync(string accessToken, PositionDto request, CancellationToken ct = default);
+    Task<PositionDto?> UpdatePositionAsync(string accessToken, int id, PositionDto request, CancellationToken ct = default);
+    Task<bool> DeletePositionAsync(string accessToken, int id, CancellationToken ct = default);
 
     Task<PagedResult<LeaveRequestDto>?> GetLeaveRequestsAsync(string accessToken, LeaveRequestPagedRequest request, CancellationToken ct = default);
     Task<LeaveRequestOptionsDto?> GetLeaveRequestOptionsAsync(string accessToken, CancellationToken ct = default);

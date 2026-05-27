@@ -1,0 +1,63 @@
+@model ERP.Web.ViewModels.HR.HrDepartmentEditViewModel
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">Edit Department</h1>
+
+        <form method="post" class="row g-3">
+            @Html.AntiForgeryToken()
+            <input asp-for="Id" type="hidden" />
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="col-md-6">
+                <label asp-for="Code" class="form-label"></label>
+                <input asp-for="Code" class="form-control" />
+                <span asp-validation-for="Code" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="Name" class="form-label"></label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="ManagerId" class="form-label">Manager</label>
+                <select asp-for="ManagerId" class="form-select">
+                    <option value="">No Manager</option>
+                    @foreach (var manager in Model.Managers)
+                    {
+                        <option value="@manager.Id" selected="@(Model.ManagerId == manager.Id)">@manager.Name</option>
+                    }
+                </select>
+                <span asp-validation-for="ManagerId" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="ParentDepartmentId" class="form-label">Parent Department</label>
+                <select asp-for="ParentDepartmentId" class="form-select">
+                    <option value="">No Parent</option>
+                    @foreach (var department in Model.ParentDepartments)
+                    {
+                        <option value="@department.Id" selected="@(Model.ParentDepartmentId == department.Id)">@department.Code - @department.Name</option>
+                    }
+                </select>
+                <span asp-validation-for="ParentDepartmentId" class="text-danger"></span>
+            </div>
+
+            <div class="col-12 form-check mt-2">
+                <input asp-for="IsActive" class="form-check-input" />
+                <label asp-for="IsActive" class="form-check-label"></label>
+            </div>
+
+            <div class="col-12 d-flex gap-2">
+                <button type="submit" class="btn btn-primary">@T["common.save"]</button>
+                <a asp-action="Index" class="btn btn-outline-secondary">@T["common.cancel"]</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

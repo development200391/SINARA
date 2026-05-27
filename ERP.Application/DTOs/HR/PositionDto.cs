@@ -15,6 +15,10 @@ public sealed class PositionDto
 
 public sealed class PositionPagedRequest : PagedRequest
 {
+    public string? Code { get; set; }
+    public string? Name { get; set; }
     public int? DepartmentId { get; set; }
+    public int? LevelFrom { get; set; }
+    public int? LevelTo { get; set; }
     public bool? IsActive { get; set; }
 }

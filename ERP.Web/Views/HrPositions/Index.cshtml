@@ -1,27 +1,28 @@
 @model ERP.Web.ViewModels.HR.HrPositionsIndexViewModel
 @using ERP.Web.ViewModels.Shared
 @using Microsoft.AspNetCore.Html
+@using System.Globalization
 
 <div class="card border-0 shadow-sm">
     <div class="card-body">
         <h1 class="h5 mb-3">Positions</h1>
 
         @{
-            var selectedDepartmentId = Model.DepartmentId?.ToString();
-            var selectedIsActive = Model.IsActive.HasValue
-                ? (Model.IsActive.Value ? "true" : "false")
+            var selectedDepartmentId = Model.DepartmentIdFilter?.ToString(CultureInfo.InvariantCulture);
+            var selectedIsActive = Model.IsActiveFilter.HasValue
+                ? (Model.IsActiveFilter.Value ? "true" : "false")
                 : null;
 
-            var departmentFilterOptions = Model.Departments
+            var departmentOptions = Model.Departments
                 .OrderBy(x => x.Name)
                 .Select(x => new PagedGridFilterOptionViewModel
                 {
-                    Value = x.Id.ToString(),
+                    Value = x.Id.ToString(CultureInfo.InvariantCulture),
                     Label = $"{x.Code} - {x.Name}"
                 })
                 .ToList();
 
-            var statusFilterOptions = new List<PagedGridFilterOptionViewModel>
+            var statusOptions = new List<PagedGridFilterOptionViewModel>
             {
                 new() { Value = "true", Label = "Active" },
                 new() { Value = "false", Label = "Inactive" }
@@ -31,33 +32,74 @@
             {
                 Columns =
                 [
-                    new PagedGridColumnViewModel { Key = "code", Title = "Code" },
-                    new PagedGridColumnViewModel { Key = "name", Title = "Name" },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "code",
+                        Title = "Code",
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Text,
+                            QueryKey = "code",
+                            Value = Model.CodeFilter,
+                            Placeholder = "Filter code"
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "name",
+                        Title = "Name",
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Text,
+                            QueryKey = "name",
+                            Value = Model.NameFilter,
+                            Placeholder = "Filter name"
+                        }
+                    },
                     new PagedGridColumnViewModel
                     {
                         Key = "departmentName",
                         Title = T["label.department"],
+                        Sortable = true,
                         Filter = new PagedGridFilterViewModel
                         {
                             Type = PagedGridFilterType.Select,
                             QueryKey = "departmentId",
                             Value = selectedDepartmentId,
                             EmptyOptionLabel = "All Department",
-                            Options = departmentFilterOptions
+                            Options = departmentOptions
                         }
                     },
-                    new PagedGridColumnViewModel { Key = "level", Title = "Level" },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "level",
+                        Title = "Level",
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.NumberRange,
+                            QueryKey = "levelFrom",
+                            QueryKeyTo = "levelTo",
+                            Value = Model.LevelFrom?.ToString(CultureInfo.InvariantCulture),
+                            ValueTo = Model.LevelTo?.ToString(CultureInfo.InvariantCulture),
+                            Placeholder = "From",
+                            PlaceholderTo = "To"
+                        }
+                    },
                     new PagedGridColumnViewModel
                     {
                         Key = "isActive",
                         Title = "Status",
+                        Sortable = true,
                         Filter = new PagedGridFilterViewModel
                         {
                             Type = PagedGridFilterType.Select,
                             QueryKey = "isActive",
                             Value = selectedIsActive,
                             EmptyOptionLabel = "All Status",
-                            Options = statusFilterOptions
+                            Options = statusOptions
                         }
                     }
                 ],
@@ -68,23 +110,42 @@
                         new PagedGridCellViewModel { Text = item.Code },
                         new PagedGridCellViewModel { Text = item.Name },
                         new PagedGridCellViewModel { Text = item.DepartmentName },
-                        new PagedGridCellViewModel { Text = item.Level.ToString() },
+                        new PagedGridCellViewModel { Text = item.Level.ToString(CultureInfo.InvariantCulture) },
                         new PagedGridCellViewModel
                         {
                             Html = new HtmlString(item.IsActive
                                 ? "<span class=\"badge text-bg-success\">Active</span>"
                                 : "<span class=\"badge text-bg-secondary\">Inactive</span>")
                         }
-                    ]
+                    ],
+                    Actions = new PagedGridRowActionViewModel
+                    {
+                        DetailUrl = Url.Action("Details", "HrPositions", new { id = item.Id }),
+                        EditUrl = Url.Action("Edit", "HrPositions", new { id = item.Id }),
+                        DeleteUrl = Url.Action("Delete", "HrPositions", new { id = item.Id }),
+                        DeleteConfirmMessage = "Delete this position?"
+                    }
                 }).ToList(),
                 EmptyMessage = T["msg.no_data"],
                 Page = Model.Positions.Page,
                 TotalPages = Model.Positions.TotalPages,
                 PageSize = Model.PageSize,
+                SortBy = Model.SortBy,
+                SortDirection = Model.SortDirection,
                 EnableSearch = true,
                 SearchValue = Model.Search,
                 SearchPlaceholder = $"{T["common.search"]} positions",
-                SearchButtonText = T["common.search"]
+                SearchButtonText = T["common.search"],
+                Actions = new PagedGridActionConfigViewModel
+                {
+                    ActionColumnTitle = "Action",
+                    AddUrl = Url.Action("Create", "HrPositions"),
+                    AddButtonText = T["common.add_new"],
+                    DetailButtonText = "Detail",
+                    EditButtonText = T["common.edit"],
+                    DeleteButtonText = T["common.delete"],
+                    DeleteConfirmMessage = "Delete this position?"
+                }
             };
         }
 

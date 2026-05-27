@@ -6,6 +6,7 @@ namespace ERP.Application.Services.HR;
 public interface IPositionService
 {
     Task<PagedResult<PositionDto>> GetPagedAsync(PositionPagedRequest request, CancellationToken ct = default);
+    Task<IReadOnlyList<PositionDto>> GetAllAsync(CancellationToken ct = default);
     Task<IReadOnlyList<PositionDto>> GetByDepartmentAsync(int departmentId, CancellationToken ct = default);
     Task<PositionDto?> GetByIdAsync(int id, CancellationToken ct = default);
     Task<PositionDto> CreateAsync(PositionDto request, CancellationToken ct = default);

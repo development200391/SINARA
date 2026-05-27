@@ -13,12 +13,19 @@ namespace ERP.Web.Controllers;
 public sealed class HrDepartmentsController(IHrApiClient hrApiClient) : Controller
 {
     private const int DefaultPageSize = 20;
+    private const string DefaultSortBy = "name";
 
     [HttpGet("")]
     public async Task<IActionResult> Index(
         int page = 1,
         int pageSize = DefaultPageSize,
         string? search = null,
+        string? sortBy = DefaultSortBy,
+        string? sortDirection = "asc",
+        string? code = null,
+        string? name = null,
+        int? managerId = null,
+        int? parentDepartmentId = null,
         bool? isActive = null,
         CancellationToken ct = default)
     {
@@ -30,14 +37,33 @@ public sealed class HrDepartmentsController(IHrApiClient hrApiClient) : Controll
 
         var normalizedPage = page <= 0 ? 1 : page;
         var normalizedPageSize = NormalizePageSize(pageSize);
+        var normalizedSortBy = NormalizeSortBy(sortBy);
+        var normalizedSortDirection = NormalizeSortDirection(sortDirection);
+        var normalizedCode = NormalizeTextFilter(code);
+        var normalizedName = NormalizeTextFilter(name);
 
-        var departments = await hrApiClient.GetDepartmentsAsync(accessToken, new DepartmentPagedRequest
+        var departmentsTask = hrApiClient.GetDepartmentsAsync(accessToken, new DepartmentPagedRequest
         {
             Page = normalizedPage,
             PageSize = normalizedPageSize,
             Search = search,
+            SortBy = normalizedSortBy,
+            SortDirection = normalizedSortDirection,
+            Code = normalizedCode,
+            Name = normalizedName,
+            ManagerId = managerId,
+            ParentDepartmentId = parentDepartmentId,
             IsActive = isActive
         }, ct);
+
+        var managersTask = hrApiClient.GetEmployeeOptionsAsync(accessToken, ct);
+        var departmentOptionsTask = hrApiClient.GetDepartmentOptionsAsync(accessToken, ct);
+
+        await Task.WhenAll(departmentsTask, managersTask, departmentOptionsTask);
+
+        var departments = await departmentsTask;
+        var managers = await managersTask;
+        var departmentOptions = await departmentOptionsTask;
 
         ViewData["Title"] = "Departments";
         ViewData["Breadcrumb"] = "HR / Departments";
@@ -46,12 +72,249 @@ public sealed class HrDepartmentsController(IHrApiClient hrApiClient) : Controll
         {
             Search = search,
             PageSize = normalizedPageSize,
-            IsActive = isActive,
+            SortBy = normalizedSortBy,
+            SortDirection = normalizedSortDirection,
+            CodeFilter = normalizedCode,
+            NameFilter = normalizedName,
+            ManagerIdFilter = managerId,
+            ParentDepartmentIdFilter = parentDepartmentId,
+            IsActiveFilter = isActive,
+            Managers = managers,
+            DepartmentOptions = departmentOptions,
             Departments = departments ?? PagedResult<DepartmentDto>.Create([], 0, normalizedPage, normalizedPageSize)
         });
     }
 
+    [HttpGet("details/{id:int}")]
+    public async Task<IActionResult> Details(int id, CancellationToken ct = default)
+    {
+        var accessToken = GetAccessToken();
+        if (string.IsNullOrWhiteSpace(accessToken))
+        {
+            return RedirectToAction("Login", "Auth", new { returnUrl = Request.Path + Request.QueryString });
+        }
+
+        var department = await hrApiClient.GetDepartmentByIdAsync(accessToken, id, ct);
+        if (department is null)
+        {
+            return NotFound();
+        }
+
+        ViewData["Title"] = "Department Details";
+        ViewData["Breadcrumb"] = "HR / Departments / Details";
+
+        return View(department);
+    }
+
+    [HttpGet("create")]
+    public async Task<IActionResult> Create(CancellationToken ct = default)
+    {
+        var accessToken = GetAccessToken();
+        if (string.IsNullOrWhiteSpace(accessToken))
+        {
+            return RedirectToAction("Login", "Auth");
+        }
+
+        var model = new HrDepartmentEditViewModel();
+        await PopulateFormOptionsAsync(accessToken, model, null, ct);
+
+        ViewData["Title"] = "Create Department";
+        ViewData["Breadcrumb"] = "HR / Departments / Create";
+
+        return View(model);
+    }
+
+    [HttpPost("create")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Create(HrDepartmentEditViewModel model, CancellationToken ct = default)
+    {
+        var accessToken = GetAccessToken();
+        if (string.IsNullOrWhiteSpace(accessToken))
+        {
+            return RedirectToAction("Login", "Auth");
+        }
+
+        await PopulateFormOptionsAsync(accessToken, model, null, ct);
+
+        if (!ModelState.IsValid)
+        {
+            ViewData["Title"] = "Create Department";
+            ViewData["Breadcrumb"] = "HR / Departments / Create";
+            return View(model);
+        }
+
+        var created = await hrApiClient.CreateDepartmentAsync(accessToken, new DepartmentDto
+        {
+            Name = model.Name,
+            Code = model.Code,
+            ManagerId = model.ManagerId,
+            ParentDepartmentId = model.ParentDepartmentId,
+            IsActive = model.IsActive
+        }, ct);
+
+        if (created is null)
+        {
+            ModelState.AddModelError(string.Empty, "Failed to create department.");
+            ViewData["Title"] = "Create Department";
+            ViewData["Breadcrumb"] = "HR / Departments / Create";
+            return View(model);
+        }
+
+        TempData["SuccessMessage"] = "Department created.";
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpGet("edit/{id:int}")]
+    public async Task<IActionResult> Edit(int id, CancellationToken ct = default)
+    {
+        var accessToken = GetAccessToken();
+        if (string.IsNullOrWhiteSpace(accessToken))
+        {
+            return RedirectToAction("Login", "Auth");
+        }
+
+        var department = await hrApiClient.GetDepartmentByIdAsync(accessToken, id, ct);
+        if (department is null)
+        {
+            return NotFound();
+        }
+
+        var model = new HrDepartmentEditViewModel
+        {
+            Id = department.Id,
+            Name = department.Name,
+            Code = department.Code,
+            ManagerId = department.ManagerId,
+            ParentDepartmentId = department.ParentDepartmentId,
+            IsActive = department.IsActive
+        };
+
+        await PopulateFormOptionsAsync(accessToken, model, id, ct);
+
+        ViewData["Title"] = "Edit Department";
+        ViewData["Breadcrumb"] = "HR / Departments / Edit";
+
+        return View(model);
+    }
+
+    [HttpPost("edit/{id:int}")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Edit(int id, HrDepartmentEditViewModel model, CancellationToken ct = default)
+    {
+        var accessToken = GetAccessToken();
+        if (string.IsNullOrWhiteSpace(accessToken))
+        {
+            return RedirectToAction("Login", "Auth");
+        }
+
+        model.Id = id;
+        await PopulateFormOptionsAsync(accessToken, model, id, ct);
+
+        if (model.ParentDepartmentId == id)
+        {
+            ModelState.AddModelError(nameof(model.ParentDepartmentId), "Department cannot be its own parent.");
+        }
+
+        if (!ModelState.IsValid)
+        {
+            ViewData["Title"] = "Edit Department";
+            ViewData["Breadcrumb"] = "HR / Departments / Edit";
+            return View(model);
+        }
+
+        var updated = await hrApiClient.UpdateDepartmentAsync(accessToken, id, new DepartmentDto
+        {
+            Id = id,
+            Name = model.Name,
+            Code = model.Code,
+            ManagerId = model.ManagerId,
+            ParentDepartmentId = model.ParentDepartmentId,
+            IsActive = model.IsActive
+        }, ct);
+
+        if (updated is null)
+        {
+            ModelState.AddModelError(string.Empty, "Failed to update department.");
+            ViewData["Title"] = "Edit Department";
+            ViewData["Breadcrumb"] = "HR / Departments / Edit";
+            return View(model);
+        }
+
+        TempData["SuccessMessage"] = "Department updated.";
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost("delete/{id:int}")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Delete(int id, CancellationToken ct = default)
+    {
+        var accessToken = GetAccessToken();
+        if (string.IsNullOrWhiteSpace(accessToken))
+        {
+            return RedirectToAction("Login", "Auth");
+        }
+
+        var deleted = await hrApiClient.DeleteDepartmentAsync(accessToken, id, ct);
+        TempData[deleted ? "SuccessMessage" : "ErrorMessage"] = deleted
+            ? "Department deleted."
+            : "Failed to delete department.";
+
+        return RedirectToAction(nameof(Index));
+    }
+
+    private async Task PopulateFormOptionsAsync(string accessToken, HrDepartmentEditViewModel model, int? currentDepartmentId, CancellationToken ct)
+    {
+        var managersTask = hrApiClient.GetEmployeeOptionsAsync(accessToken, ct);
+        var departmentsTask = hrApiClient.GetDepartmentOptionsAsync(accessToken, ct);
+
+        await Task.WhenAll(managersTask, departmentsTask);
+
+        var managers = await managersTask;
+        var parentDepartments = await departmentsTask;
+
+        if (currentDepartmentId.HasValue)
+        {
+            parentDepartments = parentDepartments.Where(x => x.Id != currentDepartmentId.Value).ToList();
+        }
+
+        if (model.ParentDepartmentId.HasValue && parentDepartments.All(x => x.Id != model.ParentDepartmentId.Value))
+        {
+            model.ParentDepartmentId = null;
+        }
+
+        if (model.ManagerId.HasValue && managers.All(x => x.Id != model.ManagerId.Value))
+        {
+            model.ManagerId = null;
+        }
+
+        model.Managers = managers;
+        model.ParentDepartments = parentDepartments;
+    }
+
     private static int NormalizePageSize(int pageSize) => pageSize is 20 or 50 or 100 ? pageSize : DefaultPageSize;
+
+    private static string NormalizeSortBy(string? sortBy)
+    {
+        if (string.IsNullOrWhiteSpace(sortBy))
+        {
+            return DefaultSortBy;
+        }
+
+        return sortBy.Trim().ToLowerInvariant() switch
+        {
+            "code" => "code",
+            "name" => "name",
+            "managername" => "managerName",
+            "parentdepartmentname" => "parentDepartmentName",
+            "isactive" => "isActive",
+            _ => DefaultSortBy
+        };
+    }
+
+    private static string NormalizeSortDirection(string? sortDirection) =>
+        string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase) ? "desc" : "asc";
+
+    private static string? NormalizeTextFilter(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     private string? GetAccessToken() => User.FindFirstValue("access_token");
 }

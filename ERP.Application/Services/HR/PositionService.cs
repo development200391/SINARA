@@ -8,10 +8,17 @@ namespace ERP.Application.Services.HR;
 
 public sealed class PositionService(IUnitOfWork unitOfWork) : IPositionService
 {
+    private const string DefaultSortBy = "name";
+
     public async Task<PagedResult<PositionDto>> GetPagedAsync(PositionPagedRequest request, CancellationToken ct = default)
     {
         var page = request.Page <= 0 ? 1 : request.Page;
         var pageSize = request.PageSize <= 0 ? 20 : request.PageSize;
+        var normalizedSortBy = NormalizeSortBy(request.SortBy);
+        var normalizedSortDirection = NormalizeSortDirection(request.SortDirection);
+        var normalizedCode = NormalizeText(request.Code);
+        var normalizedName = NormalizeText(request.Name);
+        var (levelFrom, levelTo) = NormalizeNumberRange(request.LevelFrom, request.LevelTo);
 
         var query = unitOfWork.Repository<HrPosition>()
             .Query()
@@ -19,9 +26,41 @@ public sealed class PositionService(IUnitOfWork unitOfWork) : IPositionService
             .Include(x => x.Department)
             .AsQueryable();
 
+        if (!string.IsNullOrWhiteSpace(request.Search))
+        {
+            var search = request.Search.Trim().ToLowerInvariant();
+            query = query.Where(x =>
+                x.Name.ToLower().Contains(search) ||
+                x.Code.ToLower().Contains(search) ||
+                x.Department.Name.ToLower().Contains(search) ||
+                x.Level.ToString().Contains(search));
+        }
+
+        if (!string.IsNullOrWhiteSpace(normalizedCode))
+        {
+            var code = normalizedCode.ToLowerInvariant();
+            query = query.Where(x => x.Code.ToLower().Contains(code));
+        }
+
+        if (!string.IsNullOrWhiteSpace(normalizedName))
+        {
+            var name = normalizedName.ToLowerInvariant();
+            query = query.Where(x => x.Name.ToLower().Contains(name));
+        }
+
         if (request.DepartmentId.HasValue)
         {
             query = query.Where(x => x.DepartmentId == request.DepartmentId.Value);
+        }
+
+        if (levelFrom.HasValue)
+        {
+            query = query.Where(x => x.Level >= levelFrom.Value);
+        }
+
+        if (levelTo.HasValue)
+        {
+            query = query.Where(x => x.Level <= levelTo.Value);
         }
 
         if (request.IsActive.HasValue)
@@ -29,21 +68,11 @@ public sealed class PositionService(IUnitOfWork unitOfWork) : IPositionService
             query = query.Where(x => x.IsActive == request.IsActive.Value);
         }
 
-        if (!string.IsNullOrWhiteSpace(request.Search))
-        {
-            var search = request.Search.Trim().ToLowerInvariant();
-            query = query.Where(x =>
-                x.Name.ToLower().Contains(search) ||
-                x.Code.ToLower().Contains(search) ||
-                x.Department.Name.ToLower().Contains(search));
-        }
-
         var total = await query.CountAsync(ct);
 
+        query = ApplySorting(query, normalizedSortBy, normalizedSortDirection);
+
         var entities = await query
-            .OrderBy(x => x.Department.Name)
-            .ThenBy(x => x.Level)
-            .ThenBy(x => x.Name)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(ct);
@@ -53,6 +82,22 @@ public sealed class PositionService(IUnitOfWork unitOfWork) : IPositionService
             .ToList();
 
         return PagedResult<PositionDto>.Create(items, total, page, pageSize);
+    }
+
+    public async Task<IReadOnlyList<PositionDto>> GetAllAsync(CancellationToken ct = default)
+    {
+        var entities = await unitOfWork.Repository<HrPosition>()
+            .Query()
+            .AsNoTracking()
+            .Include(x => x.Department)
+            .OrderBy(x => x.Department.Name)
+            .ThenBy(x => x.Level)
+            .ThenBy(x => x.Name)
+            .ToListAsync(ct);
+
+        return entities
+            .Select(MapPosition)
+            .ToList();
     }
 
     public async Task<IReadOnlyList<PositionDto>> GetByDepartmentAsync(int departmentId, CancellationToken ct = default)
@@ -189,6 +234,34 @@ public sealed class PositionService(IUnitOfWork unitOfWork) : IPositionService
         return true;
     }
 
+    private static IQueryable<HrPosition> ApplySorting(IQueryable<HrPosition> query, string sortBy, string sortDirection)
+    {
+        var isDesc = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+
+        return sortBy switch
+        {
+            "code" => isDesc
+                ? query.OrderByDescending(x => x.Code).ThenBy(x => x.Name)
+                : query.OrderBy(x => x.Code).ThenBy(x => x.Name),
+
+            "departmentName" => isDesc
+                ? query.OrderByDescending(x => x.Department.Name).ThenBy(x => x.Name)
+                : query.OrderBy(x => x.Department.Name).ThenBy(x => x.Name),
+
+            "level" => isDesc
+                ? query.OrderByDescending(x => x.Level).ThenBy(x => x.Name)
+                : query.OrderBy(x => x.Level).ThenBy(x => x.Name),
+
+            "isActive" => isDesc
+                ? query.OrderByDescending(x => x.IsActive).ThenBy(x => x.Name)
+                : query.OrderBy(x => x.IsActive).ThenBy(x => x.Name),
+
+            _ => isDesc
+                ? query.OrderByDescending(x => x.Name).ThenBy(x => x.Code)
+                : query.OrderBy(x => x.Name).ThenBy(x => x.Code)
+        };
+    }
+
     private async Task EnsureUniqueCodeAsync(string code, int? currentId, CancellationToken ct)
     {
         var codeLower = code.ToLowerInvariant();
@@ -220,6 +293,27 @@ public sealed class PositionService(IUnitOfWork unitOfWork) : IPositionService
         }
     }
 
+    private static string NormalizeSortBy(string? sortBy)
+    {
+        if (string.IsNullOrWhiteSpace(sortBy))
+        {
+            return DefaultSortBy;
+        }
+
+        return sortBy.Trim().ToLowerInvariant() switch
+        {
+            "code" => "code",
+            "name" => "name",
+            "departmentname" => "departmentName",
+            "level" => "level",
+            "isactive" => "isActive",
+            _ => DefaultSortBy
+        };
+    }
+
+    private static string NormalizeSortDirection(string? sortDirection) =>
+        string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase) ? "desc" : "asc";
+
     private static string NormalizeRequiredText(string? value, string errorMessage)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -228,6 +322,18 @@ public sealed class PositionService(IUnitOfWork unitOfWork) : IPositionService
         }
 
         return value.Trim();
+    }
+
+    private static string? NormalizeText(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static (int? From, int? To) NormalizeNumberRange(int? from, int? to)
+    {
+        if (from.HasValue && to.HasValue && from.Value > to.Value)
+        {
+            return (to, from);
+        }
+
+        return (from, to);
     }
 
     private static PositionDto MapPosition(HrPosition entity)

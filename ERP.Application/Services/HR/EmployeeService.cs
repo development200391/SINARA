@@ -8,10 +8,20 @@ namespace ERP.Application.Services.HR;
 
 public sealed class EmployeeService(IUnitOfWork unitOfWork) : IEmployeeService
 {
+    private const string DefaultSortBy = "fullName";
+
     public async Task<PagedResult<EmployeeListDto>> GetPagedAsync(EmployeePagedRequest request, CancellationToken ct = default)
     {
         var page = request.Page <= 0 ? 1 : request.Page;
         var pageSize = request.PageSize <= 0 ? 20 : request.PageSize;
+        var normalizedSortBy = NormalizeSortBy(request.SortBy);
+        var normalizedSortDirection = NormalizeSortDirection(request.SortDirection);
+        var normalizedEmployeeCode = NormalizeText(request.EmployeeCode);
+        var normalizedFullName = NormalizeText(request.FullName);
+        var normalizedEmail = NormalizeText(request.Email);
+        var normalizedPhone = NormalizeText(request.Phone);
+        var (normalizedHireDateFrom, normalizedHireDateTo) = NormalizeDateRange(request.HireDateFrom, request.HireDateTo);
+        var (normalizedTerminationDateFrom, normalizedTerminationDateTo) = NormalizeDateRange(request.TerminationDateFrom, request.TerminationDateTo);
 
         var query = unitOfWork.Repository<HrEmployee>()
             .Query()
@@ -19,16 +29,6 @@ public sealed class EmployeeService(IUnitOfWork unitOfWork) : IEmployeeService
             .Include(x => x.Department)
             .Include(x => x.Position)
             .AsQueryable();
-
-        if (request.DepartmentId.HasValue)
-        {
-            query = query.Where(x => x.DepartmentId == request.DepartmentId.Value);
-        }
-
-        if (request.EmploymentStatus.HasValue)
-        {
-            query = query.Where(x => x.EmploymentStatus == request.EmploymentStatus.Value);
-        }
 
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
@@ -42,11 +42,70 @@ public sealed class EmployeeService(IUnitOfWork unitOfWork) : IEmployeeService
                 x.Position.Name.ToLower().Contains(search));
         }
 
+        if (!string.IsNullOrWhiteSpace(normalizedEmployeeCode))
+        {
+            var employeeCode = normalizedEmployeeCode.ToLowerInvariant();
+            query = query.Where(x => x.EmployeeCode.ToLower().Contains(employeeCode));
+        }
+
+        if (!string.IsNullOrWhiteSpace(normalizedFullName))
+        {
+            var fullName = normalizedFullName.ToLowerInvariant();
+            query = query.Where(x => x.FullName.ToLower().Contains(fullName));
+        }
+
+        if (!string.IsNullOrWhiteSpace(normalizedEmail))
+        {
+            var email = normalizedEmail.ToLowerInvariant();
+            query = query.Where(x => x.Email != null && x.Email.ToLower().Contains(email));
+        }
+
+        if (!string.IsNullOrWhiteSpace(normalizedPhone))
+        {
+            var phone = normalizedPhone.ToLowerInvariant();
+            query = query.Where(x => x.Phone != null && x.Phone.ToLower().Contains(phone));
+        }
+
+        if (request.DepartmentId.HasValue)
+        {
+            query = query.Where(x => x.DepartmentId == request.DepartmentId.Value);
+        }
+
+        if (request.PositionId.HasValue)
+        {
+            query = query.Where(x => x.PositionId == request.PositionId.Value);
+        }
+
+        if (request.EmploymentStatus.HasValue)
+        {
+            query = query.Where(x => x.EmploymentStatus == request.EmploymentStatus.Value);
+        }
+
+        if (normalizedHireDateFrom.HasValue)
+        {
+            query = query.Where(x => x.HireDate >= normalizedHireDateFrom.Value);
+        }
+
+        if (normalizedHireDateTo.HasValue)
+        {
+            query = query.Where(x => x.HireDate <= normalizedHireDateTo.Value);
+        }
+
+        if (normalizedTerminationDateFrom.HasValue)
+        {
+            query = query.Where(x => x.TerminationDate.HasValue && x.TerminationDate.Value >= normalizedTerminationDateFrom.Value);
+        }
+
+        if (normalizedTerminationDateTo.HasValue)
+        {
+            query = query.Where(x => x.TerminationDate.HasValue && x.TerminationDate.Value <= normalizedTerminationDateTo.Value);
+        }
+
         var total = await query.CountAsync(ct);
 
+        query = ApplySorting(query, normalizedSortBy, normalizedSortDirection);
+
         var entities = await query
-            .OrderBy(x => x.FullName)
-            .ThenBy(x => x.EmployeeCode)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(ct);
@@ -56,6 +115,21 @@ public sealed class EmployeeService(IUnitOfWork unitOfWork) : IEmployeeService
             .ToList();
 
         return PagedResult<EmployeeListDto>.Create(items, total, page, pageSize);
+    }
+
+    public async Task<IReadOnlyList<LookupDto>> GetOptionsAsync(CancellationToken ct = default)
+    {
+        return await unitOfWork.Repository<HrEmployee>()
+            .Query()
+            .AsNoTracking()
+            .OrderBy(x => x.FullName)
+            .ThenBy(x => x.EmployeeCode)
+            .Select(x => new LookupDto
+            {
+                Id = x.Id,
+                Name = x.EmployeeCode + " - " + x.FullName
+            })
+            .ToListAsync(ct);
     }
 
     public async Task<EmployeeDetailDto?> GetByIdAsync(int id, CancellationToken ct = default)
@@ -74,8 +148,8 @@ public sealed class EmployeeService(IUnitOfWork unitOfWork) : IEmployeeService
     {
         var normalizedCode = NormalizeRequiredText(request.EmployeeCode, "Employee code is required.");
         var normalizedFullName = NormalizeRequiredText(request.FullName, "Employee full name is required.");
-        var normalizedEmail = NormalizeOptionalText(request.Email);
-        var normalizedPhone = NormalizeOptionalText(request.Phone);
+        var normalizedEmail = NormalizeText(request.Email);
+        var normalizedPhone = NormalizeText(request.Phone);
 
         await ValidateDepartmentAndPositionAsync(request.DepartmentId, request.PositionId, ct);
         await EnsureUniqueEmployeeCodeAsync(normalizedCode, null, ct);
@@ -113,8 +187,13 @@ public sealed class EmployeeService(IUnitOfWork unitOfWork) : IEmployeeService
 
         var normalizedCode = NormalizeRequiredText(request.EmployeeCode, "Employee code is required.");
         var normalizedFullName = NormalizeRequiredText(request.FullName, "Employee full name is required.");
-        var normalizedEmail = NormalizeOptionalText(request.Email);
-        var normalizedPhone = NormalizeOptionalText(request.Phone);
+        var normalizedEmail = NormalizeText(request.Email);
+        var normalizedPhone = NormalizeText(request.Phone);
+
+        if (request.TerminationDate.HasValue && request.TerminationDate.Value < request.HireDate)
+        {
+            throw new InvalidOperationException("Termination date cannot be earlier than hire date.");
+        }
 
         await ValidateDepartmentAndPositionAsync(request.DepartmentId, request.PositionId, ct);
         await EnsureUniqueEmployeeCodeAsync(normalizedCode, id, ct);
@@ -194,6 +273,50 @@ public sealed class EmployeeService(IUnitOfWork unitOfWork) : IEmployeeService
         return true;
     }
 
+    private static IQueryable<HrEmployee> ApplySorting(IQueryable<HrEmployee> query, string sortBy, string sortDirection)
+    {
+        var isDesc = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+
+        return sortBy switch
+        {
+            "employeeCode" => isDesc
+                ? query.OrderByDescending(x => x.EmployeeCode)
+                : query.OrderBy(x => x.EmployeeCode),
+
+            "email" => isDesc
+                ? query.OrderByDescending(x => x.Email).ThenBy(x => x.FullName)
+                : query.OrderBy(x => x.Email).ThenBy(x => x.FullName),
+
+            "phone" => isDesc
+                ? query.OrderByDescending(x => x.Phone).ThenBy(x => x.FullName)
+                : query.OrderBy(x => x.Phone).ThenBy(x => x.FullName),
+
+            "departmentName" => isDesc
+                ? query.OrderByDescending(x => x.Department.Name).ThenBy(x => x.FullName)
+                : query.OrderBy(x => x.Department.Name).ThenBy(x => x.FullName),
+
+            "positionName" => isDesc
+                ? query.OrderByDescending(x => x.Position.Name).ThenBy(x => x.FullName)
+                : query.OrderBy(x => x.Position.Name).ThenBy(x => x.FullName),
+
+            "hireDate" => isDesc
+                ? query.OrderByDescending(x => x.HireDate).ThenBy(x => x.FullName)
+                : query.OrderBy(x => x.HireDate).ThenBy(x => x.FullName),
+
+            "terminationDate" => isDesc
+                ? query.OrderByDescending(x => x.TerminationDate).ThenBy(x => x.FullName)
+                : query.OrderBy(x => x.TerminationDate).ThenBy(x => x.FullName),
+
+            "employmentStatus" => isDesc
+                ? query.OrderByDescending(x => x.EmploymentStatus).ThenBy(x => x.FullName)
+                : query.OrderBy(x => x.EmploymentStatus).ThenBy(x => x.FullName),
+
+            _ => isDesc
+                ? query.OrderByDescending(x => x.FullName).ThenBy(x => x.EmployeeCode)
+                : query.OrderBy(x => x.FullName).ThenBy(x => x.EmployeeCode)
+        };
+    }
+
     private async Task EnsureUniqueEmployeeCodeAsync(string employeeCode, int? currentId, CancellationToken ct)
     {
         var normalizedCode = employeeCode.ToLowerInvariant();
@@ -250,6 +373,31 @@ public sealed class EmployeeService(IUnitOfWork unitOfWork) : IEmployeeService
         }
     }
 
+    private static string NormalizeSortBy(string? sortBy)
+    {
+        if (string.IsNullOrWhiteSpace(sortBy))
+        {
+            return DefaultSortBy;
+        }
+
+        return sortBy.Trim().ToLowerInvariant() switch
+        {
+            "employeecode" => "employeeCode",
+            "fullname" => "fullName",
+            "email" => "email",
+            "phone" => "phone",
+            "departmentname" => "departmentName",
+            "positionname" => "positionName",
+            "hiredate" => "hireDate",
+            "terminationdate" => "terminationDate",
+            "employmentstatus" => "employmentStatus",
+            _ => DefaultSortBy
+        };
+    }
+
+    private static string NormalizeSortDirection(string? sortDirection) =>
+        string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase) ? "desc" : "asc";
+
     private static string NormalizeRequiredText(string? value, string errorMessage)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -260,9 +408,16 @@ public sealed class EmployeeService(IUnitOfWork unitOfWork) : IEmployeeService
         return value.Trim();
     }
 
-    private static string? NormalizeOptionalText(string? value)
+    private static string? NormalizeText(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static (DateOnly? From, DateOnly? To) NormalizeDateRange(DateOnly? from, DateOnly? to)
     {
-        return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+        if (from.HasValue && to.HasValue && from.Value > to.Value)
+        {
+            return (to, from);
+        }
+
+        return (from, to);
     }
 
     private static EmployeeListDto MapEmployeeList(HrEmployee entity)
@@ -272,8 +427,14 @@ public sealed class EmployeeService(IUnitOfWork unitOfWork) : IEmployeeService
             Id = entity.Id,
             EmployeeCode = entity.EmployeeCode,
             FullName = entity.FullName,
+            Email = entity.Email,
+            Phone = entity.Phone,
+            DepartmentId = entity.DepartmentId,
             DepartmentName = entity.Department.Name,
+            PositionId = entity.PositionId,
             PositionName = entity.Position.Name,
+            HireDate = entity.HireDate,
+            TerminationDate = entity.TerminationDate,
             EmploymentStatus = entity.EmploymentStatus
         };
     }

@@ -14,6 +14,13 @@ public sealed class EmployeesController(IEmployeeService employeeService) : HrCo
         return Ok(result);
     }
 
+    [HttpGet("options")]
+    public async Task<IActionResult> GetOptions(CancellationToken ct)
+    {
+        var result = await employeeService.GetOptionsAsync(ct);
+        return Ok(result);
+    }
+
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id, CancellationToken ct)
     {
