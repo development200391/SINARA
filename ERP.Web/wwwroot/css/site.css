@@ -168,6 +168,31 @@ body {
     opacity: 0.72;
 }
 
+.sinara-btn-theme-outline {
+    --bs-btn-color: var(--sinara-primary);
+    --bs-btn-border-color: var(--sinara-primary);
+    --bs-btn-hover-color: #f8fafc;
+    --bs-btn-hover-bg: var(--sinara-primary);
+    --bs-btn-hover-border-color: var(--sinara-primary);
+    --bs-btn-focus-shadow-rgb: var(--sinara-primary-rgb);
+    --bs-btn-active-color: #f8fafc;
+    --bs-btn-active-bg: var(--sinara-primary);
+    --bs-btn-active-border-color: var(--sinara-primary);
+}
+
+.sinara-grid-toolbar {
+    row-gap: 0.5rem;
+}
+
+.sinara-grid-search-input {
+    min-width: 220px;
+}
+
+@media (max-width: 576px) {
+    .sinara-grid-search-input {
+        min-width: 100%;
+    }
+}
 .table td,
 .table th {
     vertical-align: middle;

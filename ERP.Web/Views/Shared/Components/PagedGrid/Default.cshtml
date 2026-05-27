@@ -20,8 +20,15 @@
     }
 
     var pageSizeSelectId = $"page-size-{Guid.NewGuid():N}";
+    var searchInputId = $"search-{Guid.NewGuid():N}";
+    var searchPlaceholder = string.IsNullOrWhiteSpace(Model.SearchPlaceholder) ? "Search" : Model.SearchPlaceholder;
 
-    Dictionary<string, string?> BuildRouteValues()
+    Dictionary<string, string?> BuildRouteValues(
+        string? page = null,
+        int? pageSize = null,
+        string? sortBy = null,
+        string? sortDirection = null,
+        string? search = null)
     {
         var values = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
         foreach (var route in Model.RouteValues)
@@ -29,13 +36,65 @@
             values[route.Key] = route.Value;
         }
 
-        values[Model.PageSizeQueryKey] = safePageSize.ToString(CultureInfo.InvariantCulture);
-        values[Model.SortByQueryKey] = currentSortBy;
-        values[Model.SortDirectionQueryKey] = normalizedSortDirection;
+        if (Model.EnableSearch && !string.IsNullOrWhiteSpace(Model.SearchQueryKey))
+        {
+            values[Model.SearchQueryKey] = search ?? Model.SearchValue;
+        }
+
+        values[Model.PageSizeQueryKey] = (pageSize ?? safePageSize).ToString(CultureInfo.InvariantCulture);
+        values[Model.SortByQueryKey] = sortBy ?? currentSortBy;
+        values[Model.SortDirectionQueryKey] = sortDirection ?? normalizedSortDirection;
+
+        if (!string.IsNullOrWhiteSpace(page))
+        {
+            values[Model.PageQueryKey] = page;
+        }
 
         return values;
     }
 }
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <form method="get" class="d-flex flex-wrap align-items-center gap-2 sinara-grid-toolbar">
+        @foreach (var route in Model.RouteValues)
+        {
+            if (string.Equals(route.Key, Model.PageQueryKey, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(route.Key, Model.PageSizeQueryKey, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(route.Key, Model.SortByQueryKey, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(route.Key, Model.SortDirectionQueryKey, StringComparison.OrdinalIgnoreCase) ||
+                (Model.EnableSearch && string.Equals(route.Key, Model.SearchQueryKey, StringComparison.OrdinalIgnoreCase)))
+            {
+                continue;
+            }
+
+            <input type="hidden" name="@route.Key" value="@route.Value" />
+        }
+
+        <input type="hidden" name="@Model.PageQueryKey" value="1" />
+        <input type="hidden" name="@Model.SortByQueryKey" value="@currentSortBy" />
+        <input type="hidden" name="@Model.SortDirectionQueryKey" value="@normalizedSortDirection" />
+
+        @if (Model.EnableSearch)
+        {
+            <label class="visually-hidden" for="@searchInputId">Search</label>
+            <input id="@searchInputId" type="text" class="form-control form-control-sm sinara-grid-search-input" name="@Model.SearchQueryKey" value="@Model.SearchValue" placeholder="@searchPlaceholder" />
+            <button type="submit" class="btn btn-sm sinara-btn-theme-outline">@Model.SearchButtonText</button>
+        }
+
+        <label class="form-label mb-0" for="@pageSizeSelectId">Page</label>
+        <select id="@pageSizeSelectId" class="form-select form-select-sm w-auto" name="@Model.PageSizeQueryKey" onchange="this.form.submit()">
+            @foreach (var size in pageSizeOptions)
+            {
+                <option value="@size" selected="@(safePageSize == size)">@size</option>
+            }
+        </select>
+    </form>
+
+    @if (!string.IsNullOrWhiteSpace(Model.ExportUrl))
+    {
+        <a class="btn btn-sm sinara-btn-theme-outline" href="@Model.ExportUrl">@Model.ExportButtonText</a>
+    }
+</div>
 
 <div class="table-responsive">
     <table class="table table-sm align-middle sinara-paged-grid">
@@ -48,16 +107,16 @@
                         {
                             var isCurrentSort = string.Equals(currentSortBy, column.Key, StringComparison.OrdinalIgnoreCase);
                             var nextSortDirection = isCurrentSort && normalizedSortDirection == "asc" ? "desc" : "asc";
-                            var sortRouteValues = BuildRouteValues();
-                            sortRouteValues[Model.PageQueryKey] = "1";
-                            sortRouteValues[Model.SortByQueryKey] = column.Key;
-                            sortRouteValues[Model.SortDirectionQueryKey] = nextSortDirection;
+                            var sortRouteValues = BuildRouteValues(
+                                page: "1",
+                                sortBy: column.Key,
+                                sortDirection: nextSortDirection);
 
                             <a class="sinara-grid-sort-link text-decoration-none d-inline-flex align-items-center gap-1" asp-all-route-data="sortRouteValues">
                                 <span>@column.Title</span>
                                 @if (isCurrentSort)
                                 {
-                                    <small aria-hidden="true">@(normalizedSortDirection == "asc" ? "↑" : "↓")</small>
+                                    <small aria-hidden="true">@(normalizedSortDirection == "asc" ? "^" : "v")</small>
                                 }
                             </a>
                         }
@@ -105,49 +164,12 @@
     </table>
 </div>
 
-<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3">
-    <div class="d-flex flex-wrap align-items-center gap-2">
-        <form method="get" class="d-flex align-items-center gap-2">
-            @foreach (var route in Model.RouteValues)
-            {
-                if (string.Equals(route.Key, Model.PageQueryKey, StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(route.Key, Model.PageSizeQueryKey, StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(route.Key, Model.SortByQueryKey, StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(route.Key, Model.SortDirectionQueryKey, StringComparison.OrdinalIgnoreCase))
-                {
-                    continue;
-                }
+@if (safeTotalPages > 1)
+{
+    var previousRouteValues = BuildRouteValues(page: Math.Max(safePage - 1, 1).ToString(CultureInfo.InvariantCulture));
+    var nextRouteValues = BuildRouteValues(page: Math.Min(safePage + 1, safeTotalPages).ToString(CultureInfo.InvariantCulture));
 
-                <input type="hidden" name="@route.Key" value="@route.Value" />
-            }
-
-            <input type="hidden" name="@Model.PageQueryKey" value="1" />
-            <input type="hidden" name="@Model.SortByQueryKey" value="@currentSortBy" />
-            <input type="hidden" name="@Model.SortDirectionQueryKey" value="@normalizedSortDirection" />
-
-            <label class="form-label mb-0" for="@pageSizeSelectId">Page</label>
-            <select id="@pageSizeSelectId" class="form-select form-select-sm w-auto" name="@Model.PageSizeQueryKey" onchange="this.form.submit()">
-                @foreach (var size in pageSizeOptions)
-                {
-                    <option value="@size" selected="@(safePageSize == size)">@size</option>
-                }
-            </select>
-        </form>
-
-        @if (!string.IsNullOrWhiteSpace(Model.ExportUrl))
-        {
-            <a class="btn btn-sm btn-outline-success" href="@Model.ExportUrl">@Model.ExportButtonText</a>
-        }
-    </div>
-
-    @if (safeTotalPages > 1)
-    {
-        var previousRouteValues = BuildRouteValues();
-        previousRouteValues[Model.PageQueryKey] = Math.Max(safePage - 1, 1).ToString(CultureInfo.InvariantCulture);
-
-        var nextRouteValues = BuildRouteValues();
-        nextRouteValues[Model.PageQueryKey] = Math.Min(safePage + 1, safeTotalPages).ToString(CultureInfo.InvariantCulture);
-
+    <div class="d-flex justify-content-end mt-3">
         <nav aria-label="Page navigation">
             <ul class="pagination mb-0">
                 <li class="page-item @(safePage <= 1 ? "disabled" : string.Empty)">
@@ -161,5 +183,5 @@
                 </li>
             </ul>
         </nav>
-    }
-</div>
+    </div>
+}
