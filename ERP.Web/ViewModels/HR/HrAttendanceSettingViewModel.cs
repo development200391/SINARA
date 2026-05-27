@@ -15,9 +15,6 @@ public sealed class HrAttendanceSettingViewModel
     [Range(0, 600)]
     public int CheckInToleranceMinutes { get; set; } = 10;
 
-    [Range(0, 600)]
-    public int LateToleranceMinutes { get; set; } = 15;
-
     [Required]
     public string WorkStart { get; set; } = "08:00";
 

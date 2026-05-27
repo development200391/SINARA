@@ -32,11 +32,6 @@ public sealed class AttendanceSettingService(IUnitOfWork unitOfWork) : IAttendan
             throw new InvalidOperationException("Check-in tolerance cannot be negative.");
         }
 
-        if (request.LateToleranceMinutes < 0)
-        {
-            throw new InvalidOperationException("Late tolerance cannot be negative.");
-        }
-
         if (request.MinimumOtMinutes < 0)
         {
             throw new InvalidOperationException("Minimum OT cannot be negative.");
@@ -62,7 +57,6 @@ public sealed class AttendanceSettingService(IUnitOfWork unitOfWork) : IAttendan
         entity.AttendancePeriodStartDay = request.AttendancePeriodStartDay;
         entity.AttendancePeriodEndDay = request.AttendancePeriodEndDay;
         entity.CheckInToleranceMinutes = request.CheckInToleranceMinutes;
-        entity.LateToleranceMinutes = request.LateToleranceMinutes;
         entity.WorkStart = request.WorkStart;
         entity.WorkEnd = request.WorkEnd;
         entity.BreakStart = request.BreakStart;
@@ -141,7 +135,6 @@ public sealed class AttendanceSettingService(IUnitOfWork unitOfWork) : IAttendan
             AttendancePeriodStartDay = entity.AttendancePeriodStartDay,
             AttendancePeriodEndDay = entity.AttendancePeriodEndDay,
             CheckInToleranceMinutes = entity.CheckInToleranceMinutes,
-            LateToleranceMinutes = entity.LateToleranceMinutes,
             WorkStart = entity.WorkStart,
             WorkEnd = entity.WorkEnd,
             BreakStart = entity.BreakStart,
@@ -150,3 +143,6 @@ public sealed class AttendanceSettingService(IUnitOfWork unitOfWork) : IAttendan
         };
     }
 }
+
+
+

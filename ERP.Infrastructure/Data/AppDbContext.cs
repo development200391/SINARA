@@ -390,7 +390,6 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         builder.Property(x => x.AttendancePeriodStartDay).HasDefaultValue(26).IsRequired();
         builder.Property(x => x.AttendancePeriodEndDay).HasDefaultValue(25).IsRequired();
         builder.Property(x => x.CheckInToleranceMinutes).HasDefaultValue(10).IsRequired();
-        builder.Property(x => x.LateToleranceMinutes).HasDefaultValue(15).IsRequired();
         builder.Property(x => x.WorkStart).HasColumnType("time").IsRequired();
         builder.Property(x => x.WorkEnd).HasColumnType("time").IsRequired();
         builder.Property(x => x.BreakStart).HasColumnType("time").IsRequired();
@@ -515,3 +514,4 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         }
     }
 }
+

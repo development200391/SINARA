@@ -132,7 +132,6 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
             AttendancePeriodStartDay = 26,
             AttendancePeriodEndDay = 25,
             CheckInToleranceMinutes = 10,
-            LateToleranceMinutes = 15,
             WorkStart = new TimeOnly(8, 0),
             WorkEnd = new TimeOnly(17, 0),
             BreakStart = new TimeOnly(12, 0),
@@ -532,3 +531,4 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         return menu;
     }
 }
+

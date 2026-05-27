@@ -184,7 +184,6 @@ public sealed class HrAttendanceController(IHrApiClient hrApiClient) : Controlle
             AttendancePeriodStartDay = model.AttendancePeriodStartDay,
             AttendancePeriodEndDay = model.AttendancePeriodEndDay,
             CheckInToleranceMinutes = model.CheckInToleranceMinutes,
-            LateToleranceMinutes = model.LateToleranceMinutes,
             WorkStart = workStart!.Value,
             WorkEnd = workEnd!.Value,
             BreakStart = breakStart!.Value,
@@ -413,7 +412,6 @@ public sealed class HrAttendanceController(IHrApiClient hrApiClient) : Controlle
             AttendancePeriodStartDay = dto.AttendancePeriodStartDay,
             AttendancePeriodEndDay = dto.AttendancePeriodEndDay,
             CheckInToleranceMinutes = dto.CheckInToleranceMinutes,
-            LateToleranceMinutes = dto.LateToleranceMinutes,
             WorkStart = dto.WorkStart.ToString("HH:mm", CultureInfo.InvariantCulture),
             WorkEnd = dto.WorkEnd.ToString("HH:mm", CultureInfo.InvariantCulture),
             BreakStart = dto.BreakStart.ToString("HH:mm", CultureInfo.InvariantCulture),
@@ -540,3 +538,5 @@ public sealed class HrAttendanceController(IHrApiClient hrApiClient) : Controlle
 
     private string? GetAccessToken() => User.FindFirstValue("access_token");
 }
+
+

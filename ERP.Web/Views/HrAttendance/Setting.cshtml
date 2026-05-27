@@ -33,12 +33,6 @@
             </div>
 
             <div class="col-md-3">
-                <label asp-for="LateToleranceMinutes" class="form-label">Late Tolerance (min)</label>
-                <input asp-for="LateToleranceMinutes" class="form-control" type="number" min="0" />
-                <span asp-validation-for="LateToleranceMinutes" class="text-danger"></span>
-            </div>
-
-            <div class="col-md-3">
                 <label asp-for="WorkStart" class="form-label">Work Start</label>
                 <input asp-for="WorkStart" class="form-control" type="time" step="60" />
                 <span asp-validation-for="WorkStart" class="text-danger"></span>
@@ -133,3 +127,4 @@
         })();
     </script>
 }
+
