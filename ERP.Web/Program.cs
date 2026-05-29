@@ -8,7 +8,13 @@ using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllersWithViews();
+builder.Services
+    .AddControllersWithViews()
+    .AddRazorOptions(options =>
+    {
+        options.ViewLocationFormats.Insert(0, "/Views/HR/{1}/{0}.cshtml");
+        options.ViewLocationFormats.Insert(0, "/Views/Config/{1}/{0}.cshtml");
+    });
 builder.Services.AddHttpContextAccessor();
 
 builder.Services.Configure<ApiSettings>(builder.Configuration.GetSection(ApiSettings.SectionName));
