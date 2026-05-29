@@ -3,6 +3,7 @@
 @using ERP.Web.ViewModels.Shared
 @using Microsoft.AspNetCore.Html
 @using System.Globalization
+@using System.Linq
 
 <div class="card border-0 shadow-sm">
     <div class="card-body">
@@ -35,6 +36,38 @@
                 new() { Value = "true", Label = "Active" },
                 new() { Value = "false", Label = "Inactive" }
             };
+
+            var selectedYear = Model.YearFromFilter.HasValue
+                && Model.YearToFilter.HasValue
+                && Model.YearFromFilter.Value == Model.YearToFilter.Value
+                ? Model.YearFromFilter.Value
+                : (short?)null;
+            var selectedYearText = selectedYear?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
+
+            var currentYear = (short)DateTime.Today.Year;
+            var yearCandidates = new HashSet<short>(Model.Holidays.Items.Select(x => x.Year))
+            {
+                currentYear,
+                (short)(currentYear - 1),
+                (short)(currentYear + 1)
+            };
+
+            if (selectedYear.HasValue)
+            {
+                yearCandidates.Add(selectedYear.Value);
+            }
+
+            var yearOptions = yearCandidates
+                .Where(x => x >= 2000 && x <= 9999)
+                .OrderByDescending(x => x)
+                .ToList();
+
+            var totalHolidayCount = Model.Holidays.TotalCount;
+            var nationalHolidayCount = Model.Holidays.Items.Count(x => x.HolidayType == HolidayType.National);
+            var companyHolidayCount = Model.Holidays.Items.Count(x => x.HolidayType is HolidayType.Company or HolidayType.JointLeave);
+            var periodText = selectedYear.HasValue
+                ? $"Tahun {selectedYear.Value.ToString(CultureInfo.InvariantCulture)}"
+                : "Semua Tahun";
 
             var gridModel = new PagedGridViewModel
             {
@@ -180,10 +213,7 @@
                 PageSize = Model.PageSize,
                 SortBy = Model.SortBy,
                 SortDirection = Model.SortDirection,
-                EnableSearch = true,
-                SearchValue = Model.Search,
-                SearchPlaceholder = "Search holiday",
-                SearchButtonText = T["common.search"],
+                EnableSearch = false,
                 Actions = new PagedGridActionConfigViewModel
                 {
                     ActionColumnTitle = "Action",
@@ -196,6 +226,100 @@
                 }
             };
         }
+
+        <div class="sinara-holiday-overview mb-3">
+            <article class="sinara-holiday-stat-card">
+                <div class="sinara-holiday-stat-title">Total Holiday</div>
+                <div class="sinara-holiday-stat-value">@totalHolidayCount</div>
+                <div class="sinara-holiday-stat-note">@periodText</div>
+            </article>
+            <article class="sinara-holiday-stat-card">
+                <div class="sinara-holiday-stat-title">Libur Nasional</div>
+                <div class="sinara-holiday-stat-value">@nationalHolidayCount</div>
+                <div class="sinara-holiday-stat-note">Ditetapkan pemerintah</div>
+            </article>
+            <article class="sinara-holiday-stat-card">
+                <div class="sinara-holiday-stat-title">Libur Perusahaan</div>
+                <div class="sinara-holiday-stat-value">@companyHolidayCount</div>
+                <div class="sinara-holiday-stat-note">Cuti bersama / khusus</div>
+            </article>
+        </div>
+
+        <form method="get"
+              class="sinara-holiday-quick-filter mb-3"
+              onsubmit="document.getElementById('holidayYearTo').value = document.getElementById('holidayYearFrom').value;">
+            <input type="hidden" name="page" value="1" />
+            <input type="hidden" name="pageSize" value="@Model.PageSize" />
+            <input type="hidden" name="sortBy" value="@Model.SortBy" />
+            <input type="hidden" name="sortDirection" value="@Model.SortDirection" />
+
+            @if (!string.IsNullOrWhiteSpace(Model.Search))
+            {
+                <input type="hidden" name="search" value="@Model.Search" />
+            }
+
+            @if (Model.HolidayDateFromFilter.HasValue)
+            {
+                <input type="hidden" name="holidayDateFrom" value="@Model.HolidayDateFromFilter.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)" />
+            }
+
+            @if (Model.HolidayDateToFilter.HasValue)
+            {
+                <input type="hidden" name="holidayDateTo" value="@Model.HolidayDateToFilter.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)" />
+            }
+
+            @if (!string.IsNullOrWhiteSpace(Model.DescriptionFilter))
+            {
+                <input type="hidden" name="description" value="@Model.DescriptionFilter" />
+            }
+
+            @if (Model.IsActiveFilter.HasValue)
+            {
+                <input type="hidden" name="isActive" value="@(Model.IsActiveFilter.Value ? "true" : "false")" />
+            }
+
+            @if (!string.IsNullOrWhiteSpace(Model.AppliesToFilter))
+            {
+                <input type="hidden" name="appliesTo" value="@Model.AppliesToFilter" />
+            }
+
+            <label class="visually-hidden" for="holidayYearFrom">Year</label>
+            <select id="holidayYearFrom"
+                    class="form-select sinara-holiday-filter-control"
+                    name="yearFrom"
+                    onchange="this.form.requestSubmit();">
+                <option value="">Semua tahun</option>
+                @foreach (var yearOption in yearOptions)
+                {
+                    <option value="@yearOption" selected="@(yearOption.ToString(CultureInfo.InvariantCulture) == selectedYearText)">
+                        @yearOption
+                    </option>
+                }
+            </select>
+            <input id="holidayYearTo" type="hidden" name="yearTo" value="@selectedYearText" />
+
+            <label class="visually-hidden" for="holidayTypeFilter">Holiday Type</label>
+            <select id="holidayTypeFilter"
+                    class="form-select sinara-holiday-filter-control"
+                    name="holidayType"
+                    onchange="this.form.requestSubmit();">
+                <option value="">Semua tipe</option>
+                @foreach (var option in holidayTypeOptions)
+                {
+                    <option value="@option.Value" selected="@string.Equals(option.Value, selectedHolidayType, StringComparison.OrdinalIgnoreCase)">
+                        @option.Label
+                    </option>
+                }
+            </select>
+
+            <label class="visually-hidden" for="holidayNameFilter">Nama Holiday</label>
+            <input id="holidayNameFilter"
+                   type="text"
+                   class="form-control sinara-holiday-filter-control"
+                   name="name"
+                   value="@Model.NameFilter"
+                   placeholder="Cari nama holiday..." />
+        </form>
 
         @await Component.InvokeAsync("PagedGrid", gridModel)
     </div>
