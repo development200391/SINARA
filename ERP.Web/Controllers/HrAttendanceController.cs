@@ -17,6 +17,7 @@ public sealed class HrAttendanceController(IHrApiClient hrApiClient) : Controlle
 {
     private const int DefaultPageSize = 20;
     private const string DefaultSortBy = "date";
+    private const string DefaultHolidaySortBy = "holidayDate";
     private const string DefaultReportSortBy = "employeeName";
     private static readonly string[] DateTimeInputFormats = ["yyyy-MM-ddTHH:mm", "yyyy-MM-ddTHH:mm:ss"];
     private static readonly string[] TimeInputFormats = ["HH:mm", "HH:mm:ss"];
@@ -113,6 +114,223 @@ public sealed class HrAttendanceController(IHrApiClient hrApiClient) : Controlle
         });
     }
 
+    [HttpGet("holiday")]
+    public async Task<IActionResult> Holiday(
+        int page = 1,
+        int pageSize = DefaultPageSize,
+        string? search = null,
+        string? sortBy = DefaultHolidaySortBy,
+        string? sortDirection = "desc",
+        string? name = null,
+        DateOnly? holidayDateFrom = null,
+        DateOnly? holidayDateTo = null,
+        HolidayType? holidayType = null,
+        string? description = null,
+        bool? isActive = null,
+        string? appliesTo = null,
+        short? yearFrom = null,
+        short? yearTo = null,
+        CancellationToken ct = default)
+    {
+        var accessToken = GetAccessToken();
+        if (string.IsNullOrWhiteSpace(accessToken))
+        {
+            return RedirectToAction("Login", "Auth", new { returnUrl = Request.Path + Request.QueryString });
+        }
+
+        var normalizedPage = page <= 0 ? 1 : page;
+        var normalizedPageSize = NormalizePageSize(pageSize);
+        var normalizedSortBy = NormalizeHolidaySortBy(sortBy);
+        var normalizedSortDirection = NormalizeSortDirection(sortDirection);
+        var normalizedName = NormalizeTextFilter(name);
+        var normalizedDescription = NormalizeTextFilter(description);
+        var normalizedAppliesTo = NormalizeTextFilter(appliesTo);
+        var (normalizedHolidayDateFrom, normalizedHolidayDateTo) = NormalizeDateRange(holidayDateFrom, holidayDateTo);
+        var (normalizedYearFrom, normalizedYearTo) = NormalizeShortRange(yearFrom, yearTo);
+
+        var holidays = await hrApiClient.GetHolidaysAsync(accessToken, new HolidayPagedRequest
+        {
+            Page = normalizedPage,
+            PageSize = normalizedPageSize,
+            Search = search,
+            SortBy = normalizedSortBy,
+            SortDirection = normalizedSortDirection,
+            Name = normalizedName,
+            HolidayDateFrom = normalizedHolidayDateFrom,
+            HolidayDateTo = normalizedHolidayDateTo,
+            HolidayType = holidayType,
+            Description = normalizedDescription,
+            IsActive = isActive,
+            AppliesTo = normalizedAppliesTo,
+            YearFrom = normalizedYearFrom,
+            YearTo = normalizedYearTo
+        }, ct);
+
+        ViewData["Title"] = "Holiday Master";
+        ViewData["Breadcrumb"] = "HR / Attendance / Holiday";
+
+        return View(new HrHolidayIndexViewModel
+        {
+            Search = search,
+            PageSize = normalizedPageSize,
+            SortBy = normalizedSortBy,
+            SortDirection = normalizedSortDirection,
+            NameFilter = normalizedName,
+            HolidayDateFromFilter = normalizedHolidayDateFrom,
+            HolidayDateToFilter = normalizedHolidayDateTo,
+            HolidayTypeFilter = holidayType,
+            DescriptionFilter = normalizedDescription,
+            IsActiveFilter = isActive,
+            AppliesToFilter = normalizedAppliesTo,
+            YearFromFilter = normalizedYearFrom,
+            YearToFilter = normalizedYearTo,
+            Holidays = holidays ?? PagedResult<HolidayDto>.Create([], 0, normalizedPage, normalizedPageSize)
+        });
+    }
+
+    [HttpGet("holiday/details/{id:int}")]
+    public async Task<IActionResult> HolidayDetails(int id, CancellationToken ct = default)
+    {
+        var accessToken = GetAccessToken();
+        if (string.IsNullOrWhiteSpace(accessToken))
+        {
+            return RedirectToAction("Login", "Auth", new { returnUrl = Request.Path + Request.QueryString });
+        }
+
+        var holiday = await hrApiClient.GetHolidayByIdAsync(accessToken, id, ct);
+        if (holiday is null)
+        {
+            return NotFound();
+        }
+
+        ViewData["Title"] = "Holiday Details";
+        ViewData["Breadcrumb"] = "HR / Attendance / Holiday / Details";
+
+        return View("HolidayDetails", holiday);
+    }
+
+    [HttpGet("holiday/create")]
+    public IActionResult HolidayCreate()
+    {
+        ViewData["Title"] = "Create Holiday";
+        ViewData["Breadcrumb"] = "HR / Attendance / Holiday / Create";
+
+        return View("HolidayCreate", new HrHolidayEditViewModel
+        {
+            IsActive = true,
+            AppliesTo = "all"
+        });
+    }
+
+    [HttpPost("holiday/create")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> HolidayCreate(HrHolidayEditViewModel model, CancellationToken ct = default)
+    {
+        var accessToken = GetAccessToken();
+        if (string.IsNullOrWhiteSpace(accessToken))
+        {
+            return RedirectToAction("Login", "Auth");
+        }
+
+        if (!ModelState.IsValid)
+        {
+            ViewData["Title"] = "Create Holiday";
+            ViewData["Breadcrumb"] = "HR / Attendance / Holiday / Create";
+            return View("HolidayCreate", model);
+        }
+
+        var created = await hrApiClient.CreateHolidayAsync(accessToken, MapHolidayDto(model), ct);
+        if (created is null)
+        {
+            ModelState.AddModelError(string.Empty, "Failed to create holiday.");
+            ViewData["Title"] = "Create Holiday";
+            ViewData["Breadcrumb"] = "HR / Attendance / Holiday / Create";
+            return View("HolidayCreate", model);
+        }
+
+        TempData["SuccessMessage"] = "Holiday created.";
+        return RedirectToAction(nameof(Holiday));
+    }
+
+    [HttpGet("holiday/edit/{id:int}")]
+    public async Task<IActionResult> HolidayEdit(int id, CancellationToken ct = default)
+    {
+        var accessToken = GetAccessToken();
+        if (string.IsNullOrWhiteSpace(accessToken))
+        {
+            return RedirectToAction("Login", "Auth");
+        }
+
+        var holiday = await hrApiClient.GetHolidayByIdAsync(accessToken, id, ct);
+        if (holiday is null)
+        {
+            return NotFound();
+        }
+
+        ViewData["Title"] = "Edit Holiday";
+        ViewData["Breadcrumb"] = "HR / Attendance / Holiday / Edit";
+
+        return View("HolidayEdit", new HrHolidayEditViewModel
+        {
+            Id = holiday.Id,
+            Name = holiday.Name,
+            HolidayDate = holiday.HolidayDate,
+            HolidayType = holiday.HolidayType,
+            Description = holiday.Description,
+            IsActive = holiday.IsActive,
+            AppliesTo = holiday.AppliesTo
+        });
+    }
+
+    [HttpPost("holiday/edit/{id:int}")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> HolidayEdit(int id, HrHolidayEditViewModel model, CancellationToken ct = default)
+    {
+        var accessToken = GetAccessToken();
+        if (string.IsNullOrWhiteSpace(accessToken))
+        {
+            return RedirectToAction("Login", "Auth");
+        }
+
+        model.Id = id;
+
+        if (!ModelState.IsValid)
+        {
+            ViewData["Title"] = "Edit Holiday";
+            ViewData["Breadcrumb"] = "HR / Attendance / Holiday / Edit";
+            return View("HolidayEdit", model);
+        }
+
+        var updated = await hrApiClient.UpdateHolidayAsync(accessToken, id, MapHolidayDto(model), ct);
+        if (updated is null)
+        {
+            ModelState.AddModelError(string.Empty, "Failed to update holiday.");
+            ViewData["Title"] = "Edit Holiday";
+            ViewData["Breadcrumb"] = "HR / Attendance / Holiday / Edit";
+            return View("HolidayEdit", model);
+        }
+
+        TempData["SuccessMessage"] = "Holiday updated.";
+        return RedirectToAction(nameof(Holiday));
+    }
+
+    [HttpPost("holiday/delete/{id:int}")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> HolidayDelete(int id, CancellationToken ct = default)
+    {
+        var accessToken = GetAccessToken();
+        if (string.IsNullOrWhiteSpace(accessToken))
+        {
+            return RedirectToAction("Login", "Auth");
+        }
+
+        var deleted = await hrApiClient.DeleteHolidayAsync(accessToken, id, ct);
+        TempData[deleted ? "SuccessMessage" : "ErrorMessage"] = deleted
+            ? "Holiday deleted."
+            : "Failed to delete holiday.";
+
+        return RedirectToAction(nameof(Holiday));
+    }
     [HttpGet("report")]
     public async Task<IActionResult> Report(
         int page = 1,
@@ -855,6 +1073,20 @@ public sealed class HrAttendanceController(IHrApiClient hrApiClient) : Controlle
         return new DateTimeOffset(parsed);
     }
 
+    private static HolidayDto MapHolidayDto(HrHolidayEditViewModel model)
+    {
+        return new HolidayDto
+        {
+            Id = model.Id,
+            Name = NormalizeTextFilter(model.Name) ?? string.Empty,
+            HolidayDate = model.HolidayDate,
+            HolidayType = model.HolidayType,
+            Description = NormalizeTextFilter(model.Description),
+            IsActive = model.IsActive,
+            AppliesTo = NormalizeTextFilter(model.AppliesTo) ?? "all"
+        };
+    }
+
     private static int NormalizePageSize(int pageSize) => pageSize is 20 or 50 or 100 ? pageSize : DefaultPageSize;
 
     private static string NormalizeSortBy(string? sortBy)
@@ -879,12 +1111,43 @@ public sealed class HrAttendanceController(IHrApiClient hrApiClient) : Controlle
         };
     }
 
+    private static string NormalizeHolidaySortBy(string? sortBy)
+    {
+        if (string.IsNullOrWhiteSpace(sortBy))
+        {
+            return DefaultHolidaySortBy;
+        }
+
+        return sortBy.Trim().ToLowerInvariant() switch
+        {
+            "id" => "id",
+            "name" => "name",
+            "holidaydate" => "holidayDate",
+            "holidaytype" => "holidayType",
+            "description" => "description",
+            "isactive" => "isActive",
+            "appliesto" => "appliesTo",
+            "year" => "year",
+            _ => DefaultHolidaySortBy
+        };
+    }
+
     private static string NormalizeSortDirection(string? sortDirection) =>
         string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase) ? "desc" : "asc";
 
     private static string? NormalizeTextFilter(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     private static (DateOnly? From, DateOnly? To) NormalizeDateRange(DateOnly? from, DateOnly? to)
+    {
+        if (from.HasValue && to.HasValue && from.Value > to.Value)
+        {
+            return (to, from);
+        }
+
+        return (from, to);
+    }
+
+    private static (short? From, short? To) NormalizeShortRange(short? from, short? to)
     {
         if (from.HasValue && to.HasValue && from.Value > to.Value)
         {

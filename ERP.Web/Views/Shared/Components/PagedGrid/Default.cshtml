@@ -228,7 +228,10 @@
 
                 <label class="visually-hidden" for="@searchInputId">Search</label>
                 <input id="@searchInputId" type="text" class="form-control form-control-sm sinara-grid-search-input" name="@Model.SearchQueryKey" value="@Model.SearchValue" placeholder="@searchPlaceholder" />
-                <button type="submit" class="btn btn-sm sinara-btn-theme-outline text-nowrap">@Model.SearchButtonText</button>
+                <button type="submit" class="btn btn-sm sinara-btn-theme-outline text-nowrap d-inline-flex align-items-center gap-1">
+                    <i class="bi bi-search" aria-hidden="true"></i>
+                    <span>@Model.SearchButtonText</span>
+                </button>
             </form>
         }
 
@@ -306,7 +309,7 @@
                                     <span>@column.Title</span>
                                     @if (isCurrentSort)
                                     {
-                                        <small aria-hidden="true">@(normalizedSortDirection == "asc" ? "^" : "v")</small>
+                                        <i class="bi @(normalizedSortDirection == "asc" ? "bi-caret-up-fill" : "bi-caret-down-fill") sinara-grid-sort-icon" aria-hidden="true"></i>
                                     }
                                 </a>
                             }

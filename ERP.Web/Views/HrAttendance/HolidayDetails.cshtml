@@ -1,0 +1,67 @@
+@model ERP.Application.DTOs.HR.HolidayDto
+@using ERP.Domain.Enums
+@using System.Globalization
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">Holiday Details</h1>
+
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label text-muted small">Name</label>
+                <div class="form-control-plaintext">@Model.Name</div>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label text-muted small">Holiday Date</label>
+                <div class="form-control-plaintext">@Model.HolidayDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)</div>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label text-muted small">Year</label>
+                <div class="form-control-plaintext">@Model.Year</div>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label text-muted small">Holiday Type</label>
+                <div class="form-control-plaintext">
+                    @if (Model.HolidayType == HolidayType.National)
+                    {
+                        <span class="badge text-bg-primary">National</span>
+                    }
+                    else if (Model.HolidayType == HolidayType.Company)
+                    {
+                        <span class="badge text-bg-info">Company</span>
+                    }
+                    else
+                    {
+                        <span class="badge text-bg-warning">Joint Leave</span>
+                    }
+                </div>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label text-muted small">Applies To</label>
+                <div class="form-control-plaintext">@Model.AppliesTo</div>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label text-muted small">Status</label>
+                <div class="form-control-plaintext">
+                    @if (Model.IsActive)
+                    {
+                        <span class="badge text-bg-success">Active</span>
+                    }
+                    else
+                    {
+                        <span class="badge text-bg-secondary">Inactive</span>
+                    }
+                </div>
+            </div>
+            <div class="col-md-12">
+                <label class="form-label text-muted small">Description</label>
+                <div class="form-control-plaintext">@(string.IsNullOrWhiteSpace(Model.Description) ? "-" : Model.Description)</div>
+            </div>
+        </div>
+
+        <div class="mt-4 d-flex gap-2">
+            <a class="btn btn-primary" asp-action="HolidayEdit" asp-route-id="@Model.Id">@T["common.edit"]</a>
+            <a class="btn btn-outline-secondary" asp-action="Holiday">@T["common.cancel"]</a>
+        </div>
+    </div>
+</div>

@@ -92,10 +92,10 @@ public sealed class PayrollService(IUnitOfWork unitOfWork) : IPayrollService
             .Include(x => x.PayrollDetails)
             .FirstOrDefaultAsync(x => x.PeriodMonth == month && x.PeriodYear == year, ct);
 
-        if (run is not null && run.Status == PayrollStatus.Completed)
-        {
-            throw new InvalidOperationException("Payroll for selected period has already been completed.");
-        }
+        //if (run is not null && run.Status == PayrollStatus.Completed)
+        //{
+        //    throw new InvalidOperationException("Payroll for selected period has already been completed.");
+        //}
 
         if (run is null)
         {

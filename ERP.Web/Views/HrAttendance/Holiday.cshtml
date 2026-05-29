@@ -1,0 +1,202 @@
+@model ERP.Web.ViewModels.HR.HrHolidayIndexViewModel
+@using ERP.Domain.Enums
+@using ERP.Web.ViewModels.Shared
+@using Microsoft.AspNetCore.Html
+@using System.Globalization
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">Holiday Master</h1>
+
+        @{
+            var selectedHolidayType = Model.HolidayTypeFilter.HasValue
+                ? ((int)Model.HolidayTypeFilter.Value).ToString(CultureInfo.InvariantCulture)
+                : null;
+            var selectedIsActive = Model.IsActiveFilter.HasValue
+                ? (Model.IsActiveFilter.Value ? "true" : "false")
+                : null;
+
+            var holidayTypeOptions = new List<PagedGridFilterOptionViewModel>
+            {
+                new() { Value = ((int)HolidayType.National).ToString(CultureInfo.InvariantCulture), Label = "National" },
+                new() { Value = ((int)HolidayType.Company).ToString(CultureInfo.InvariantCulture), Label = "Company" },
+                new() { Value = ((int)HolidayType.JointLeave).ToString(CultureInfo.InvariantCulture), Label = "Joint Leave" }
+            };
+
+            var appliesToOptions = new List<PagedGridFilterOptionViewModel>
+            {
+                new() { Value = "all", Label = "All" },
+                new() { Value = "division_id", Label = "Division" },
+                new() { Value = "location_id", Label = "Location" }
+            };
+
+            var statusOptions = new List<PagedGridFilterOptionViewModel>
+            {
+                new() { Value = "true", Label = "Active" },
+                new() { Value = "false", Label = "Inactive" }
+            };
+
+            var gridModel = new PagedGridViewModel
+            {
+                Columns =
+                [
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "name",
+                        Title = "Name",
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Text,
+                            QueryKey = "name",
+                            Value = Model.NameFilter,
+                            Placeholder = "Filter name"
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "holidayDate",
+                        Title = "Holiday Date",
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.DateRange,
+                            QueryKey = "holidayDateFrom",
+                            QueryKeyTo = "holidayDateTo",
+                            Value = Model.HolidayDateFromFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                            ValueTo = Model.HolidayDateToFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "holidayType",
+                        Title = "Holiday Type",
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "holidayType",
+                            Value = selectedHolidayType,
+                            EmptyOptionLabel = "All Type",
+                            Options = holidayTypeOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "description",
+                        Title = "Description",
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Text,
+                            QueryKey = "description",
+                            Value = Model.DescriptionFilter,
+                            Placeholder = "Filter description"
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "appliesTo",
+                        Title = "Applies To",
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "appliesTo",
+                            Value = Model.AppliesToFilter,
+                            EmptyOptionLabel = "All Scope",
+                            Options = appliesToOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "year",
+                        Title = "Year",
+                        Sortable = true,
+                        CellClass = "text-end",
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.NumberRange,
+                            QueryKey = "yearFrom",
+                            QueryKeyTo = "yearTo",
+                            Value = Model.YearFromFilter?.ToString(CultureInfo.InvariantCulture),
+                            ValueTo = Model.YearToFilter?.ToString(CultureInfo.InvariantCulture),
+                            Placeholder = "From",
+                            PlaceholderTo = "To"
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "isActive",
+                        Title = "Status",
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "isActive",
+                            Value = selectedIsActive,
+                            EmptyOptionLabel = "All Status",
+                            Options = statusOptions
+                        }
+                    }
+                ],
+                Rows = Model.Holidays.Items.Select(item => new PagedGridRowViewModel
+                {
+                    Cells =
+                    [
+                        new PagedGridCellViewModel { Text = item.Name },
+                        new PagedGridCellViewModel { Text = item.HolidayDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) },
+                        new PagedGridCellViewModel
+                        {
+                            Html = new HtmlString(item.HolidayType switch
+                            {
+                                HolidayType.National => "<span class=\"badge text-bg-primary\">National</span>",
+                                HolidayType.Company => "<span class=\"badge text-bg-info\">Company</span>",
+                                HolidayType.JointLeave => "<span class=\"badge text-bg-warning\">Joint Leave</span>",
+                                _ => "<span class=\"badge text-bg-secondary\">Unknown</span>"
+                            })
+                        },
+                        new PagedGridCellViewModel { Text = string.IsNullOrWhiteSpace(item.Description) ? "-" : item.Description },
+                        new PagedGridCellViewModel { Text = item.AppliesTo },
+                        new PagedGridCellViewModel { Text = item.Year.ToString(CultureInfo.InvariantCulture), CellClass = "text-end" },
+                        new PagedGridCellViewModel
+                        {
+                            Html = new HtmlString(item.IsActive
+                                ? "<span class=\"badge text-bg-success\">Active</span>"
+                                : "<span class=\"badge text-bg-secondary\">Inactive</span>")
+                        }
+                    ],
+                    Actions = new PagedGridRowActionViewModel
+                    {
+                        DetailUrl = Url.Action("HolidayDetails", "HrAttendance", new { id = item.Id }),
+                        EditUrl = Url.Action("HolidayEdit", "HrAttendance", new { id = item.Id }),
+                        DeleteUrl = Url.Action("HolidayDelete", "HrAttendance", new { id = item.Id }),
+                        DeleteConfirmMessage = "Delete this holiday?"
+                    }
+                }).ToList(),
+                EmptyMessage = T["msg.no_data"],
+                Page = Model.Holidays.Page,
+                TotalPages = Model.Holidays.TotalPages,
+                PageSize = Model.PageSize,
+                SortBy = Model.SortBy,
+                SortDirection = Model.SortDirection,
+                EnableSearch = true,
+                SearchValue = Model.Search,
+                SearchPlaceholder = "Search holiday",
+                SearchButtonText = T["common.search"],
+                Actions = new PagedGridActionConfigViewModel
+                {
+                    ActionColumnTitle = "Action",
+                    AddUrl = Url.Action("HolidayCreate", "HrAttendance"),
+                    AddButtonText = T["common.add_new"],
+                    DetailButtonText = "Detail",
+                    EditButtonText = T["common.edit"],
+                    DeleteButtonText = T["common.delete"],
+                    DeleteConfirmMessage = "Delete this holiday?"
+                }
+            };
+        }
+
+        @await Component.InvokeAsync("PagedGrid", gridModel)
+    </div>
+</div>

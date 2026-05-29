@@ -31,11 +31,10 @@ public static class DependencyInjection
         services.AddScoped<IPositionService, PositionService>();
         services.AddScoped<IAttendanceService, AttendanceService>();
         services.AddScoped<IAttendanceSettingService, AttendanceSettingService>();
+        services.AddScoped<IHolidayService, HolidayService>();
         services.AddScoped<ILeaveService, LeaveService>();
         services.AddScoped<IPayrollService, PayrollService>();
 
         return services;
     }
 }
-
-

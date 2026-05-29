@@ -188,9 +188,11 @@ body {
     opacity: 0.9;
 }
 
-.sinara-paged-grid .sinara-paged-grid-header small {
+.sinara-paged-grid .sinara-paged-grid-header .sinara-grid-sort-icon {
     color: inherit;
     opacity: 0.72;
+    font-size: 0.75rem;
+    line-height: 1;
 }
 
 .sinara-btn-theme-outline {

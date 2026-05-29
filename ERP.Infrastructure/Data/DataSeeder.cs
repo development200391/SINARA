@@ -210,8 +210,9 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
 
         var hrAttendance = await EnsureMenuAsync(hrModule.Id, null, "Attendance", null, "bi-calendar-check", 2, now, ct);
         await EnsureMenuAsync(hrModule.Id, hrAttendance.Id, "Daily Attendance", "/hr/attendance", "bi-clock", 1, now, ct);
-        await EnsureMenuAsync(hrModule.Id, hrAttendance.Id, "Attendance Report", "/hr/attendance/report", "bi-file-earmark-text", 2, now, ct);
-        await EnsureMenuAsync(hrModule.Id, hrAttendance.Id, "Attendance Setting", "/hr/attendance/setting", "bi-sliders2", 3, now, ct);
+        await EnsureMenuAsync(hrModule.Id, hrAttendance.Id, "Holiday Master", "/hr/attendance/holiday", "bi-calendar-event", 2, now, ct);
+        await EnsureMenuAsync(hrModule.Id, hrAttendance.Id, "Attendance Report", "/hr/attendance/report", "bi-file-earmark-text", 3, now, ct);
+        await EnsureMenuAsync(hrModule.Id, hrAttendance.Id, "Attendance Setting", "/hr/attendance/setting", "bi-sliders2", 4, now, ct);
 
         var hrPayroll = await EnsureMenuAsync(hrModule.Id, null, "Payroll", null, "bi-cash-stack", 3, now, ct);
         await EnsureMenuAsync(hrModule.Id, hrPayroll.Id, "Payroll Run", "/hr/payroll", "bi-gear-wide-connected", 1, now, ct);
@@ -531,4 +532,3 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         return menu;
     }
 }
-

@@ -348,6 +348,81 @@ public sealed class HrApiClient(HttpClient httpClient, ILogger<HrApiClient> logg
         return SendAsync<AttendanceSettingDto>(HttpMethod.Put, "api/v1/hr/attendance/settings", accessToken, request, ct);
     }
 
+    public Task<PagedResult<HolidayDto>?> GetHolidaysAsync(string accessToken, HolidayPagedRequest request, CancellationToken ct = default)
+    {
+        var parameters = new List<string>();
+        AddPagedParameters(parameters, request);
+
+        if (!string.IsNullOrWhiteSpace(request.Name))
+        {
+            parameters.Add($"name={Uri.EscapeDataString(request.Name.Trim())}");
+        }
+
+        if (request.HolidayDateFrom.HasValue)
+        {
+            parameters.Add($"holidayDateFrom={request.HolidayDateFrom.Value:yyyy-MM-dd}");
+        }
+
+        if (request.HolidayDateTo.HasValue)
+        {
+            parameters.Add($"holidayDateTo={request.HolidayDateTo.Value:yyyy-MM-dd}");
+        }
+
+        if (request.HolidayType.HasValue)
+        {
+            parameters.Add($"holidayType={(int)request.HolidayType.Value}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Description))
+        {
+            parameters.Add($"description={Uri.EscapeDataString(request.Description.Trim())}");
+        }
+
+        if (request.IsActive.HasValue)
+        {
+            parameters.Add($"isActive={(request.IsActive.Value ? "true" : "false")}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.AppliesTo))
+        {
+            parameters.Add($"appliesTo={Uri.EscapeDataString(request.AppliesTo.Trim())}");
+        }
+
+        if (request.YearFrom.HasValue)
+        {
+            parameters.Add($"yearFrom={request.YearFrom.Value}");
+        }
+
+        if (request.YearTo.HasValue)
+        {
+            parameters.Add($"yearTo={request.YearTo.Value}");
+        }
+
+        var query = $"api/v1/hr/holidays?{string.Join("&", parameters)}";
+        return SendAsync<PagedResult<HolidayDto>>(HttpMethod.Get, query, accessToken, null, ct);
+    }
+
+    public Task<HolidayDto?> GetHolidayByIdAsync(string accessToken, int id, CancellationToken ct = default)
+    {
+        return SendAsync<HolidayDto>(HttpMethod.Get, $"api/v1/hr/holidays/{id}", accessToken, null, ct);
+    }
+
+    public Task<HolidayDto?> CreateHolidayAsync(string accessToken, HolidayDto request, CancellationToken ct = default)
+    {
+        return SendAsync<HolidayDto>(HttpMethod.Post, "api/v1/hr/holidays", accessToken, request, ct);
+    }
+
+    public Task<HolidayDto?> UpdateHolidayAsync(string accessToken, int id, HolidayDto request, CancellationToken ct = default)
+    {
+        return SendAsync<HolidayDto>(HttpMethod.Put, $"api/v1/hr/holidays/{id}", accessToken, request, ct);
+    }
+
+    public async Task<bool> DeleteHolidayAsync(string accessToken, int id, CancellationToken ct = default)
+    {
+        var response = await SendRawAsync(HttpMethod.Delete, $"api/v1/hr/holidays/{id}", accessToken, null, ct);
+        return response?.IsSuccessStatusCode == true;
+    }
+
     public Task<PagedResult<LeaveRequestDto>?> GetLeaveRequestsAsync(string accessToken, LeaveRequestPagedRequest request, CancellationToken ct = default)
     {
         var query =
@@ -506,5 +581,3 @@ public sealed class HrApiClient(HttpClient httpClient, ILogger<HrApiClient> logg
         }
     }
 }
-
-

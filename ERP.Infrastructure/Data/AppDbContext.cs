@@ -7,6 +7,7 @@ using ERP.Domain.Interfaces;
 using ERP.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Npgsql.EntityFrameworkCore.PostgreSQL;
 
 namespace ERP.Infrastructure.Data;
 
@@ -27,6 +28,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<HrEmployee> HrEmployees => Set<HrEmployee>();
     public DbSet<HrAttendanceRecord> HrAttendanceRecords => Set<HrAttendanceRecord>();
     public DbSet<HrAttendanceSetting> HrAttendanceSettings => Set<HrAttendanceSetting>();
+    public DbSet<HrHoliday> HrHolidays => Set<HrHoliday>();
     public DbSet<HrLeaveType> HrLeaveTypes => Set<HrLeaveType>();
     public DbSet<HrLeaveRequest> HrLeaveRequests => Set<HrLeaveRequest>();
     public DbSet<HrPayrollRun> HrPayrollRuns => Set<HrPayrollRun>();
@@ -35,6 +37,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema("public");
+        modelBuilder.HasPostgresEnum<HolidayType>("public", "holiday_type_enum");
 
         ConfigureCfgModule(modelBuilder.Entity<CfgModule>());
         ConfigureCfgMenu(modelBuilder.Entity<CfgMenu>());
@@ -51,6 +54,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         ConfigureHrEmployee(modelBuilder.Entity<HrEmployee>());
         ConfigureHrAttendanceRecord(modelBuilder.Entity<HrAttendanceRecord>());
         ConfigureHrAttendanceSetting(modelBuilder.Entity<HrAttendanceSetting>());
+        ConfigureHrHoliday(modelBuilder.Entity<HrHoliday>());
         ConfigureHrLeaveType(modelBuilder.Entity<HrLeaveType>());
         ConfigureHrLeaveRequest(modelBuilder.Entity<HrLeaveRequest>());
         ConfigureHrPayrollRun(modelBuilder.Entity<HrPayrollRun>());
@@ -397,6 +401,28 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         builder.Property(x => x.MinimumOtMinutes).HasDefaultValue(60).IsRequired();
 
         builder.HasIndex(x => x.SingletonKey).IsUnique();
+    }
+    private static void ConfigureHrHoliday(EntityTypeBuilder<HrHoliday> builder)
+    {
+        builder.ToTable("hr_holiday");
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.Name).HasMaxLength(150).IsRequired();
+        builder.Property(x => x.HolidayDate).HasColumnType("date").IsRequired();
+        builder.Property(x => x.HolidayType).HasColumnType("holiday_type_enum").HasDefaultValue(HolidayType.National).IsRequired();
+
+        builder.Property(x => x.Description).HasColumnType("text");
+        builder.Property(x => x.IsActive).HasDefaultValue(true).IsRequired();
+        builder.Property(x => x.AppliesTo).HasMaxLength(100).HasDefaultValue("all");
+        builder.Property(x => x.Year)
+            .HasColumnType("smallint")
+            .HasComputedColumnSql("EXTRACT(YEAR FROM holiday_date)::smallint", stored: true);
+
+        builder.HasIndex(x => x.Year);
+        builder.HasIndex(x => x.HolidayDate);
+        builder.HasIndex(x => x.HolidayType);
+        builder.HasIndex(x => x.IsActive);
+        builder.HasIndex(x => new { x.Name, x.HolidayDate }).IsUnique();
     }
 
     private static void ConfigureHrLeaveType(EntityTypeBuilder<HrLeaveType> builder)

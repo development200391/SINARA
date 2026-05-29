@@ -1,4 +1,5 @@
 using ERP.Application.Services;
+using ERP.Domain.Enums;
 using ERP.Domain.Interfaces;
 using ERP.Infrastructure.Cache;
 using ERP.Infrastructure.Data;
@@ -6,6 +7,7 @@ using ERP.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Npgsql;
 using StackExchange.Redis;
 
 namespace ERP.Infrastructure;
@@ -14,9 +16,18 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddDbContext<AppDbContext>(options =>
+        var connectionString = configuration.GetConnectionString("DefaultConnection")
+            ?? throw new InvalidOperationException("DefaultConnection is not configured.");
+
+        var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
+        dataSourceBuilder.MapEnum<HolidayType>("holiday_type_enum");
+        var dataSource = dataSourceBuilder.Build();
+
+        services.AddSingleton(dataSource);
+
+        services.AddDbContext<AppDbContext>((serviceProvider, options) =>
             options.UseNpgsql(
-                    configuration.GetConnectionString("DefaultConnection"),
+                    serviceProvider.GetRequiredService<NpgsqlDataSource>(),
                     npgsql => npgsql.MigrationsAssembly("ERP.Infrastructure"))
                 .UseSnakeCaseNamingConvention());
 
