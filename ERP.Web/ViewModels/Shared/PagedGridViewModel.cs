@@ -39,7 +39,11 @@ public sealed class PagedGridActionConfigViewModel
     public string AddButtonText { get; init; } = "Tambah";
     public string DetailButtonText { get; init; } = "Detail";
     public string EditButtonText { get; init; } = "Ubah";
+    public string ApproveButtonText { get; init; } = "Approve";
+    public string RejectButtonText { get; init; } = "Reject";
     public string DeleteButtonText { get; init; } = "Hapus";
+    public string ApproveConfirmMessage { get; init; } = "Approve this data?";
+    public string RejectConfirmMessage { get; init; } = "Reject this data?";
     public string DeleteConfirmMessage { get; init; } = "Delete this data?";
 }
 
@@ -98,7 +102,11 @@ public sealed class PagedGridRowActionViewModel
 {
     public string? DetailUrl { get; init; }
     public string? EditUrl { get; init; }
+    public string? ApproveUrl { get; init; }
+    public string? RejectUrl { get; init; }
     public string? DeleteUrl { get; init; }
+    public string? ApproveConfirmMessage { get; init; }
+    public string? RejectConfirmMessage { get; init; }
     public string? DeleteConfirmMessage { get; init; }
 }
 

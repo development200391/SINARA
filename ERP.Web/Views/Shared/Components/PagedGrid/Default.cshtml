@@ -71,6 +71,8 @@
 
         return !string.IsNullOrWhiteSpace(action.DetailUrl)
             || !string.IsNullOrWhiteSpace(action.EditUrl)
+            || !string.IsNullOrWhiteSpace(action.ApproveUrl)
+            || !string.IsNullOrWhiteSpace(action.RejectUrl)
             || !string.IsNullOrWhiteSpace(action.DeleteUrl);
     }
 
@@ -525,7 +527,11 @@
 
                 @if (hasRowActions)
                 {
+                    var approveConfirmMessage = rowActions?.ApproveConfirmMessage ?? Model.Actions.ApproveConfirmMessage;
+                    var rejectConfirmMessage = rowActions?.RejectConfirmMessage ?? Model.Actions.RejectConfirmMessage;
                     var deleteConfirmMessage = rowActions?.DeleteConfirmMessage ?? Model.Actions.DeleteConfirmMessage;
+                    var encodedApproveConfirmMessage = JavaScriptEncoder.Default.Encode(approveConfirmMessage);
+                    var encodedRejectConfirmMessage = JavaScriptEncoder.Default.Encode(rejectConfirmMessage);
                     var encodedDeleteConfirmMessage = JavaScriptEncoder.Default.Encode(deleteConfirmMessage);
 
                     <td class="text-end">
@@ -546,6 +552,28 @@
                                         <i class="bi bi-pencil-square" aria-hidden="true"></i>
                                         <span>@Model.Actions.EditButtonText</span>
                                     </a>
+                                }
+
+                                @if (!string.IsNullOrWhiteSpace(rowActions?.ApproveUrl))
+                                {
+                                    <form method="post" action="@rowActions.ApproveUrl" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-outline-success d-inline-flex align-items-center gap-1" onclick="return confirm('@encodedApproveConfirmMessage')">
+                                            <i class="bi bi-check2-circle" aria-hidden="true"></i>
+                                            <span>@Model.Actions.ApproveButtonText</span>
+                                        </button>
+                                    </form>
+                                }
+
+                                @if (!string.IsNullOrWhiteSpace(rowActions?.RejectUrl))
+                                {
+                                    <form method="post" action="@rowActions.RejectUrl" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1" onclick="return confirm('@encodedRejectConfirmMessage')">
+                                            <i class="bi bi-x-circle" aria-hidden="true"></i>
+                                            <span>@Model.Actions.RejectButtonText</span>
+                                        </button>
+                                    </form>
                                 }
 
                                 @if (!string.IsNullOrWhiteSpace(rowActions?.DeleteUrl))
@@ -610,5 +638,6 @@
         </nav>
     }
 </div>
+
 
 
