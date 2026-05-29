@@ -144,6 +144,21 @@ body {
 
 .sinara-paged-grid {
     margin-bottom: 0;
+    border: 1px solid rgba(var(--sinara-primary-rgb), 0.18);
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.sinara-paged-grid > :not(caption) > * > * {
+    border-bottom-color: rgba(var(--sinara-primary-rgb), 0.14);
+}
+
+.sinara-paged-grid .sinara-paged-grid-header th + th {
+    border-left: 1px solid rgba(var(--sinara-navbar-text-rgb), 0.32);
+}
+
+.sinara-paged-grid tbody td + td {
+    border-left: 1px solid rgba(var(--sinara-primary-rgb), 0.16);
 }
 
 .sinara-paged-grid tbody tr.sinara-grid-data-row {
