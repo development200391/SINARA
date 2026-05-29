@@ -434,6 +434,11 @@ public sealed class HrApiClient(HttpClient httpClient, ILogger<HrApiClient> logg
         return SendAsync<PagedResult<LeaveRequestDto>>(HttpMethod.Get, query, accessToken, null, ct);
     }
 
+    public Task<LeaveRequestDto?> GetLeaveRequestByIdAsync(string accessToken, int id, CancellationToken ct = default)
+    {
+        return SendAsync<LeaveRequestDto>(HttpMethod.Get, $"api/v1/hr/leave-requests/{id}", accessToken, null, ct);
+    }
+
     public Task<LeaveRequestOptionsDto?> GetLeaveRequestOptionsAsync(string accessToken, CancellationToken ct = default)
     {
         return SendAsync<LeaveRequestOptionsDto>(HttpMethod.Get, "api/v1/hr/leave-requests/options", accessToken, null, ct);
@@ -442,6 +447,17 @@ public sealed class HrApiClient(HttpClient httpClient, ILogger<HrApiClient> logg
     public Task<LeaveRequestDto?> SubmitLeaveRequestAsync(string accessToken, SubmitLeaveRequest request, CancellationToken ct = default)
     {
         return SendAsync<LeaveRequestDto>(HttpMethod.Post, "api/v1/hr/leave-requests", accessToken, request, ct);
+    }
+
+    public Task<LeaveRequestDto?> UpdateLeaveRequestAsync(string accessToken, int id, SubmitLeaveRequest request, CancellationToken ct = default)
+    {
+        return SendAsync<LeaveRequestDto>(HttpMethod.Put, $"api/v1/hr/leave-requests/{id}", accessToken, request, ct);
+    }
+
+    public async Task<bool> DeleteLeaveRequestAsync(string accessToken, int id, CancellationToken ct = default)
+    {
+        var response = await SendRawAsync(HttpMethod.Delete, $"api/v1/hr/leave-requests/{id}", accessToken, null, ct);
+        return response?.IsSuccessStatusCode == true;
     }
 
     public async Task<bool> ApproveLeaveRequestAsync(string accessToken, int id, CancellationToken ct = default)
@@ -581,3 +597,4 @@ public sealed class HrApiClient(HttpClient httpClient, ILogger<HrApiClient> logg
         }
     }
 }
+

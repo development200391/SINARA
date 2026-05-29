@@ -8,6 +8,8 @@ public interface ILeaveService
     Task<PagedResult<LeaveRequestDto>> GetRequestsAsync(LeaveRequestPagedRequest request, CancellationToken ct = default);
     Task<LeaveRequestDto?> GetByIdAsync(int id, CancellationToken ct = default);
     Task<LeaveRequestDto> SubmitAsync(SubmitLeaveRequest request, CancellationToken ct = default);
+    Task<LeaveRequestDto?> UpdateAsync(int id, SubmitLeaveRequest request, CancellationToken ct = default);
+    Task<bool> DeleteAsync(int id, CancellationToken ct = default);
     Task<bool> ApproveAsync(int leaveRequestId, int approverUserId, CancellationToken ct = default);
     Task<bool> RejectAsync(int leaveRequestId, int approverUserId, CancellationToken ct = default);
 

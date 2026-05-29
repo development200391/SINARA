@@ -14,6 +14,13 @@ public sealed class LeaveRequestsController(ILeaveService leaveService) : HrCont
         return Ok(result);
     }
 
+    [HttpGet("{id:int}")]
+    public async Task<IActionResult> GetById(int id, CancellationToken ct)
+    {
+        var result = await leaveService.GetByIdAsync(id, ct);
+        return result is null ? NotFound() : Ok(result);
+    }
+
     [HttpGet("options")]
     public async Task<IActionResult> GetOptions(CancellationToken ct)
     {
@@ -34,6 +41,34 @@ public sealed class LeaveRequestsController(ILeaveService leaveService) : HrCont
         {
             var created = await leaveService.SubmitAsync(request, ct);
             return Ok(created);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> Update(int id, [FromBody] SubmitLeaveRequest request, CancellationToken ct)
+    {
+        try
+        {
+            var updated = await leaveService.UpdateAsync(id, request, ct);
+            return updated is null ? NotFound() : Ok(updated);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(int id, CancellationToken ct)
+    {
+        try
+        {
+            var deleted = await leaveService.DeleteAsync(id, ct);
+            return deleted ? NoContent() : NotFound();
         }
         catch (InvalidOperationException ex)
         {

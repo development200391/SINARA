@@ -1,87 +1,144 @@
 @model ERP.Web.ViewModels.HR.HrLeaveRequestsIndexViewModel
+@using ERP.Domain.Enums
+@using ERP.Web.ViewModels.Shared
+@using Microsoft.AspNetCore.Html
+@using System.Globalization
 
 <div class="card border-0 shadow-sm">
     <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h1 class="h5 mb-0">Leave Requests</h1>
-            <a class="btn btn-primary btn-sm" asp-action="Create">@T["common.add_new"]</a>
-        </div>
-
-        <form method="get" class="row g-2 mb-3">
-            <div class="col-md-4">
-                <input type="text" class="form-control" name="search" value="@Model.Search" placeholder="@T["common.search"] leave requests" />
-            </div>
-            <div class="col-md-3">
-                <select class="form-select" name="status">
-                    <option value="">All Status</option>
-                    @foreach (var value in Enum.GetValues<ERP.Domain.Enums.LeaveStatus>())
-                    {
-                        <option value="@((int)value)" selected="@(Model.Status == value)">@value</option>
-                    }
-                </select>
-            </div>
-            <div class="col-auto">
-                <button type="submit" class="btn btn-outline-secondary">@T["common.search"]</button>
-            </div>
-        </form>
-
-        <div class="table-responsive">
-            <table class="table table-sm align-middle">
-                <thead>
-                    <tr>
-                        <th>Employee</th>
-                        <th>Leave Type</th>
-                        <th>Period</th>
-                        <th>Days</th>
-                        <th>Status</th>
-                        <th>Reason</th>
-                        <th class="text-end">Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                @if (Model.Requests.Items.Count == 0)
-                {
-                    <tr><td colspan="7" class="text-center text-muted py-4">@T["msg.no_data"]</td></tr>
-                }
-                else
-                {
-                    foreach (var item in Model.Requests.Items)
-                    {
-                        <tr>
-                            <td>@item.EmployeeCode - @item.EmployeeName</td>
-                            <td>@item.LeaveTypeCode - @item.LeaveTypeName</td>
-                            <td>@item.StartDate.ToString("yyyy-MM-dd") s/d @item.EndDate.ToString("yyyy-MM-dd")</td>
-                            <td>@item.TotalDays</td>
-                            <td>
-                                <span class="badge @(item.Status switch { ERP.Domain.Enums.LeaveStatus.Approved => "text-bg-success", ERP.Domain.Enums.LeaveStatus.Rejected => "text-bg-danger", _ => "text-bg-warning" })">
-                                    @item.Status
-                                </span>
-                            </td>
-                            <td>@item.Reason</td>
-                            <td class="text-end">
-                                @if (item.Status == ERP.Domain.Enums.LeaveStatus.Pending)
-                                {
-                                    <form asp-action="Approve" asp-route-id="@item.Id" method="post" class="d-inline">
-                                        @Html.AntiForgeryToken()
-                                        <button type="submit" class="btn btn-sm btn-outline-success" onclick="return confirm('Approve request ini?');">Approve</button>
-                                    </form>
-                                    <form asp-action="Reject" asp-route-id="@item.Id" method="post" class="d-inline">
-                                        @Html.AntiForgeryToken()
-                                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Reject request ini?');">Reject</button>
-                                    </form>
-                                }
-                            </td>
-                        </tr>
-                    }
-                }
-                </tbody>
-            </table>
-        </div>
+        <h1 class="h5 mb-3">Leave Requests</h1>
 
         @{
-            ViewData["Page"] = Model.Requests.Page;
-            ViewData["TotalPages"] = Model.Requests.TotalPages;
+            var selectedStatus = Model.Status.HasValue
+                ? ((int)Model.Status.Value).ToString(CultureInfo.InvariantCulture)
+                : null;
+
+            var statusOptions = new List<PagedGridFilterOptionViewModel>
+            {
+                new() { Value = ((int)LeaveStatus.Pending).ToString(CultureInfo.InvariantCulture), Label = "Pending" },
+                new() { Value = ((int)LeaveStatus.Approved).ToString(CultureInfo.InvariantCulture), Label = "Approved" },
+                new() { Value = ((int)LeaveStatus.Rejected).ToString(CultureInfo.InvariantCulture), Label = "Rejected" }
+            };
+
+            var gridModel = new PagedGridViewModel
+            {
+                Columns =
+                [
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "employee",
+                        Title = "Employee",
+                        Sortable = false
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "leaveType",
+                        Title = "Leave Type",
+                        Sortable = false
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "period",
+                        Title = "Period",
+                        Sortable = false
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "days",
+                        Title = "Days",
+                        Sortable = false,
+                        CellClass = "text-end"
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "status",
+                        Title = "Status",
+                        Sortable = false,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "status",
+                            Value = selectedStatus,
+                            EmptyOptionLabel = "All Status",
+                            Options = statusOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "reason",
+                        Title = "Reason",
+                        Sortable = false
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "createdAt",
+                        Title = "Created At",
+                        Sortable = false
+                    }
+                ],
+                Rows = Model.Requests.Items.Select(item =>
+                {
+                    var isPending = item.Status == LeaveStatus.Pending;
+
+                    return new PagedGridRowViewModel
+                    {
+                        Cells =
+                        [
+                            new PagedGridCellViewModel { Text = $"{item.EmployeeCode} - {item.EmployeeName}" },
+                            new PagedGridCellViewModel { Text = $"{item.LeaveTypeCode} - {item.LeaveTypeName}" },
+                            new PagedGridCellViewModel { Text = $"{item.StartDate:yyyy-MM-dd} s/d {item.EndDate:yyyy-MM-dd}" },
+                            new PagedGridCellViewModel { Text = item.TotalDays.ToString(CultureInfo.InvariantCulture), CellClass = "text-end" },
+                            new PagedGridCellViewModel
+                            {
+                                Html = new HtmlString(item.Status switch
+                                {
+                                    LeaveStatus.Approved => "<span class=\"badge text-bg-success\">Approved</span>",
+                                    LeaveStatus.Rejected => "<span class=\"badge text-bg-danger\">Rejected</span>",
+                                    _ => "<span class=\"badge text-bg-warning\">Pending</span>"
+                                })
+                            },
+                            new PagedGridCellViewModel { Text = string.IsNullOrWhiteSpace(item.Reason) ? "-" : item.Reason },
+                            new PagedGridCellViewModel { Text = item.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) }
+                        ],
+                        Actions = new PagedGridRowActionViewModel
+                        {
+                            DetailUrl = Url.Action("Details", "HrLeaveRequests", new { id = item.Id }),
+                            EditUrl = isPending ? Url.Action("Edit", "HrLeaveRequests", new { id = item.Id }) : null,
+                            DeleteUrl = isPending ? Url.Action("Delete", "HrLeaveRequests", new { id = item.Id }) : null,
+                            ApproveUrl = isPending ? Url.Action("Approve", "HrLeaveRequests", new { id = item.Id }) : null,
+                            RejectUrl = isPending ? Url.Action("Reject", "HrLeaveRequests", new { id = item.Id }) : null,
+                            DeleteConfirmMessage = "Delete leave request ini?",
+                            ApproveConfirmMessage = "Approve request ini?",
+                            RejectConfirmMessage = "Reject request ini?"
+                        }
+                    };
+                }).ToList(),
+                EmptyMessage = T["msg.no_data"],
+                Page = Model.Requests.Page,
+                TotalPages = Model.Requests.TotalPages,
+                PageSize = Model.PageSize,
+                EnableSearch = true,
+                SearchValue = Model.Search,
+                SearchPlaceholder = "Search leave requests",
+                SearchButtonText = T["common.search"],
+                Actions = new PagedGridActionConfigViewModel
+                {
+                    ActionColumnTitle = "Action",
+                    AddUrl = Url.Action("Create", "HrLeaveRequests"),
+                    AddButtonText = T["common.add_new"],
+                    DetailButtonText = "Detail",
+                    EditButtonText = T["common.edit"],
+                    DeleteButtonText = T["common.delete"],
+                    ApproveButtonText = "Approve",
+                    RejectButtonText = "Reject",
+                    DeleteConfirmMessage = "Delete leave request ini?",
+                    ApproveConfirmMessage = "Approve request ini?",
+                    RejectConfirmMessage = "Reject request ini?"
+                }
+            };
         }
-        <partial name="~/Views/Shared/_Pagination.cshtml" />
+
+        @await Component.InvokeAsync("PagedGrid", gridModel)
     </div>
 </div>
+

@@ -139,6 +139,110 @@ public sealed class LeaveService(IUnitOfWork unitOfWork) : ILeaveService
             ?? throw new InvalidOperationException("Failed to load submitted leave request.");
     }
 
+    public async Task<LeaveRequestDto?> UpdateAsync(int id, SubmitLeaveRequest request, CancellationToken ct = default)
+    {
+        if (request.EmployeeId <= 0)
+        {
+            throw new InvalidOperationException("Employee is required.");
+        }
+
+        if (request.LeaveTypeId <= 0)
+        {
+            throw new InvalidOperationException("Leave type is required.");
+        }
+
+        if (request.EndDate < request.StartDate)
+        {
+            throw new InvalidOperationException("End date cannot be earlier than start date.");
+        }
+
+        var entity = await unitOfWork.Repository<HrLeaveRequest>()
+            .Query()
+            .FirstOrDefaultAsync(x => x.Id == id, ct);
+
+        if (entity is null)
+        {
+            return null;
+        }
+
+        if (entity.Status != LeaveStatus.Pending)
+        {
+            throw new InvalidOperationException("Only pending leave request can be updated.");
+        }
+
+        var employee = await unitOfWork.Repository<HrEmployee>()
+            .Query()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == request.EmployeeId, ct);
+
+        if (employee is null)
+        {
+            throw new InvalidOperationException("Employee not found.");
+        }
+
+        var leaveType = await unitOfWork.Repository<HrLeaveType>()
+            .Query()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == request.LeaveTypeId && x.IsActive, ct);
+
+        if (leaveType is null)
+        {
+            throw new InvalidOperationException("Leave type not found or inactive.");
+        }
+
+        var overlapExists = await unitOfWork.Repository<HrLeaveRequest>()
+            .Query()
+            .AnyAsync(x =>
+                x.Id != id &&
+                x.EmployeeId == request.EmployeeId &&
+                x.Status == LeaveStatus.Pending &&
+                x.StartDate <= request.EndDate &&
+                x.EndDate >= request.StartDate,
+                ct);
+
+        if (overlapExists)
+        {
+            throw new InvalidOperationException("Employee already has pending leave in selected period.");
+        }
+
+        var totalDays = request.EndDate.DayNumber - request.StartDate.DayNumber + 1;
+
+        entity.EmployeeId = request.EmployeeId;
+        entity.LeaveTypeId = request.LeaveTypeId;
+        entity.StartDate = request.StartDate;
+        entity.EndDate = request.EndDate;
+        entity.TotalDays = totalDays;
+        entity.Reason = request.Reason;
+        entity.UpdatedBy = "system";
+        entity.UpdatedAt = DateTimeOffset.UtcNow;
+
+        unitOfWork.Repository<HrLeaveRequest>().Update(entity);
+        await unitOfWork.SaveChangesAsync(ct);
+
+        return await GetByIdAsync(entity.Id, ct);
+    }
+
+    public async Task<bool> DeleteAsync(int id, CancellationToken ct = default)
+    {
+        var entity = await unitOfWork.Repository<HrLeaveRequest>()
+            .Query()
+            .FirstOrDefaultAsync(x => x.Id == id, ct);
+
+        if (entity is null)
+        {
+            return false;
+        }
+
+        if (entity.Status != LeaveStatus.Pending)
+        {
+            throw new InvalidOperationException("Only pending leave request can be deleted.");
+        }
+
+        unitOfWork.Repository<HrLeaveRequest>().Delete(entity);
+        await unitOfWork.SaveChangesAsync(ct);
+
+        return true;
+    }
     public async Task<bool> ApproveAsync(int leaveRequestId, int approverUserId, CancellationToken ct = default)
     {
         var request = await unitOfWork.Repository<HrLeaveRequest>()
@@ -490,3 +594,4 @@ public sealed class LeaveService(IUnitOfWork unitOfWork) : ILeaveService
         };
     }
 }
+
