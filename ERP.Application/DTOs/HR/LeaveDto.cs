@@ -48,6 +48,16 @@ public sealed class LeaveTypeDto
     public bool IsActive { get; set; }
 }
 
+public sealed class LeaveTypePagedRequest : PagedRequest
+{
+    public string? Name { get; set; }
+    public string? Code { get; set; }
+    public int? MaxDaysPerYearFrom { get; set; }
+    public int? MaxDaysPerYearTo { get; set; }
+    public bool? IsCarryOver { get; set; }
+    public bool? IsActive { get; set; }
+}
+
 public sealed class LeaveBalanceDto
 {
     public int EmployeeId { get; set; }

@@ -1,66 +1,157 @@
 @model ERP.Web.ViewModels.HR.HrLeaveTypesIndexViewModel
+@using ERP.Web.ViewModels.Shared
+@using Microsoft.AspNetCore.Html
+@using System.Globalization
 
 <div class="card border-0 shadow-sm">
     <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h1 class="h5 mb-0">Leave Types</h1>
-            <a class="btn btn-primary btn-sm" asp-action="Create">@T["common.add_new"]</a>
-        </div>
-
-        <form method="get" class="row g-2 mb-3">
-            <div class="col-md-4">
-                <input type="text" class="form-control" name="search" value="@Model.Search" placeholder="@T["common.search"] leave types" />
-            </div>
-            <div class="col-auto">
-                <button type="submit" class="btn btn-outline-secondary">@T["common.search"]</button>
-            </div>
-        </form>
-
-        <div class="table-responsive">
-            <table class="table table-sm align-middle">
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Code</th>
-                        <th>Max Days/Year</th>
-                        <th>Carry Over</th>
-                        <th>Status</th>
-                        <th class="text-end">Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                @if (Model.LeaveTypes.Items.Count == 0)
-                {
-                    <tr><td colspan="6" class="text-center text-muted py-4">@T["msg.no_data"]</td></tr>
-                }
-                else
-                {
-                    foreach (var item in Model.LeaveTypes.Items)
-                    {
-                        <tr>
-                            <td>@item.Name</td>
-                            <td>@item.Code</td>
-                            <td>@item.MaxDaysPerYear</td>
-                            <td>@(item.IsCarryOver ? "Yes" : "No")</td>
-                            <td>@(item.IsActive ? "Active" : "Inactive")</td>
-                            <td class="text-end">
-                                <a class="btn btn-sm btn-outline-primary" asp-action="Edit" asp-route-id="@item.Id">@T["common.edit"]</a>
-                                <form asp-action="Delete" asp-route-id="@item.Id" method="post" class="d-inline">
-                                    @Html.AntiForgeryToken()
-                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete leave type ini?')">@T["common.delete"]</button>
-                                </form>
-                            </td>
-                        </tr>
-                    }
-                }
-                </tbody>
-            </table>
-        </div>
+        <h1 class="h5 mb-3">Leave Types</h1>
 
         @{
-            ViewData["Page"] = Model.LeaveTypes.Page;
-            ViewData["TotalPages"] = Model.LeaveTypes.TotalPages;
+            var selectedIsCarryOver = Model.IsCarryOverFilter.HasValue
+                ? (Model.IsCarryOverFilter.Value ? "true" : "false")
+                : null;
+            var selectedIsActive = Model.IsActiveFilter.HasValue
+                ? (Model.IsActiveFilter.Value ? "true" : "false")
+                : null;
+
+            var yesNoOptions = new List<PagedGridFilterOptionViewModel>
+            {
+                new() { Value = "true", Label = "Yes" },
+                new() { Value = "false", Label = "No" }
+            };
+
+            var statusOptions = new List<PagedGridFilterOptionViewModel>
+            {
+                new() { Value = "true", Label = "Active" },
+                new() { Value = "false", Label = "Inactive" }
+            };
+
+            var gridModel = new PagedGridViewModel
+            {
+                Columns =
+                [
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "name",
+                        Title = "Name",
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Text,
+                            QueryKey = "name",
+                            Value = Model.NameFilter,
+                            Placeholder = "Filter name"
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "code",
+                        Title = "Code",
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Text,
+                            QueryKey = "code",
+                            Value = Model.CodeFilter,
+                            Placeholder = "Filter code"
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "maxDays",
+                        Title = "Max Days/Year",
+                        Sortable = true,
+                        CellClass = "text-end",
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.NumberRange,
+                            QueryKey = "maxDaysPerYearFrom",
+                            QueryKeyTo = "maxDaysPerYearTo",
+                            Value = Model.MaxDaysPerYearFromFilter?.ToString(CultureInfo.InvariantCulture),
+                            ValueTo = Model.MaxDaysPerYearToFilter?.ToString(CultureInfo.InvariantCulture),
+                            Placeholder = "From",
+                            PlaceholderTo = "To"
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "isCarryOver",
+                        Title = "Carry Over",
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "isCarryOver",
+                            Value = selectedIsCarryOver,
+                            EmptyOptionLabel = "All",
+                            Options = yesNoOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "isActive",
+                        Title = "Status",
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "isActive",
+                            Value = selectedIsActive,
+                            EmptyOptionLabel = "All",
+                            Options = statusOptions
+                        }
+                    }
+                ],
+                Rows = Model.LeaveTypes.Items.Select(item => new PagedGridRowViewModel
+                {
+                    Cells =
+                    [
+                        new PagedGridCellViewModel { Text = item.Name },
+                        new PagedGridCellViewModel { Text = item.Code },
+                        new PagedGridCellViewModel { Text = item.MaxDaysPerYear.ToString(CultureInfo.InvariantCulture), CellClass = "text-end" },
+                        new PagedGridCellViewModel
+                        {
+                            Html = new HtmlString(item.IsCarryOver
+                                ? "<span class=\"badge text-bg-info\">Yes</span>"
+                                : "<span class=\"badge text-bg-secondary\">No</span>")
+                        },
+                        new PagedGridCellViewModel
+                        {
+                            Html = new HtmlString(item.IsActive
+                                ? "<span class=\"badge text-bg-success\">Active</span>"
+                                : "<span class=\"badge text-bg-secondary\">Inactive</span>")
+                        }
+                    ],
+                    Actions = new PagedGridRowActionViewModel
+                    {
+                        EditUrl = Url.Action("Edit", "HrLeaveTypes", new { id = item.Id }),
+                        DeleteUrl = Url.Action("Delete", "HrLeaveTypes", new { id = item.Id }),
+                        DeleteConfirmMessage = "Delete leave type ini?"
+                    }
+                }).ToList(),
+                EmptyMessage = T["msg.no_data"],
+                Page = Model.LeaveTypes.Page,
+                TotalPages = Model.LeaveTypes.TotalPages,
+                PageSize = Model.PageSize,
+                SortBy = Model.SortBy,
+                SortDirection = Model.SortDirection,
+                EnableSearch = true,
+                SearchValue = Model.Search,
+                SearchPlaceholder = "Search leave types",
+                SearchButtonText = T["common.search"],
+                Actions = new PagedGridActionConfigViewModel
+                {
+                    ActionColumnTitle = "Action",
+                    AddUrl = Url.Action("Create", "HrLeaveTypes"),
+                    AddButtonText = T["common.add_new"],
+                    EditButtonText = T["common.edit"],
+                    DeleteButtonText = T["common.delete"],
+                    DeleteConfirmMessage = "Delete leave type ini?"
+                }
+            };
         }
-        <partial name="~/Views/Shared/_Pagination.cshtml" />
+
+        @await Component.InvokeAsync("PagedGrid", gridModel)
     </div>
 </div>

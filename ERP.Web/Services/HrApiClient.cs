@@ -477,6 +477,8 @@ public sealed class HrApiClient(HttpClient httpClient, ILogger<HrApiClient> logg
         var query =
             $"api/v1/hr/leave-balance?page={request.Page}&pageSize={request.PageSize}" +
             $"&search={Uri.EscapeDataString(request.Search ?? string.Empty)}" +
+            $"&sortBy={Uri.EscapeDataString(request.SortBy ?? string.Empty)}" +
+            $"&sortDirection={Uri.EscapeDataString(request.SortDirection ?? string.Empty)}" +
             $"&year={(request.Year.HasValue ? request.Year.Value.ToString() : string.Empty)}" +
             $"&employeeId={(request.EmployeeId.HasValue ? request.EmployeeId.Value.ToString() : string.Empty)}" +
             $"&leaveTypeId={(request.LeaveTypeId.HasValue ? request.LeaveTypeId.Value.ToString() : string.Empty)}";
@@ -484,11 +486,19 @@ public sealed class HrApiClient(HttpClient httpClient, ILogger<HrApiClient> logg
         return SendAsync<PagedResult<LeaveBalanceDto>>(HttpMethod.Get, query, accessToken, null, ct);
     }
 
-    public Task<PagedResult<LeaveTypeDto>?> GetLeaveTypesAsync(string accessToken, PagedRequest request, CancellationToken ct = default)
+    public Task<PagedResult<LeaveTypeDto>?> GetLeaveTypesAsync(string accessToken, LeaveTypePagedRequest request, CancellationToken ct = default)
     {
         var query =
             $"api/v1/hr/leave-types?page={request.Page}&pageSize={request.PageSize}" +
-            $"&search={Uri.EscapeDataString(request.Search ?? string.Empty)}";
+            $"&search={Uri.EscapeDataString(request.Search ?? string.Empty)}" +
+            $"&sortBy={Uri.EscapeDataString(request.SortBy ?? string.Empty)}" +
+            $"&sortDirection={Uri.EscapeDataString(request.SortDirection ?? string.Empty)}" +
+            $"&name={Uri.EscapeDataString(request.Name ?? string.Empty)}" +
+            $"&code={Uri.EscapeDataString(request.Code ?? string.Empty)}" +
+            $"&maxDaysPerYearFrom={(request.MaxDaysPerYearFrom.HasValue ? request.MaxDaysPerYearFrom.Value.ToString() : string.Empty)}" +
+            $"&maxDaysPerYearTo={(request.MaxDaysPerYearTo.HasValue ? request.MaxDaysPerYearTo.Value.ToString() : string.Empty)}" +
+            $"&isCarryOver={(request.IsCarryOver.HasValue ? (request.IsCarryOver.Value ? "true" : "false") : string.Empty)}" +
+            $"&isActive={(request.IsActive.HasValue ? (request.IsActive.Value ? "true" : "false") : string.Empty)}";
 
         return SendAsync<PagedResult<LeaveTypeDto>>(HttpMethod.Get, query, accessToken, null, ct);
     }
@@ -597,4 +607,5 @@ public sealed class HrApiClient(HttpClient httpClient, ILogger<HrApiClient> logg
         }
     }
 }
+
 

@@ -15,7 +15,7 @@ public interface ILeaveService
 
     Task<PagedResult<LeaveBalanceDto>> GetBalancesAsync(LeaveBalanceRequest request, CancellationToken ct = default);
 
-    Task<PagedResult<LeaveTypeDto>> GetLeaveTypesAsync(PagedRequest request, CancellationToken ct = default);
+    Task<PagedResult<LeaveTypeDto>> GetLeaveTypesAsync(LeaveTypePagedRequest request, CancellationToken ct = default);
     Task<LeaveTypeDto?> GetLeaveTypeByIdAsync(int id, CancellationToken ct = default);
     Task<LeaveTypeDto> CreateLeaveTypeAsync(LeaveTypeDto request, CancellationToken ct = default);
     Task<LeaveTypeDto?> UpdateLeaveTypeAsync(int id, LeaveTypeDto request, CancellationToken ct = default);
@@ -24,3 +24,4 @@ public interface ILeaveService
     Task<IReadOnlyList<LookupDto>> GetEmployeeOptionsAsync(CancellationToken ct = default);
     Task<IReadOnlyList<LookupDto>> GetLeaveTypeOptionsAsync(CancellationToken ct = default);
 }
+

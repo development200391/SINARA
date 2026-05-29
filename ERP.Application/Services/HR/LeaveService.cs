@@ -294,6 +294,8 @@ public sealed class LeaveService(IUnitOfWork unitOfWork) : ILeaveService
         var page = request.Page <= 0 ? 1 : request.Page;
         var pageSize = request.PageSize <= 0 ? 20 : request.PageSize;
         var year = request.Year ?? DateTime.UtcNow.Year;
+        var normalizedSortBy = NormalizeLeaveBalanceSortBy(request.SortBy);
+        var normalizedSortDirection = NormalizeSortDirection(request.SortDirection);
 
         var employeesQuery = unitOfWork.Repository<HrEmployee>()
             .Query()
@@ -386,9 +388,9 @@ public sealed class LeaveService(IUnitOfWork unitOfWork) : ILeaveService
 
         var total = rows.Count;
 
-        var paged = rows
-            .OrderBy(x => x.EmployeeName)
-            .ThenBy(x => x.LeaveTypeName)
+        var sortedRows = ApplyLeaveBalanceSorting(rows, normalizedSortBy, normalizedSortDirection);
+
+        var paged = sortedRows
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToList();
@@ -396,10 +398,15 @@ public sealed class LeaveService(IUnitOfWork unitOfWork) : ILeaveService
         return PagedResult<LeaveBalanceDto>.Create(paged, total, page, pageSize);
     }
 
-    public async Task<PagedResult<LeaveTypeDto>> GetLeaveTypesAsync(PagedRequest request, CancellationToken ct = default)
+    public async Task<PagedResult<LeaveTypeDto>> GetLeaveTypesAsync(LeaveTypePagedRequest request, CancellationToken ct = default)
     {
         var page = request.Page <= 0 ? 1 : request.Page;
         var pageSize = request.PageSize <= 0 ? 20 : request.PageSize;
+        var normalizedSortBy = NormalizeLeaveTypeSortBy(request.SortBy);
+        var normalizedSortDirection = NormalizeSortDirection(request.SortDirection);
+        var normalizedName = NormalizeText(request.Name);
+        var normalizedCode = NormalizeText(request.Code);
+        var (normalizedMaxDaysFrom, normalizedMaxDaysTo) = NormalizeIntRange(request.MaxDaysPerYearFrom, request.MaxDaysPerYearTo);
 
         var query = unitOfWork.Repository<HrLeaveType>()
             .Query()
@@ -414,10 +421,43 @@ public sealed class LeaveService(IUnitOfWork unitOfWork) : ILeaveService
                 x.Code.ToLower().Contains(search));
         }
 
+        if (!string.IsNullOrWhiteSpace(normalizedName))
+        {
+            var name = normalizedName.ToLowerInvariant();
+            query = query.Where(x => x.Name.ToLower().Contains(name));
+        }
+
+        if (!string.IsNullOrWhiteSpace(normalizedCode))
+        {
+            var code = normalizedCode.ToLowerInvariant();
+            query = query.Where(x => x.Code.ToLower().Contains(code));
+        }
+
+        if (request.IsCarryOver.HasValue)
+        {
+            query = query.Where(x => x.IsCarryOver == request.IsCarryOver.Value);
+        }
+
+        if (request.IsActive.HasValue)
+        {
+            query = query.Where(x => x.IsActive == request.IsActive.Value);
+        }
+
+        if (normalizedMaxDaysFrom.HasValue)
+        {
+            query = query.Where(x => x.MaxDaysPerYear >= normalizedMaxDaysFrom.Value);
+        }
+
+        if (normalizedMaxDaysTo.HasValue)
+        {
+            query = query.Where(x => x.MaxDaysPerYear <= normalizedMaxDaysTo.Value);
+        }
+
+        query = ApplyLeaveTypeSorting(query, normalizedSortBy, normalizedSortDirection);
+
         var total = await query.CountAsync(ct);
 
         var items = await query
-            .OrderBy(x => x.Name)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .Select(x => new LeaveTypeDto
@@ -571,6 +611,120 @@ public sealed class LeaveService(IUnitOfWork unitOfWork) : ILeaveService
             .ToListAsync(ct);
     }
 
+    private static IEnumerable<LeaveBalanceDto> ApplyLeaveBalanceSorting(
+        IEnumerable<LeaveBalanceDto> rows,
+        string sortBy,
+        string sortDirection)
+    {
+        var isDesc = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+
+        return sortBy switch
+        {
+            "leavetype" => isDesc
+                ? rows.OrderByDescending(x => x.LeaveTypeName).ThenByDescending(x => x.EmployeeName)
+                : rows.OrderBy(x => x.LeaveTypeName).ThenBy(x => x.EmployeeName),
+
+            "year" => isDesc
+                ? rows.OrderByDescending(x => x.Year).ThenByDescending(x => x.EmployeeName)
+                : rows.OrderBy(x => x.Year).ThenBy(x => x.EmployeeName),
+
+            "maxdays" => isDesc
+                ? rows.OrderByDescending(x => x.MaxDaysPerYear).ThenByDescending(x => x.EmployeeName)
+                : rows.OrderBy(x => x.MaxDaysPerYear).ThenBy(x => x.EmployeeName),
+
+            "useddays" => isDesc
+                ? rows.OrderByDescending(x => x.UsedDays).ThenByDescending(x => x.EmployeeName)
+                : rows.OrderBy(x => x.UsedDays).ThenBy(x => x.EmployeeName),
+
+            "remainingdays" => isDesc
+                ? rows.OrderByDescending(x => x.RemainingDays).ThenByDescending(x => x.EmployeeName)
+                : rows.OrderBy(x => x.RemainingDays).ThenBy(x => x.EmployeeName),
+
+            _ => isDesc
+                ? rows.OrderByDescending(x => x.EmployeeName).ThenByDescending(x => x.LeaveTypeName)
+                : rows.OrderBy(x => x.EmployeeName).ThenBy(x => x.LeaveTypeName)
+        };
+    }
+
+    private static IQueryable<HrLeaveType> ApplyLeaveTypeSorting(IQueryable<HrLeaveType> query, string sortBy, string sortDirection)
+    {
+        var isDesc = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+
+        return sortBy switch
+        {
+            "code" => isDesc
+                ? query.OrderByDescending(x => x.Code).ThenByDescending(x => x.Name)
+                : query.OrderBy(x => x.Code).ThenBy(x => x.Name),
+
+            "maxdays" => isDesc
+                ? query.OrderByDescending(x => x.MaxDaysPerYear).ThenByDescending(x => x.Name)
+                : query.OrderBy(x => x.MaxDaysPerYear).ThenBy(x => x.Name),
+
+            "iscarryover" => isDesc
+                ? query.OrderByDescending(x => x.IsCarryOver).ThenByDescending(x => x.Name)
+                : query.OrderBy(x => x.IsCarryOver).ThenBy(x => x.Name),
+
+            "isactive" => isDesc
+                ? query.OrderByDescending(x => x.IsActive).ThenByDescending(x => x.Name)
+                : query.OrderBy(x => x.IsActive).ThenBy(x => x.Name),
+
+            _ => isDesc
+                ? query.OrderByDescending(x => x.Name).ThenByDescending(x => x.Code)
+                : query.OrderBy(x => x.Name).ThenBy(x => x.Code)
+        };
+    }
+
+    private static string NormalizeSortDirection(string? sortDirection) =>
+        string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase) ? "desc" : "asc";
+
+    private static string NormalizeLeaveBalanceSortBy(string? sortBy)
+    {
+        if (string.IsNullOrWhiteSpace(sortBy))
+        {
+            return "employee";
+        }
+
+        return sortBy.Trim().ToLowerInvariant() switch
+        {
+            "employee" => "employee",
+            "leavetype" => "leavetype",
+            "year" => "year",
+            "maxdays" => "maxdays",
+            "useddays" => "useddays",
+            "remainingdays" => "remainingdays",
+            _ => "employee"
+        };
+    }
+
+    private static string NormalizeLeaveTypeSortBy(string? sortBy)
+    {
+        if (string.IsNullOrWhiteSpace(sortBy))
+        {
+            return "name";
+        }
+
+        return sortBy.Trim().ToLowerInvariant() switch
+        {
+            "name" => "name",
+            "code" => "code",
+            "maxdays" => "maxdays",
+            "iscarryover" => "iscarryover",
+            "isactive" => "isactive",
+            _ => "name"
+        };
+    }
+
+    private static string? NormalizeText(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static (int? From, int? To) NormalizeIntRange(int? from, int? to)
+    {
+        if (from.HasValue && to.HasValue && from.Value > to.Value)
+        {
+            return (to, from);
+        }
+
+        return (from, to);
+    }
     private static LeaveRequestDto MapLeaveRequest(HrLeaveRequest x)
     {
         return new LeaveRequestDto
@@ -594,4 +748,7 @@ public sealed class LeaveService(IUnitOfWork unitOfWork) : ILeaveService
         };
     }
 }
+
+
+
 

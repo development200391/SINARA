@@ -1,4 +1,3 @@
-using ERP.Application.DTOs.Common;
 using ERP.Application.DTOs.HR;
 using ERP.Application.Services.HR;
 using Microsoft.AspNetCore.Mvc;
@@ -9,7 +8,7 @@ namespace ERP.API.Controllers.v1.HR;
 public sealed class LeaveTypesController(ILeaveService leaveService) : HrControllerBase
 {
     [HttpGet]
-    public async Task<IActionResult> Get([FromQuery] PagedRequest request, CancellationToken ct)
+    public async Task<IActionResult> Get([FromQuery] LeaveTypePagedRequest request, CancellationToken ct)
     {
         var result = await leaveService.GetLeaveTypesAsync(request, ct);
         return Ok(result);

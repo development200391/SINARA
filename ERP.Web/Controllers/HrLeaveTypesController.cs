@@ -1,5 +1,4 @@
 using System.Security.Claims;
-using ERP.Application.DTOs.Common;
 using ERP.Application.DTOs.HR;
 using ERP.Web.Services;
 using ERP.Web.ViewModels.HR;
@@ -13,7 +12,19 @@ namespace ERP.Web.Controllers;
 public sealed class HrLeaveTypesController(IHrApiClient hrApiClient) : Controller
 {
     [HttpGet("")]
-    public async Task<IActionResult> Index(int page = 1, string? search = null, CancellationToken ct = default)
+    public async Task<IActionResult> Index(
+        int page = 1,
+        int pageSize = 20,
+        string? search = null,
+        string? sortBy = "name",
+        string? sortDirection = "asc",
+        string? name = null,
+        string? code = null,
+        int? maxDaysPerYearFrom = null,
+        int? maxDaysPerYearTo = null,
+        bool? isCarryOver = null,
+        bool? isActive = null,
+        CancellationToken ct = default)
     {
         var accessToken = GetAccessToken();
         if (string.IsNullOrWhiteSpace(accessToken))
@@ -21,11 +32,27 @@ public sealed class HrLeaveTypesController(IHrApiClient hrApiClient) : Controlle
             return RedirectToAction("Login", "Auth", new { returnUrl = Request.Path + Request.QueryString });
         }
 
-        var result = await hrApiClient.GetLeaveTypesAsync(accessToken, new PagedRequest
+        var normalizedPage = page <= 0 ? 1 : page;
+        var normalizedPageSize = NormalizePageSize(pageSize);
+        var normalizedSortBy = NormalizeSortBy(sortBy);
+        var normalizedSortDirection = NormalizeSortDirection(sortDirection);
+        var normalizedName = NormalizeText(name);
+        var normalizedCode = NormalizeText(code);
+        var (normalizedMaxDaysFrom, normalizedMaxDaysTo) = NormalizeIntRange(maxDaysPerYearFrom, maxDaysPerYearTo);
+
+        var result = await hrApiClient.GetLeaveTypesAsync(accessToken, new LeaveTypePagedRequest
         {
-            Page = page,
-            PageSize = 20,
-            Search = search
+            Page = normalizedPage,
+            PageSize = normalizedPageSize,
+            Search = search,
+            SortBy = normalizedSortBy,
+            SortDirection = normalizedSortDirection,
+            Name = normalizedName,
+            Code = normalizedCode,
+            MaxDaysPerYearFrom = normalizedMaxDaysFrom,
+            MaxDaysPerYearTo = normalizedMaxDaysTo,
+            IsCarryOver = isCarryOver,
+            IsActive = isActive
         }, ct);
 
         ViewData["Title"] = "Leave Types";
@@ -34,7 +61,16 @@ public sealed class HrLeaveTypesController(IHrApiClient hrApiClient) : Controlle
         return View(new HrLeaveTypesIndexViewModel
         {
             Search = search,
-            LeaveTypes = result ?? PagedResult<LeaveTypeDto>.Create([], 0, page, 20)
+            PageSize = normalizedPageSize,
+            SortBy = normalizedSortBy,
+            SortDirection = normalizedSortDirection,
+            NameFilter = normalizedName,
+            CodeFilter = normalizedCode,
+            MaxDaysPerYearFromFilter = normalizedMaxDaysFrom,
+            MaxDaysPerYearToFilter = normalizedMaxDaysTo,
+            IsCarryOverFilter = isCarryOver,
+            IsActiveFilter = isActive,
+            LeaveTypes = result ?? ERP.Application.DTOs.Common.PagedResult<LeaveTypeDto>.Create([], 0, normalizedPage, normalizedPageSize)
         });
     }
 
@@ -166,6 +202,41 @@ public sealed class HrLeaveTypesController(IHrApiClient hrApiClient) : Controlle
         TempData[ok ? "SuccessMessage" : "ErrorMessage"] = ok ? "Leave type deleted." : "Failed to delete leave type.";
 
         return RedirectToAction(nameof(Index));
+    }
+
+    private static int NormalizePageSize(int pageSize) => pageSize is 20 or 50 or 100 ? pageSize : 20;
+
+    private static string NormalizeSortBy(string? sortBy)
+    {
+        if (string.IsNullOrWhiteSpace(sortBy))
+        {
+            return "name";
+        }
+
+        return sortBy.Trim().ToLowerInvariant() switch
+        {
+            "name" => "name",
+            "code" => "code",
+            "maxdays" => "maxDays",
+            "iscarryover" => "isCarryOver",
+            "isactive" => "isActive",
+            _ => "name"
+        };
+    }
+
+    private static string NormalizeSortDirection(string? sortDirection) =>
+        string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase) ? "desc" : "asc";
+
+    private static string? NormalizeText(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static (int? From, int? To) NormalizeIntRange(int? from, int? to)
+    {
+        if (from.HasValue && to.HasValue && from.Value > to.Value)
+        {
+            return (to, from);
+        }
+
+        return (from, to);
     }
 
     private string? GetAccessToken() => User.FindFirstValue("access_token");

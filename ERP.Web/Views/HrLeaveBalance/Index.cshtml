@@ -1,78 +1,149 @@
 @model ERP.Web.ViewModels.HR.HrLeaveBalanceIndexViewModel
+@using ERP.Web.ViewModels.Shared
+@using System.Globalization
+@using System.Linq
 
 <div class="card border-0 shadow-sm">
     <div class="card-body">
         <h1 class="h5 mb-3">Leave Balance</h1>
 
-        <form method="get" class="row g-2 mb-3">
-            <div class="col-md-3">
-                <input type="text" class="form-control" name="search" value="@Model.Search" placeholder="@T["common.search"] employee / leave type" />
-            </div>
-            <div class="col-md-2">
-                <input type="number" class="form-control" name="year" value="@Model.Year" placeholder="Year" min="2000" max="9999" />
-            </div>
-            <div class="col-md-3">
-                <select class="form-select" name="employeeId">
-                    <option value="">All Employee</option>
-                    @foreach (var employee in Model.Employees)
-                    {
-                        <option value="@employee.Id" selected="@(Model.EmployeeId == employee.Id)">@employee.Name</option>
-                    }
-                </select>
-            </div>
-            <div class="col-md-3">
-                <select class="form-select" name="leaveTypeId">
-                    <option value="">All Leave Type</option>
-                    @foreach (var leaveType in Model.LeaveTypes)
-                    {
-                        <option value="@leaveType.Id" selected="@(Model.LeaveTypeId == leaveType.Id)">@leaveType.Name</option>
-                    }
-                </select>
-            </div>
-            <div class="col-auto">
-                <button type="submit" class="btn btn-outline-secondary">@T["common.search"]</button>
-            </div>
-        </form>
-
-        <div class="table-responsive">
-            <table class="table table-sm align-middle">
-                <thead>
-                    <tr>
-                        <th>Employee</th>
-                        <th>Leave Type</th>
-                        <th>Year</th>
-                        <th>Max</th>
-                        <th>Used</th>
-                        <th>Remaining</th>
-                    </tr>
-                </thead>
-                <tbody>
-                @if (Model.Balances.Items.Count == 0)
-                {
-                    <tr><td colspan="6" class="text-center text-muted py-4">@T["msg.no_data"]</td></tr>
-                }
-                else
-                {
-                    foreach (var item in Model.Balances.Items)
-                    {
-                        <tr>
-                            <td>@item.EmployeeCode - @item.EmployeeName</td>
-                            <td>@item.LeaveTypeCode - @item.LeaveTypeName</td>
-                            <td>@item.Year</td>
-                            <td>@item.MaxDaysPerYear</td>
-                            <td>@item.UsedDays</td>
-                            <td>@item.RemainingDays</td>
-                        </tr>
-                    }
-                }
-                </tbody>
-            </table>
-        </div>
-
         @{
-            ViewData["Page"] = Model.Balances.Page;
-            ViewData["TotalPages"] = Model.Balances.TotalPages;
+            var selectedEmployeeId = Model.EmployeeId?.ToString(CultureInfo.InvariantCulture);
+            var selectedLeaveTypeId = Model.LeaveTypeId?.ToString(CultureInfo.InvariantCulture);
+            var selectedYear = Model.Year?.ToString(CultureInfo.InvariantCulture);
+
+            var employeeOptions = Model.Employees
+                .Select(employee => new PagedGridFilterOptionViewModel
+                {
+                    Value = employee.Id.ToString(CultureInfo.InvariantCulture),
+                    Label = employee.Name
+                })
+                .ToList();
+
+            var leaveTypeOptions = Model.LeaveTypes
+                .Select(leaveType => new PagedGridFilterOptionViewModel
+                {
+                    Value = leaveType.Id.ToString(CultureInfo.InvariantCulture),
+                    Label = leaveType.Name
+                })
+                .ToList();
+
+            var yearCandidates = new HashSet<int>(Model.Balances.Items.Select(x => x.Year))
+            {
+                DateTime.Today.Year,
+                DateTime.Today.Year - 1,
+                DateTime.Today.Year + 1
+            };
+
+            if (Model.Year.HasValue)
+            {
+                yearCandidates.Add(Model.Year.Value);
+            }
+
+            var yearOptions = yearCandidates
+                .Where(x => x is >= 2000 and <= 9999)
+                .OrderByDescending(x => x)
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = x.ToString(CultureInfo.InvariantCulture),
+                    Label = x.ToString(CultureInfo.InvariantCulture)
+                })
+                .ToList();
+
+            var gridModel = new PagedGridViewModel
+            {
+                Columns =
+                [
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "employee",
+                        Title = "Employee",
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "employeeId",
+                            Value = selectedEmployeeId,
+                            EmptyOptionLabel = "All Employee",
+                            Options = employeeOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "leaveType",
+                        Title = "Leave Type",
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "leaveTypeId",
+                            Value = selectedLeaveTypeId,
+                            EmptyOptionLabel = "All Leave Type",
+                            Options = leaveTypeOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "year",
+                        Title = "Year",
+                        Sortable = true,
+                        CellClass = "text-end",
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "year",
+                            Value = selectedYear,
+                            EmptyOptionLabel = "All Year",
+                            Options = yearOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "maxDays",
+                        Title = "Max",
+                        Sortable = true,
+                        CellClass = "text-end"
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "usedDays",
+                        Title = "Used",
+                        Sortable = true,
+                        CellClass = "text-end"
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "remainingDays",
+                        Title = "Remaining",
+                        Sortable = true,
+                        CellClass = "text-end"
+                    }
+                ],
+                Rows = Model.Balances.Items.Select(item => new PagedGridRowViewModel
+                {
+                    Cells =
+                    [
+                        new PagedGridCellViewModel { Text = $"{item.EmployeeCode} - {item.EmployeeName}" },
+                        new PagedGridCellViewModel { Text = $"{item.LeaveTypeCode} - {item.LeaveTypeName}" },
+                        new PagedGridCellViewModel { Text = item.Year.ToString(CultureInfo.InvariantCulture), CellClass = "text-end" },
+                        new PagedGridCellViewModel { Text = item.MaxDaysPerYear.ToString(CultureInfo.InvariantCulture), CellClass = "text-end" },
+                        new PagedGridCellViewModel { Text = item.UsedDays.ToString(CultureInfo.InvariantCulture), CellClass = "text-end" },
+                        new PagedGridCellViewModel { Text = item.RemainingDays.ToString(CultureInfo.InvariantCulture), CellClass = "text-end" }
+                    ]
+                }).ToList(),
+                EmptyMessage = T["msg.no_data"],
+                Page = Model.Balances.Page,
+                TotalPages = Model.Balances.TotalPages,
+                PageSize = Model.PageSize,
+                SortBy = Model.SortBy,
+                SortDirection = Model.SortDirection,
+                EnableSearch = true,
+                SearchValue = Model.Search,
+                SearchPlaceholder = "Search employee / leave type",
+                SearchButtonText = T["common.search"]
+            };
         }
-        <partial name="~/Views/Shared/_Pagination.cshtml" />
+
+        @await Component.InvokeAsync("PagedGrid", gridModel)
     </div>
 </div>
