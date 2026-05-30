@@ -272,3 +272,166 @@ public sealed class LedgerPagedRequest : PagedRequest
     public DateOnly? DateFrom { get; set; }
     public DateOnly? DateTo { get; set; }
 }
+
+public sealed class VendorDto
+{
+    public int Id { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string? TaxId { get; set; }
+    public string? Address { get; set; }
+    public string? Phone { get; set; }
+    public string? Email { get; set; }
+    public string? ContactPerson { get; set; }
+    public int PaymentTermsDays { get; set; } = 30;
+    public int? DefaultAccountId { get; set; }
+    public string? DefaultAccountCode { get; set; }
+    public string? DefaultAccountName { get; set; }
+    public int? DefaultTaxCodeId { get; set; }
+    public string? DefaultTaxCodeCode { get; set; }
+    public string? DefaultTaxCodeName { get; set; }
+    public string? BankName { get; set; }
+    public string? BankAccountNo { get; set; }
+    public bool IsActive { get; set; } = true;
+}
+
+public sealed class VendorPagedRequest : PagedRequest
+{
+    public string? Code { get; set; }
+    public string? Name { get; set; }
+    public string? TaxId { get; set; }
+    public string? ContactPerson { get; set; }
+    public int? PaymentTermsFrom { get; set; }
+    public int? PaymentTermsTo { get; set; }
+    public bool? IsActive { get; set; }
+}
+
+public sealed class ApInvoiceLineDto
+{
+    public int Id { get; set; }
+    public int LineNo { get; set; }
+    public string Description { get; set; } = string.Empty;
+    public decimal Quantity { get; set; }
+    public decimal UnitPrice { get; set; }
+    public decimal Amount { get; set; }
+    public int? TaxCodeId { get; set; }
+    public string? TaxCodeCode { get; set; }
+    public string? TaxCodeName { get; set; }
+    public decimal TaxAmount { get; set; }
+    public int AccountId { get; set; }
+    public string AccountCode { get; set; } = string.Empty;
+    public string AccountName { get; set; } = string.Empty;
+    public int? CostCenterId { get; set; }
+    public string? CostCenterCode { get; set; }
+    public string? CostCenterName { get; set; }
+}
+
+public sealed class ApInvoiceDto
+{
+    public int Id { get; set; }
+    public string InvoiceNo { get; set; } = string.Empty;
+    public string? VendorInvoiceNo { get; set; }
+    public int VendorId { get; set; }
+    public string VendorCode { get; set; } = string.Empty;
+    public string VendorName { get; set; } = string.Empty;
+    public int PeriodId { get; set; }
+    public string PeriodName { get; set; } = string.Empty;
+    public DateOnly InvoiceDate { get; set; }
+    public DateOnly DueDate { get; set; }
+    public string? Description { get; set; }
+    public decimal Subtotal { get; set; }
+    public decimal TaxAmount { get; set; }
+    public decimal TotalAmount { get; set; }
+    public decimal PaidAmount { get; set; }
+    public decimal OutstandingAmount { get; set; }
+    public string CurrencyCode { get; set; } = "IDR";
+    public decimal ExchangeRate { get; set; } = 1m;
+    public FinanceApInvoiceStatus Status { get; set; } = FinanceApInvoiceStatus.Draft;
+    public int? ApprovedBy { get; set; }
+    public string? ApprovedByName { get; set; }
+    public DateTimeOffset? ApprovedAt { get; set; }
+    public int? JournalEntryId { get; set; }
+    public bool IsOverdue { get; set; }
+    public IReadOnlyList<ApInvoiceLineDto> Lines { get; set; } = [];
+}
+
+public sealed class ApInvoicePagedRequest : PagedRequest
+{
+    public string? InvoiceNo { get; set; }
+    public string? VendorInvoiceNo { get; set; }
+    public int? VendorId { get; set; }
+    public int? PeriodId { get; set; }
+    public DateOnly? InvoiceDateFrom { get; set; }
+    public DateOnly? InvoiceDateTo { get; set; }
+    public DateOnly? DueDateFrom { get; set; }
+    public DateOnly? DueDateTo { get; set; }
+    public FinanceApInvoiceStatus? Status { get; set; }
+    public decimal? OutstandingFrom { get; set; }
+    public decimal? OutstandingTo { get; set; }
+    public bool? IsOverdue { get; set; }
+}
+
+public sealed class ApPaymentApplicationDto
+{
+    public int Id { get; set; }
+    public int InvoiceId { get; set; }
+    public string InvoiceNo { get; set; } = string.Empty;
+    public DateOnly InvoiceDate { get; set; }
+    public DateOnly DueDate { get; set; }
+    public decimal InvoiceTotalAmount { get; set; }
+    public decimal InvoiceOutstandingAmount { get; set; }
+    public decimal AppliedAmount { get; set; }
+}
+
+public sealed class ApPaymentDto
+{
+    public int Id { get; set; }
+    public string PaymentNo { get; set; } = string.Empty;
+    public int VendorId { get; set; }
+    public string VendorCode { get; set; } = string.Empty;
+    public string VendorName { get; set; } = string.Empty;
+    public DateOnly PaymentDate { get; set; }
+    public decimal Amount { get; set; }
+    public FinanceApPaymentMethod PaymentMethod { get; set; } = FinanceApPaymentMethod.Transfer;
+    public int BankAccountId { get; set; }
+    public string BankAccountCode { get; set; } = string.Empty;
+    public string BankAccountName { get; set; } = string.Empty;
+    public string? ReferenceNo { get; set; }
+    public string? Notes { get; set; }
+    public int? JournalEntryId { get; set; }
+    public IReadOnlyList<ApPaymentApplicationDto> Applications { get; set; } = [];
+}
+
+public sealed class ApPaymentPagedRequest : PagedRequest
+{
+    public string? PaymentNo { get; set; }
+    public int? VendorId { get; set; }
+    public DateOnly? PaymentDateFrom { get; set; }
+    public DateOnly? PaymentDateTo { get; set; }
+    public FinanceApPaymentMethod? PaymentMethod { get; set; }
+    public decimal? AmountFrom { get; set; }
+    public decimal? AmountTo { get; set; }
+}
+
+public sealed class ApAgingRowDto
+{
+    public int VendorId { get; set; }
+    public string VendorCode { get; set; } = string.Empty;
+    public string VendorName { get; set; } = string.Empty;
+    public decimal CurrentAmount { get; set; }
+    public decimal Bucket1To30 { get; set; }
+    public decimal Bucket31To60 { get; set; }
+    public decimal Bucket61To90 { get; set; }
+    public decimal BucketOver90 { get; set; }
+    public decimal TotalOutstanding { get; set; }
+    public DateOnly? OldestInvoiceDate { get; set; }
+    public DateOnly? LatestDueDate { get; set; }
+}
+
+public sealed class ApAgingPagedRequest : PagedRequest
+{
+    public int? VendorId { get; set; }
+    public DateOnly? AsOfDate { get; set; }
+    public decimal? OutstandingMin { get; set; }
+    public decimal? OutstandingMax { get; set; }
+}

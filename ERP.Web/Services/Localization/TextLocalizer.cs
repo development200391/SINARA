@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 
 namespace ERP.Web.Services.Localization;
 
@@ -332,7 +332,63 @@ public sealed class TextLocalizer(IHttpContextAccessor httpContextAccessor) : IT
         ["Reverse"] = "Balik",
         ["Post this journal?"] = "Post jurnal ini?",
         ["Reverse this journal?"] = "Balik jurnal ini?",
-        ["This journal is no longer editable."] = "Jurnal ini sudah tidak bisa diubah."
+        ["This journal is no longer editable."] = "Jurnal ini sudah tidak bisa diubah.",
+        ["Vendors"] = "Vendor",
+        ["Vendor"] = "Vendor",
+        ["Vendor Code"] = "Kode Vendor",
+        ["Tax ID"] = "NPWP",
+        ["Contact Person"] = "PIC",
+        ["Payment Terms (Days)"] = "Termin Pembayaran (Hari)",
+        ["Default Account"] = "Akun Default",
+        ["Default Tax Code"] = "Kode Pajak Default",
+        ["Bank Name"] = "Nama Bank",
+        ["Bank Account No"] = "No. Rekening",
+        ["None"] = "Tidak Ada",
+        ["Accounts Payable"] = "Utang Usaha",
+        ["AP Invoice"] = "Faktur AP",
+        ["AP Invoices"] = "Faktur AP",
+        ["Invoice No"] = "No. Faktur",
+        ["Vendor Invoice No"] = "No. Faktur Vendor",
+        ["Invoice Date"] = "Tanggal Faktur",
+        ["Due Date"] = "Jatuh Tempo",
+        ["Invoice Lines"] = "Baris Faktur",
+        ["Quantity"] = "Kuantitas",
+        ["Unit Price"] = "Harga Satuan",
+        ["Amount"] = "Jumlah",
+        ["Subtotal"] = "Subtotal",
+        ["Total Amount"] = "Total Nilai",
+        ["Outstanding"] = "Sisa Tagihan",
+        ["Overdue"] = "Lewat Jatuh Tempo",
+        ["Approve this invoice?"] = "Setujui faktur ini?",
+        ["PartiallyPaid"] = "Dibayar Sebagian",
+        ["Paid"] = "Lunas",
+        ["Cancelled"] = "Dibatalkan",
+        ["AP Payment"] = "Pembayaran AP",
+        ["AP Payments"] = "Pembayaran AP",
+        ["Payment No"] = "No. Pembayaran",
+        ["Payment Date"] = "Tanggal Pembayaran",
+        ["Payment Method"] = "Metode Pembayaran",
+        ["Bank Account"] = "Rekening Bank",
+        ["Reference No"] = "No. Referensi",
+        ["Applications"] = "Alokasi",
+        ["Invoice"] = "Faktur",
+        ["Applied Amount"] = "Jumlah Dialokasikan",
+        ["Total Applied"] = "Total Dialokasikan",
+        ["Select Invoice"] = "Pilih Faktur",
+        ["AP Aging"] = "Umur Utang",
+        ["As Of Date"] = "Per Tanggal",
+        ["Current"] = "Belum Jatuh Tempo",
+        ["1-30 Days"] = "1-30 Hari",
+        ["31-60 Days"] = "31-60 Hari",
+        ["61-90 Days"] = "61-90 Hari",
+        [">90 Days"] = ">90 Hari",
+        ["Total Outstanding"] = "Total Sisa Tagihan",
+        ["Oldest Invoice Date"] = "Tanggal Faktur Tertua",
+        ["Latest Due Date"] = "Jatuh Tempo Terbaru",
+        ["Transfer"] = "Transfer",
+        ["Cash"] = "Tunai",
+        ["Check"] = "Cek",
+        ["Giro"] = "Giro",
     };
 
     private static readonly Dictionary<string, string> EnglishPhrases = new(StringComparer.OrdinalIgnoreCase)
@@ -411,5 +467,8 @@ public sealed class TextLocalizer(IHttpContextAccessor httpContextAccessor) : IT
         return !string.IsNullOrWhiteSpace(code) && Resources.ContainsKey(code);
     }
 }
+
+
+
 
 

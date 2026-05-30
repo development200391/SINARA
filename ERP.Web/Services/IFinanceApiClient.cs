@@ -57,4 +57,23 @@ public interface IFinanceApiClient
     Task<JournalEntryDto?> ReverseJournalAsync(string accessToken, int id, CancellationToken ct = default);
 
     Task<PagedResult<LedgerEntryDto>?> GetLedgerAsync(string accessToken, LedgerPagedRequest request, CancellationToken ct = default);
+    Task<PagedResult<VendorDto>?> GetVendorsAsync(string accessToken, VendorPagedRequest request, CancellationToken ct = default);
+    Task<VendorDto?> GetVendorByIdAsync(string accessToken, int id, CancellationToken ct = default);
+    Task<VendorDto?> CreateVendorAsync(string accessToken, VendorDto request, CancellationToken ct = default);
+    Task<VendorDto?> UpdateVendorAsync(string accessToken, int id, VendorDto request, CancellationToken ct = default);
+    Task<bool> DeleteVendorAsync(string accessToken, int id, CancellationToken ct = default);
+
+    Task<PagedResult<ApInvoiceDto>?> GetApInvoicesAsync(string accessToken, ApInvoicePagedRequest request, CancellationToken ct = default);
+    Task<ApInvoiceDto?> GetApInvoiceByIdAsync(string accessToken, int id, CancellationToken ct = default);
+    Task<ApInvoiceDto?> CreateApInvoiceAsync(string accessToken, ApInvoiceDto request, CancellationToken ct = default);
+    Task<ApInvoiceDto?> UpdateApInvoiceAsync(string accessToken, int id, ApInvoiceDto request, CancellationToken ct = default);
+    Task<ApInvoiceDto?> ApproveApInvoiceAsync(string accessToken, int id, CancellationToken ct = default);
+    Task<bool> DeleteApInvoiceAsync(string accessToken, int id, CancellationToken ct = default);
+
+    Task<PagedResult<ApPaymentDto>?> GetApPaymentsAsync(string accessToken, ApPaymentPagedRequest request, CancellationToken ct = default);
+    Task<ApPaymentDto?> GetApPaymentByIdAsync(string accessToken, int id, CancellationToken ct = default);
+    Task<ApPaymentDto?> CreateApPaymentAsync(string accessToken, ApPaymentDto request, CancellationToken ct = default);
+
+    Task<PagedResult<ApAgingRowDto>?> GetApAgingAsync(string accessToken, ApAgingPagedRequest request, CancellationToken ct = default);
 }
+

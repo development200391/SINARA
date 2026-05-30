@@ -1,0 +1,278 @@
+﻿@model ERP.Web.ViewModels.Finance.FinanceApInvoicesIndexViewModel
+@using ERP.Domain.Enums
+@using ERP.Web.ViewModels.Shared
+@using Microsoft.AspNetCore.Html
+@using System.Globalization
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">@T["AP Invoices"]</h1>
+
+        @{
+            var selectedVendorId = Model.VendorIdFilter?.ToString(CultureInfo.InvariantCulture);
+            var selectedPeriodId = Model.PeriodIdFilter?.ToString(CultureInfo.InvariantCulture);
+            var selectedStatus = Model.StatusFilter.HasValue ? ((int)Model.StatusFilter.Value).ToString(CultureInfo.InvariantCulture) : null;
+            var selectedIsOverdue = Model.IsOverdueFilter.HasValue ? (Model.IsOverdueFilter.Value ? "true" : "false") : null;
+
+            var vendorOptions = Model.VendorOptions
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = x.Id.ToString(CultureInfo.InvariantCulture),
+                    Label = x.Label
+                })
+                .ToList();
+
+            var periodOptions = Model.PeriodOptions
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = x.Id.ToString(CultureInfo.InvariantCulture),
+                    Label = x.Label
+                })
+                .ToList();
+
+            var statusOptions = Enum.GetValues<FinanceApInvoiceStatus>()
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = ((int)x).ToString(CultureInfo.InvariantCulture),
+                    Label = T[x.ToString()]
+                })
+                .ToList();
+
+            var overdueOptions = new List<PagedGridFilterOptionViewModel>
+            {
+                new() { Value = "true", Label = T["Yes"] },
+                new() { Value = "false", Label = T["No"] }
+            };
+
+            string BuildStatusBadge(FinanceApInvoiceStatus status)
+            {
+                return status switch
+                {
+                    FinanceApInvoiceStatus.Paid => $"<span class=\"badge text-bg-success\">{T["Paid"]}</span>",
+                    FinanceApInvoiceStatus.PartiallyPaid => $"<span class=\"badge text-bg-info\">{T["PartiallyPaid"]}</span>",
+                    FinanceApInvoiceStatus.Approved => $"<span class=\"badge text-bg-primary\">{T["Approved"]}</span>",
+                    FinanceApInvoiceStatus.Cancelled => $"<span class=\"badge text-bg-secondary\">{T["Cancelled"]}</span>",
+                    _ => $"<span class=\"badge text-bg-warning\">{T["Draft"]}</span>"
+                };
+            }
+
+            var rows = new List<PagedGridRowViewModel>();
+            foreach (var item in Model.Items.Items)
+            {
+                var canEdit = item.Status == FinanceApInvoiceStatus.Draft;
+                var totalAmountHtml = await Component.InvokeAsync("TextNumber", new
+                {
+                    text = item.TotalAmount.ToString(CultureInfo.InvariantCulture),
+                    decimals = 2,
+                    cssClass = "sinara-text-number-theme"
+                });
+                var outstandingAmountHtml = await Component.InvokeAsync("TextNumber", new
+                {
+                    text = item.OutstandingAmount.ToString(CultureInfo.InvariantCulture),
+                    decimals = 2,
+                    cssClass = "sinara-text-number-theme"
+                });
+
+                rows.Add(new PagedGridRowViewModel
+                {
+                    Cells =
+                    [
+                        new PagedGridCellViewModel { Text = item.InvoiceNo },
+                        new PagedGridCellViewModel { Text = string.IsNullOrWhiteSpace(item.VendorInvoiceNo) ? "-" : item.VendorInvoiceNo },
+                        new PagedGridCellViewModel { Text = $"{item.VendorCode} - {item.VendorName}" },
+                        new PagedGridCellViewModel { Text = item.PeriodName },
+                        new PagedGridCellViewModel { Text = item.InvoiceDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) },
+                        new PagedGridCellViewModel { Text = item.DueDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) },
+                        new PagedGridCellViewModel { Html = totalAmountHtml, CellClass = "text-end" },
+                        new PagedGridCellViewModel { Html = outstandingAmountHtml, CellClass = "text-end" },
+                        new PagedGridCellViewModel { Html = new HtmlString(BuildStatusBadge(item.Status)) },
+                        new PagedGridCellViewModel
+                        {
+                            Html = new HtmlString(item.IsOverdue
+                                ? $"<span class=\"badge text-bg-danger\">{T["Yes"]}</span>"
+                                : $"<span class=\"badge text-bg-secondary\">{T["No"]}</span>")
+                        }
+                    ],
+                    Actions = new PagedGridRowActionViewModel
+                    {
+                        EditUrl = canEdit ? Url.Action("EditApInvoice", "FinanceSetup", new { id = item.Id }) : null,
+                        ApproveUrl = canEdit ? Url.Action("ApproveApInvoice", "FinanceSetup", new { id = item.Id }) : null,
+                        DeleteUrl = canEdit ? Url.Action("DeleteApInvoice", "FinanceSetup", new { id = item.Id }) : null,
+                        ApproveConfirmMessage = T["Approve this invoice?"],
+                        DeleteConfirmMessage = T["Delete this data?"]
+                    }
+                });
+            }
+
+            var gridModel = new PagedGridViewModel
+            {
+                Columns =
+                [
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "invoiceno",
+                        Title = T["Invoice No"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Text,
+                            QueryKey = "invoiceNo",
+                            Value = Model.InvoiceNoFilter,
+                            Placeholder = T["Invoice No"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "vendorinvoiceno",
+                        Title = T["Vendor Invoice No"],
+                        Sortable = false,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Text,
+                            QueryKey = "vendorInvoiceNo",
+                            Value = Model.VendorInvoiceNoFilter,
+                            Placeholder = T["Vendor Invoice No"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "vendorname",
+                        Title = T["Vendor"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "vendorId",
+                            Value = selectedVendorId,
+                            EmptyOptionLabel = T["All"],
+                            Options = vendorOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "periodname",
+                        Title = T["Period"],
+                        Sortable = false,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "periodId",
+                            Value = selectedPeriodId,
+                            EmptyOptionLabel = T["All"],
+                            Options = periodOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "invoicedate",
+                        Title = T["Invoice Date"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.DateRange,
+                            QueryKey = "invoiceDateFrom",
+                            QueryKeyTo = "invoiceDateTo",
+                            Value = Model.InvoiceDateFromFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                            ValueTo = Model.InvoiceDateToFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                            Placeholder = T["From"],
+                            PlaceholderTo = T["To"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "duedate",
+                        Title = T["Due Date"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.DateRange,
+                            QueryKey = "dueDateFrom",
+                            QueryKeyTo = "dueDateTo",
+                            Value = Model.DueDateFromFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                            ValueTo = Model.DueDateToFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                            Placeholder = T["From"],
+                            PlaceholderTo = T["To"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "totalamount",
+                        Title = T["Total Amount"],
+                        Sortable = true,
+                        CellClass = "text-end"
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "outstandingamount",
+                        Title = T["Outstanding"],
+                        Sortable = true,
+                        CellClass = "text-end",
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.NumberRange,
+                            QueryKey = "outstandingFrom",
+                            QueryKeyTo = "outstandingTo",
+                            Value = Model.OutstandingFromFilter?.ToString(CultureInfo.InvariantCulture),
+                            ValueTo = Model.OutstandingToFilter?.ToString(CultureInfo.InvariantCulture),
+                            Placeholder = T["From"],
+                            PlaceholderTo = T["To"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "status",
+                        Title = T["Status"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "status",
+                            Value = selectedStatus,
+                            EmptyOptionLabel = T["All"],
+                            Options = statusOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "isoverdue",
+                        Title = T["Overdue"],
+                        Sortable = false,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "isOverdue",
+                            Value = selectedIsOverdue,
+                            EmptyOptionLabel = T["All"],
+                            Options = overdueOptions
+                        }
+                    }
+                ],
+                Rows = rows,
+                EmptyMessage = T["msg.no_data"],
+                Page = Model.Items.Page,
+                TotalPages = Model.Items.TotalPages,
+                PageSize = Model.PageSize,
+                SortBy = Model.SortBy,
+                SortDirection = Model.SortDirection,
+                EnableSearch = true,
+                SearchValue = Model.Search,
+                SearchPlaceholder = T["Search"] + " " + T["AP Invoices"],
+                SearchButtonText = T["common.search"],
+                Actions = new PagedGridActionConfigViewModel
+                {
+                    ActionColumnTitle = T["Action"],
+                    AddUrl = Url.Action("CreateApInvoice", "FinanceSetup"),
+                    AddButtonText = T["common.add_new"],
+                    EditButtonText = T["common.edit"],
+                    ApproveButtonText = T["Approve"],
+                    DeleteButtonText = T["common.delete"],
+                    ApproveConfirmMessage = T["Approve this invoice?"],
+                    DeleteConfirmMessage = T["Delete this data?"]
+                }
+            };
+        }
+
+        @await Component.InvokeAsync("PagedGrid", gridModel)
+    </div>
+</div>
+

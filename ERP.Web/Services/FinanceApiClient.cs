@@ -537,6 +537,230 @@ public sealed class FinanceApiClient(HttpClient httpClient, ILogger<FinanceApiCl
         var query = $"api/v1/finance/ledger?{string.Join("&", parameters)}";
         return SendAsync<PagedResult<LedgerEntryDto>>(HttpMethod.Get, query, accessToken, null, ct);
     }
+    public Task<PagedResult<VendorDto>?> GetVendorsAsync(string accessToken, VendorPagedRequest request, CancellationToken ct = default)
+    {
+        var parameters = new List<string>();
+        AddPagedParameters(parameters, request);
+
+        if (!string.IsNullOrWhiteSpace(request.Code))
+        {
+            parameters.Add($"code={Uri.EscapeDataString(request.Code.Trim())}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Name))
+        {
+            parameters.Add($"name={Uri.EscapeDataString(request.Name.Trim())}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.TaxId))
+        {
+            parameters.Add($"taxId={Uri.EscapeDataString(request.TaxId.Trim())}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.ContactPerson))
+        {
+            parameters.Add($"contactPerson={Uri.EscapeDataString(request.ContactPerson.Trim())}");
+        }
+
+        if (request.PaymentTermsFrom.HasValue)
+        {
+            parameters.Add($"paymentTermsFrom={request.PaymentTermsFrom.Value}");
+        }
+
+        if (request.PaymentTermsTo.HasValue)
+        {
+            parameters.Add($"paymentTermsTo={request.PaymentTermsTo.Value}");
+        }
+
+        if (request.IsActive.HasValue)
+        {
+            parameters.Add($"isActive={(request.IsActive.Value ? "true" : "false")}");
+        }
+
+        var query = $"api/v1/finance/vendors?{string.Join("&", parameters)}";
+        return SendAsync<PagedResult<VendorDto>>(HttpMethod.Get, query, accessToken, null, ct);
+    }
+
+    public Task<VendorDto?> GetVendorByIdAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendAsync<VendorDto>(HttpMethod.Get, $"api/v1/finance/vendors/{id}", accessToken, null, ct);
+
+    public Task<VendorDto?> CreateVendorAsync(string accessToken, VendorDto request, CancellationToken ct = default)
+        => SendAsync<VendorDto>(HttpMethod.Post, "api/v1/finance/vendors", accessToken, request, ct);
+
+    public Task<VendorDto?> UpdateVendorAsync(string accessToken, int id, VendorDto request, CancellationToken ct = default)
+        => SendAsync<VendorDto>(HttpMethod.Put, $"api/v1/finance/vendors/{id}", accessToken, request, ct);
+
+    public async Task<bool> DeleteVendorAsync(string accessToken, int id, CancellationToken ct = default)
+    {
+        var response = await SendRawAsync(HttpMethod.Delete, $"api/v1/finance/vendors/{id}", accessToken, null, ct);
+        return response?.IsSuccessStatusCode == true;
+    }
+
+    public Task<PagedResult<ApInvoiceDto>?> GetApInvoicesAsync(string accessToken, ApInvoicePagedRequest request, CancellationToken ct = default)
+    {
+        var parameters = new List<string>();
+        AddPagedParameters(parameters, request);
+
+        if (!string.IsNullOrWhiteSpace(request.InvoiceNo))
+        {
+            parameters.Add($"invoiceNo={Uri.EscapeDataString(request.InvoiceNo.Trim())}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.VendorInvoiceNo))
+        {
+            parameters.Add($"vendorInvoiceNo={Uri.EscapeDataString(request.VendorInvoiceNo.Trim())}");
+        }
+
+        if (request.VendorId.HasValue)
+        {
+            parameters.Add($"vendorId={request.VendorId.Value}");
+        }
+
+        if (request.PeriodId.HasValue)
+        {
+            parameters.Add($"periodId={request.PeriodId.Value}");
+        }
+
+        if (request.InvoiceDateFrom.HasValue)
+        {
+            parameters.Add($"invoiceDateFrom={request.InvoiceDateFrom.Value:yyyy-MM-dd}");
+        }
+
+        if (request.InvoiceDateTo.HasValue)
+        {
+            parameters.Add($"invoiceDateTo={request.InvoiceDateTo.Value:yyyy-MM-dd}");
+        }
+
+        if (request.DueDateFrom.HasValue)
+        {
+            parameters.Add($"dueDateFrom={request.DueDateFrom.Value:yyyy-MM-dd}");
+        }
+
+        if (request.DueDateTo.HasValue)
+        {
+            parameters.Add($"dueDateTo={request.DueDateTo.Value:yyyy-MM-dd}");
+        }
+
+        if (request.Status.HasValue)
+        {
+            parameters.Add($"status={(int)request.Status.Value}");
+        }
+
+        if (request.OutstandingFrom.HasValue)
+        {
+            parameters.Add($"outstandingFrom={request.OutstandingFrom.Value}");
+        }
+
+        if (request.OutstandingTo.HasValue)
+        {
+            parameters.Add($"outstandingTo={request.OutstandingTo.Value}");
+        }
+
+        if (request.IsOverdue.HasValue)
+        {
+            parameters.Add($"isOverdue={(request.IsOverdue.Value ? "true" : "false")}");
+        }
+
+        var query = $"api/v1/finance/ap/invoices?{string.Join("&", parameters)}";
+        return SendAsync<PagedResult<ApInvoiceDto>>(HttpMethod.Get, query, accessToken, null, ct);
+    }
+
+    public Task<ApInvoiceDto?> GetApInvoiceByIdAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendAsync<ApInvoiceDto>(HttpMethod.Get, $"api/v1/finance/ap/invoices/{id}", accessToken, null, ct);
+
+    public Task<ApInvoiceDto?> CreateApInvoiceAsync(string accessToken, ApInvoiceDto request, CancellationToken ct = default)
+        => SendAsync<ApInvoiceDto>(HttpMethod.Post, "api/v1/finance/ap/invoices", accessToken, request, ct);
+
+    public Task<ApInvoiceDto?> UpdateApInvoiceAsync(string accessToken, int id, ApInvoiceDto request, CancellationToken ct = default)
+        => SendAsync<ApInvoiceDto>(HttpMethod.Put, $"api/v1/finance/ap/invoices/{id}", accessToken, request, ct);
+
+    public Task<ApInvoiceDto?> ApproveApInvoiceAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendAsync<ApInvoiceDto>(HttpMethod.Put, $"api/v1/finance/ap/invoices/{id}/approve", accessToken, null, ct);
+
+    public async Task<bool> DeleteApInvoiceAsync(string accessToken, int id, CancellationToken ct = default)
+    {
+        var response = await SendRawAsync(HttpMethod.Delete, $"api/v1/finance/ap/invoices/{id}", accessToken, null, ct);
+        return response?.IsSuccessStatusCode == true;
+    }
+
+    public Task<PagedResult<ApPaymentDto>?> GetApPaymentsAsync(string accessToken, ApPaymentPagedRequest request, CancellationToken ct = default)
+    {
+        var parameters = new List<string>();
+        AddPagedParameters(parameters, request);
+
+        if (!string.IsNullOrWhiteSpace(request.PaymentNo))
+        {
+            parameters.Add($"paymentNo={Uri.EscapeDataString(request.PaymentNo.Trim())}");
+        }
+
+        if (request.VendorId.HasValue)
+        {
+            parameters.Add($"vendorId={request.VendorId.Value}");
+        }
+
+        if (request.PaymentDateFrom.HasValue)
+        {
+            parameters.Add($"paymentDateFrom={request.PaymentDateFrom.Value:yyyy-MM-dd}");
+        }
+
+        if (request.PaymentDateTo.HasValue)
+        {
+            parameters.Add($"paymentDateTo={request.PaymentDateTo.Value:yyyy-MM-dd}");
+        }
+
+        if (request.PaymentMethod.HasValue)
+        {
+            parameters.Add($"paymentMethod={(int)request.PaymentMethod.Value}");
+        }
+
+        if (request.AmountFrom.HasValue)
+        {
+            parameters.Add($"amountFrom={request.AmountFrom.Value}");
+        }
+
+        if (request.AmountTo.HasValue)
+        {
+            parameters.Add($"amountTo={request.AmountTo.Value}");
+        }
+
+        var query = $"api/v1/finance/ap/payments?{string.Join("&", parameters)}";
+        return SendAsync<PagedResult<ApPaymentDto>>(HttpMethod.Get, query, accessToken, null, ct);
+    }
+
+    public Task<ApPaymentDto?> GetApPaymentByIdAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendAsync<ApPaymentDto>(HttpMethod.Get, $"api/v1/finance/ap/payments/{id}", accessToken, null, ct);
+
+    public Task<ApPaymentDto?> CreateApPaymentAsync(string accessToken, ApPaymentDto request, CancellationToken ct = default)
+        => SendAsync<ApPaymentDto>(HttpMethod.Post, "api/v1/finance/ap/payments", accessToken, request, ct);
+
+    public Task<PagedResult<ApAgingRowDto>?> GetApAgingAsync(string accessToken, ApAgingPagedRequest request, CancellationToken ct = default)
+    {
+        var parameters = new List<string>();
+        AddPagedParameters(parameters, request);
+
+        if (request.VendorId.HasValue)
+        {
+            parameters.Add($"vendorId={request.VendorId.Value}");
+        }
+
+        if (request.AsOfDate.HasValue)
+        {
+            parameters.Add($"asOfDate={request.AsOfDate.Value:yyyy-MM-dd}");
+        }
+
+        if (request.OutstandingMin.HasValue)
+        {
+            parameters.Add($"outstandingMin={request.OutstandingMin.Value}");
+        }
+
+        if (request.OutstandingMax.HasValue)
+        {
+            parameters.Add($"outstandingMax={request.OutstandingMax.Value}");
+        }
+
+        var query = $"api/v1/finance/ap/aging?{string.Join("&", parameters)}";
+        return SendAsync<PagedResult<ApAgingRowDto>>(HttpMethod.Get, query, accessToken, null, ct);
+    }
     private static void AddPagedParameters(List<string> parameters, PagedRequest request)
     {
         parameters.Add($"page={request.Page}");
@@ -592,4 +816,5 @@ public sealed class FinanceApiClient(HttpClient httpClient, ILogger<FinanceApiCl
         }
     }
 }
+
 

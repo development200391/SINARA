@@ -1,0 +1,306 @@
+﻿@model ERP.Web.ViewModels.Finance.FinanceApPaymentCreateViewModel
+@using ERP.Domain.Enums
+@using System.Globalization
+@using System.Text.Json
+
+@{
+    var initialApplications = Model.Applications.ToList();
+    if (initialApplications.Count == 0)
+    {
+        initialApplications.Add(new ERP.Web.ViewModels.Finance.FinanceApPaymentApplicationEditViewModel());
+    }
+
+    var invoiceOptionsJson = JsonSerializer.Serialize(Model.OutstandingInvoiceOptions.Select(x => new
+    {
+        vendorId = x.VendorId,
+        id = x.InvoiceId,
+        label = x.Label
+    }));
+}
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">@T["Create"] @T["AP Payment"]</h1>
+
+        <form method="post" class="row g-3">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="col-md-4">
+                <label asp-for="VendorId" class="form-label">@T["Vendor"]</label>
+                <select asp-for="VendorId" class="form-select" id="ap-payment-vendor">
+                    @foreach (var option in Model.VendorOptions)
+                    {
+                        <option value="@option.Id" selected="@(Model.VendorId == option.Id)">@option.Label</option>
+                    }
+                </select>
+                <span asp-validation-for="VendorId" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-3">
+                <label asp-for="PaymentDate" class="form-label">@T["Payment Date"]</label>
+                <input asp-for="PaymentDate" class="form-control" type="date" />
+                <span asp-validation-for="PaymentDate" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-3">
+                <label asp-for="PaymentMethod" class="form-label">@T["Payment Method"]</label>
+                <select asp-for="PaymentMethod" class="form-select">
+                    @foreach (var method in Enum.GetValues<FinanceApPaymentMethod>())
+                    {
+                        <option value="@method" selected="@(Model.PaymentMethod == method)">@T[method.ToString()]</option>
+                    }
+                </select>
+                <span asp-validation-for="PaymentMethod" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-2">
+                <label asp-for="Amount" class="form-label">@T["Amount"]</label>
+                <input asp-for="Amount" class="form-control text-end" type="number" min="0.0001" step="0.0001" />
+                <span asp-validation-for="Amount" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="BankAccountId" class="form-label">@T["Bank Account"]</label>
+                <select asp-for="BankAccountId" class="form-select">
+                    @foreach (var option in Model.BankAccountOptions)
+                    {
+                        <option value="@option.Id" selected="@(Model.BankAccountId == option.Id)">@option.Label</option>
+                    }
+                </select>
+                <span asp-validation-for="BankAccountId" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-3">
+                <label asp-for="ReferenceNo" class="form-label">@T["Reference No"]</label>
+                <input asp-for="ReferenceNo" class="form-control" />
+                <span asp-validation-for="ReferenceNo" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-3">
+                <label asp-for="Notes" class="form-label">@T["Notes"]</label>
+                <input asp-for="Notes" class="form-control" />
+                <span asp-validation-for="Notes" class="text-danger"></span>
+            </div>
+
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h2 class="h6 mb-0">@T["Applications"]</h2>
+                    <button type="button" id="add-ap-payment-app" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1">
+                        <i class="bi bi-plus-circle" aria-hidden="true"></i>
+                        <span>@T["Add Line"]</span>
+                    </button>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle">
+                        <thead>
+                            <tr>
+                                <th style="width:48px;">#</th>
+                                <th>@T["Invoice"]</th>
+                                <th class="text-end" style="width:200px;">@T["Applied Amount"]</th>
+                                <th class="text-end" style="width:72px;">@T["Action"]</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ap-payment-apps-body">
+                            @for (var index = 0; index < initialApplications.Count; index++)
+                            {
+                                <tr class="ap-payment-app-row">
+                                    <td class="line-no">@(index + 1)</td>
+                                    <td>
+                                        <select class="form-select form-select-sm ap-payment-invoice" data-field="InvoiceId" data-selected="@initialApplications[index].InvoiceId"></select>
+                                    </td>
+                                    <td>
+                                        <input type="number" class="form-control form-control-sm text-end ap-payment-applied" data-field="AppliedAmount" min="0.0001" step="0.0001" value="@initialApplications[index].AppliedAmount.ToString(CultureInfo.InvariantCulture)" />
+                                    </td>
+                                    <td class="text-end">
+                                        <button type="button" class="btn btn-sm btn-outline-danger remove-ap-payment-app" title="@T["Delete"]">
+                                            <i class="bi bi-trash" aria-hidden="true"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <th colspan="2" class="text-end">@T["Total Applied"]</th>
+                                <th id="ap-payment-total-applied" class="text-end">0.00</th>
+                                <th></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
+            <div class="col-12 d-flex gap-2">
+                <button type="submit" class="btn btn-primary">@T["common.save"]</button>
+                <a asp-action="ApPayments" class="btn btn-outline-secondary">@T["common.cancel"]</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<template id="ap-payment-app-template">
+    <tr class="ap-payment-app-row">
+        <td class="line-no"></td>
+        <td>
+            <select class="form-select form-select-sm ap-payment-invoice" data-field="InvoiceId"></select>
+        </td>
+        <td>
+            <input type="number" class="form-control form-control-sm text-end ap-payment-applied" data-field="AppliedAmount" min="0.0001" step="0.0001" value="0" />
+        </td>
+        <td class="text-end">
+            <button type="button" class="btn btn-sm btn-outline-danger remove-ap-payment-app" title="@T["Delete"]">
+                <i class="bi bi-trash" aria-hidden="true"></i>
+            </button>
+        </td>
+    </tr>
+</template>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (() => {
+            const vendorSelect = document.getElementById('ap-payment-vendor');
+            const body = document.getElementById('ap-payment-apps-body');
+            const addButton = document.getElementById('add-ap-payment-app');
+            const template = document.getElementById('ap-payment-app-template');
+            const totalAppliedEl = document.getElementById('ap-payment-total-applied');
+            const invoiceOptions = @Html.Raw(invoiceOptionsJson);
+
+            if (!vendorSelect || !body || !template) {
+                return;
+            }
+
+            const parseNumber = (value) => {
+                const parsed = Number.parseFloat(value);
+                return Number.isFinite(parsed) ? parsed : 0;
+            };
+
+            const formatNumber = (value) => value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+            const populateInvoiceSelect = (select, selectedId) => {
+                const vendorId = Number.parseInt(vendorSelect.value || '0', 10);
+                const options = invoiceOptions.filter((item) => item.vendorId === vendorId);
+
+                const currentValue = Number.parseInt(String(selectedId || ''), 10);
+                const hasCurrentValue = Number.isFinite(currentValue) && options.some((item) => item.id === currentValue);
+
+                select.innerHTML = '';
+
+                const emptyOption = document.createElement('option');
+                emptyOption.value = '';
+                emptyOption.textContent = '@T["Select Invoice"]';
+                select.appendChild(emptyOption);
+
+                options.forEach((item) => {
+                    const option = document.createElement('option');
+                    option.value = String(item.id);
+                    option.textContent = item.label;
+                    if (hasCurrentValue && item.id === currentValue) {
+                        option.selected = true;
+                    }
+                    select.appendChild(option);
+                });
+
+                if (!hasCurrentValue) {
+                    select.value = '';
+                }
+            };
+
+            const recalc = () => {
+                let totalApplied = 0;
+                body.querySelectorAll('.ap-payment-applied').forEach((input) => {
+                    totalApplied += parseNumber(input.value);
+                });
+
+                if (totalAppliedEl) {
+                    totalAppliedEl.textContent = formatNumber(totalApplied);
+                }
+            };
+
+            const renumber = () => {
+                const rows = body.querySelectorAll('.ap-payment-app-row');
+                rows.forEach((row, index) => {
+                    const lineNo = row.querySelector('.line-no');
+                    if (lineNo) {
+                        lineNo.textContent = String(index + 1);
+                    }
+
+                    row.querySelectorAll('[data-field]').forEach((control) => {
+                        const field = control.getAttribute('data-field');
+                        if (!field) return;
+                        control.setAttribute('name', `Applications[${index}].${field}`);
+                        control.setAttribute('id', `Applications_${index}__${field}`);
+                    });
+                });
+
+                recalc();
+            };
+
+            const refreshInvoiceSelects = () => {
+                body.querySelectorAll('.ap-payment-invoice').forEach((select) => {
+                    const selected = select.getAttribute('data-selected') || select.value;
+                    populateInvoiceSelect(select, selected);
+                    select.setAttribute('data-selected', select.value);
+                });
+            };
+
+            addButton?.addEventListener('click', () => {
+                const row = template.content.firstElementChild?.cloneNode(true);
+                if (!row) return;
+                body.appendChild(row);
+
+                const select = row.querySelector('.ap-payment-invoice');
+                if (select) {
+                    populateInvoiceSelect(select, null);
+                }
+
+                renumber();
+            });
+
+            body.addEventListener('click', (event) => {
+                const target = event.target;
+                if (!(target instanceof Element)) return;
+
+                const removeButton = target.closest('.remove-ap-payment-app');
+                if (!removeButton) return;
+
+                const rows = body.querySelectorAll('.ap-payment-app-row');
+                if (rows.length <= 1) {
+                    return;
+                }
+
+                const row = removeButton.closest('.ap-payment-app-row');
+                row?.remove();
+                renumber();
+            });
+
+            body.addEventListener('change', (event) => {
+                const target = event.target;
+                if (!(target instanceof HTMLSelectElement)) return;
+
+                if (target.classList.contains('ap-payment-invoice')) {
+                    target.setAttribute('data-selected', target.value);
+                }
+            });
+
+            body.addEventListener('input', (event) => {
+                const target = event.target;
+                if (!(target instanceof HTMLInputElement)) return;
+
+                if (target.classList.contains('ap-payment-applied')) {
+                    recalc();
+                }
+            });
+
+            vendorSelect.addEventListener('change', () => {
+                refreshInvoiceSelects();
+                renumber();
+            });
+
+            refreshInvoiceSelects();
+            renumber();
+        })();
+    </script>
+}

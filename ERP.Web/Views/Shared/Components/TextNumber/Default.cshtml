@@ -1,0 +1,10 @@
+﻿@model ERP.Web.ViewModels.Shared.TextNumberViewModel
+
+@{
+    var baseClass = Model.HasValue ? "sinara-text-number" : "sinara-text-number sinara-text-number-null";
+    var className = string.IsNullOrWhiteSpace(Model.CssClass)
+        ? baseClass
+        : $"{baseClass} {Model.CssClass}";
+}
+
+<span class="@className">@Model.Text</span>

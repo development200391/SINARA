@@ -426,3 +426,17 @@ body {
     background-color: #ffffff;
 }
 
+.sinara-text-number {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+    white-space: nowrap;
+}
+
+.sinara-text-number-theme {
+    color: var(--sinara-primary);
+    font-weight: 600;
+}
+
+.sinara-text-number-null {
+    color: #64748b;
+}

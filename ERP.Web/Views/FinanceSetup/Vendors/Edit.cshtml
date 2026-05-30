@@ -1,0 +1,12 @@
+﻿@model ERP.Web.ViewModels.Finance.FinanceVendorEditViewModel
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">@T["Edit"] @T["Vendor"]</h1>
+        <partial name="Vendors/_Form" model="Model" />
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

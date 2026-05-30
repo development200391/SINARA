@@ -1,0 +1,156 @@
+﻿@model ERP.Web.ViewModels.Finance.FinanceVendorsIndexViewModel
+@using ERP.Web.ViewModels.Shared
+@using Microsoft.AspNetCore.Html
+@using System.Globalization
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">@T["Vendors"]</h1>
+
+        @{
+            var selectedIsActive = Model.IsActiveFilter.HasValue ? (Model.IsActiveFilter.Value ? "true" : "false") : null;
+
+            var statusOptions = new List<PagedGridFilterOptionViewModel>
+            {
+                new() { Value = "true", Label = T["Active"] },
+                new() { Value = "false", Label = T["Inactive"] }
+            };
+
+            string BuildStatusBadge(bool isActive)
+            {
+                return isActive
+                    ? $"<span class=\"badge text-bg-success\">{T["Active"]}</span>"
+                    : $"<span class=\"badge text-bg-secondary\">{T["Inactive"]}</span>";
+            }
+
+            var gridModel = new PagedGridViewModel
+            {
+                Columns =
+                [
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "code",
+                        Title = T["Code"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Text,
+                            QueryKey = "code",
+                            Value = Model.CodeFilter,
+                            Placeholder = T["Filter code"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "name",
+                        Title = T["Name"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Text,
+                            QueryKey = "name",
+                            Value = Model.NameFilter,
+                            Placeholder = T["Filter name"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "taxid",
+                        Title = T["Tax ID"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Text,
+                            QueryKey = "taxId",
+                            Value = Model.TaxIdFilter,
+                            Placeholder = T["Tax ID"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "contactperson",
+                        Title = T["Contact Person"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Text,
+                            QueryKey = "contactPerson",
+                            Value = Model.ContactPersonFilter,
+                            Placeholder = T["Contact Person"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "paymenttermsdays",
+                        Title = T["Payment Terms (Days)"],
+                        Sortable = true,
+                        CellClass = "text-end",
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.NumberRange,
+                            QueryKey = "paymentTermsFrom",
+                            QueryKeyTo = "paymentTermsTo",
+                            Value = Model.PaymentTermsFromFilter?.ToString(CultureInfo.InvariantCulture),
+                            ValueTo = Model.PaymentTermsToFilter?.ToString(CultureInfo.InvariantCulture),
+                            Placeholder = T["From"],
+                            PlaceholderTo = T["To"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "isactive",
+                        Title = T["Status"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "isActive",
+                            Value = selectedIsActive,
+                            EmptyOptionLabel = T["All"],
+                            Options = statusOptions
+                        }
+                    }
+                ],
+                Rows = Model.Items.Items.Select(item => new PagedGridRowViewModel
+                {
+                    Cells =
+                    [
+                        new PagedGridCellViewModel { Text = item.Code },
+                        new PagedGridCellViewModel { Text = item.Name },
+                        new PagedGridCellViewModel { Text = string.IsNullOrWhiteSpace(item.TaxId) ? "-" : item.TaxId },
+                        new PagedGridCellViewModel { Text = string.IsNullOrWhiteSpace(item.ContactPerson) ? "-" : item.ContactPerson },
+                        new PagedGridCellViewModel { Text = item.PaymentTermsDays.ToString(CultureInfo.InvariantCulture), CellClass = "text-end" },
+                        new PagedGridCellViewModel { Html = new HtmlString(BuildStatusBadge(item.IsActive)) }
+                    ],
+                    Actions = new PagedGridRowActionViewModel
+                    {
+                        EditUrl = Url.Action("EditVendor", "FinanceSetup", new { id = item.Id }),
+                        DeleteUrl = Url.Action("DeleteVendor", "FinanceSetup", new { id = item.Id }),
+                        DeleteConfirmMessage = T["Delete this data?"]
+                    }
+                }).ToList(),
+                EmptyMessage = T["msg.no_data"],
+                Page = Model.Items.Page,
+                TotalPages = Model.Items.TotalPages,
+                PageSize = Model.PageSize,
+                SortBy = Model.SortBy,
+                SortDirection = Model.SortDirection,
+                EnableSearch = true,
+                SearchValue = Model.Search,
+                SearchPlaceholder = T["Search"] + " " + T["Vendors"],
+                SearchButtonText = T["common.search"],
+                Actions = new PagedGridActionConfigViewModel
+                {
+                    ActionColumnTitle = T["Action"],
+                    AddUrl = Url.Action("CreateVendor", "FinanceSetup"),
+                    AddButtonText = T["common.add_new"],
+                    EditButtonText = T["common.edit"],
+                    DeleteButtonText = T["common.delete"],
+                    DeleteConfirmMessage = T["Delete this data?"]
+                }
+            };
+        }
+
+        @await Component.InvokeAsync("PagedGrid", gridModel)
+    </div>
+</div>

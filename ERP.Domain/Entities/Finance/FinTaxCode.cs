@@ -13,4 +13,6 @@ public sealed class FinTaxCode : BaseEntity
     public bool IsActive { get; set; } = true;
 
     public FinAccount Account { get; set; } = null!;
+    public ICollection<FinVendor> VendorDefaults { get; set; } = new List<FinVendor>();
+    public ICollection<FinApInvoiceLine> ApInvoiceLines { get; set; } = new List<FinApInvoiceLine>();
 }

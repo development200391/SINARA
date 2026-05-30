@@ -15,4 +15,5 @@ public sealed class FinCostCenter : BaseEntity
     public HrEmployee? Manager { get; set; }
     public FinAccount? BudgetAccount { get; set; }
     public ICollection<FinJournalEntryLine> JournalLines { get; set; } = new List<FinJournalEntryLine>();
+    public ICollection<FinApInvoiceLine> ApInvoiceLines { get; set; } = new List<FinApInvoiceLine>();
 }

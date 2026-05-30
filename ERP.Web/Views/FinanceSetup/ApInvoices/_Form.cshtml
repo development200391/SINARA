@@ -1,0 +1,502 @@
+﻿@model ERP.Web.ViewModels.Finance.FinanceApInvoiceEditViewModel
+@using System.Globalization
+
+@{
+    var isReadOnly = Model.IsReadOnly;
+    var numberCulture = string.Equals(T.CurrentLanguage, "id", StringComparison.OrdinalIgnoreCase)
+        ? CultureInfo.GetCultureInfo("id-ID")
+        : CultureInfo.GetCultureInfo("en-US");
+}
+
+@if (!string.IsNullOrWhiteSpace(Model.InvoiceNo))
+{
+    <div class="col-md-3">
+        <label class="form-label">@T["Invoice No"]</label>
+        <input type="text" class="form-control" value="@Model.InvoiceNo" readonly />
+    </div>
+}
+
+<div class="col-md-3">
+    <label asp-for="VendorId" class="form-label">@T["Vendor"]</label>
+    <select asp-for="VendorId" class="form-select" disabled="@isReadOnly">
+        @foreach (var option in Model.VendorOptions)
+        {
+            <option value="@option.Id" selected="@(Model.VendorId == option.Id)">@option.Label</option>
+        }
+    </select>
+    <span asp-validation-for="VendorId" class="text-danger"></span>
+</div>
+
+<div class="col-md-3">
+    <label asp-for="PeriodId" class="form-label">@T["Period"]</label>
+    <select asp-for="PeriodId" class="form-select" disabled="@isReadOnly">
+        @foreach (var option in Model.PeriodOptions)
+        {
+            <option value="@option.Id" selected="@(Model.PeriodId == option.Id)">@option.Label</option>
+        }
+    </select>
+    <span asp-validation-for="PeriodId" class="text-danger"></span>
+</div>
+
+<div class="col-md-3">
+    <label asp-for="VendorInvoiceNo" class="form-label">@T["Vendor Invoice No"]</label>
+    <input asp-for="VendorInvoiceNo" class="form-control" readonly="@isReadOnly" />
+    <span asp-validation-for="VendorInvoiceNo" class="text-danger"></span>
+</div>
+
+<div class="col-md-3">
+    <label asp-for="InvoiceDate" class="form-label">@T["Invoice Date"]</label>
+    <input asp-for="InvoiceDate" class="form-control" type="date" readonly="@isReadOnly" />
+    <span asp-validation-for="InvoiceDate" class="text-danger"></span>
+</div>
+
+<div class="col-md-3">
+    <label asp-for="DueDate" class="form-label">@T["Due Date"]</label>
+    <input asp-for="DueDate" class="form-control" type="date" readonly="@isReadOnly" />
+    <span asp-validation-for="DueDate" class="text-danger"></span>
+</div>
+
+<div class="col-md-2">
+    <label asp-for="CurrencyCode" class="form-label">@T["Currency"]</label>
+    <select asp-for="CurrencyCode" class="form-select" disabled="@isReadOnly">
+        @foreach (var option in Model.CurrencyOptions)
+        {
+            <option value="@option.Code" selected="@string.Equals(Model.CurrencyCode, option.Code, StringComparison.OrdinalIgnoreCase)">@option.Label</option>
+        }
+    </select>
+    <span asp-validation-for="CurrencyCode" class="text-danger"></span>
+</div>
+
+<div class="col-md-2">
+    <label asp-for="ExchangeRate" class="form-label">@T["Exchange Rate"]</label>
+    <input id="ExchangeRate" name="ExchangeRate" class="form-control text-end sinara-text-number sinara-text-number-theme" type="text" inputmode="decimal" value="@Model.ExchangeRate.ToString("N2", numberCulture)" readonly="@isReadOnly" />
+    <span asp-validation-for="ExchangeRate" class="text-danger"></span>
+</div>
+
+<div class="col-md-2">
+    <label class="form-label">@T["Status"]</label>
+    <input type="text" class="form-control" value="@T[Model.Status.ToString()]" readonly />
+</div>
+
+<div class="col-md-12">
+    <label asp-for="Description" class="form-label">@T["Description"]</label>
+    <textarea asp-for="Description" class="form-control" rows="2" readonly="@isReadOnly"></textarea>
+    <span asp-validation-for="Description" class="text-danger"></span>
+</div>
+
+<div class="col-12">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h2 class="h6 mb-0">@T["Invoice Lines"]</h2>
+        @if (!isReadOnly)
+        {
+            <button type="button" id="add-ap-line" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1">
+                <i class="bi bi-plus-circle" aria-hidden="true"></i>
+                <span>@T["Add Line"]</span>
+            </button>
+        }
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-sm align-middle">
+            <thead>
+                <tr>
+                    <th style="width:48px;">#</th>
+                    <th>@T["Description"]</th>
+                    <th style="width:110px;" class="text-end">@T["Quantity"]</th>
+                    <th style="width:130px;" class="text-end">@T["Unit Price"]</th>
+                    <th style="width:130px;" class="text-end">@T["Amount"]</th>
+                    <th style="width:200px;">@T["Tax Code"]</th>
+                    <th style="width:130px;" class="text-end">@T["Tax Amount"]</th>
+                    <th style="width:240px;">@T["Account"]</th>
+                    <th style="width:240px;">@T["Cost Center"]</th>
+                    <th style="width:64px;" class="text-end">@T["Action"]</th>
+                </tr>
+            </thead>
+            <tbody id="ap-invoice-lines-body">
+                @for (var index = 0; index < Model.Lines.Count; index++)
+                {
+                    var lineAmount = Model.Lines[index].Quantity * Model.Lines[index].UnitPrice;
+
+                    <tr class="ap-line-row">
+                        <td class="line-no">@(index + 1)</td>
+                        <td>
+                            <input type="text" class="form-control form-control-sm" data-field="Description" value="@Model.Lines[index].Description" readonly="@isReadOnly" />
+                        </td>
+                        <td>
+                            <input type="text" inputmode="decimal" class="form-control form-control-sm text-end sinara-text-number sinara-text-number-theme ap-line-qty" data-field="Quantity" value="@Model.Lines[index].Quantity.ToString("N2", numberCulture)" readonly="@isReadOnly" />
+                        </td>
+                        <td>
+                            <input type="text" inputmode="decimal" class="form-control form-control-sm text-end sinara-text-number sinara-text-number-theme ap-line-price" data-field="UnitPrice" value="@Model.Lines[index].UnitPrice.ToString("N2", numberCulture)" readonly="@isReadOnly" />
+                        </td>
+                        <td class="text-end">
+                            <span class="d-inline-block w-100 text-end sinara-text-number sinara-text-number-theme ap-line-amount">@lineAmount.ToString("N2", numberCulture)</span>
+                        </td>
+                        <td>
+                            <select class="form-select form-select-sm" data-field="TaxCodeId" disabled="@isReadOnly">
+                                <option value="">@T["None"]</option>
+                                @foreach (var option in Model.TaxCodeOptions)
+                                {
+                                    <option value="@option.Id" selected="@(Model.Lines[index].TaxCodeId == option.Id)">@option.Label</option>
+                                }
+                            </select>
+                        </td>
+                        <td>
+                            <input type="text" inputmode="decimal" class="form-control form-control-sm text-end sinara-text-number sinara-text-number-theme" data-field="TaxAmount" value="@Model.Lines[index].TaxAmount.ToString("N2", numberCulture)" readonly="@isReadOnly" />
+                        </td>
+                        <td>
+                            <select class="form-select form-select-sm" data-field="AccountId" disabled="@isReadOnly">
+                                <option value="">@T["Select Account"]</option>
+                                @foreach (var option in Model.AccountOptions)
+                                {
+                                    <option value="@option.Id" selected="@(Model.Lines[index].AccountId == option.Id)">@option.Label</option>
+                                }
+                            </select>
+                        </td>
+                        <td>
+                            <select class="form-select form-select-sm" data-field="CostCenterId" disabled="@isReadOnly">
+                                <option value="">@T["None"]</option>
+                                @foreach (var option in Model.CostCenterOptions)
+                                {
+                                    <option value="@option.Id" selected="@(Model.Lines[index].CostCenterId == option.Id)">@option.Label</option>
+                                }
+                            </select>
+                        </td>
+                        <td class="text-end">
+                            @if (!isReadOnly)
+                            {
+                                <button type="button" class="btn btn-sm btn-outline-danger remove-ap-line" title="@T["Delete"]">
+                                    <i class="bi bi-trash" aria-hidden="true"></i>
+                                </button>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot>
+                <tr>
+                    <th colspan="4" class="text-end">@T["Subtotal"]</th>
+                    <th id="ap-subtotal" class="text-end sinara-text-number sinara-text-number-theme">0.00</th>
+                    <th colspan="5"></th>
+                </tr>
+                <tr>
+                    <th colspan="4" class="text-end">@T["Tax"]</th>
+                    <th id="ap-tax-total" class="text-end sinara-text-number sinara-text-number-theme">0.00</th>
+                    <th colspan="5"></th>
+                </tr>
+                <tr>
+                    <th colspan="4" class="text-end">@T["Total Amount"]</th>
+                    <th id="ap-grand-total" class="text-end sinara-text-number sinara-text-number-theme">0.00</th>
+                    <th colspan="5"></th>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+
+@if (!isReadOnly)
+{
+    <template id="ap-line-template">
+        <tr class="ap-line-row">
+            <td class="line-no"></td>
+            <td>
+                <input type="text" class="form-control form-control-sm" data-field="Description" />
+            </td>
+            <td>
+                <input type="text" inputmode="decimal" class="form-control form-control-sm text-end sinara-text-number sinara-text-number-theme ap-line-qty" data-field="Quantity" value="@((1m).ToString("N2", numberCulture))" />
+            </td>
+            <td>
+                <input type="text" inputmode="decimal" class="form-control form-control-sm text-end sinara-text-number sinara-text-number-theme ap-line-price" data-field="UnitPrice" value="@((0m).ToString("N2", numberCulture))" />
+            </td>
+            <td class="text-end">
+                <span class="d-inline-block w-100 text-end sinara-text-number sinara-text-number-theme ap-line-amount">@((0m).ToString("N2", numberCulture))</span>
+            </td>
+            <td>
+                <select class="form-select form-select-sm" data-field="TaxCodeId">
+                    <option value="">@T["None"]</option>
+                    @foreach (var option in Model.TaxCodeOptions)
+                    {
+                        <option value="@option.Id">@option.Label</option>
+                    }
+                </select>
+            </td>
+            <td>
+                <input type="text" inputmode="decimal" class="form-control form-control-sm text-end sinara-text-number sinara-text-number-theme" data-field="TaxAmount" value="@((0m).ToString("N2", numberCulture))" />
+            </td>
+            <td>
+                <select class="form-select form-select-sm" data-field="AccountId">
+                    <option value="">@T["Select Account"]</option>
+                    @foreach (var option in Model.AccountOptions)
+                    {
+                        <option value="@option.Id">@option.Label</option>
+                    }
+                </select>
+            </td>
+            <td>
+                <select class="form-select form-select-sm" data-field="CostCenterId">
+                    <option value="">@T["None"]</option>
+                    @foreach (var option in Model.CostCenterOptions)
+                    {
+                        <option value="@option.Id">@option.Label</option>
+                    }
+                </select>
+            </td>
+            <td class="text-end">
+                <button type="button" class="btn btn-sm btn-outline-danger remove-ap-line" title="@T["Delete"]">
+                    <i class="bi bi-trash" aria-hidden="true"></i>
+                </button>
+            </td>
+        </tr>
+    </template>
+}
+
+<script>
+    (() => {
+        const body = document.getElementById('ap-invoice-lines-body');
+        if (!body) return;
+
+        const readOnly = @isReadOnly.ToString().ToLowerInvariant();
+        const addBtn = document.getElementById('add-ap-line');
+        const template = document.getElementById('ap-line-template');
+        const subtotalEl = document.getElementById('ap-subtotal');
+        const taxEl = document.getElementById('ap-tax-total');
+        const totalEl = document.getElementById('ap-grand-total');
+        const exchangeRateEl = document.getElementById('ExchangeRate');
+        const numberLocale = '@(string.Equals(T.CurrentLanguage, "id", StringComparison.OrdinalIgnoreCase) ? "id-ID" : "en-US")';
+
+        const parseNumber = (value) => parseFreeNumber(value);
+
+        const parseFreeNumber = (value) => {
+            const raw = String(value ?? '').trim();
+            if (!raw) return 0;
+
+            const compact = raw.replace(/\s+/g, '');
+            const lastDot = compact.lastIndexOf('.');
+            const lastComma = compact.lastIndexOf(',');
+            let normalized = compact;
+
+            if (lastDot >= 0 && lastComma >= 0) {
+                normalized = lastDot > lastComma
+                    ? compact.replace(/,/g, '')
+                    : compact.replace(/\./g, '').replace(',', '.');
+            } else if (lastComma >= 0) {
+                const commaCount = (compact.match(/,/g) || []).length;
+                if (commaCount > 1) {
+                    normalized = compact.replace(/,/g, '');
+                } else {
+                    const digitsAfter = compact.length - lastComma - 1;
+                    normalized = digitsAfter === 3
+                        ? compact.replace(/,/g, '')
+                        : compact.replace(',', '.');
+                }
+            } else {
+                normalized = compact.replace(/,/g, '');
+            }
+
+            normalized = normalized.replace(/[^0-9.-]/g, '');
+            const parsed = Number.parseFloat(normalized);
+            return Number.isFinite(parsed) ? parsed : 0;
+        };
+
+        const formatNumber = (value) => value.toLocaleString(numberLocale, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        const formatFixedTwo = (input) => {
+            if (!input) return;
+            input.value = formatNumber(parseNumber(input.value));
+        };
+
+        const selectAllInputValue = (input) => {
+            if (!input || input.readOnly || input.disabled) return;
+            window.requestAnimationFrame(() => {
+                input.select();
+            });
+        };
+
+        const normalizeDisplayedNumbers = () => {
+            formatFixedTwo(exchangeRateEl);
+
+            body.querySelectorAll('.ap-line-row').forEach((row) => {
+                formatFixedTwo(row.querySelector('.ap-line-qty'));
+                formatFixedTwo(row.querySelector('.ap-line-price'));
+                formatFixedTwo(row.querySelector('[data-field="TaxAmount"]'));
+            });
+        };
+
+        const renumber = () => {
+            const rows = body.querySelectorAll('.ap-line-row');
+            rows.forEach((row, index) => {
+                const lineNo = row.querySelector('.line-no');
+                if (lineNo) {
+                    lineNo.textContent = String(index + 1);
+                }
+
+                row.querySelectorAll('[data-field]').forEach((control) => {
+                    const field = control.getAttribute('data-field');
+                    if (!field) return;
+                    control.setAttribute('name', `Lines[${index}].${field}`);
+                    control.setAttribute('id', `Lines_${index}__${field}`);
+                });
+            });
+
+            recalc();
+            normalizeDisplayedNumbers();
+        };
+
+        const recalc = () => {
+            let subtotal = 0;
+            let taxTotal = 0;
+
+            body.querySelectorAll('.ap-line-row').forEach((row) => {
+                const qtyInput = row.querySelector('.ap-line-qty');
+                const priceInput = row.querySelector('.ap-line-price');
+                const taxInput = row.querySelector('[data-field="TaxAmount"]');
+                const amountText = row.querySelector('.ap-line-amount');
+
+                const qty = parseNumber(qtyInput ? qtyInput.value : '0');
+                const price = parseNumber(priceInput ? priceInput.value : '0');
+                const lineAmount = qty * price;
+                const taxAmount = parseNumber(taxInput ? taxInput.value : '0');
+
+                subtotal += lineAmount;
+                taxTotal += taxAmount;
+
+                if (amountText) {
+                    amountText.textContent = formatNumber(lineAmount);
+                }
+            });
+
+            if (subtotalEl) subtotalEl.textContent = formatNumber(subtotal);
+            if (taxEl) taxEl.textContent = formatNumber(taxTotal);
+            if (totalEl) totalEl.textContent = formatNumber(subtotal + taxTotal);
+        };
+
+        if (!readOnly && addBtn && template) {
+            addBtn.addEventListener('click', () => {
+                const row = template.content.firstElementChild?.cloneNode(true);
+                if (!row) return;
+                body.appendChild(row);
+                renumber();
+            });
+
+            body.addEventListener('click', (event) => {
+                const target = event.target;
+                if (!(target instanceof Element)) return;
+
+                const removeButton = target.closest('.remove-ap-line');
+                if (!removeButton) return;
+
+                const rows = body.querySelectorAll('.ap-line-row');
+                if (rows.length <= 1) {
+                    return;
+                }
+
+                const row = removeButton.closest('.ap-line-row');
+                row?.remove();
+                renumber();
+            });
+        }
+
+        body.addEventListener('input', (event) => {
+            const target = event.target;
+            if (!(target instanceof HTMLInputElement)) return;
+
+            if (target.classList.contains('ap-line-qty') ||
+                target.classList.contains('ap-line-price') ||
+                target.getAttribute('data-field') === 'TaxAmount') {
+                recalc();
+            }
+        });
+
+        body.addEventListener('focusin', (event) => {
+            const target = event.target;
+            if (!(target instanceof HTMLInputElement)) return;
+
+            if (target.classList.contains('ap-line-qty') ||
+                target.classList.contains('ap-line-price') ||
+                target.getAttribute('data-field') === 'TaxAmount') {
+                selectAllInputValue(target);
+            }
+        });
+
+        body.addEventListener('click', (event) => {
+            const target = event.target;
+            if (!(target instanceof HTMLInputElement)) return;
+
+            if (target.classList.contains('ap-line-qty') ||
+                target.classList.contains('ap-line-price') ||
+                target.getAttribute('data-field') === 'TaxAmount') {
+                selectAllInputValue(target);
+            }
+        });
+
+        body.addEventListener('focusout', (event) => {
+            const target = event.target;
+            if (!(target instanceof HTMLInputElement)) return;
+
+            if (target.classList.contains('ap-line-qty') ||
+                target.classList.contains('ap-line-price') ||
+                target.getAttribute('data-field') === 'TaxAmount') {
+                formatFixedTwo(target);
+                recalc();
+            }
+        });
+
+        if (exchangeRateEl instanceof HTMLInputElement) {
+            const handleExchangeRateSelectAll = () => {
+                selectAllInputValue(exchangeRateEl);
+            };
+
+            exchangeRateEl.addEventListener('focus', handleExchangeRateSelectAll);
+            exchangeRateEl.addEventListener('click', handleExchangeRateSelectAll);
+            exchangeRateEl.addEventListener('focusout', () => {
+                formatFixedTwo(exchangeRateEl);
+            });
+        }
+
+        const formEl = body.closest('form');
+        if (formEl instanceof HTMLFormElement) {
+            formEl.addEventListener('submit', () => {
+                if (exchangeRateEl instanceof HTMLInputElement) {
+                    exchangeRateEl.value = parseNumber(exchangeRateEl.value).toFixed(2);
+                }
+
+                body.querySelectorAll('.ap-line-row').forEach((row) => {
+                    const qtyInput = row.querySelector('.ap-line-qty');
+                    const priceInput = row.querySelector('.ap-line-price');
+                    const taxInput = row.querySelector('[data-field="TaxAmount"]');
+
+                    if (qtyInput instanceof HTMLInputElement) {
+                        qtyInput.value = parseNumber(qtyInput.value).toFixed(2);
+                    }
+
+                    if (priceInput instanceof HTMLInputElement) {
+                        priceInput.value = parseNumber(priceInput.value).toFixed(2);
+                    }
+
+                    if (taxInput instanceof HTMLInputElement) {
+                        taxInput.value = parseNumber(taxInput.value).toFixed(2);
+                    }
+                });
+            });
+        }
+
+        renumber();
+    })();
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

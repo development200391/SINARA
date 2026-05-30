@@ -1,0 +1,155 @@
+﻿@model ERP.Web.ViewModels.Finance.FinanceApPaymentsIndexViewModel
+@using ERP.Domain.Enums
+@using ERP.Web.ViewModels.Shared
+@using System.Globalization
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">@T["AP Payments"]</h1>
+
+        @{
+            var selectedVendorId = Model.VendorIdFilter?.ToString(CultureInfo.InvariantCulture);
+            var selectedPaymentMethod = Model.PaymentMethodFilter.HasValue ? ((int)Model.PaymentMethodFilter.Value).ToString(CultureInfo.InvariantCulture) : null;
+
+            var vendorOptions = Model.VendorOptions
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = x.Id.ToString(CultureInfo.InvariantCulture),
+                    Label = x.Label
+                })
+                .ToList();
+
+            var methodOptions = Enum.GetValues<FinanceApPaymentMethod>()
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = ((int)x).ToString(CultureInfo.InvariantCulture),
+                    Label = T[x.ToString()]
+                })
+                .ToList();
+
+            var gridModel = new PagedGridViewModel
+            {
+                Columns =
+                [
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "paymentno",
+                        Title = T["Payment No"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Text,
+                            QueryKey = "paymentNo",
+                            Value = Model.PaymentNoFilter,
+                            Placeholder = T["Payment No"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "vendorname",
+                        Title = T["Vendor"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "vendorId",
+                            Value = selectedVendorId,
+                            EmptyOptionLabel = T["All"],
+                            Options = vendorOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "paymentdate",
+                        Title = T["Payment Date"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.DateRange,
+                            QueryKey = "paymentDateFrom",
+                            QueryKeyTo = "paymentDateTo",
+                            Value = Model.PaymentDateFromFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                            ValueTo = Model.PaymentDateToFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                            Placeholder = T["From"],
+                            PlaceholderTo = T["To"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "paymentmethod",
+                        Title = T["Payment Method"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "paymentMethod",
+                            Value = selectedPaymentMethod,
+                            EmptyOptionLabel = T["All"],
+                            Options = methodOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "amount",
+                        Title = T["Amount"],
+                        Sortable = true,
+                        CellClass = "text-end",
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.NumberRange,
+                            QueryKey = "amountFrom",
+                            QueryKeyTo = "amountTo",
+                            Value = Model.AmountFromFilter?.ToString(CultureInfo.InvariantCulture),
+                            ValueTo = Model.AmountToFilter?.ToString(CultureInfo.InvariantCulture),
+                            Placeholder = T["From"],
+                            PlaceholderTo = T["To"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "bankaccount",
+                        Title = T["Bank Account"],
+                        Sortable = false
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "referenceno",
+                        Title = T["Reference No"],
+                        Sortable = false
+                    }
+                ],
+                Rows = Model.Items.Items.Select(item => new PagedGridRowViewModel
+                {
+                    Cells =
+                    [
+                        new PagedGridCellViewModel { Text = item.PaymentNo },
+                        new PagedGridCellViewModel { Text = $"{item.VendorCode} - {item.VendorName}" },
+                        new PagedGridCellViewModel { Text = item.PaymentDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) },
+                        new PagedGridCellViewModel { Text = T[item.PaymentMethod.ToString()] },
+                        new PagedGridCellViewModel { Text = item.Amount.ToString("N2", CultureInfo.InvariantCulture), CellClass = "text-end" },
+                        new PagedGridCellViewModel { Text = $"{item.BankAccountCode} - {item.BankAccountName}" },
+                        new PagedGridCellViewModel { Text = string.IsNullOrWhiteSpace(item.ReferenceNo) ? "-" : item.ReferenceNo }
+                    ]
+                }).ToList(),
+                EmptyMessage = T["msg.no_data"],
+                Page = Model.Items.Page,
+                TotalPages = Model.Items.TotalPages,
+                PageSize = Model.PageSize,
+                SortBy = Model.SortBy,
+                SortDirection = Model.SortDirection,
+                EnableSearch = true,
+                SearchValue = Model.Search,
+                SearchPlaceholder = T["Search"] + " " + T["AP Payments"],
+                SearchButtonText = T["common.search"],
+                Actions = new PagedGridActionConfigViewModel
+                {
+                    ActionColumnTitle = T["Action"],
+                    AddUrl = Url.Action("CreateApPayment", "FinanceSetup"),
+                    AddButtonText = T["common.add_new"]
+                }
+            };
+        }
+
+        @await Component.InvokeAsync("PagedGrid", gridModel)
+    </div>
+</div>

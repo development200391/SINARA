@@ -406,6 +406,12 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         await EnsureMenuAsync(finModule.Id, finJournalLedger.Id, "Journals", "/finance/journals", "bi-journal-check", 1, now, ct);
         await EnsureMenuAsync(finModule.Id, finJournalLedger.Id, "Payroll Journals", "/finance/journals?source=Payroll", "bi-journal-text", 2, now, ct);
         await EnsureMenuAsync(finModule.Id, finJournalLedger.Id, "General Ledger", "/finance/ledger", "bi-book", 3, now, ct);
+
+        var finAp = await EnsureMenuAsync(finModule.Id, null, "Accounts Payable", null, "bi-wallet2", 4, now, ct);
+        await EnsureMenuAsync(finModule.Id, finAp.Id, "Vendors", "/finance/vendors", "bi-building", 1, now, ct);
+        await EnsureMenuAsync(finModule.Id, finAp.Id, "AP Invoices", "/finance/ap/invoices", "bi-receipt", 2, now, ct);
+        await EnsureMenuAsync(finModule.Id, finAp.Id, "AP Payments", "/finance/ap/payments", "bi-cash-coin", 3, now, ct);
+        await EnsureMenuAsync(finModule.Id, finAp.Id, "AP Aging", "/finance/ap/aging", "bi-hourglass-split", 4, now, ct);
     }
 
     private async Task SeedSuperAdminPermissionsAsync(CancellationToken ct)
@@ -1453,6 +1459,10 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         return menu;
     }
 }
+
+
+
+
 
 
 

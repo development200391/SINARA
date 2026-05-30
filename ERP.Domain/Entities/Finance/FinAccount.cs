@@ -25,4 +25,7 @@ public sealed class FinAccount : BaseEntity
     public ICollection<FinCostCenter> BudgetCostCenters { get; set; } = new List<FinCostCenter>();
     public ICollection<FinTaxCode> TaxCodes { get; set; } = new List<FinTaxCode>();
     public ICollection<FinJournalEntryLine> JournalLines { get; set; } = new List<FinJournalEntryLine>();
+    public ICollection<FinVendor> VendorDefaultAccounts { get; set; } = new List<FinVendor>();
+    public ICollection<FinApInvoiceLine> ApInvoiceLines { get; set; } = new List<FinApInvoiceLine>();
+    public ICollection<FinApPayment> ApPayments { get; set; } = new List<FinApPayment>();
 }

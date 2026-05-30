@@ -14,4 +14,5 @@ public sealed class FinCurrency : BaseEntity
     public ICollection<FinExchangeRate> ExchangeRatesFrom { get; set; } = new List<FinExchangeRate>();
     public ICollection<FinExchangeRate> ExchangeRatesTo { get; set; } = new List<FinExchangeRate>();
     public ICollection<FinJournalEntry> JournalEntries { get; set; } = new List<FinJournalEntry>();
+    public ICollection<FinApInvoice> ApInvoices { get; set; } = new List<FinApInvoice>();
 }
