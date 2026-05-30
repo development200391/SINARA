@@ -191,6 +191,7 @@ public sealed class TextLocalizer(IHttpContextAccessor httpContextAccessor) : IT
         ["Filter notes"] = "Filter catatan",
         ["Filter phone"] = "Filter telepon",
         ["Phone"] = "Telepon",
+        ["Photo"] = "Foto",
         ["Filter username"] = "Filter username",
         ["From"] = "Dari",
         ["Gross Salary"] = "Gaji Kotor",

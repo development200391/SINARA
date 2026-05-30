@@ -3,6 +3,7 @@
 @using ERP.Web.ViewModels.Shared
 @using Microsoft.AspNetCore.Html
 @using System.Globalization
+@using System.Text.Encodings.Web
 
 <div class="card border-0 shadow-sm">
     <div class="card-body">
@@ -14,6 +15,18 @@
             var selectedEmploymentStatus = Model.EmploymentStatusFilter.HasValue
                 ? ((int)Model.EmploymentStatusFilter.Value).ToString(CultureInfo.InvariantCulture)
                 : null;
+            const string defaultAvatarPath = "/images/default-avatar.svg";
+
+            IHtmlContent BuildPhotoCell(string? photoPath, string? employeeName)
+            {
+                var resolvedPhotoPath = string.IsNullOrWhiteSpace(photoPath)
+                    ? defaultAvatarPath
+                    : photoPath.Trim();
+                var safePhotoPath = HtmlEncoder.Default.Encode(resolvedPhotoPath);
+                var safeEmployeeName = HtmlEncoder.Default.Encode(string.IsNullOrWhiteSpace(employeeName) ? "Employee" : employeeName.Trim());
+
+                return new HtmlString($"<img src=\"{safePhotoPath}\" alt=\"{safeEmployeeName}\" class=\"sinara-grid-photo\" loading=\"lazy\" onerror=\"this.onerror=null;this.src='{defaultAvatarPath}';\" />");
+            }
 
             var departmentFilterOptions = Model.Departments
                 .OrderBy(x => x.Name)
@@ -58,6 +71,13 @@
                             Value = Model.EmployeeCodeFilter,
                             Placeholder = T["Filter code"]
                         }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "photo",
+                        Title = T["Photo"],
+                        HeaderClass = "text-center",
+                        CellClass = "text-center"
                     },
                     new PagedGridColumnViewModel
                     {
@@ -174,6 +194,7 @@
                     Cells =
                     [
                         new PagedGridCellViewModel { Text = employee.EmployeeCode },
+                        new PagedGridCellViewModel { Html = BuildPhotoCell(employee.PhotoPath, employee.FullName), CellClass = "text-center" },
                         new PagedGridCellViewModel { Text = employee.FullName },
                         new PagedGridCellViewModel { Text = employee.Email ?? "-" },
                         new PagedGridCellViewModel { Text = employee.Phone ?? "-" },

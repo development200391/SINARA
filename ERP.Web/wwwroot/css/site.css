@@ -416,3 +416,13 @@ body {
 .sinara-employee-photo-cropper {
     max-width: 100%;
 }
+
+.sinara-grid-photo {
+    width: 100px;
+    height: 100px;
+    border-radius: 999px;
+    object-fit: cover;
+    border: 1px solid rgba(var(--sinara-primary-rgb), 0.2);
+    background-color: #ffffff;
+}
+
