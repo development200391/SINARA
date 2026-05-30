@@ -182,3 +182,277 @@
         });
     }
 })();
+
+(() => {
+    const root = document.documentElement;
+
+    const readLocale = () => {
+        const lang = (root.getAttribute('lang') || 'en').toLowerCase();
+        return lang.startsWith('id') ? 'id-ID' : 'en-US';
+    };
+
+    const readDecimalSeparator = () => root.getAttribute('data-decimal-separator') === ',' ? ',' : '.';
+
+    const normalizeFreeNumber = (value) => {
+        const raw = String(value ?? '').trim();
+        if (!raw) {
+            return '';
+        }
+
+        const compact = raw
+            .replace(/\s+/g, '')
+            .replace(/\u00A0/g, '')
+            .replace(/[^0-9.,-]/g, '');
+
+        if (!compact) {
+            return '';
+        }
+
+        const isNegative = compact.includes('-');
+        const unsigned = compact.replace(/-/g, '');
+        const lastDot = unsigned.lastIndexOf('.');
+        const lastComma = unsigned.lastIndexOf(',');
+        let normalized = unsigned;
+
+        if (lastDot >= 0 && lastComma >= 0) {
+            normalized = lastDot > lastComma
+                ? unsigned.replace(/,/g, '')
+                : unsigned.replace(/\./g, '').replace(',', '.');
+        } else if (lastComma >= 0) {
+            const commaCount = (unsigned.match(/,/g) || []).length;
+            if (commaCount > 1) {
+                normalized = unsigned.replace(/,/g, '');
+            } else {
+                const digitsAfter = unsigned.length - lastComma - 1;
+                normalized = digitsAfter === 3
+                    ? unsigned.replace(/,/g, '')
+                    : unsigned.replace(',', '.');
+            }
+        } else if (lastDot >= 0) {
+            const dotCount = (unsigned.match(/\./g) || []).length;
+            if (dotCount > 1) {
+                normalized = unsigned.replace(/\./g, '');
+            } else {
+                const digitsAfter = unsigned.length - lastDot - 1;
+                normalized = digitsAfter === 3
+                    ? unsigned.replace(/\./g, '')
+                    : unsigned;
+            }
+        }
+
+        normalized = normalized.replace(/[^0-9.]/g, '');
+
+        const parts = normalized.split('.');
+        const integerRaw = parts.shift() || '0';
+        const integerPart = integerRaw.replace(/^0+(?=\d)/, '') || '0';
+        const fractionPart = parts.join('');
+        const withSign = isNegative ? `-${integerPart}` : integerPart;
+
+        return fractionPart.length > 0
+            ? `${withSign}.${fractionPart}`
+            : withSign;
+    };
+
+    const formatDisplay = (value, locale, decimals) => {
+        const normalized = normalizeFreeNumber(value);
+        if (!normalized) {
+            return '';
+        }
+
+        const parsed = Number.parseFloat(normalized);
+        if (!Number.isFinite(parsed)) {
+            return '';
+        }
+
+        return parsed.toLocaleString(locale, {
+            minimumFractionDigits: decimals,
+            maximumFractionDigits: decimals
+        });
+    };
+
+    const toModelValue = (value, decimalSeparator) => {
+        const normalized = normalizeFreeNumber(value);
+        if (!normalized) {
+            return '';
+        }
+
+        return decimalSeparator === ','
+            ? normalized.replace('.', ',')
+            : normalized;
+    };
+
+    const bind = (input) => {
+        if (!(input instanceof HTMLInputElement) || input.dataset.sinaraTextNumberBound === '1') {
+            return;
+        }
+
+        input.dataset.sinaraTextNumberBound = '1';
+
+        const locale = input.dataset.textNumberLocale || readLocale();
+        const decimalsRaw = Number.parseInt(input.dataset.textNumberDecimals || '2', 10);
+        const decimals = Number.isFinite(decimalsRaw)
+            ? Math.min(Math.max(decimalsRaw, 0), 6)
+            : 2;
+        const decimalSeparator = input.dataset.textNumberDecimalSeparator || readDecimalSeparator();
+        const form = input.form;
+
+        const selectAllValue = () => {
+            if (input.readOnly || input.disabled) {
+                return;
+            }
+
+            window.requestAnimationFrame(() => {
+                input.select();
+            });
+        };
+
+        input.addEventListener('focus', selectAllValue);
+        input.addEventListener('click', selectAllValue);
+        input.addEventListener('blur', () => {
+            const formatted = formatDisplay(input.value, locale, decimals);
+            input.value = formatted || input.value.trim();
+        });
+
+        const initialValue = formatDisplay(input.value, locale, decimals);
+        if (initialValue) {
+            input.value = initialValue;
+        }
+
+        if (form instanceof HTMLFormElement) {
+            // Capture phase: normalize before jQuery unobtrusive validation checks numeric range.
+            form.addEventListener('submit', (event) => {
+                const originalValue = input.value;
+                input.value = toModelValue(input.value, decimalSeparator);
+
+                window.setTimeout(() => {
+                    if (event.defaultPrevented) {
+                        const reverted = formatDisplay(originalValue, locale, decimals);
+                        input.value = reverted || originalValue;
+                    }
+                }, 0);
+            }, true);
+        }
+    };
+
+    const bindAll = () => {
+        document.querySelectorAll('input.sinara-text-number-input').forEach((element) => {
+            if (element instanceof HTMLInputElement) {
+                bind(element);
+            }
+        });
+    };
+
+    const patchJqueryValidation = () => {
+        const jq = window.jQuery;
+        if (!jq || !jq.validator || !jq.validator.methods) {
+            return false;
+        }
+
+        if (jq.validator.methods.sinaraTextNumberPatched) {
+            return true;
+        }
+
+        const isTargetInput = (element) => element instanceof HTMLInputElement && element.classList.contains('sinara-text-number-input');
+
+        const parseRuleValue = (value) => {
+            const normalized = normalizeFreeNumber(value);
+            if (!normalized) {
+                return Number.NaN;
+            }
+
+            const parsed = Number.parseFloat(normalized);
+            return Number.isFinite(parsed) ? parsed : Number.NaN;
+        };
+
+        const originalNumber = jq.validator.methods.number;
+        const originalRange = jq.validator.methods.range;
+        const originalMin = jq.validator.methods.min;
+        const originalMax = jq.validator.methods.max;
+
+        jq.validator.methods.number = function (value, element) {
+            if (!isTargetInput(element)) {
+                return originalNumber.call(this, value, element);
+            }
+
+            if (this.optional(element)) {
+                return true;
+            }
+
+            return !Number.isNaN(parseRuleValue(value));
+        };
+
+        jq.validator.methods.range = function (value, element, params) {
+            if (!isTargetInput(element)) {
+                return originalRange.call(this, value, element, params);
+            }
+
+            if (this.optional(element)) {
+                return true;
+            }
+
+            const parsed = parseRuleValue(value);
+            return !Number.isNaN(parsed)
+                && parsed >= Number(params[0])
+                && parsed <= Number(params[1]);
+        };
+
+        jq.validator.methods.min = function (value, element, param) {
+            if (!isTargetInput(element)) {
+                return originalMin.call(this, value, element, param);
+            }
+
+            if (this.optional(element)) {
+                return true;
+            }
+
+            const parsed = parseRuleValue(value);
+            return !Number.isNaN(parsed) && parsed >= Number(param);
+        };
+
+        jq.validator.methods.max = function (value, element, param) {
+            if (!isTargetInput(element)) {
+                return originalMax.call(this, value, element, param);
+            }
+
+            if (this.optional(element)) {
+                return true;
+            }
+
+            const parsed = parseRuleValue(value);
+            return !Number.isNaN(parsed) && parsed <= Number(param);
+        };
+
+        jq.validator.methods.sinaraTextNumberPatched = true;
+        return true;
+    };
+
+    const scheduleValidationPatch = () => {
+        if (patchJqueryValidation()) {
+            return;
+        }
+
+        let tries = 0;
+        const timer = window.setInterval(() => {
+            tries += 1;
+            if (patchJqueryValidation() || tries >= 50) {
+                window.clearInterval(timer);
+            }
+        }, 100);
+    };
+
+    window.SinaraTextNumber = {
+        bind,
+        bindAll,
+        normalizeFreeNumber,
+        formatDisplay,
+        toModelValue
+    };
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', bindAll);
+    } else {
+        bindAll();
+    }
+
+    scheduleValidationPatch();
+})();
