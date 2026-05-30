@@ -1,0 +1,38 @@
+
+Ini Semua menu
+Keuangan & Akuntansi
+
+Finance / Accounting — jurnal, chart of accounts, laporan keuangan (neraca, laba rugi)
+Budgeting — anggaran per departemen, realisasi vs target
+Tax Management — PPh, PPN, pelaporan pajak
+
+Operasional
+
+Inventory / Gudang — stok barang, masuk/keluar, lokasi gudang
+Purchasing (Procurement) — purchase request, purchase order, supplier
+Sales — quotation, sales order, customer management
+Production / Manufacturing — bill of materials, work order (kalau ada manufaktur)
+
+Aset & Fasilitas
+
+Fixed Assets — inventaris aset, depresiasi, mutasi aset
+Facility Management — pemeliharaan gedung/peralatan
+
+Pendukung
+
+CRM — kelola pelanggan, pipeline penjualan
+Project Management — proyek, task, timeline, biaya proyek
+Document Management — arsip dokumen perusahaan
+
+
+
+Fokus ke sini
+Finance / Accounting — karena payroll HR butuh posting ke jurnal
+Inventory — kalau ada barang/aset yang dikelola
+Purchasing — procurement barang & jasa
+Fixed Assets — inventaris aset perusahaan
+
+
+
+
+Finance / Accounting
