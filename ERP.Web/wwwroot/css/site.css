@@ -96,6 +96,11 @@ body {
 
 .dropdown-menu-large {
     min-width: 18rem;
+    max-height: min(70vh, calc(100vh - 6rem));
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
 }
 
 .sinara-theme-panel {
@@ -439,4 +444,17 @@ body {
 
 .sinara-text-number-null {
     color: #64748b;
+}
+
+
+@media (max-width: 991.98px) {
+    .sinara-navbar .navbar-collapse {
+        max-height: calc(100vh - 4.5rem);
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+
+    .sinara-navbar .dropdown-menu-large {
+        max-height: min(55vh, calc(100vh - 10rem));
+    }
 }
