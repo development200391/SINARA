@@ -2,6 +2,7 @@ using System.Linq.Expressions;
 using ERP.Domain.Entities;
 using ERP.Domain.Entities.Config;
 using ERP.Domain.Entities.HR;
+using ERP.Domain.Entities.Finance;
 using ERP.Domain.Entities.System;
 using ERP.Domain.Interfaces;
 using ERP.Domain.Enums;
@@ -34,6 +35,15 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<HrPayrollRun> HrPayrollRuns => Set<HrPayrollRun>();
     public DbSet<HrPayrollDetail> HrPayrollDetails => Set<HrPayrollDetail>();
 
+    public DbSet<FinAccountGroup> FinAccountGroups => Set<FinAccountGroup>();
+    public DbSet<FinAccount> FinAccounts => Set<FinAccount>();
+    public DbSet<FinCostCenter> FinCostCenters => Set<FinCostCenter>();
+    public DbSet<FinCurrency> FinCurrencies => Set<FinCurrency>();
+    public DbSet<FinExchangeRate> FinExchangeRates => Set<FinExchangeRate>();
+    public DbSet<FinFiscalYear> FinFiscalYears => Set<FinFiscalYear>();
+    public DbSet<FinPeriod> FinPeriods => Set<FinPeriod>();
+    public DbSet<FinTaxCode> FinTaxCodes => Set<FinTaxCode>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema("public");
@@ -59,6 +69,15 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         ConfigureHrLeaveRequest(modelBuilder.Entity<HrLeaveRequest>());
         ConfigureHrPayrollRun(modelBuilder.Entity<HrPayrollRun>());
         ConfigureHrPayrollDetail(modelBuilder.Entity<HrPayrollDetail>());
+
+        ConfigureFinAccountGroup(modelBuilder.Entity<FinAccountGroup>());
+        ConfigureFinAccount(modelBuilder.Entity<FinAccount>());
+        ConfigureFinCostCenter(modelBuilder.Entity<FinCostCenter>());
+        ConfigureFinCurrency(modelBuilder.Entity<FinCurrency>());
+        ConfigureFinExchangeRate(modelBuilder.Entity<FinExchangeRate>());
+        ConfigureFinFiscalYear(modelBuilder.Entity<FinFiscalYear>());
+        ConfigureFinPeriod(modelBuilder.Entity<FinPeriod>());
+        ConfigureFinTaxCode(modelBuilder.Entity<FinTaxCode>());
 
         ApplySoftDeleteQueryFilters(modelBuilder);
 
@@ -520,6 +539,208 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         builder.HasIndex(x => new { x.PayrollRunId, x.EmployeeId }).IsUnique();
     }
 
+    private static void ConfigureFinAccountGroup(EntityTypeBuilder<FinAccountGroup> builder)
+    {
+        builder.ToTable("fin_account_groups");
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.Name).HasMaxLength(100).IsRequired();
+        builder.Property(x => x.Code).HasMaxLength(20).IsRequired();
+        builder.Property(x => x.Type).HasConversion<int>().IsRequired();
+        builder.Property(x => x.NormalBalance).HasConversion<int>().IsRequired();
+        builder.Property(x => x.SortOrder).IsRequired();
+        builder.Property(x => x.IsActive).HasDefaultValue(true).IsRequired();
+
+        builder.HasOne(x => x.ParentGroup)
+            .WithMany(x => x.ChildGroups)
+            .HasForeignKey(x => x.ParentGroupId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(x => x.Code).IsUnique();
+        builder.HasIndex(x => x.Type);
+        builder.HasIndex(x => x.ParentGroupId);
+        builder.HasIndex(x => x.SortOrder);
+        builder.HasIndex(x => x.IsActive);
+    }
+
+    private static void ConfigureFinAccount(EntityTypeBuilder<FinAccount> builder)
+    {
+        builder.ToTable("fin_accounts");
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.Code).HasMaxLength(20).IsRequired();
+        builder.Property(x => x.Name).HasMaxLength(150).IsRequired();
+        builder.Property(x => x.Type).HasConversion<int>().IsRequired();
+        builder.Property(x => x.NormalBalance).HasConversion<int>().IsRequired();
+        builder.Property(x => x.IsHeader).HasDefaultValue(false).IsRequired();
+        builder.Property(x => x.Description).HasColumnType("text");
+        builder.Property(x => x.IsBankAccount).HasDefaultValue(false).IsRequired();
+        builder.Property(x => x.BankName).HasMaxLength(100);
+        builder.Property(x => x.BankAccountNo).HasMaxLength(50);
+        builder.Property(x => x.CurrencyCode).HasMaxLength(10).HasDefaultValue("IDR").IsRequired();
+        builder.Property(x => x.IsActive).HasDefaultValue(true).IsRequired();
+
+        builder.HasOne(x => x.Group)
+            .WithMany(x => x.Accounts)
+            .HasForeignKey(x => x.GroupId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.ParentAccount)
+            .WithMany(x => x.ChildAccounts)
+            .HasForeignKey(x => x.ParentAccountId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.Currency)
+            .WithMany(x => x.Accounts)
+            .HasForeignKey(x => x.CurrencyCode)
+            .HasPrincipalKey(x => x.Code)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(x => x.Code).IsUnique();
+        builder.HasIndex(x => x.GroupId);
+        builder.HasIndex(x => x.ParentAccountId);
+        builder.HasIndex(x => x.Type);
+        builder.HasIndex(x => x.CurrencyCode);
+        builder.HasIndex(x => x.IsBankAccount);
+        builder.HasIndex(x => x.IsActive);
+    }
+
+    private static void ConfigureFinCostCenter(EntityTypeBuilder<FinCostCenter> builder)
+    {
+        builder.ToTable("fin_cost_centers");
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.Code).HasMaxLength(20).IsRequired();
+        builder.Property(x => x.Name).HasMaxLength(100).IsRequired();
+        builder.Property(x => x.IsActive).HasDefaultValue(true).IsRequired();
+
+        builder.HasOne(x => x.Department)
+            .WithMany()
+            .HasForeignKey(x => x.DepartmentId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.Manager)
+            .WithMany()
+            .HasForeignKey(x => x.ManagerId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.BudgetAccount)
+            .WithMany(x => x.BudgetCostCenters)
+            .HasForeignKey(x => x.BudgetAccountId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasIndex(x => x.Code).IsUnique();
+        builder.HasIndex(x => x.DepartmentId);
+        builder.HasIndex(x => x.ManagerId);
+        builder.HasIndex(x => x.BudgetAccountId);
+        builder.HasIndex(x => x.IsActive);
+    }
+
+    private static void ConfigureFinCurrency(EntityTypeBuilder<FinCurrency> builder)
+    {
+        builder.ToTable("fin_currencies");
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.Code).HasMaxLength(10).IsRequired();
+        builder.Property(x => x.Name).HasMaxLength(50).IsRequired();
+        builder.Property(x => x.Symbol).HasMaxLength(10).IsRequired();
+        builder.Property(x => x.IsBaseCurrency).HasDefaultValue(false).IsRequired();
+        builder.Property(x => x.IsActive).HasDefaultValue(true).IsRequired();
+
+        builder.HasAlternateKey(x => x.Code);
+        builder.HasIndex(x => x.IsBaseCurrency);
+        builder.HasIndex(x => x.IsActive);
+    }
+
+    private static void ConfigureFinExchangeRate(EntityTypeBuilder<FinExchangeRate> builder)
+    {
+        builder.ToTable("fin_exchange_rates");
+
+        builder.Property(x => x.Id).UseIdentityAlwaysColumn();
+        builder.Property(x => x.FromCurrencyCode).HasMaxLength(10).IsRequired();
+        builder.Property(x => x.ToCurrencyCode).HasMaxLength(10).IsRequired();
+        builder.Property(x => x.Rate).HasColumnType("numeric(18,6)").IsRequired();
+        builder.Property(x => x.EffectiveDate).HasColumnType("date").IsRequired();
+        builder.Property(x => x.Source).HasMaxLength(50);
+        builder.Property(x => x.CreatedBy).HasMaxLength(100).HasDefaultValue("system").IsRequired();
+        builder.Property(x => x.CreatedAt).HasColumnType("timestamptz").HasDefaultValueSql("NOW()").IsRequired();
+
+        builder.HasOne(x => x.FromCurrency)
+            .WithMany(x => x.ExchangeRatesFrom)
+            .HasForeignKey(x => x.FromCurrencyCode)
+            .HasPrincipalKey(x => x.Code)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.ToCurrency)
+            .WithMany(x => x.ExchangeRatesTo)
+            .HasForeignKey(x => x.ToCurrencyCode)
+            .HasPrincipalKey(x => x.Code)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(x => new { x.FromCurrencyCode, x.EffectiveDate });
+        builder.HasIndex(x => new { x.ToCurrencyCode, x.EffectiveDate });
+        builder.HasIndex(x => new { x.FromCurrencyCode, x.ToCurrencyCode, x.EffectiveDate }).IsUnique();
+    }
+
+    private static void ConfigureFinFiscalYear(EntityTypeBuilder<FinFiscalYear> builder)
+    {
+        builder.ToTable("fin_fiscal_years");
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.Name).HasMaxLength(50).IsRequired();
+        builder.Property(x => x.StartDate).HasColumnType("date").IsRequired();
+        builder.Property(x => x.EndDate).HasColumnType("date").IsRequired();
+        builder.Property(x => x.Status).HasConversion<int>().HasDefaultValue(FinancePeriodStatus.Open).IsRequired();
+
+        builder.HasIndex(x => x.Name).IsUnique();
+        builder.HasIndex(x => x.StartDate);
+        builder.HasIndex(x => x.EndDate);
+        builder.HasIndex(x => x.Status);
+    }
+
+    private static void ConfigureFinPeriod(EntityTypeBuilder<FinPeriod> builder)
+    {
+        builder.ToTable("fin_periods");
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.PeriodNumber).IsRequired();
+        builder.Property(x => x.Name).HasMaxLength(30).IsRequired();
+        builder.Property(x => x.StartDate).HasColumnType("date").IsRequired();
+        builder.Property(x => x.EndDate).HasColumnType("date").IsRequired();
+        builder.Property(x => x.Status).HasConversion<int>().HasDefaultValue(FinancePeriodStatus.Open).IsRequired();
+
+        builder.HasOne(x => x.FiscalYear)
+            .WithMany(x => x.Periods)
+            .HasForeignKey(x => x.FiscalYearId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(x => x.FiscalYearId);
+        builder.HasIndex(x => x.Status);
+        builder.HasIndex(x => new { x.FiscalYearId, x.PeriodNumber }).IsUnique();
+    }
+
+    private static void ConfigureFinTaxCode(EntityTypeBuilder<FinTaxCode> builder)
+    {
+        builder.ToTable("fin_tax_codes");
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.Code).HasMaxLength(20).IsRequired();
+        builder.Property(x => x.Name).HasMaxLength(100).IsRequired();
+        builder.Property(x => x.Type).HasConversion<int>().IsRequired();
+        builder.Property(x => x.Rate).HasColumnType("numeric(5,2)").IsRequired();
+        builder.Property(x => x.IsInclusive).HasDefaultValue(false).IsRequired();
+        builder.Property(x => x.IsActive).HasDefaultValue(true).IsRequired();
+
+        builder.HasOne(x => x.Account)
+            .WithMany(x => x.TaxCodes)
+            .HasForeignKey(x => x.AccountId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(x => x.Code).IsUnique();
+        builder.HasIndex(x => x.Type);
+        builder.HasIndex(x => x.AccountId);
+        builder.HasIndex(x => x.IsActive);
+    }
     private static void ApplySoftDeleteQueryFilters(ModelBuilder modelBuilder)
     {
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
@@ -541,4 +762,5 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         }
     }
 }
+
 

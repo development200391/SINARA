@@ -1,6 +1,7 @@
 using ERP.Application.Services;
 using ERP.Domain.Entities.Config;
 using ERP.Domain.Entities.HR;
+using ERP.Domain.Entities.Finance;
 using ERP.Domain.Entities.System;
 using ERP.Domain.Enums;
 using Microsoft.AspNetCore.Identity;
@@ -19,6 +20,7 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         await SeedHrMasterDataAsync(now, ct);
         await SeedLeaveTypesAsync(now, ct);
         await SeedAttendanceSettingAsync(now, ct);
+        await SeedFinanceMasterDataAsync(now, ct);
         await SeedAdminUserAsync(now, ct);
         await SeedMenusAsync(now, ct);
         await SeedSuperAdminPermissionsAsync(ct);
@@ -28,6 +30,7 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
     {
         await EnsureModuleAsync("Human Resources", "HR", "bi-people", 1, now, ct);
         await EnsureModuleAsync("System Configuration", "CFG", "bi-gear", 2, now, ct);
+        await EnsureModuleAsync("Finance", "FIN", "bi-cash-coin", 3, now, ct);
     }
 
     private async Task SeedRolesAsync(DateTimeOffset now, CancellationToken ct)
@@ -143,6 +146,91 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
 
         await dbContext.SaveChangesAsync(ct);
     }
+
+    private async Task SeedFinanceMasterDataAsync(DateTimeOffset now, CancellationToken ct)
+    {
+        await EnsureCurrencyAsync("IDR", "Indonesian Rupiah", "Rp", true, true, now, ct);
+        await EnsureCurrencyAsync("USD", "US Dollar", "$", false, true, now, ct);
+        await EnsureCurrencyAsync("EUR", "Euro", "EUR", false, true, now, ct);
+        await EnsureCurrencyAsync("SGD", "Singapore Dollar", "S$", false, true, now, ct);
+
+        var group1000 = await EnsureAccountGroupAsync("ASET", "1000", FinanceAccountType.Asset, FinanceNormalBalance.Debit, null, 1, true, now, ct);
+        var group1100 = await EnsureAccountGroupAsync("Aset Lancar", "1100", FinanceAccountType.Asset, FinanceNormalBalance.Debit, group1000.Id, 2, true, now, ct);
+        var group1200 = await EnsureAccountGroupAsync("Aset Tidak Lancar", "1200", FinanceAccountType.Asset, FinanceNormalBalance.Debit, group1000.Id, 3, true, now, ct);
+
+        var group2000 = await EnsureAccountGroupAsync("KEWAJIBAN", "2000", FinanceAccountType.Liability, FinanceNormalBalance.Credit, null, 4, true, now, ct);
+        var group2100 = await EnsureAccountGroupAsync("Kewajiban Jangka Pendek", "2100", FinanceAccountType.Liability, FinanceNormalBalance.Credit, group2000.Id, 5, true, now, ct);
+
+        var group3000 = await EnsureAccountGroupAsync("EKUITAS", "3000", FinanceAccountType.Equity, FinanceNormalBalance.Credit, null, 6, true, now, ct);
+        var group4000 = await EnsureAccountGroupAsync("PENDAPATAN", "4000", FinanceAccountType.Revenue, FinanceNormalBalance.Credit, null, 7, true, now, ct);
+        var group5000 = await EnsureAccountGroupAsync("BEBAN", "5000", FinanceAccountType.Expense, FinanceNormalBalance.Debit, null, 8, true, now, ct);
+
+        var acc1000 = await EnsureAccountAsync("1000", "ASET", group1000.Id, FinanceAccountType.Asset, FinanceNormalBalance.Debit, true, null, null, false, null, null, "IDR", true, now, ct);
+        var acc1100 = await EnsureAccountAsync("1100", "Aset Lancar", group1100.Id, FinanceAccountType.Asset, FinanceNormalBalance.Debit, true, acc1000.Id, null, false, null, null, "IDR", true, now, ct);
+        await EnsureAccountAsync("1101", "Kas & Setara Kas", group1100.Id, FinanceAccountType.Asset, FinanceNormalBalance.Debit, false, acc1100.Id, null, false, null, null, "IDR", true, now, ct);
+        await EnsureAccountAsync("1102", "Bank BCA", group1100.Id, FinanceAccountType.Asset, FinanceNormalBalance.Debit, false, acc1100.Id, null, true, "BCA", null, "IDR", true, now, ct);
+        await EnsureAccountAsync("1103", "Bank Mandiri", group1100.Id, FinanceAccountType.Asset, FinanceNormalBalance.Debit, false, acc1100.Id, null, true, "Mandiri", null, "IDR", true, now, ct);
+        await EnsureAccountAsync("1110", "Piutang Usaha", group1100.Id, FinanceAccountType.Asset, FinanceNormalBalance.Debit, false, acc1100.Id, null, false, null, null, "IDR", true, now, ct);
+        await EnsureAccountAsync("1120", "Piutang Lain-lain", group1100.Id, FinanceAccountType.Asset, FinanceNormalBalance.Debit, false, acc1100.Id, null, false, null, null, "IDR", true, now, ct);
+        await EnsureAccountAsync("1130", "Persekot/Uang Muka", group1100.Id, FinanceAccountType.Asset, FinanceNormalBalance.Debit, false, acc1100.Id, null, false, null, null, "IDR", true, now, ct);
+        await EnsureAccountAsync("1140", "PPN Masukan", group1100.Id, FinanceAccountType.Asset, FinanceNormalBalance.Debit, false, acc1100.Id, null, false, null, null, "IDR", true, now, ct);
+
+        var acc1200 = await EnsureAccountAsync("1200", "Aset Tidak Lancar", group1200.Id, FinanceAccountType.Asset, FinanceNormalBalance.Debit, true, acc1000.Id, null, false, null, null, "IDR", true, now, ct);
+        await EnsureAccountAsync("1201", "Aset Tetap", group1200.Id, FinanceAccountType.Asset, FinanceNormalBalance.Debit, false, acc1200.Id, null, false, null, null, "IDR", true, now, ct);
+        await EnsureAccountAsync("1202", "Akumulasi Penyusutan", group1200.Id, FinanceAccountType.Asset, FinanceNormalBalance.Credit, false, acc1200.Id, null, false, null, null, "IDR", true, now, ct);
+
+        var acc2000 = await EnsureAccountAsync("2000", "KEWAJIBAN", group2000.Id, FinanceAccountType.Liability, FinanceNormalBalance.Credit, true, null, null, false, null, null, "IDR", true, now, ct);
+        var acc2100 = await EnsureAccountAsync("2100", "Kewajiban Jangka Pendek", group2100.Id, FinanceAccountType.Liability, FinanceNormalBalance.Credit, true, acc2000.Id, null, false, null, null, "IDR", true, now, ct);
+        await EnsureAccountAsync("2101", "Utang Usaha", group2100.Id, FinanceAccountType.Liability, FinanceNormalBalance.Credit, false, acc2100.Id, null, false, null, null, "IDR", true, now, ct);
+        await EnsureAccountAsync("2102", "Utang Gaji", group2100.Id, FinanceAccountType.Liability, FinanceNormalBalance.Credit, false, acc2100.Id, null, false, null, null, "IDR", true, now, ct);
+        var acc2103 = await EnsureAccountAsync("2103", "Utang PPh 21", group2100.Id, FinanceAccountType.Liability, FinanceNormalBalance.Credit, false, acc2100.Id, null, false, null, null, "IDR", true, now, ct);
+        await EnsureAccountAsync("2104", "Utang BPJS", group2100.Id, FinanceAccountType.Liability, FinanceNormalBalance.Credit, false, acc2100.Id, null, false, null, null, "IDR", true, now, ct);
+        var acc2105 = await EnsureAccountAsync("2105", "PPN Keluaran", group2100.Id, FinanceAccountType.Liability, FinanceNormalBalance.Credit, false, acc2100.Id, null, false, null, null, "IDR", true, now, ct);
+        await EnsureAccountAsync("2106", "Pendapatan Diterima Dimuka", group2100.Id, FinanceAccountType.Liability, FinanceNormalBalance.Credit, false, acc2100.Id, null, false, null, null, "IDR", true, now, ct);
+
+        var acc3000 = await EnsureAccountAsync("3000", "EKUITAS", group3000.Id, FinanceAccountType.Equity, FinanceNormalBalance.Credit, true, null, null, false, null, null, "IDR", true, now, ct);
+        await EnsureAccountAsync("3101", "Modal Disetor", group3000.Id, FinanceAccountType.Equity, FinanceNormalBalance.Credit, false, acc3000.Id, null, false, null, null, "IDR", true, now, ct);
+        await EnsureAccountAsync("3102", "Laba Ditahan", group3000.Id, FinanceAccountType.Equity, FinanceNormalBalance.Credit, false, acc3000.Id, null, false, null, null, "IDR", true, now, ct);
+        await EnsureAccountAsync("3103", "Laba Tahun Berjalan", group3000.Id, FinanceAccountType.Equity, FinanceNormalBalance.Credit, false, acc3000.Id, null, false, null, null, "IDR", true, now, ct);
+
+        var acc4000 = await EnsureAccountAsync("4000", "PENDAPATAN", group4000.Id, FinanceAccountType.Revenue, FinanceNormalBalance.Credit, true, null, null, false, null, null, "IDR", true, now, ct);
+        await EnsureAccountAsync("4101", "Pendapatan Usaha", group4000.Id, FinanceAccountType.Revenue, FinanceNormalBalance.Credit, false, acc4000.Id, null, false, null, null, "IDR", true, now, ct);
+        await EnsureAccountAsync("4102", "Pendapatan Jasa", group4000.Id, FinanceAccountType.Revenue, FinanceNormalBalance.Credit, false, acc4000.Id, null, false, null, null, "IDR", true, now, ct);
+        await EnsureAccountAsync("4103", "Pendapatan Lain-lain", group4000.Id, FinanceAccountType.Revenue, FinanceNormalBalance.Credit, false, acc4000.Id, null, false, null, null, "IDR", true, now, ct);
+
+        var acc5000 = await EnsureAccountAsync("5000", "BEBAN", group5000.Id, FinanceAccountType.Expense, FinanceNormalBalance.Debit, true, null, null, false, null, null, "IDR", true, now, ct);
+        await EnsureAccountAsync("5101", "Beban Gaji & Tunjangan", group5000.Id, FinanceAccountType.Expense, FinanceNormalBalance.Debit, false, acc5000.Id, null, false, null, null, "IDR", true, now, ct);
+        await EnsureAccountAsync("5102", "Beban PPh 21", group5000.Id, FinanceAccountType.Expense, FinanceNormalBalance.Debit, false, acc5000.Id, null, false, null, null, "IDR", true, now, ct);
+        await EnsureAccountAsync("5103", "Beban BPJS Perusahaan", group5000.Id, FinanceAccountType.Expense, FinanceNormalBalance.Debit, false, acc5000.Id, null, false, null, null, "IDR", true, now, ct);
+        var acc5104 = await EnsureAccountAsync("5104", "Beban Operasional", group5000.Id, FinanceAccountType.Expense, FinanceNormalBalance.Debit, false, acc5000.Id, null, false, null, null, "IDR", true, now, ct);
+        await EnsureAccountAsync("5105", "Beban Penyusutan", group5000.Id, FinanceAccountType.Expense, FinanceNormalBalance.Debit, false, acc5000.Id, null, false, null, null, "IDR", true, now, ct);
+        await EnsureAccountAsync("5106", "Beban Pajak Lain", group5000.Id, FinanceAccountType.Expense, FinanceNormalBalance.Debit, false, acc5000.Id, null, false, null, null, "IDR", true, now, ct);
+
+        var currentYear = DateTime.UtcNow.Year;
+        var fiscalYear = await EnsureFiscalYearAsync($"FY {currentYear}", new DateOnly(currentYear, 1, 1), new DateOnly(currentYear, 12, 31), FinancePeriodStatus.Open, now, ct);
+        for (var month = 1; month <= 12; month++)
+        {
+            var periodStart = new DateOnly(currentYear, month, 1);
+            var periodEnd = new DateOnly(currentYear, month, DateTime.DaysInMonth(currentYear, month));
+            await EnsurePeriodAsync(fiscalYear.Id, month, periodStart.ToString("MMMM yyyy"), periodStart, periodEnd, FinancePeriodStatus.Open, now, ct);
+        }
+
+        var departments = await dbContext.HrDepartments
+            .AsNoTracking()
+            .Where(x => x.IsActive)
+            .ToListAsync(ct);
+
+        foreach (var department in departments)
+        {
+            var code = BuildCostCenterCode(department.Code);
+            await EnsureCostCenterAsync(code, department.Name, department.Id, department.ManagerId, acc5104.Id, true, now, ct);
+        }
+
+        await EnsureTaxCodeAsync("PPN11", "PPN 11%", FinanceTaxType.Ppn, 11m, false, acc2105.Id, true, now, ct);
+        await EnsureTaxCodeAsync("PPH21", "PPh 21 Karyawan", FinanceTaxType.Pph21, 5m, false, acc2103.Id, true, now, ct);
+        await EnsureTaxCodeAsync("PPH23", "PPh 23", FinanceTaxType.Pph23, 2m, false, acc2103.Id, true, now, ct);
+        await EnsureTaxCodeAsync("PPH4_2", "PPh 4(2)", FinanceTaxType.Pph4Ayat2, 10m, false, acc2103.Id, true, now, ct);
+    }
     private async Task SeedAdminUserAsync(DateTimeOffset now, CancellationToken ct)
     {
         var adminUser = await dbContext.SysUsers
@@ -202,6 +290,10 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
             .IgnoreQueryFilters()
             .FirstAsync(x => x.Code == "CFG", ct);
 
+        var finModule = await dbContext.CfgModules
+            .IgnoreQueryFilters()
+            .FirstAsync(x => x.Code == "FIN", ct);
+
         var hrEmployees = await EnsureMenuAsync(hrModule.Id, null, "Employees", null, "bi-people", 1, now, ct);
         await EnsureMenuAsync(hrModule.Id, hrEmployees.Id, "All Employees", "/hr/employees", "bi-list", 1, now, ct);
         await EnsureMenuAsync(hrModule.Id, hrEmployees.Id, "Add Employee", "/hr/employees/create", "bi-plus-circle", 2, now, ct);
@@ -244,6 +336,18 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         await EnsureMenuAsync(cfgModule.Id, cfgSystem.Id, "App Settings", "/config/settings", "bi-tools", 1, now, ct);
         await EnsureMenuAsync(cfgModule.Id, cfgSystem.Id, "Language Setup", "/config/languages", "bi-translate", 2, now, ct);
         await EnsureMenuAsync(cfgModule.Id, cfgSystem.Id, "Audit Log", "/config/audit", "bi-journal-text", 3, now, ct);
+
+        var finCoa = await EnsureMenuAsync(finModule.Id, null, "Chart of Accounts", null, "bi-diagram-2", 1, now, ct);
+        await EnsureMenuAsync(finModule.Id, finCoa.Id, "Accounts", "/finance/coa", "bi-list-columns", 1, now, ct);
+        await EnsureMenuAsync(finModule.Id, finCoa.Id, "Account Groups", "/finance/coa/groups", "bi-folder2-open", 2, now, ct);
+
+        var finMasters = await EnsureMenuAsync(finModule.Id, null, "Finance Masters", null, "bi-sliders", 2, now, ct);
+        await EnsureMenuAsync(finModule.Id, finMasters.Id, "Cost Centers", "/finance/cost-centers", "bi-diagram-3", 1, now, ct);
+        await EnsureMenuAsync(finModule.Id, finMasters.Id, "Currencies", "/finance/currencies", "bi-currency-exchange", 2, now, ct);
+        await EnsureMenuAsync(finModule.Id, finMasters.Id, "Exchange Rates", "/finance/exchange-rates", "bi-graph-up-arrow", 3, now, ct);
+        await EnsureMenuAsync(finModule.Id, finMasters.Id, "Fiscal Years", "/finance/fiscal-years", "bi-calendar3", 4, now, ct);
+        await EnsureMenuAsync(finModule.Id, finMasters.Id, "Periods", "/finance/periods", "bi-calendar-week", 5, now, ct);
+        await EnsureMenuAsync(finModule.Id, finMasters.Id, "Tax Codes", "/finance/tax-codes", "bi-receipt-cutoff", 6, now, ct);
     }
 
     private async Task SeedSuperAdminPermissionsAsync(CancellationToken ct)
@@ -484,6 +588,393 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         await dbContext.SaveChangesAsync(ct);
     }
 
+
+    private async Task<FinCurrency> EnsureCurrencyAsync(
+        string code,
+        string name,
+        string symbol,
+        bool isBaseCurrency,
+        bool isActive,
+        DateTimeOffset now,
+        CancellationToken ct)
+    {
+        var normalizedCode = code.Trim().ToUpperInvariant();
+
+        var existing = await dbContext.FinCurrencies
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(x => x.Code == normalizedCode, ct);
+
+        if (existing is null)
+        {
+            existing = new FinCurrency
+            {
+                Code = normalizedCode,
+                Name = name,
+                Symbol = symbol,
+                IsBaseCurrency = isBaseCurrency,
+                IsActive = isActive,
+                CreatedBy = "system",
+                CreatedAt = now
+            };
+
+            dbContext.FinCurrencies.Add(existing);
+        }
+        else
+        {
+            existing.Name = name;
+            existing.Symbol = symbol;
+            existing.IsBaseCurrency = isBaseCurrency;
+            existing.IsActive = isActive;
+            existing.IsDeleted = false;
+            existing.DeletedAt = null;
+            existing.UpdatedBy = "system";
+            existing.UpdatedAt = now;
+        }
+
+        if (isBaseCurrency)
+        {
+            var others = await dbContext.FinCurrencies
+                .IgnoreQueryFilters()
+                .Where(x => x.Code != normalizedCode && x.IsBaseCurrency)
+                .ToListAsync(ct);
+
+            foreach (var other in others)
+            {
+                other.IsBaseCurrency = false;
+                other.UpdatedBy = "system";
+                other.UpdatedAt = now;
+            }
+        }
+
+        await dbContext.SaveChangesAsync(ct);
+        return existing;
+    }
+
+    private async Task<FinAccountGroup> EnsureAccountGroupAsync(
+        string name,
+        string code,
+        FinanceAccountType type,
+        FinanceNormalBalance normalBalance,
+        int? parentGroupId,
+        int sortOrder,
+        bool isActive,
+        DateTimeOffset now,
+        CancellationToken ct)
+    {
+        var normalizedCode = code.Trim().ToUpperInvariant();
+
+        var existing = await dbContext.FinAccountGroups
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(x => x.Code == normalizedCode, ct);
+
+        if (existing is null)
+        {
+            existing = new FinAccountGroup
+            {
+                Name = name,
+                Code = normalizedCode,
+                Type = type,
+                NormalBalance = normalBalance,
+                ParentGroupId = parentGroupId,
+                SortOrder = sortOrder,
+                IsActive = isActive,
+                CreatedBy = "system",
+                CreatedAt = now
+            };
+
+            dbContext.FinAccountGroups.Add(existing);
+        }
+        else
+        {
+            existing.Name = name;
+            existing.Type = type;
+            existing.NormalBalance = normalBalance;
+            existing.ParentGroupId = parentGroupId;
+            existing.SortOrder = sortOrder;
+            existing.IsActive = isActive;
+            existing.IsDeleted = false;
+            existing.DeletedAt = null;
+            existing.UpdatedBy = "system";
+            existing.UpdatedAt = now;
+        }
+
+        await dbContext.SaveChangesAsync(ct);
+        return existing;
+    }
+
+    private async Task<FinAccount> EnsureAccountAsync(
+        string code,
+        string name,
+        int groupId,
+        FinanceAccountType type,
+        FinanceNormalBalance normalBalance,
+        bool isHeader,
+        int? parentAccountId,
+        string? description,
+        bool isBankAccount,
+        string? bankName,
+        string? bankAccountNo,
+        string currencyCode,
+        bool isActive,
+        DateTimeOffset now,
+        CancellationToken ct)
+    {
+        var normalizedCode = code.Trim().ToUpperInvariant();
+        var normalizedCurrencyCode = currencyCode.Trim().ToUpperInvariant();
+
+        var existing = await dbContext.FinAccounts
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(x => x.Code == normalizedCode, ct);
+
+        if (existing is null)
+        {
+            existing = new FinAccount
+            {
+                Code = normalizedCode,
+                Name = name,
+                GroupId = groupId,
+                Type = type,
+                NormalBalance = normalBalance,
+                IsHeader = isHeader,
+                ParentAccountId = parentAccountId,
+                Description = description,
+                IsBankAccount = isBankAccount,
+                BankName = bankName,
+                BankAccountNo = bankAccountNo,
+                CurrencyCode = normalizedCurrencyCode,
+                IsActive = isActive,
+                CreatedBy = "system",
+                CreatedAt = now
+            };
+
+            dbContext.FinAccounts.Add(existing);
+        }
+        else
+        {
+            existing.Name = name;
+            existing.GroupId = groupId;
+            existing.Type = type;
+            existing.NormalBalance = normalBalance;
+            existing.IsHeader = isHeader;
+            existing.ParentAccountId = parentAccountId;
+            existing.Description = description;
+            existing.IsBankAccount = isBankAccount;
+            existing.BankName = bankName;
+            existing.BankAccountNo = bankAccountNo;
+            existing.CurrencyCode = normalizedCurrencyCode;
+            existing.IsActive = isActive;
+            existing.IsDeleted = false;
+            existing.DeletedAt = null;
+            existing.UpdatedBy = "system";
+            existing.UpdatedAt = now;
+        }
+
+        await dbContext.SaveChangesAsync(ct);
+        return existing;
+    }
+
+    private async Task<FinCostCenter> EnsureCostCenterAsync(
+        string code,
+        string name,
+        int? departmentId,
+        int? managerId,
+        int? budgetAccountId,
+        bool isActive,
+        DateTimeOffset now,
+        CancellationToken ct)
+    {
+        var normalizedCode = code.Trim().ToUpperInvariant();
+
+        var existing = await dbContext.FinCostCenters
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(x => x.Code == normalizedCode, ct);
+
+        if (existing is null)
+        {
+            existing = new FinCostCenter
+            {
+                Code = normalizedCode,
+                Name = name,
+                DepartmentId = departmentId,
+                ManagerId = managerId,
+                BudgetAccountId = budgetAccountId,
+                IsActive = isActive,
+                CreatedBy = "system",
+                CreatedAt = now
+            };
+
+            dbContext.FinCostCenters.Add(existing);
+        }
+        else
+        {
+            existing.Name = name;
+            existing.DepartmentId = departmentId;
+            existing.ManagerId = managerId;
+            existing.BudgetAccountId = budgetAccountId;
+            existing.IsActive = isActive;
+            existing.IsDeleted = false;
+            existing.DeletedAt = null;
+            existing.UpdatedBy = "system";
+            existing.UpdatedAt = now;
+        }
+
+        await dbContext.SaveChangesAsync(ct);
+        return existing;
+    }
+
+    private async Task<FinFiscalYear> EnsureFiscalYearAsync(
+        string name,
+        DateOnly startDate,
+        DateOnly endDate,
+        FinancePeriodStatus status,
+        DateTimeOffset now,
+        CancellationToken ct)
+    {
+        var existing = await dbContext.FinFiscalYears
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(x => x.Name == name, ct);
+
+        if (existing is null)
+        {
+            existing = new FinFiscalYear
+            {
+                Name = name,
+                StartDate = startDate,
+                EndDate = endDate,
+                Status = status,
+                CreatedBy = "system",
+                CreatedAt = now
+            };
+
+            dbContext.FinFiscalYears.Add(existing);
+        }
+        else
+        {
+            existing.StartDate = startDate;
+            existing.EndDate = endDate;
+            existing.Status = status;
+            existing.IsDeleted = false;
+            existing.DeletedAt = null;
+            existing.UpdatedBy = "system";
+            existing.UpdatedAt = now;
+        }
+
+        await dbContext.SaveChangesAsync(ct);
+        return existing;
+    }
+
+    private async Task<FinPeriod> EnsurePeriodAsync(
+        int fiscalYearId,
+        int periodNumber,
+        string name,
+        DateOnly startDate,
+        DateOnly endDate,
+        FinancePeriodStatus status,
+        DateTimeOffset now,
+        CancellationToken ct)
+    {
+        var existing = await dbContext.FinPeriods
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(x => x.FiscalYearId == fiscalYearId && x.PeriodNumber == periodNumber, ct);
+
+        if (existing is null)
+        {
+            existing = new FinPeriod
+            {
+                FiscalYearId = fiscalYearId,
+                PeriodNumber = periodNumber,
+                Name = name,
+                StartDate = startDate,
+                EndDate = endDate,
+                Status = status,
+                CreatedBy = "system",
+                CreatedAt = now
+            };
+
+            dbContext.FinPeriods.Add(existing);
+        }
+        else
+        {
+            existing.Name = name;
+            existing.StartDate = startDate;
+            existing.EndDate = endDate;
+            existing.Status = status;
+            existing.IsDeleted = false;
+            existing.DeletedAt = null;
+            existing.UpdatedBy = "system";
+            existing.UpdatedAt = now;
+        }
+
+        await dbContext.SaveChangesAsync(ct);
+        return existing;
+    }
+
+    private async Task<FinTaxCode> EnsureTaxCodeAsync(
+        string code,
+        string name,
+        FinanceTaxType type,
+        decimal rate,
+        bool isInclusive,
+        int accountId,
+        bool isActive,
+        DateTimeOffset now,
+        CancellationToken ct)
+    {
+        var normalizedCode = code.Trim().ToUpperInvariant();
+
+        var existing = await dbContext.FinTaxCodes
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(x => x.Code == normalizedCode, ct);
+
+        if (existing is null)
+        {
+            existing = new FinTaxCode
+            {
+                Code = normalizedCode,
+                Name = name,
+                Type = type,
+                Rate = rate,
+                IsInclusive = isInclusive,
+                AccountId = accountId,
+                IsActive = isActive,
+                CreatedBy = "system",
+                CreatedAt = now
+            };
+
+            dbContext.FinTaxCodes.Add(existing);
+        }
+        else
+        {
+            existing.Name = name;
+            existing.Type = type;
+            existing.Rate = rate;
+            existing.IsInclusive = isInclusive;
+            existing.AccountId = accountId;
+            existing.IsActive = isActive;
+            existing.IsDeleted = false;
+            existing.DeletedAt = null;
+            existing.UpdatedBy = "system";
+            existing.UpdatedAt = now;
+        }
+
+        await dbContext.SaveChangesAsync(ct);
+        return existing;
+    }
+
+    private static string BuildCostCenterCode(string departmentCode)
+    {
+        var raw = string.IsNullOrWhiteSpace(departmentCode)
+            ? "GEN"
+            : new string(departmentCode.Trim().Where(char.IsLetterOrDigit).ToArray());
+
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            raw = "GEN";
+        }
+
+        var code = $"CC-{raw.ToUpperInvariant()}";
+        return code.Length <= 20 ? code : code[..20];
+    }
     private async Task<CfgMenu> EnsureMenuAsync(
         int moduleId,
         int? parentId,
@@ -532,3 +1023,4 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         return menu;
     }
 }
+
