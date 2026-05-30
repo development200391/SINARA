@@ -1,5 +1,6 @@
 using ERP.Domain.Entities.Config;
 using ERP.Domain.Entities.HR;
+using ERP.Domain.Entities.Finance;
 
 namespace ERP.Domain.Entities.System;
 
@@ -19,4 +20,5 @@ public sealed class SysUser : BaseEntity
     public ICollection<HrEmployee> Employees { get; set; } = new List<HrEmployee>();
     public ICollection<HrLeaveRequest> ApprovedLeaveRequests { get; set; } = new List<HrLeaveRequest>();
     public ICollection<HrPayrollRun> ProcessedPayrollRuns { get; set; } = new List<HrPayrollRun>();
+    public ICollection<FinJournalEntry> PostedFinanceJournals { get; set; } = new List<FinJournalEntry>();
 }

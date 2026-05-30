@@ -1,0 +1,305 @@
+@model ERP.Web.ViewModels.Finance.FinanceJournalEditViewModel
+
+@{
+    var isReadOnly = Model.IsReadOnly;
+}
+
+@if (!string.IsNullOrWhiteSpace(Model.JournalNo))
+{
+    <div class="col-md-4">
+        <label class="form-label">@T["Journal No"]</label>
+        <input type="text" class="form-control" value="@Model.JournalNo" readonly />
+    </div>
+}
+
+<div class="col-md-4">
+    <label asp-for="PeriodId" class="form-label">@T["Period"]</label>
+    <select asp-for="PeriodId" class="form-select" disabled="@isReadOnly">
+        @foreach (var option in Model.PeriodOptions)
+        {
+            <option value="@option.Id" selected="@(Model.PeriodId == option.Id)">@option.Label</option>
+        }
+    </select>
+    <span asp-validation-for="PeriodId" class="text-danger"></span>
+</div>
+
+<div class="col-md-2">
+    <label asp-for="Date" class="form-label">@T["Date"]</label>
+    <input asp-for="Date" class="form-control" type="date" readonly="@isReadOnly" />
+    <span asp-validation-for="Date" class="text-danger"></span>
+</div>
+
+<div class="col-md-2">
+    <label asp-for="Source" class="form-label">@T["Source"]</label>
+    <select asp-for="Source" class="form-select" disabled="@isReadOnly">
+        @foreach (var value in Enum.GetValues<ERP.Domain.Enums.FinanceJournalSource>())
+        {
+            <option value="@value" selected="@(Model.Source == value)">@T[value.ToString()]</option>
+        }
+    </select>
+</div>
+
+<div class="col-md-8">
+    <label asp-for="Description" class="form-label">@T["Description"]</label>
+    <input asp-for="Description" class="form-control" readonly="@isReadOnly" />
+    <span asp-validation-for="Description" class="text-danger"></span>
+</div>
+
+<div class="col-md-2">
+    <label asp-for="CurrencyCode" class="form-label">@T["Currency"]</label>
+    <select asp-for="CurrencyCode" class="form-select" disabled="@isReadOnly">
+        @foreach (var option in Model.CurrencyOptions)
+        {
+            <option value="@option.Code" selected="@string.Equals(Model.CurrencyCode, option.Code, StringComparison.OrdinalIgnoreCase)">@option.Label</option>
+        }
+    </select>
+</div>
+
+<div class="col-md-2">
+    <label asp-for="ExchangeRate" class="form-label">@T["Exchange Rate"]</label>
+    <input asp-for="ExchangeRate" class="form-control" type="number" min="0.000001" step="0.000001" readonly="@isReadOnly" />
+    <span asp-validation-for="ExchangeRate" class="text-danger"></span>
+</div>
+
+<div class="col-md-3">
+    <label asp-for="SourceRefType" class="form-label">@T["Source Ref Type"]</label>
+    <input asp-for="SourceRefType" class="form-control" readonly="@isReadOnly" />
+</div>
+
+<div class="col-md-3">
+    <label asp-for="SourceRefId" class="form-label">@T["Source Ref Id"]</label>
+    <input asp-for="SourceRefId" class="form-control" type="number" min="1" readonly="@isReadOnly" />
+</div>
+
+@if (isReadOnly)
+{
+    <div class="col-md-6">
+        <label class="form-label">@T["Status"]</label>
+        <input type="text" class="form-control" value="@T[Model.Status.ToString()]" readonly />
+    </div>
+}
+
+<div class="col-12">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h2 class="h6 mb-0">@T["Journal Lines"]</h2>
+        @if (!isReadOnly)
+        {
+            <button type="button" id="add-journal-line" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1">
+                <i class="bi bi-plus-circle" aria-hidden="true"></i>
+                <span>@T["Add Line"]</span>
+            </button>
+        }
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-sm align-middle">
+            <thead>
+                <tr>
+                    <th style="width:56px;">#</th>
+                    <th>@T["Account"]</th>
+                    <th>@T["Cost Center"]</th>
+                    <th>@T["Description"]</th>
+                    <th class="text-end" style="width:150px;">@T["Debit"]</th>
+                    <th class="text-end" style="width:150px;">@T["Credit"]</th>
+                    <th class="text-end" style="width:72px;">@T["Action"]</th>
+                </tr>
+            </thead>
+            <tbody id="journal-lines-body">
+                @for (var index = 0; index < Model.Lines.Count; index++)
+                {
+                    <tr class="journal-line-row">
+                        <td class="line-no">@(index + 1)</td>
+                        <td>
+                            <select class="form-select form-select-sm" data-field="AccountId" disabled="@isReadOnly">
+                                <option value="">@T["Select Account"]</option>
+                                @foreach (var option in Model.AccountOptions)
+                                {
+                                    <option value="@option.Id" selected="@(Model.Lines[index].AccountId == option.Id)">@option.Label</option>
+                                }
+                            </select>
+                        </td>
+                        <td>
+                            <select class="form-select form-select-sm" data-field="CostCenterId" disabled="@isReadOnly">
+                                <option value="">@T["All"]</option>
+                                @foreach (var option in Model.CostCenterOptions)
+                                {
+                                    <option value="@option.Id" selected="@(Model.Lines[index].CostCenterId == option.Id)">@option.Label</option>
+                                }
+                            </select>
+                        </td>
+                        <td>
+                            <input type="text" class="form-control form-control-sm" data-field="Description" value="@Model.Lines[index].Description" readonly="@isReadOnly" />
+                        </td>
+                        <td>
+                            <input type="number" class="form-control form-control-sm text-end journal-debit" data-field="Debit" min="0" step="0.01" value="@Model.Lines[index].Debit.ToString(System.Globalization.CultureInfo.InvariantCulture)" readonly="@isReadOnly" />
+                        </td>
+                        <td>
+                            <input type="number" class="form-control form-control-sm text-end journal-credit" data-field="Credit" min="0" step="0.01" value="@Model.Lines[index].Credit.ToString(System.Globalization.CultureInfo.InvariantCulture)" readonly="@isReadOnly" />
+                        </td>
+                        <td class="text-end">
+                            @if (!isReadOnly)
+                            {
+                                <button type="button" class="btn btn-sm btn-outline-danger remove-journal-line" title="@T["Delete"]">
+                                    <i class="bi bi-trash" aria-hidden="true"></i>
+                                </button>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot>
+                <tr>
+                    <th colspan="4" class="text-end">@T["Total"]</th>
+                    <th id="journal-total-debit" class="text-end">0.00</th>
+                    <th id="journal-total-credit" class="text-end">0.00</th>
+                    <th></th>
+                </tr>
+                <tr>
+                    <th colspan="4" class="text-end">@T["Balance"]</th>
+                    <th colspan="2" id="journal-balance" class="text-end">0.00</th>
+                    <th></th>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+
+@if (!isReadOnly)
+{
+    <template id="journal-line-template">
+        <tr class="journal-line-row">
+            <td class="line-no"></td>
+            <td>
+                <select class="form-select form-select-sm" data-field="AccountId">
+                    <option value="">@T["Select Account"]</option>
+                    @foreach (var option in Model.AccountOptions)
+                    {
+                        <option value="@option.Id">@option.Label</option>
+                    }
+                </select>
+            </td>
+            <td>
+                <select class="form-select form-select-sm" data-field="CostCenterId">
+                    <option value="">@T["All"]</option>
+                    @foreach (var option in Model.CostCenterOptions)
+                    {
+                        <option value="@option.Id">@option.Label</option>
+                    }
+                </select>
+            </td>
+            <td>
+                <input type="text" class="form-control form-control-sm" data-field="Description" />
+            </td>
+            <td>
+                <input type="number" class="form-control form-control-sm text-end journal-debit" data-field="Debit" min="0" step="0.01" value="0" />
+            </td>
+            <td>
+                <input type="number" class="form-control form-control-sm text-end journal-credit" data-field="Credit" min="0" step="0.01" value="0" />
+            </td>
+            <td class="text-end">
+                <button type="button" class="btn btn-sm btn-outline-danger remove-journal-line" title="@T["Delete"]">
+                    <i class="bi bi-trash" aria-hidden="true"></i>
+                </button>
+            </td>
+        </tr>
+    </template>
+
+    <script>
+        (() => {
+            const body = document.getElementById('journal-lines-body');
+            if (!body) return;
+
+            const addBtn = document.getElementById('add-journal-line');
+            const template = document.getElementById('journal-line-template');
+            const totalDebitEl = document.getElementById('journal-total-debit');
+            const totalCreditEl = document.getElementById('journal-total-credit');
+            const balanceEl = document.getElementById('journal-balance');
+
+            const parseNumber = (value) => {
+                const parsed = Number.parseFloat(value);
+                return Number.isFinite(parsed) ? parsed : 0;
+            };
+
+            const formatNumber = (value) => value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+            const renumber = () => {
+                const rows = body.querySelectorAll('.journal-line-row');
+                rows.forEach((row, index) => {
+                    const lineNo = row.querySelector('.line-no');
+                    if (lineNo) {
+                        lineNo.textContent = String(index + 1);
+                    }
+
+                    row.querySelectorAll('[data-field]').forEach((control) => {
+                        const field = control.getAttribute('data-field');
+                        if (!field) return;
+                        control.setAttribute('name', `Lines[${index}].${field}`);
+                        control.setAttribute('id', `Lines_${index}__${field}`);
+                    });
+                });
+
+                recalc();
+            };
+
+            const recalc = () => {
+                let totalDebit = 0;
+                let totalCredit = 0;
+
+                body.querySelectorAll('.journal-debit').forEach((input) => {
+                    totalDebit += parseNumber(input.value);
+                });
+
+                body.querySelectorAll('.journal-credit').forEach((input) => {
+                    totalCredit += parseNumber(input.value);
+                });
+
+                const balance = totalDebit - totalCredit;
+
+                if (totalDebitEl) totalDebitEl.textContent = formatNumber(totalDebit);
+                if (totalCreditEl) totalCreditEl.textContent = formatNumber(totalCredit);
+                if (balanceEl) {
+                    balanceEl.textContent = formatNumber(balance);
+                    balanceEl.classList.toggle('text-success', Math.abs(balance) < 0.0001);
+                    balanceEl.classList.toggle('text-danger', Math.abs(balance) >= 0.0001);
+                }
+            };
+
+            if (addBtn && template) {
+                addBtn.addEventListener('click', () => {
+                    const row = template.content.firstElementChild?.cloneNode(true);
+                    if (!row) return;
+                    body.appendChild(row);
+                    renumber();
+                });
+            }
+
+            body.addEventListener('click', (event) => {
+                const target = event.target;
+                if (!(target instanceof Element)) return;
+
+                const removeButton = target.closest('.remove-journal-line');
+                if (!removeButton) return;
+
+                const rows = body.querySelectorAll('.journal-line-row');
+                if (rows.length <= 2) {
+                    return;
+                }
+
+                const row = removeButton.closest('.journal-line-row');
+                row?.remove();
+                renumber();
+            });
+
+            body.addEventListener('input', (event) => {
+                const target = event.target;
+                if (!(target instanceof HTMLInputElement)) return;
+
+                if (target.classList.contains('journal-debit') || target.classList.contains('journal-credit')) {
+                    recalc();
+                }
+            });
+
+            renumber();
+        })();
+    </script>
+}

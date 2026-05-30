@@ -43,6 +43,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<FinFiscalYear> FinFiscalYears => Set<FinFiscalYear>();
     public DbSet<FinPeriod> FinPeriods => Set<FinPeriod>();
     public DbSet<FinTaxCode> FinTaxCodes => Set<FinTaxCode>();
+    public DbSet<FinJournalEntry> FinJournalEntries => Set<FinJournalEntry>();
+    public DbSet<FinJournalEntryLine> FinJournalEntryLines => Set<FinJournalEntryLine>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -78,6 +80,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         ConfigureFinFiscalYear(modelBuilder.Entity<FinFiscalYear>());
         ConfigureFinPeriod(modelBuilder.Entity<FinPeriod>());
         ConfigureFinTaxCode(modelBuilder.Entity<FinTaxCode>());
+        ConfigureFinJournalEntry(modelBuilder.Entity<FinJournalEntry>());
+        ConfigureFinJournalEntryLine(modelBuilder.Entity<FinJournalEntryLine>());
 
         ApplySoftDeleteQueryFilters(modelBuilder);
 
@@ -741,6 +745,90 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         builder.HasIndex(x => x.AccountId);
         builder.HasIndex(x => x.IsActive);
     }
+    private static void ConfigureFinJournalEntry(EntityTypeBuilder<FinJournalEntry> builder)
+    {
+        builder.ToTable("fin_journal_entries");
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.JournalNo).HasMaxLength(30).IsRequired();
+        builder.Property(x => x.Date).HasColumnType("date").IsRequired();
+        builder.Property(x => x.Description).HasColumnType("text").IsRequired();
+        builder.Property(x => x.Source).HasConversion<int>().IsRequired();
+        builder.Property(x => x.SourceRefType).HasMaxLength(50);
+        builder.Property(x => x.Status).HasConversion<int>().HasDefaultValue(FinanceJournalStatus.Draft).IsRequired();
+        builder.Property(x => x.PostedAt).HasColumnType("timestamptz");
+        builder.Property(x => x.CurrencyCode).HasMaxLength(10).HasDefaultValue("IDR").IsRequired();
+        builder.Property(x => x.ExchangeRate).HasColumnType("numeric(18,6)").HasDefaultValue(1m).IsRequired();
+
+        builder.HasOne(x => x.Period)
+            .WithMany(x => x.JournalEntries)
+            .HasForeignKey(x => x.PeriodId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.PostedByUser)
+            .WithMany(x => x.PostedFinanceJournals)
+            .HasForeignKey(x => x.PostedBy)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.ReversedJournal)
+            .WithMany(x => x.ReversalJournals)
+            .HasForeignKey(x => x.ReversedJournalId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.Currency)
+            .WithMany(x => x.JournalEntries)
+            .HasForeignKey(x => x.CurrencyCode)
+            .HasPrincipalKey(x => x.Code)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(x => x.JournalNo).IsUnique();
+        builder.HasIndex(x => x.PeriodId);
+        builder.HasIndex(x => x.Date);
+        builder.HasIndex(x => x.Source);
+        builder.HasIndex(x => x.Status);
+        builder.HasIndex(x => x.PostedBy);
+        builder.HasIndex(x => x.ReversedJournalId);
+        builder.HasIndex(x => x.CurrencyCode);
+        builder.HasIndex(x => new { x.Source, x.SourceRefId, x.SourceRefType });
+    }
+
+    private static void ConfigureFinJournalEntryLine(EntityTypeBuilder<FinJournalEntryLine> builder)
+    {
+        builder.ToTable("fin_journal_entry_lines", t =>
+        {
+            t.HasCheckConstraint("ck_fin_journal_entry_lines_non_negative", "debit >= 0 AND credit >= 0");
+            t.HasCheckConstraint("ck_fin_journal_entry_lines_single_side", "NOT (debit > 0 AND credit > 0)");
+        });
+
+        builder.Property(x => x.Id).UseIdentityAlwaysColumn();
+        builder.Property(x => x.LineNo).IsRequired();
+        builder.Property(x => x.Description).HasColumnType("text");
+        builder.Property(x => x.Debit).HasColumnType("numeric(18,4)").HasDefaultValue(0m).IsRequired();
+        builder.Property(x => x.Credit).HasColumnType("numeric(18,4)").HasDefaultValue(0m).IsRequired();
+        builder.Property(x => x.DebitBase).HasColumnType("numeric(18,4)").HasDefaultValue(0m).IsRequired();
+        builder.Property(x => x.CreditBase).HasColumnType("numeric(18,4)").HasDefaultValue(0m).IsRequired();
+
+        builder.HasOne(x => x.JournalEntry)
+            .WithMany(x => x.Lines)
+            .HasForeignKey(x => x.JournalEntryId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(x => x.Account)
+            .WithMany(x => x.JournalLines)
+            .HasForeignKey(x => x.AccountId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.CostCenter)
+            .WithMany(x => x.JournalLines)
+            .HasForeignKey(x => x.CostCenterId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+
+        builder.HasIndex(x => x.JournalEntryId);
+        builder.HasIndex(x => new { x.JournalEntryId, x.LineNo }).IsUnique();
+        builder.HasIndex(x => x.AccountId);
+        builder.HasIndex(x => x.CostCenterId);
+    }
     private static void ApplySoftDeleteQueryFilters(ModelBuilder modelBuilder)
     {
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
@@ -762,5 +850,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         }
     }
 }
+
+
+
 
 

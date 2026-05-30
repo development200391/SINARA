@@ -24,4 +24,5 @@ public sealed class FinAccount : BaseEntity
     public FinCurrency Currency { get; set; } = null!;
     public ICollection<FinCostCenter> BudgetCostCenters { get; set; } = new List<FinCostCenter>();
     public ICollection<FinTaxCode> TaxCodes { get; set; } = new List<FinTaxCode>();
+    public ICollection<FinJournalEntryLine> JournalLines { get; set; } = new List<FinJournalEntryLine>();
 }

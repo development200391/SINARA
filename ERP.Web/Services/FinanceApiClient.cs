@@ -445,6 +445,98 @@ public sealed class FinanceApiClient(HttpClient httpClient, ILogger<FinanceApiCl
         return response?.IsSuccessStatusCode == true;
     }
 
+    public Task<PagedResult<JournalEntryDto>?> GetJournalsAsync(string accessToken, JournalPagedRequest request, CancellationToken ct = default)
+    {
+        var parameters = new List<string>();
+        AddPagedParameters(parameters, request);
+
+        if (!string.IsNullOrWhiteSpace(request.JournalNo))
+        {
+            parameters.Add($"journalNo={Uri.EscapeDataString(request.JournalNo.Trim())}");
+        }
+
+        if (request.DateFrom.HasValue)
+        {
+            parameters.Add($"dateFrom={request.DateFrom.Value:yyyy-MM-dd}");
+        }
+
+        if (request.DateTo.HasValue)
+        {
+            parameters.Add($"dateTo={request.DateTo.Value:yyyy-MM-dd}");
+        }
+
+        if (request.Source.HasValue)
+        {
+            parameters.Add($"source={(int)request.Source.Value}");
+        }
+
+        if (request.Status.HasValue)
+        {
+            parameters.Add($"status={(int)request.Status.Value}");
+        }
+
+        if (request.PeriodId.HasValue)
+        {
+            parameters.Add($"periodId={request.PeriodId.Value}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.SourceRefType))
+        {
+            parameters.Add($"sourceRefType={Uri.EscapeDataString(request.SourceRefType.Trim())}");
+        }
+
+        var query = $"api/v1/finance/journals?{string.Join("&", parameters)}";
+        return SendAsync<PagedResult<JournalEntryDto>>(HttpMethod.Get, query, accessToken, null, ct);
+    }
+
+    public Task<JournalEntryDto?> GetJournalByIdAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendAsync<JournalEntryDto>(HttpMethod.Get, $"api/v1/finance/journals/{id}", accessToken, null, ct);
+
+    public Task<JournalEntryDto?> CreateJournalAsync(string accessToken, JournalEntryDto request, CancellationToken ct = default)
+        => SendAsync<JournalEntryDto>(HttpMethod.Post, "api/v1/finance/journals", accessToken, request, ct);
+
+    public Task<JournalEntryDto?> UpdateJournalAsync(string accessToken, int id, JournalEntryDto request, CancellationToken ct = default)
+        => SendAsync<JournalEntryDto>(HttpMethod.Put, $"api/v1/finance/journals/{id}", accessToken, request, ct);
+
+    public Task<JournalEntryDto?> PostJournalAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendAsync<JournalEntryDto>(HttpMethod.Put, $"api/v1/finance/journals/{id}/post", accessToken, null, ct);
+
+    public Task<JournalEntryDto?> ReverseJournalAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendAsync<JournalEntryDto>(HttpMethod.Put, $"api/v1/finance/journals/{id}/reverse", accessToken, null, ct);
+
+    public Task<PagedResult<LedgerEntryDto>?> GetLedgerAsync(string accessToken, LedgerPagedRequest request, CancellationToken ct = default)
+    {
+        var parameters = new List<string>();
+        AddPagedParameters(parameters, request);
+
+        if (request.AccountId.HasValue)
+        {
+            parameters.Add($"accountId={request.AccountId.Value}");
+        }
+
+        if (request.PeriodId.HasValue)
+        {
+            parameters.Add($"periodId={request.PeriodId.Value}");
+        }
+
+        if (request.CostCenterId.HasValue)
+        {
+            parameters.Add($"costCenterId={request.CostCenterId.Value}");
+        }
+
+        if (request.DateFrom.HasValue)
+        {
+            parameters.Add($"dateFrom={request.DateFrom.Value:yyyy-MM-dd}");
+        }
+
+        if (request.DateTo.HasValue)
+        {
+            parameters.Add($"dateTo={request.DateTo.Value:yyyy-MM-dd}");
+        }
+
+        var query = $"api/v1/finance/ledger?{string.Join("&", parameters)}";
+        return SendAsync<PagedResult<LedgerEntryDto>>(HttpMethod.Get, query, accessToken, null, ct);
+    }
     private static void AddPagedParameters(List<string> parameters, PagedRequest request)
     {
         parameters.Add($"page={request.Page}");
@@ -500,3 +592,4 @@ public sealed class FinanceApiClient(HttpClient httpClient, ILogger<FinanceApiCl
         }
     }
 }
+

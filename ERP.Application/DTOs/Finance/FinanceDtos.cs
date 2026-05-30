@@ -190,3 +190,85 @@ public sealed class TaxCodePagedRequest : PagedRequest
     public int? AccountId { get; set; }
     public bool? IsActive { get; set; }
 }
+
+public sealed class JournalLineDto
+{
+    public int Id { get; set; }
+    public int LineNo { get; set; }
+    public int AccountId { get; set; }
+    public string AccountCode { get; set; } = string.Empty;
+    public string AccountName { get; set; } = string.Empty;
+    public int? CostCenterId { get; set; }
+    public string? CostCenterCode { get; set; }
+    public string? CostCenterName { get; set; }
+    public string? Description { get; set; }
+    public decimal Debit { get; set; }
+    public decimal Credit { get; set; }
+    public decimal DebitBase { get; set; }
+    public decimal CreditBase { get; set; }
+}
+
+public sealed class JournalEntryDto
+{
+    public int Id { get; set; }
+    public string JournalNo { get; set; } = string.Empty;
+    public int PeriodId { get; set; }
+    public string PeriodName { get; set; } = string.Empty;
+    public DateOnly Date { get; set; }
+    public string Description { get; set; } = string.Empty;
+    public FinanceJournalSource Source { get; set; }
+    public int? SourceRefId { get; set; }
+    public string? SourceRefType { get; set; }
+    public FinanceJournalStatus Status { get; set; }
+    public int? PostedBy { get; set; }
+    public string? PostedByName { get; set; }
+    public DateTimeOffset? PostedAt { get; set; }
+    public int? ReversedJournalId { get; set; }
+    public string CurrencyCode { get; set; } = "IDR";
+    public decimal ExchangeRate { get; set; } = 1m;
+    public decimal TotalDebit { get; set; }
+    public decimal TotalCredit { get; set; }
+    public decimal TotalDebitBase { get; set; }
+    public decimal TotalCreditBase { get; set; }
+    public IReadOnlyList<JournalLineDto> Lines { get; set; } = [];
+}
+
+public sealed class JournalPagedRequest : PagedRequest
+{
+    public string? JournalNo { get; set; }
+    public DateOnly? DateFrom { get; set; }
+    public DateOnly? DateTo { get; set; }
+    public FinanceJournalSource? Source { get; set; }
+    public FinanceJournalStatus? Status { get; set; }
+    public int? PeriodId { get; set; }
+    public string? SourceRefType { get; set; }
+}
+
+public sealed class LedgerEntryDto
+{
+    public int AccountId { get; set; }
+    public string AccountCode { get; set; } = string.Empty;
+    public string AccountName { get; set; } = string.Empty;
+    public DateOnly Date { get; set; }
+    public string JournalNo { get; set; } = string.Empty;
+    public string JournalDescription { get; set; } = string.Empty;
+    public string? LineDescription { get; set; }
+    public decimal Debit { get; set; }
+    public decimal Credit { get; set; }
+    public decimal Balance { get; set; }
+    public int PeriodId { get; set; }
+    public string PeriodName { get; set; } = string.Empty;
+    public int? CostCenterId { get; set; }
+    public string? CostCenterCode { get; set; }
+    public string? CostCenterName { get; set; }
+    public FinanceJournalSource Source { get; set; }
+}
+
+public sealed class LedgerPagedRequest : PagedRequest
+{
+    public int? AccountId { get; set; }
+    public int? PeriodId { get; set; }
+    public int? CostCenterId { get; set; }
+    public DateOnly? DateFrom { get; set; }
+    public DateOnly? DateTo { get; set; }
+}

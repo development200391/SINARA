@@ -48,4 +48,13 @@ public interface IFinanceApiClient
     Task<TaxCodeDto?> CreateTaxCodeAsync(string accessToken, TaxCodeDto request, CancellationToken ct = default);
     Task<TaxCodeDto?> UpdateTaxCodeAsync(string accessToken, int id, TaxCodeDto request, CancellationToken ct = default);
     Task<bool> DeleteTaxCodeAsync(string accessToken, int id, CancellationToken ct = default);
+
+    Task<PagedResult<JournalEntryDto>?> GetJournalsAsync(string accessToken, JournalPagedRequest request, CancellationToken ct = default);
+    Task<JournalEntryDto?> GetJournalByIdAsync(string accessToken, int id, CancellationToken ct = default);
+    Task<JournalEntryDto?> CreateJournalAsync(string accessToken, JournalEntryDto request, CancellationToken ct = default);
+    Task<JournalEntryDto?> UpdateJournalAsync(string accessToken, int id, JournalEntryDto request, CancellationToken ct = default);
+    Task<JournalEntryDto?> PostJournalAsync(string accessToken, int id, CancellationToken ct = default);
+    Task<JournalEntryDto?> ReverseJournalAsync(string accessToken, int id, CancellationToken ct = default);
+
+    Task<PagedResult<LedgerEntryDto>?> GetLedgerAsync(string accessToken, LedgerPagedRequest request, CancellationToken ct = default);
 }

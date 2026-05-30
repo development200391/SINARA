@@ -168,7 +168,7 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         var acc1000 = await EnsureAccountAsync("1000", "ASET", group1000.Id, FinanceAccountType.Asset, FinanceNormalBalance.Debit, true, null, null, false, null, null, "IDR", true, now, ct);
         var acc1100 = await EnsureAccountAsync("1100", "Aset Lancar", group1100.Id, FinanceAccountType.Asset, FinanceNormalBalance.Debit, true, acc1000.Id, null, false, null, null, "IDR", true, now, ct);
         await EnsureAccountAsync("1101", "Kas & Setara Kas", group1100.Id, FinanceAccountType.Asset, FinanceNormalBalance.Debit, false, acc1100.Id, null, false, null, null, "IDR", true, now, ct);
-        await EnsureAccountAsync("1102", "Bank BCA", group1100.Id, FinanceAccountType.Asset, FinanceNormalBalance.Debit, false, acc1100.Id, null, true, "BCA", null, "IDR", true, now, ct);
+        var acc1102 = await EnsureAccountAsync("1102", "Bank BCA", group1100.Id, FinanceAccountType.Asset, FinanceNormalBalance.Debit, false, acc1100.Id, null, true, "BCA", null, "IDR", true, now, ct);
         await EnsureAccountAsync("1103", "Bank Mandiri", group1100.Id, FinanceAccountType.Asset, FinanceNormalBalance.Debit, false, acc1100.Id, null, true, "Mandiri", null, "IDR", true, now, ct);
         await EnsureAccountAsync("1110", "Piutang Usaha", group1100.Id, FinanceAccountType.Asset, FinanceNormalBalance.Debit, false, acc1100.Id, null, false, null, null, "IDR", true, now, ct);
         await EnsureAccountAsync("1120", "Piutang Lain-lain", group1100.Id, FinanceAccountType.Asset, FinanceNormalBalance.Debit, false, acc1100.Id, null, false, null, null, "IDR", true, now, ct);
@@ -177,14 +177,14 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
 
         var acc1200 = await EnsureAccountAsync("1200", "Aset Tidak Lancar", group1200.Id, FinanceAccountType.Asset, FinanceNormalBalance.Debit, true, acc1000.Id, null, false, null, null, "IDR", true, now, ct);
         await EnsureAccountAsync("1201", "Aset Tetap", group1200.Id, FinanceAccountType.Asset, FinanceNormalBalance.Debit, false, acc1200.Id, null, false, null, null, "IDR", true, now, ct);
-        await EnsureAccountAsync("1202", "Akumulasi Penyusutan", group1200.Id, FinanceAccountType.Asset, FinanceNormalBalance.Credit, false, acc1200.Id, null, false, null, null, "IDR", true, now, ct);
+        var acc1202 = await EnsureAccountAsync("1202", "Akumulasi Penyusutan", group1200.Id, FinanceAccountType.Asset, FinanceNormalBalance.Credit, false, acc1200.Id, null, false, null, null, "IDR", true, now, ct);
 
         var acc2000 = await EnsureAccountAsync("2000", "KEWAJIBAN", group2000.Id, FinanceAccountType.Liability, FinanceNormalBalance.Credit, true, null, null, false, null, null, "IDR", true, now, ct);
         var acc2100 = await EnsureAccountAsync("2100", "Kewajiban Jangka Pendek", group2100.Id, FinanceAccountType.Liability, FinanceNormalBalance.Credit, true, acc2000.Id, null, false, null, null, "IDR", true, now, ct);
         await EnsureAccountAsync("2101", "Utang Usaha", group2100.Id, FinanceAccountType.Liability, FinanceNormalBalance.Credit, false, acc2100.Id, null, false, null, null, "IDR", true, now, ct);
-        await EnsureAccountAsync("2102", "Utang Gaji", group2100.Id, FinanceAccountType.Liability, FinanceNormalBalance.Credit, false, acc2100.Id, null, false, null, null, "IDR", true, now, ct);
+        var acc2102 = await EnsureAccountAsync("2102", "Utang Gaji", group2100.Id, FinanceAccountType.Liability, FinanceNormalBalance.Credit, false, acc2100.Id, null, false, null, null, "IDR", true, now, ct);
         var acc2103 = await EnsureAccountAsync("2103", "Utang PPh 21", group2100.Id, FinanceAccountType.Liability, FinanceNormalBalance.Credit, false, acc2100.Id, null, false, null, null, "IDR", true, now, ct);
-        await EnsureAccountAsync("2104", "Utang BPJS", group2100.Id, FinanceAccountType.Liability, FinanceNormalBalance.Credit, false, acc2100.Id, null, false, null, null, "IDR", true, now, ct);
+        var acc2104 = await EnsureAccountAsync("2104", "Utang BPJS", group2100.Id, FinanceAccountType.Liability, FinanceNormalBalance.Credit, false, acc2100.Id, null, false, null, null, "IDR", true, now, ct);
         var acc2105 = await EnsureAccountAsync("2105", "PPN Keluaran", group2100.Id, FinanceAccountType.Liability, FinanceNormalBalance.Credit, false, acc2100.Id, null, false, null, null, "IDR", true, now, ct);
         await EnsureAccountAsync("2106", "Pendapatan Diterima Dimuka", group2100.Id, FinanceAccountType.Liability, FinanceNormalBalance.Credit, false, acc2100.Id, null, false, null, null, "IDR", true, now, ct);
 
@@ -195,15 +195,15 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
 
         var acc4000 = await EnsureAccountAsync("4000", "PENDAPATAN", group4000.Id, FinanceAccountType.Revenue, FinanceNormalBalance.Credit, true, null, null, false, null, null, "IDR", true, now, ct);
         await EnsureAccountAsync("4101", "Pendapatan Usaha", group4000.Id, FinanceAccountType.Revenue, FinanceNormalBalance.Credit, false, acc4000.Id, null, false, null, null, "IDR", true, now, ct);
-        await EnsureAccountAsync("4102", "Pendapatan Jasa", group4000.Id, FinanceAccountType.Revenue, FinanceNormalBalance.Credit, false, acc4000.Id, null, false, null, null, "IDR", true, now, ct);
+        var acc4102 = await EnsureAccountAsync("4102", "Pendapatan Jasa", group4000.Id, FinanceAccountType.Revenue, FinanceNormalBalance.Credit, false, acc4000.Id, null, false, null, null, "IDR", true, now, ct);
         await EnsureAccountAsync("4103", "Pendapatan Lain-lain", group4000.Id, FinanceAccountType.Revenue, FinanceNormalBalance.Credit, false, acc4000.Id, null, false, null, null, "IDR", true, now, ct);
 
         var acc5000 = await EnsureAccountAsync("5000", "BEBAN", group5000.Id, FinanceAccountType.Expense, FinanceNormalBalance.Debit, true, null, null, false, null, null, "IDR", true, now, ct);
-        await EnsureAccountAsync("5101", "Beban Gaji & Tunjangan", group5000.Id, FinanceAccountType.Expense, FinanceNormalBalance.Debit, false, acc5000.Id, null, false, null, null, "IDR", true, now, ct);
-        await EnsureAccountAsync("5102", "Beban PPh 21", group5000.Id, FinanceAccountType.Expense, FinanceNormalBalance.Debit, false, acc5000.Id, null, false, null, null, "IDR", true, now, ct);
-        await EnsureAccountAsync("5103", "Beban BPJS Perusahaan", group5000.Id, FinanceAccountType.Expense, FinanceNormalBalance.Debit, false, acc5000.Id, null, false, null, null, "IDR", true, now, ct);
+        var acc5101 = await EnsureAccountAsync("5101", "Beban Gaji & Tunjangan", group5000.Id, FinanceAccountType.Expense, FinanceNormalBalance.Debit, false, acc5000.Id, null, false, null, null, "IDR", true, now, ct);
+        var acc5102 = await EnsureAccountAsync("5102", "Beban PPh 21", group5000.Id, FinanceAccountType.Expense, FinanceNormalBalance.Debit, false, acc5000.Id, null, false, null, null, "IDR", true, now, ct);
+        var acc5103 = await EnsureAccountAsync("5103", "Beban BPJS Perusahaan", group5000.Id, FinanceAccountType.Expense, FinanceNormalBalance.Debit, false, acc5000.Id, null, false, null, null, "IDR", true, now, ct);
         var acc5104 = await EnsureAccountAsync("5104", "Beban Operasional", group5000.Id, FinanceAccountType.Expense, FinanceNormalBalance.Debit, false, acc5000.Id, null, false, null, null, "IDR", true, now, ct);
-        await EnsureAccountAsync("5105", "Beban Penyusutan", group5000.Id, FinanceAccountType.Expense, FinanceNormalBalance.Debit, false, acc5000.Id, null, false, null, null, "IDR", true, now, ct);
+        var acc5105 = await EnsureAccountAsync("5105", "Beban Penyusutan", group5000.Id, FinanceAccountType.Expense, FinanceNormalBalance.Debit, false, acc5000.Id, null, false, null, null, "IDR", true, now, ct);
         await EnsureAccountAsync("5106", "Beban Pajak Lain", group5000.Id, FinanceAccountType.Expense, FinanceNormalBalance.Debit, false, acc5000.Id, null, false, null, null, "IDR", true, now, ct);
 
         var currentYear = DateTime.UtcNow.Year;
@@ -235,6 +235,54 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         await EnsureExchangeRateAsync("USD", "IDR", 16250m, currentMonthStart, "BI", now, ct);
         await EnsureExchangeRateAsync("EUR", "IDR", 17680m, currentMonthStart, "BI", now, ct);
         await EnsureExchangeRateAsync("SGD", "IDR", 11980m, currentMonthStart, "BI", now, ct);
+
+        var seededPeriod = await dbContext.FinPeriods
+            .AsNoTracking()
+            .Where(x => x.Status == FinancePeriodStatus.Open)
+            .OrderByDescending(x => x.StartDate)
+            .FirstOrDefaultAsync(ct);
+
+        if (seededPeriod is not null)
+        {
+            var seededCostCenterId = await dbContext.FinCostCenters
+                .AsNoTracking()
+                .Where(x => x.IsActive)
+                .OrderBy(x => x.Code)
+                .Select(x => (int?)x.Id)
+                .FirstOrDefaultAsync(ct);
+
+            var seededPostedBy = await dbContext.SysUsers
+                .AsNoTracking()
+                .Where(x => x.Username == "admin")
+                .Select(x => (int?)x.Id)
+                .FirstOrDefaultAsync(ct);
+
+            var seededPayrollRunId = await dbContext.HrPayrollRuns
+                .AsNoTracking()
+                .OrderByDescending(x => x.PeriodYear)
+                .ThenByDescending(x => x.PeriodMonth)
+                .Select(x => (int?)x.Id)
+                .FirstOrDefaultAsync(ct);
+
+            await EnsureSampleFinanceJournalsAsync(
+                seededPeriod.Id,
+                seededCostCenterId,
+                seededPostedBy,
+                seededPayrollRunId,
+                acc1102.Id,
+                acc1202.Id,
+                acc2102.Id,
+                acc2103.Id,
+                acc2104.Id,
+                acc4102.Id,
+                acc5101.Id,
+                acc5102.Id,
+                acc5103.Id,
+                acc5104.Id,
+                acc5105.Id,
+                now,
+                ct);
+        }
     }
     private async Task SeedAdminUserAsync(DateTimeOffset now, CancellationToken ct)
     {
@@ -353,6 +401,11 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         await EnsureMenuAsync(finModule.Id, finMasters.Id, "Fiscal Years", "/finance/fiscal-years", "bi-calendar3", 4, now, ct);
         await EnsureMenuAsync(finModule.Id, finMasters.Id, "Periods", "/finance/periods", "bi-calendar-week", 5, now, ct);
         await EnsureMenuAsync(finModule.Id, finMasters.Id, "Tax Codes", "/finance/tax-codes", "bi-receipt-cutoff", 6, now, ct);
+
+        var finJournalLedger = await EnsureMenuAsync(finModule.Id, null, "Journal & Ledger", null, "bi-journal-bookmark", 3, now, ct);
+        await EnsureMenuAsync(finModule.Id, finJournalLedger.Id, "Journals", "/finance/journals", "bi-journal-check", 1, now, ct);
+        await EnsureMenuAsync(finModule.Id, finJournalLedger.Id, "Payroll Journals", "/finance/journals?source=Payroll", "bi-journal-text", 2, now, ct);
+        await EnsureMenuAsync(finModule.Id, finJournalLedger.Id, "General Ledger", "/finance/ledger", "bi-book", 3, now, ct);
     }
 
     private async Task SeedSuperAdminPermissionsAsync(CancellationToken ct)
@@ -1009,6 +1062,335 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         return existing;
     }
 
+    private async Task EnsureSampleFinanceJournalsAsync(
+        int periodId,
+        int? costCenterId,
+        int? postedByUserId,
+        int? payrollRunId,
+        int bankAccountId,
+        int accumulatedDepreciationAccountId,
+        int payrollPayableAccountId,
+        int taxPayableAccountId,
+        int bpjsPayableAccountId,
+        int serviceRevenueAccountId,
+        int salaryExpenseAccountId,
+        int pphExpenseAccountId,
+        int bpjsExpenseAccountId,
+        int operationalExpenseAccountId,
+        int depreciationExpenseAccountId,
+        DateTimeOffset now,
+        CancellationToken ct)
+    {
+        var postingDate = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        await EnsureJournalAsync(
+            journalNo: $"JE-{postingDate.Year}-900001",
+            periodId: periodId,
+            date: postingDate,
+            description: "Pembelian perlengkapan kantor (tunai)",
+            source: FinanceJournalSource.Manual,
+            sourceRefId: null,
+            sourceRefType: null,
+            status: FinanceJournalStatus.Posted,
+            postedBy: postedByUserId,
+            postedAt: now,
+            currencyCode: "IDR",
+            exchangeRate: 1m,
+            lines:
+            [
+                new SeedJournalLine
+                {
+                    AccountId = operationalExpenseAccountId,
+                    CostCenterId = costCenterId,
+                    Description = "Beban operasional kantor",
+                    Debit = 2_500_000m,
+                    Credit = 0m
+                },
+                new SeedJournalLine
+                {
+                    AccountId = bankAccountId,
+                    CostCenterId = null,
+                    Description = "Pembayaran melalui Bank BCA",
+                    Debit = 0m,
+                    Credit = 2_500_000m
+                }
+            ],
+            now,
+            ct);
+
+        await EnsureJournalAsync(
+            journalNo: $"JE-{postingDate.Year}-900002",
+            periodId: periodId,
+            date: postingDate,
+            description: "Penerimaan pendapatan jasa",
+            source: FinanceJournalSource.Manual,
+            sourceRefId: null,
+            sourceRefType: null,
+            status: FinanceJournalStatus.Posted,
+            postedBy: postedByUserId,
+            postedAt: now,
+            currencyCode: "IDR",
+            exchangeRate: 1m,
+            lines:
+            [
+                new SeedJournalLine
+                {
+                    AccountId = bankAccountId,
+                    CostCenterId = null,
+                    Description = "Penerimaan kas via bank",
+                    Debit = 7_500_000m,
+                    Credit = 0m
+                },
+                new SeedJournalLine
+                {
+                    AccountId = serviceRevenueAccountId,
+                    CostCenterId = costCenterId,
+                    Description = "Pendapatan jasa bulan berjalan",
+                    Debit = 0m,
+                    Credit = 7_500_000m
+                }
+            ],
+            now,
+            ct);
+
+        await EnsureJournalAsync(
+            journalNo: $"JE-{postingDate.Year}-900003",
+            periodId: periodId,
+            date: postingDate,
+            description: "Pengakuan beban penyusutan",
+            source: FinanceJournalSource.Manual,
+            sourceRefId: null,
+            sourceRefType: null,
+            status: FinanceJournalStatus.Posted,
+            postedBy: postedByUserId,
+            postedAt: now,
+            currencyCode: "IDR",
+            exchangeRate: 1m,
+            lines:
+            [
+                new SeedJournalLine
+                {
+                    AccountId = depreciationExpenseAccountId,
+                    CostCenterId = costCenterId,
+                    Description = "Beban penyusutan aset tetap",
+                    Debit = 1_200_000m,
+                    Credit = 0m
+                },
+                new SeedJournalLine
+                {
+                    AccountId = accumulatedDepreciationAccountId,
+                    CostCenterId = null,
+                    Description = "Akumulasi penyusutan",
+                    Debit = 0m,
+                    Credit = 1_200_000m
+                }
+            ],
+            now,
+            ct);
+
+        await EnsureJournalAsync(
+            journalNo: $"JE-{postingDate.Year}-900101",
+            periodId: periodId,
+            date: postingDate,
+            description: "Jurnal payroll otomatis",
+            source: FinanceJournalSource.Payroll,
+            sourceRefId: payrollRunId,
+            sourceRefType: "hr_payroll_runs",
+            status: FinanceJournalStatus.Posted,
+            postedBy: postedByUserId,
+            postedAt: now,
+            currencyCode: "IDR",
+            exchangeRate: 1m,
+            lines:
+            [
+                new SeedJournalLine
+                {
+                    AccountId = salaryExpenseAccountId,
+                    CostCenterId = costCenterId,
+                    Description = "Beban gaji dan tunjangan",
+                    Debit = 15_000_000m,
+                    Credit = 0m
+                },
+                new SeedJournalLine
+                {
+                    AccountId = pphExpenseAccountId,
+                    CostCenterId = costCenterId,
+                    Description = "Beban PPh 21 perusahaan",
+                    Debit = 750_000m,
+                    Credit = 0m
+                },
+                new SeedJournalLine
+                {
+                    AccountId = bpjsExpenseAccountId,
+                    CostCenterId = costCenterId,
+                    Description = "Beban BPJS perusahaan",
+                    Debit = 1_250_000m,
+                    Credit = 0m
+                },
+                new SeedJournalLine
+                {
+                    AccountId = payrollPayableAccountId,
+                    CostCenterId = null,
+                    Description = "Utang gaji",
+                    Debit = 0m,
+                    Credit = 14_000_000m
+                },
+                new SeedJournalLine
+                {
+                    AccountId = taxPayableAccountId,
+                    CostCenterId = null,
+                    Description = "Utang PPh 21",
+                    Debit = 0m,
+                    Credit = 750_000m
+                },
+                new SeedJournalLine
+                {
+                    AccountId = bpjsPayableAccountId,
+                    CostCenterId = null,
+                    Description = "Utang BPJS",
+                    Debit = 0m,
+                    Credit = 2_250_000m
+                }
+            ],
+            now,
+            ct);
+    }
+
+    private async Task<FinJournalEntry> EnsureJournalAsync(
+        string journalNo,
+        int periodId,
+        DateOnly date,
+        string description,
+        FinanceJournalSource source,
+        int? sourceRefId,
+        string? sourceRefType,
+        FinanceJournalStatus status,
+        int? postedBy,
+        DateTimeOffset? postedAt,
+        string currencyCode,
+        decimal exchangeRate,
+        IReadOnlyList<SeedJournalLine> lines,
+        DateTimeOffset now,
+        CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(journalNo))
+        {
+            throw new InvalidOperationException("Journal number is required.");
+        }
+
+        if (lines.Count == 0)
+        {
+            throw new InvalidOperationException("Journal lines are required.");
+        }
+
+        var normalizedJournalNo = journalNo.Trim().ToUpperInvariant();
+        var normalizedCurrencyCode = string.IsNullOrWhiteSpace(currencyCode) ? "IDR" : currencyCode.Trim().ToUpperInvariant();
+        var normalizedDescription = description.Trim();
+        var normalizedSourceRefType = string.IsNullOrWhiteSpace(sourceRefType) ? null : sourceRefType.Trim();
+        var normalizedExchangeRate = exchangeRate <= 0 ? 1m : exchangeRate;
+
+        var existing = await dbContext.FinJournalEntries
+            .IgnoreQueryFilters()
+            .Include(x => x.Lines)
+            .FirstOrDefaultAsync(x => x.JournalNo == normalizedJournalNo, ct);
+
+        if (existing is null)
+        {
+            existing = new FinJournalEntry
+            {
+                JournalNo = normalizedJournalNo,
+                PeriodId = periodId,
+                Date = date,
+                Description = normalizedDescription,
+                Source = source,
+                SourceRefId = sourceRefId,
+                SourceRefType = normalizedSourceRefType,
+                Status = status,
+                PostedBy = status == FinanceJournalStatus.Posted ? postedBy : null,
+                PostedAt = status == FinanceJournalStatus.Posted ? postedAt : null,
+                CurrencyCode = normalizedCurrencyCode,
+                ExchangeRate = normalizedExchangeRate,
+                CreatedBy = "system",
+                CreatedAt = now
+            };
+
+            dbContext.FinJournalEntries.Add(existing);
+        }
+        else
+        {
+            dbContext.FinJournalEntryLines.RemoveRange(existing.Lines);
+            existing.Lines.Clear();
+
+            existing.PeriodId = periodId;
+            existing.Date = date;
+            existing.Description = normalizedDescription;
+            existing.Source = source;
+            existing.SourceRefId = sourceRefId;
+            existing.SourceRefType = normalizedSourceRefType;
+            existing.Status = status;
+            existing.PostedBy = status == FinanceJournalStatus.Posted ? postedBy : null;
+            existing.PostedAt = status == FinanceJournalStatus.Posted ? postedAt : null;
+            existing.CurrencyCode = normalizedCurrencyCode;
+            existing.ExchangeRate = normalizedExchangeRate;
+            existing.IsDeleted = false;
+            existing.DeletedAt = null;
+            existing.UpdatedBy = "system";
+            existing.UpdatedAt = now;
+        }
+
+        for (var index = 0; index < lines.Count; index++)
+        {
+            var line = lines[index];
+
+            if (line.Debit < 0 || line.Credit < 0)
+            {
+                throw new InvalidOperationException($"Journal line {index + 1} cannot be negative.");
+            }
+
+            if ((line.Debit > 0m && line.Credit > 0m) || (line.Debit == 0m && line.Credit == 0m))
+            {
+                throw new InvalidOperationException($"Journal line {index + 1} must contain only debit or credit amount.");
+            }
+
+            var debitBase = decimal.Round(line.Debit * normalizedExchangeRate, 4, MidpointRounding.AwayFromZero);
+            var creditBase = decimal.Round(line.Credit * normalizedExchangeRate, 4, MidpointRounding.AwayFromZero);
+
+            existing.Lines.Add(new FinJournalEntryLine
+            {
+                LineNo = index + 1,
+                AccountId = line.AccountId,
+                CostCenterId = line.CostCenterId,
+                Description = string.IsNullOrWhiteSpace(line.Description) ? null : line.Description.Trim(),
+                Debit = line.Debit,
+                Credit = line.Credit,
+                DebitBase = debitBase,
+                CreditBase = creditBase
+            });
+        }
+
+        if (status == FinanceJournalStatus.Posted)
+        {
+            var totalDebitBase = existing.Lines.Sum(x => x.DebitBase);
+            var totalCreditBase = existing.Lines.Sum(x => x.CreditBase);
+
+            if (totalDebitBase != totalCreditBase)
+            {
+                throw new InvalidOperationException($"Journal '{normalizedJournalNo}' is not balanced.");
+            }
+        }
+
+        await dbContext.SaveChangesAsync(ct);
+        return existing;
+    }
+
+    private sealed class SeedJournalLine
+    {
+        public int AccountId { get; init; }
+        public int? CostCenterId { get; init; }
+        public string? Description { get; init; }
+        public decimal Debit { get; init; }
+        public decimal Credit { get; init; }
+    }
     private static string BuildCostCenterCode(string departmentCode)
     {
         var raw = string.IsNullOrWhiteSpace(departmentCode)
@@ -1071,5 +1453,9 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         return menu;
     }
 }
+
+
+
+
 
 

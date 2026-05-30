@@ -302,7 +302,37 @@ public sealed class TextLocalizer(IHttpContextAccessor httpContextAccessor) : IT
         ["View"] = "Lihat",
         ["Holiday Name"] = "Nama Hari Libur",
         ["Year"] = "Tahun",
-        ["Yes"] = "Ya"
+        ["Yes"] = "Ya",
+        ["Journal"] = "Jurnal",
+        ["Journals"] = "Daftar Jurnal",
+        ["Journal No"] = "No. Jurnal",
+        ["Journal Lines"] = "Baris Jurnal",
+        ["Add Line"] = "Tambah Baris",
+        ["Select Account"] = "Pilih Akun",
+        ["Source Ref Type"] = "Tipe Referensi Sumber",
+        ["Source Ref Id"] = "ID Referensi Sumber",
+        ["Exchange Rate"] = "Kurs",
+        ["General Ledger"] = "Buku Besar",
+        ["Account Code"] = "Kode Akun",
+        ["Account Name"] = "Nama Akun",
+        ["Debit"] = "Debit",
+        ["Credit"] = "Kredit",
+        ["Balance"] = "Saldo",
+        ["Total"] = "Total",
+        ["Posted At"] = "Diposting Pada",
+        ["Draft"] = "Draft",
+        ["Posted"] = "Posted",
+        ["Reversed"] = "Dibalik",
+        ["Manual"] = "Manual",
+        ["Payroll"] = "Payroll",
+        ["Ap"] = "AP",
+        ["Ar"] = "AR",
+        ["Closing"] = "Closing",
+        ["Post"] = "Post",
+        ["Reverse"] = "Balik",
+        ["Post this journal?"] = "Post jurnal ini?",
+        ["Reverse this journal?"] = "Balik jurnal ini?",
+        ["This journal is no longer editable."] = "Jurnal ini sudah tidak bisa diubah."
     };
 
     private static readonly Dictionary<string, string> EnglishPhrases = new(StringComparer.OrdinalIgnoreCase)
@@ -381,4 +411,5 @@ public sealed class TextLocalizer(IHttpContextAccessor httpContextAccessor) : IT
         return !string.IsNullOrWhiteSpace(code) && Resources.ContainsKey(code);
     }
 }
+
 

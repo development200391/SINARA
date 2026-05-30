@@ -213,6 +213,46 @@ public sealed partial class FinanceSetupController
             .ToList() ?? [];
     }
 
+    private async Task<IReadOnlyList<FinanceIdOptionViewModel>> LoadPeriodOptionsAsync(string accessToken, CancellationToken ct)
+    {
+        var result = await financeApiClient.GetPeriodsAsync(accessToken, new PeriodPagedRequest
+        {
+            Page = 1,
+            PageSize = 500,
+            SortBy = "startdate",
+            SortDirection = "desc"
+        }, ct);
+
+        return result?.Items
+            .OrderByDescending(x => x.StartDate)
+            .ThenBy(x => x.PeriodNumber)
+            .Select(x => new FinanceIdOptionViewModel
+            {
+                Id = x.Id,
+                Label = $"{x.FiscalYearName} / {x.PeriodNumber:D2} - {x.Name}"
+            })
+            .ToList() ?? [];
+    }
+
+    private async Task<IReadOnlyList<FinanceIdOptionViewModel>> LoadCostCenterOptionsAsync(string accessToken, CancellationToken ct)
+    {
+        var result = await financeApiClient.GetCostCentersAsync(accessToken, new CostCenterPagedRequest
+        {
+            Page = 1,
+            PageSize = 500,
+            SortBy = "code",
+            SortDirection = "asc"
+        }, ct);
+
+        return result?.Items
+            .OrderBy(x => x.Code)
+            .Select(x => new FinanceIdOptionViewModel
+            {
+                Id = x.Id,
+                Label = $"{x.Code} - {x.Name}"
+            })
+            .ToList() ?? [];
+    }
     private async Task<IReadOnlyList<FinanceIdOptionViewModel>> LoadDepartmentOptionsAsync(string accessToken, CancellationToken ct)
     {
         var result = await hrApiClient.GetDepartmentOptionsAsync(accessToken, ct);
@@ -241,6 +281,7 @@ public sealed partial class FinanceSetupController
             .ToList();
     }
 }
+
 
 
 

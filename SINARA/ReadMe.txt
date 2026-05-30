@@ -14,9 +14,6 @@ docker compose -f docker-compose.yml -f docker-compose.override.yml up -d --buil
 
 
 
----------
-Lanjut
+Fase 8 udh di finance
 
-Attendace Holiday belum
-
-
+setiap buat grid, pakai pagedgrid dan jangan lupa semua multi language

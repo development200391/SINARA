@@ -1,3 +1,5 @@
+using ERP.Domain.Enums;
+
 namespace ERP.Domain.Entities.Finance;
 
 public sealed class FinCurrency : BaseEntity
@@ -11,4 +13,5 @@ public sealed class FinCurrency : BaseEntity
     public ICollection<FinAccount> Accounts { get; set; } = new List<FinAccount>();
     public ICollection<FinExchangeRate> ExchangeRatesFrom { get; set; } = new List<FinExchangeRate>();
     public ICollection<FinExchangeRate> ExchangeRatesTo { get; set; } = new List<FinExchangeRate>();
+    public ICollection<FinJournalEntry> JournalEntries { get; set; } = new List<FinJournalEntry>();
 }
