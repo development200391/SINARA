@@ -2,7 +2,7 @@
 
 <div class="card border-0 shadow-sm">
     <div class="card-body">
-        <h1 class="h5 mb-3">Add Menu</h1>
+        <h1 class="h5 mb-3">@T["Add Menu"]</h1>
 
         <form asp-action="Create" method="post" class="row g-3">
             @Html.AntiForgeryToken()
@@ -10,7 +10,7 @@
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
             <div class="col-md-4">
-                <label asp-for="ModuleId" class="form-label">Module</label>
+                <label asp-for="ModuleId" class="form-label">@T["Module"]</label>
                 <select asp-for="ModuleId" class="form-select" id="moduleSelect">
                     @foreach (var module in Model.AvailableModules)
                     {
@@ -21,9 +21,9 @@
             </div>
 
             <div class="col-md-4">
-                <label asp-for="ParentId" class="form-label">Parent Menu</label>
+                <label asp-for="ParentId" class="form-label">@T["Parent Menu"]</label>
                 <select asp-for="ParentId" class="form-select">
-                    <option value="">(No parent)</option>
+                    <option value="">@T["(No parent)"]</option>
                     @foreach (var parent in Model.AvailableParents)
                     {
                         <option value="@parent.Id">@parent.Name</option>
@@ -32,25 +32,25 @@
             </div>
 
             <div class="col-md-4">
-                <label asp-for="SortOrder" class="form-label">Sort Order</label>
+                <label asp-for="SortOrder" class="form-label">@T["Sort Order"]</label>
                 <input asp-for="SortOrder" class="form-control" type="number" min="1" />
                 <span asp-validation-for="SortOrder" class="text-danger"></span>
             </div>
 
             <div class="col-md-6">
-                <label asp-for="Name" class="form-label">Name</label>
+                <label asp-for="Name" class="form-label">@T["Name"]</label>
                 <input asp-for="Name" class="form-control" />
                 <span asp-validation-for="Name" class="text-danger"></span>
             </div>
 
             <div class="col-md-6">
-                <label asp-for="Icon" class="form-label">Icon (Bootstrap Icon)</label>
+                <label asp-for="Icon" class="form-label">@T["Icon (Bootstrap Icon)"]</label>
                 <input asp-for="Icon" class="form-control" placeholder="bi-list-ul" />
                 <span asp-validation-for="Icon" class="text-danger"></span>
             </div>
 
             <div class="col-12">
-                <label asp-for="Url" class="form-label">URL</label>
+                <label asp-for="Url" class="form-label">@T["URL"]</label>
                 <input asp-for="Url" class="form-control" placeholder="/config/users" />
                 <span asp-validation-for="Url" class="text-danger"></span>
             </div>
@@ -58,7 +58,7 @@
             <div class="col-12">
                 <div class="form-check">
                     <input asp-for="IsActive" class="form-check-input" />
-                    <label asp-for="IsActive" class="form-check-label">Active</label>
+                    <label asp-for="IsActive" class="form-check-label">@T["Active"]</label>
                 </div>
             </div>
 

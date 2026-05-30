@@ -7,7 +7,7 @@
 
 <div class="card border-0 shadow-sm">
     <div class="card-body">
-        <h1 class="h5 mb-3">Holiday Master</h1>
+        <h1 class="h5 mb-3">@T["Holiday Master"]</h1>
 
         @{
             var selectedHolidayType = Model.HolidayTypeFilter.HasValue
@@ -19,22 +19,22 @@
 
             var holidayTypeOptions = new List<PagedGridFilterOptionViewModel>
             {
-                new() { Value = ((int)HolidayType.National).ToString(CultureInfo.InvariantCulture), Label = "National" },
-                new() { Value = ((int)HolidayType.Company).ToString(CultureInfo.InvariantCulture), Label = "Company" },
-                new() { Value = ((int)HolidayType.JointLeave).ToString(CultureInfo.InvariantCulture), Label = "Joint Leave" }
+                new() { Value = ((int)HolidayType.National).ToString(CultureInfo.InvariantCulture), Label = T["National"] },
+                new() { Value = ((int)HolidayType.Company).ToString(CultureInfo.InvariantCulture), Label = T["Company"] },
+                new() { Value = ((int)HolidayType.JointLeave).ToString(CultureInfo.InvariantCulture), Label = T["Joint Leave"] }
             };
 
             var appliesToOptions = new List<PagedGridFilterOptionViewModel>
             {
-                new() { Value = "all", Label = "All" },
-                new() { Value = "division_id", Label = "Division" },
-                new() { Value = "location_id", Label = "Location" }
+                new() { Value = "all", Label = T["All"] },
+                new() { Value = "division_id", Label = T["Division"] },
+                new() { Value = "location_id", Label = T["Location"] }
             };
 
             var statusOptions = new List<PagedGridFilterOptionViewModel>
             {
-                new() { Value = "true", Label = "Active" },
-                new() { Value = "false", Label = "Inactive" }
+                new() { Value = "true", Label = T["Active"] },
+                new() { Value = "false", Label = T["Inactive"] }
             };
 
             var selectedYear = Model.YearFromFilter.HasValue
@@ -76,20 +76,20 @@
                     new PagedGridColumnViewModel
                     {
                         Key = "name",
-                        Title = "Name",
+                        Title = T["Name"],
                         Sortable = true,
                         Filter = new PagedGridFilterViewModel
                         {
                             Type = PagedGridFilterType.Text,
                             QueryKey = "name",
                             Value = Model.NameFilter,
-                            Placeholder = "Filter name"
+                            Placeholder = T["Filter name"]
                         }
                     },
                     new PagedGridColumnViewModel
                     {
                         Key = "holidayDate",
-                        Title = "Holiday Date",
+                        Title = T["Holiday Date"],
                         Sortable = true,
                         Filter = new PagedGridFilterViewModel
                         {
@@ -103,48 +103,48 @@
                     new PagedGridColumnViewModel
                     {
                         Key = "holidayType",
-                        Title = "Holiday Type",
+                        Title = T["Holiday Type"],
                         Sortable = true,
                         Filter = new PagedGridFilterViewModel
                         {
                             Type = PagedGridFilterType.Select,
                             QueryKey = "holidayType",
                             Value = selectedHolidayType,
-                            EmptyOptionLabel = "All Type",
+                            EmptyOptionLabel = T["All Type"],
                             Options = holidayTypeOptions
                         }
                     },
                     new PagedGridColumnViewModel
                     {
                         Key = "description",
-                        Title = "Description",
+                        Title = T["Description"],
                         Sortable = true,
                         Filter = new PagedGridFilterViewModel
                         {
                             Type = PagedGridFilterType.Text,
                             QueryKey = "description",
                             Value = Model.DescriptionFilter,
-                            Placeholder = "Filter description"
+                            Placeholder = T["Filter description"]
                         }
                     },
                     new PagedGridColumnViewModel
                     {
                         Key = "appliesTo",
-                        Title = "Applies To",
+                        Title = T["Applies To"],
                         Sortable = true,
                         Filter = new PagedGridFilterViewModel
                         {
                             Type = PagedGridFilterType.Select,
                             QueryKey = "appliesTo",
                             Value = Model.AppliesToFilter,
-                            EmptyOptionLabel = "All Scope",
+                            EmptyOptionLabel = T["All Scope"],
                             Options = appliesToOptions
                         }
                     },
                     new PagedGridColumnViewModel
                     {
                         Key = "year",
-                        Title = "Year",
+                        Title = T["Year"],
                         Sortable = true,
                         CellClass = "text-end",
                         Filter = new PagedGridFilterViewModel
@@ -154,21 +154,21 @@
                             QueryKeyTo = "yearTo",
                             Value = Model.YearFromFilter?.ToString(CultureInfo.InvariantCulture),
                             ValueTo = Model.YearToFilter?.ToString(CultureInfo.InvariantCulture),
-                            Placeholder = "From",
-                            PlaceholderTo = "To"
+                            Placeholder = T["From"],
+                            PlaceholderTo = T["To"]
                         }
                     },
                     new PagedGridColumnViewModel
                     {
                         Key = "isActive",
-                        Title = "Status",
+                        Title = T["Status"],
                         Sortable = true,
                         Filter = new PagedGridFilterViewModel
                         {
                             Type = PagedGridFilterType.Select,
                             QueryKey = "isActive",
                             Value = selectedIsActive,
-                            EmptyOptionLabel = "All Status",
+                            EmptyOptionLabel = T["All Status"],
                             Options = statusOptions
                         }
                     }
@@ -204,7 +204,7 @@
                         DetailUrl = Url.Action("HolidayDetails", "HrAttendance", new { id = item.Id }),
                         EditUrl = Url.Action("HolidayEdit", "HrAttendance", new { id = item.Id }),
                         DeleteUrl = Url.Action("HolidayDelete", "HrAttendance", new { id = item.Id }),
-                        DeleteConfirmMessage = "Delete this holiday?"
+                        DeleteConfirmMessage = T["Delete this holiday?"]
                     }
                 }).ToList(),
                 EmptyMessage = T["msg.no_data"],
@@ -216,32 +216,32 @@
                 EnableSearch = false,
                 Actions = new PagedGridActionConfigViewModel
                 {
-                    ActionColumnTitle = "Action",
+                    ActionColumnTitle = T["Action"],
                     AddUrl = Url.Action("HolidayCreate", "HrAttendance"),
                     AddButtonText = T["common.add_new"],
-                    DetailButtonText = "Detail",
+                    DetailButtonText = T["Detail"],
                     EditButtonText = T["common.edit"],
                     DeleteButtonText = T["common.delete"],
-                    DeleteConfirmMessage = "Delete this holiday?"
+                    DeleteConfirmMessage = T["Delete this holiday?"]
                 }
             };
         }
 
         <div class="sinara-holiday-overview mb-3">
             <article class="sinara-holiday-stat-card">
-                <div class="sinara-holiday-stat-title">Total Holiday</div>
+                <div class="sinara-holiday-stat-title">@T["Total Holiday"]</div>
                 <div class="sinara-holiday-stat-value">@totalHolidayCount</div>
                 <div class="sinara-holiday-stat-note">@periodText</div>
             </article>
             <article class="sinara-holiday-stat-card">
-                <div class="sinara-holiday-stat-title">Libur Nasional</div>
+                <div class="sinara-holiday-stat-title">@T["National Holiday"]</div>
                 <div class="sinara-holiday-stat-value">@nationalHolidayCount</div>
-                <div class="sinara-holiday-stat-note">Ditetapkan pemerintah</div>
+                <div class="sinara-holiday-stat-note">@T["Government-declared holiday"]</div>
             </article>
             <article class="sinara-holiday-stat-card">
-                <div class="sinara-holiday-stat-title">Libur Perusahaan</div>
+                <div class="sinara-holiday-stat-title">@T["Company Holiday"]</div>
                 <div class="sinara-holiday-stat-value">@companyHolidayCount</div>
-                <div class="sinara-holiday-stat-note">Cuti bersama / khusus</div>
+                <div class="sinara-holiday-stat-note">@T["Joint leave / special holiday"]</div>
             </article>
         </div>
 
@@ -283,42 +283,38 @@
                 <input type="hidden" name="appliesTo" value="@Model.AppliesToFilter" />
             }
 
-            <label class="visually-hidden" for="holidayYearFrom">Year</label>
+            <label class="visually-hidden" for="holidayYearFrom">@T["Year"]</label>
             <select id="holidayYearFrom"
                     class="form-select sinara-holiday-filter-control"
                     name="yearFrom"
                     onchange="this.form.requestSubmit();">
-                <option value="">Semua tahun</option>
+                <option value="">@T["Semua tahun"]</option>
                 @foreach (var yearOption in yearOptions)
                 {
-                    <option value="@yearOption" selected="@(yearOption.ToString(CultureInfo.InvariantCulture) == selectedYearText)">
-                        @yearOption
-                    </option>
+                    <option value="@yearOption" selected="@(yearOption.ToString(CultureInfo.InvariantCulture) == selectedYearText)">@yearOption</option>
                 }
             </select>
             <input id="holidayYearTo" type="hidden" name="yearTo" value="@selectedYearText" />
 
-            <label class="visually-hidden" for="holidayTypeFilter">Holiday Type</label>
+            <label class="visually-hidden" for="holidayTypeFilter">@T["Holiday Type"]</label>
             <select id="holidayTypeFilter"
                     class="form-select sinara-holiday-filter-control"
                     name="holidayType"
                     onchange="this.form.requestSubmit();">
-                <option value="">Semua tipe</option>
+                <option value="">@T["Semua tipe"]</option>
                 @foreach (var option in holidayTypeOptions)
                 {
-                    <option value="@option.Value" selected="@string.Equals(option.Value, selectedHolidayType, StringComparison.OrdinalIgnoreCase)">
-                        @option.Label
-                    </option>
+                    <option value="@option.Value" selected="@string.Equals(option.Value, selectedHolidayType, StringComparison.OrdinalIgnoreCase)">@option.Label</option>
                 }
             </select>
 
-            <label class="visually-hidden" for="holidayNameFilter">Nama Holiday</label>
+            <label class="visually-hidden" for="holidayNameFilter">@T["Nama Holiday"]</label>
             <input id="holidayNameFilter"
                    type="text"
                    class="form-control sinara-holiday-filter-control"
                    name="name"
                    value="@Model.NameFilter"
-                   placeholder="Cari nama holiday..." />
+                   placeholder="@T["Search holiday name..."]" />
         </form>
 
         @await Component.InvokeAsync("PagedGrid", gridModel)

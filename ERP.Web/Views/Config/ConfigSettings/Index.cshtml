@@ -2,22 +2,22 @@
 
 <div class="card border-0 shadow-sm">
     <div class="card-body">
-        <h1 class="h5 mb-3">Application Settings</h1>
+        <h1 class="h5 mb-3">@T["Application Settings"]</h1>
 
         <form method="post">
             @Html.AntiForgeryToken()
 
             <div class="row g-3">
                 <div class="col-md-6">
-                    <label asp-for="Settings.AppName" class="form-label">App Name</label>
+                    <label asp-for="Settings.AppName" class="form-label">@T["App Name"]</label>
                     <input asp-for="Settings.AppName" class="form-control" />
                 </div>
                 <div class="col-md-6">
-                    <label asp-for="Settings.LogoUrl" class="form-label">Logo URL</label>
+                    <label asp-for="Settings.LogoUrl" class="form-label">@T["Logo URL"]</label>
                     <input asp-for="Settings.LogoUrl" class="form-control" />
                 </div>
                 <div class="col-md-4">
-                    <label asp-for="Settings.DefaultLanguage" class="form-label">Default Language</label>
+                    <label asp-for="Settings.DefaultLanguage" class="form-label">@T["Default Language"]</label>
                     <select asp-for="Settings.DefaultLanguage" class="form-select">
                         @foreach (var language in Model.Languages)
                         {

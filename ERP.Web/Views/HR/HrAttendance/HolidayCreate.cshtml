@@ -3,7 +3,7 @@
 
 <div class="card border-0 shadow-sm">
     <div class="card-body">
-        <h1 class="h5 mb-3">Create Holiday</h1>
+        <h1 class="h5 mb-3">@T["Create Holiday"]</h1>
 
         <form method="post" class="row g-3">
             @Html.AntiForgeryToken()
@@ -35,9 +35,9 @@
             <div class="col-md-6">
                 <label asp-for="AppliesTo" class="form-label"></label>
                 <select asp-for="AppliesTo" class="form-select">
-                    <option value="all" selected="@(string.Equals(Model.AppliesTo, "all", StringComparison.OrdinalIgnoreCase))">All</option>
-                    <option value="division_id" selected="@(string.Equals(Model.AppliesTo, "division_id", StringComparison.OrdinalIgnoreCase))">Division</option>
-                    <option value="location_id" selected="@(string.Equals(Model.AppliesTo, "location_id", StringComparison.OrdinalIgnoreCase))">Location</option>
+                    <option value="all" selected="@(string.Equals(Model.AppliesTo, "all", StringComparison.OrdinalIgnoreCase))">@T["All"]</option>
+                    <option value="division_id" selected="@(string.Equals(Model.AppliesTo, "division_id", StringComparison.OrdinalIgnoreCase))">@T["Division"]</option>
+                    <option value="location_id" selected="@(string.Equals(Model.AppliesTo, "location_id", StringComparison.OrdinalIgnoreCase))">@T["Location"]</option>
                 </select>
                 <span asp-validation-for="AppliesTo" class="text-danger"></span>
             </div>

@@ -4,7 +4,7 @@
 <div class="card border-0 shadow-sm">
     <div class="card-body">
         <div class="d-flex justify-content-between align-items-start mb-3">
-            <h1 class="h5 mb-0">Leave Request Details</h1>
+            <h1 class="h5 mb-0">@T["Leave Request Details"]</h1>
             <span class="badge @(Model.Status switch { LeaveStatus.Approved => "text-bg-success", LeaveStatus.Rejected => "text-bg-danger", _ => "text-bg-warning" })">
                 @Model.Status
             </span>

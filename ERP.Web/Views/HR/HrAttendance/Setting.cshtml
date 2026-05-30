@@ -2,62 +2,62 @@
 
 <div class="card border-0 shadow-sm">
     <div class="card-body">
-        <h1 class="h5 mb-3">Attendance Setting</h1>
+        <h1 class="h5 mb-3">@T["Attendance Setting"]</h1>
 
         <form method="post" class="row g-3">
             @Html.AntiForgeryToken()
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
             <div class="col-md-3">
-                <label asp-for="AttendancePeriodStartDay" class="form-label">Periode Attendance Start Day</label>
+                <label asp-for="AttendancePeriodStartDay" class="form-label">@T["Periode Attendance Start Day"]</label>
                 <input asp-for="AttendancePeriodStartDay" class="form-control" type="number" min="1" max="31" />
                 <span asp-validation-for="AttendancePeriodStartDay" class="text-danger"></span>
             </div>
 
             <div class="col-md-3">
-                <label asp-for="AttendancePeriodEndDay" class="form-label">Periode Attendance End Day</label>
+                <label asp-for="AttendancePeriodEndDay" class="form-label">@T["Periode Attendance End Day"]</label>
                 <input asp-for="AttendancePeriodEndDay" class="form-control" type="number" min="1" max="31" />
                 <span asp-validation-for="AttendancePeriodEndDay" class="text-danger"></span>
             </div>
 
             <div class="col-md-6">
-                <label class="form-label">Periode Saat Ini</label>
+                <label class="form-label">@T["Periode Saat Ini"]</label>
                 <div id="attendancePeriodPreview" class="form-control bg-light fw-semibold">@Model.CurrentPeriodPreview</div>
                 <small class="text-muted">Contoh: jika sekarang Januari dan setting 26 / 25, hasilnya 26 Dec - 25 Jan.</small>
             </div>
 
             <div class="col-md-3">
-                <label asp-for="CheckInToleranceMinutes" class="form-label">Check-in Tolerance (min)</label>
+                <label asp-for="CheckInToleranceMinutes" class="form-label">@T["Check-in Tolerance (min)"]</label>
                 <input asp-for="CheckInToleranceMinutes" class="form-control" type="number" min="0" />
                 <span asp-validation-for="CheckInToleranceMinutes" class="text-danger"></span>
             </div>
 
             <div class="col-md-3">
-                <label asp-for="WorkStart" class="form-label">Work Start</label>
+                <label asp-for="WorkStart" class="form-label">@T["Work Start"]</label>
                 <input asp-for="WorkStart" class="form-control" type="time" step="60" />
                 <span asp-validation-for="WorkStart" class="text-danger"></span>
             </div>
 
             <div class="col-md-3">
-                <label asp-for="WorkEnd" class="form-label">Work End</label>
+                <label asp-for="WorkEnd" class="form-label">@T["Work End"]</label>
                 <input asp-for="WorkEnd" class="form-control" type="time" step="60" />
                 <span asp-validation-for="WorkEnd" class="text-danger"></span>
             </div>
 
             <div class="col-md-3">
-                <label asp-for="BreakStart" class="form-label">Break Start</label>
+                <label asp-for="BreakStart" class="form-label">@T["Break Start"]</label>
                 <input asp-for="BreakStart" class="form-control" type="time" step="60" />
                 <span asp-validation-for="BreakStart" class="text-danger"></span>
             </div>
 
             <div class="col-md-3">
-                <label asp-for="BreakEnd" class="form-label">Break End</label>
+                <label asp-for="BreakEnd" class="form-label">@T["Break End"]</label>
                 <input asp-for="BreakEnd" class="form-control" type="time" step="60" />
                 <span asp-validation-for="BreakEnd" class="text-danger"></span>
             </div>
 
             <div class="col-md-3">
-                <label asp-for="MinimumOtMinutes" class="form-label">Minimum OT (min)</label>
+                <label asp-for="MinimumOtMinutes" class="form-label">@T["Minimum OT (min)"]</label>
                 <input asp-for="MinimumOtMinutes" class="form-control" type="number" min="0" />
                 <span asp-validation-for="MinimumOtMinutes" class="text-danger"></span>
             </div>

@@ -2,7 +2,7 @@
 
 <div class="card border-0 shadow-sm">
     <div class="card-body">
-        <h1 class="h5 mb-3">Edit User</h1>
+        <h1 class="h5 mb-3">@T["Edit User"]</h1>
 
         <form method="post">
             @Html.AntiForgeryToken()
@@ -31,7 +31,7 @@
                 </div>
 
                 <div class="col-12">
-                    <label class="form-label">Roles</label>
+                    <label class="form-label">@T["Roles"]</label>
                     <div class="d-flex flex-wrap gap-3">
                         @foreach (var role in Model.AvailableRoles)
                         {

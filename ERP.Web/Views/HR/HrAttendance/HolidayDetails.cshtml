@@ -4,23 +4,23 @@
 
 <div class="card border-0 shadow-sm">
     <div class="card-body">
-        <h1 class="h5 mb-3">Holiday Details</h1>
+        <h1 class="h5 mb-3">@T["Holiday Details"]</h1>
 
         <div class="row g-3">
             <div class="col-md-6">
-                <label class="form-label text-muted small">Name</label>
+                <label class="form-label text-muted small">@T["Name"]</label>
                 <div class="form-control-plaintext">@Model.Name</div>
             </div>
             <div class="col-md-3">
-                <label class="form-label text-muted small">Holiday Date</label>
+                <label class="form-label text-muted small">@T["Holiday Date"]</label>
                 <div class="form-control-plaintext">@Model.HolidayDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)</div>
             </div>
             <div class="col-md-3">
-                <label class="form-label text-muted small">Year</label>
+                <label class="form-label text-muted small">@T["Year"]</label>
                 <div class="form-control-plaintext">@Model.Year</div>
             </div>
             <div class="col-md-4">
-                <label class="form-label text-muted small">Holiday Type</label>
+                <label class="form-label text-muted small">@T["Holiday Type"]</label>
                 <div class="form-control-plaintext">
                     @if (Model.HolidayType == HolidayType.National)
                     {
@@ -37,11 +37,11 @@
                 </div>
             </div>
             <div class="col-md-4">
-                <label class="form-label text-muted small">Applies To</label>
+                <label class="form-label text-muted small">@T["Applies To"]</label>
                 <div class="form-control-plaintext">@Model.AppliesTo</div>
             </div>
             <div class="col-md-4">
-                <label class="form-label text-muted small">Status</label>
+                <label class="form-label text-muted small">@T["Status"]</label>
                 <div class="form-control-plaintext">
                     @if (Model.IsActive)
                     {
@@ -54,7 +54,7 @@
                 </div>
             </div>
             <div class="col-md-12">
-                <label class="form-label text-muted small">Description</label>
+                <label class="form-label text-muted small">@T["Description"]</label>
                 <div class="form-control-plaintext">@(string.IsNullOrWhiteSpace(Model.Description) ? "-" : Model.Description)</div>
             </div>
         </div>

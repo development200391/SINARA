@@ -3,7 +3,7 @@
 
 <div class="card border-0 shadow-sm">
     <div class="card-body">
-        <h1 class="h5 mb-3">Create Employee</h1>
+        <h1 class="h5 mb-3">@T["Create Employee"]</h1>
 
         <form method="post" class="row g-3">
             @Html.AntiForgeryToken()
@@ -34,9 +34,9 @@
             </div>
 
             <div class="col-md-4">
-                <label asp-for="DepartmentId" class="form-label">Department</label>
+                <label asp-for="DepartmentId" class="form-label">@T["Department"]</label>
                 <select asp-for="DepartmentId" class="form-select">
-                    <option value="">Select Department</option>
+                    <option value="">@T["Select Department"]</option>
                     @foreach (var department in Model.Departments)
                     {
                         <option value="@department.Id" selected="@(Model.DepartmentId == department.Id)">@department.Code - @department.Name</option>
@@ -46,9 +46,9 @@
             </div>
 
             <div class="col-md-4">
-                <label asp-for="PositionId" class="form-label">Position</label>
+                <label asp-for="PositionId" class="form-label">@T["Position"]</label>
                 <select asp-for="PositionId" class="form-select">
-                    <option value="">Select Position</option>
+                    <option value="">@T["Select Position"]</option>
                     @foreach (var position in Model.Positions)
                     {
                         <option value="@position.Id" selected="@(Model.PositionId == position.Id)">@position.DepartmentName - @position.Name (L@position.Level)</option>
@@ -58,7 +58,7 @@
             </div>
 
             <div class="col-md-4">
-                <label asp-for="EmploymentStatus" class="form-label">Status</label>
+                <label asp-for="EmploymentStatus" class="form-label">@T["Status"]</label>
                 <select asp-for="EmploymentStatus" class="form-select">
                     @foreach (var status in Enum.GetValues<EmploymentStatus>())
                     {

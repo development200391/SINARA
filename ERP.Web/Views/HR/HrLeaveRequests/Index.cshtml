@@ -6,7 +6,7 @@
 
 <div class="card border-0 shadow-sm">
     <div class="card-body">
-        <h1 class="h5 mb-3">Leave Requests</h1>
+        <h1 class="h5 mb-3">@T["Leave Requests"]</h1>
 
         @{
             var selectedStatus = Model.Status.HasValue
@@ -15,9 +15,9 @@
 
             var statusOptions = new List<PagedGridFilterOptionViewModel>
             {
-                new() { Value = ((int)LeaveStatus.Pending).ToString(CultureInfo.InvariantCulture), Label = "Pending" },
-                new() { Value = ((int)LeaveStatus.Approved).ToString(CultureInfo.InvariantCulture), Label = "Approved" },
-                new() { Value = ((int)LeaveStatus.Rejected).ToString(CultureInfo.InvariantCulture), Label = "Rejected" }
+                new() { Value = ((int)LeaveStatus.Pending).ToString(CultureInfo.InvariantCulture), Label = T["Pending"] },
+                new() { Value = ((int)LeaveStatus.Approved).ToString(CultureInfo.InvariantCulture), Label = T["Approved"] },
+                new() { Value = ((int)LeaveStatus.Rejected).ToString(CultureInfo.InvariantCulture), Label = T["Rejected"] }
             };
 
             var gridModel = new PagedGridViewModel
@@ -27,52 +27,52 @@
                     new PagedGridColumnViewModel
                     {
                         Key = "employee",
-                        Title = "Employee",
+                        Title = T["Employee"],
                         Sortable = false
                     },
                     new PagedGridColumnViewModel
                     {
                         Key = "leaveType",
-                        Title = "Leave Type",
+                        Title = T["Leave Type"],
                         Sortable = false
                     },
                     new PagedGridColumnViewModel
                     {
                         Key = "period",
-                        Title = "Period",
+                        Title = T["Period"],
                         Sortable = false
                     },
                     new PagedGridColumnViewModel
                     {
                         Key = "days",
-                        Title = "Days",
+                        Title = T["Days"],
                         Sortable = false,
                         CellClass = "text-end"
                     },
                     new PagedGridColumnViewModel
                     {
                         Key = "status",
-                        Title = "Status",
+                        Title = T["Status"],
                         Sortable = false,
                         Filter = new PagedGridFilterViewModel
                         {
                             Type = PagedGridFilterType.Select,
                             QueryKey = "status",
                             Value = selectedStatus,
-                            EmptyOptionLabel = "All Status",
+                            EmptyOptionLabel = T["All Status"],
                             Options = statusOptions
                         }
                     },
                     new PagedGridColumnViewModel
                     {
                         Key = "reason",
-                        Title = "Reason",
+                        Title = T["Reason"],
                         Sortable = false
                     },
                     new PagedGridColumnViewModel
                     {
                         Key = "createdAt",
-                        Title = "Created At",
+                        Title = T["Created At"],
                         Sortable = false
                     }
                 ],
@@ -107,9 +107,9 @@
                             DeleteUrl = isPending ? Url.Action("Delete", "HrLeaveRequests", new { id = item.Id }) : null,
                             ApproveUrl = isPending ? Url.Action("Approve", "HrLeaveRequests", new { id = item.Id }) : null,
                             RejectUrl = isPending ? Url.Action("Reject", "HrLeaveRequests", new { id = item.Id }) : null,
-                            DeleteConfirmMessage = "Delete leave request ini?",
-                            ApproveConfirmMessage = "Approve request ini?",
-                            RejectConfirmMessage = "Reject request ini?"
+                            DeleteConfirmMessage = T["Delete leave request ini?"],
+                            ApproveConfirmMessage = T["Approve request ini?"],
+                            RejectConfirmMessage = T["Reject request ini?"]
                         }
                     };
                 }).ToList(),
@@ -119,21 +119,21 @@
                 PageSize = Model.PageSize,
                 EnableSearch = true,
                 SearchValue = Model.Search,
-                SearchPlaceholder = "Search leave requests",
+                SearchPlaceholder = T["Search leave requests"],
                 SearchButtonText = T["common.search"],
                 Actions = new PagedGridActionConfigViewModel
                 {
-                    ActionColumnTitle = "Action",
+                    ActionColumnTitle = T["Action"],
                     AddUrl = Url.Action("Create", "HrLeaveRequests"),
                     AddButtonText = T["common.add_new"],
-                    DetailButtonText = "Detail",
+                    DetailButtonText = T["Detail"],
                     EditButtonText = T["common.edit"],
                     DeleteButtonText = T["common.delete"],
-                    ApproveButtonText = "Approve",
-                    RejectButtonText = "Reject",
-                    DeleteConfirmMessage = "Delete leave request ini?",
-                    ApproveConfirmMessage = "Approve request ini?",
-                    RejectConfirmMessage = "Reject request ini?"
+                    ApproveButtonText = T["Approve"],
+                    RejectButtonText = T["Reject"],
+                    DeleteConfirmMessage = T["Delete leave request ini?"],
+                    ApproveConfirmMessage = T["Approve request ini?"],
+                    RejectConfirmMessage = T["Reject request ini?"]
                 }
             };
         }

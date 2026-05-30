@@ -2,27 +2,27 @@
 
 <div class="card border-0 shadow-sm">
     <div class="card-body">
-        <h1 class="h5 mb-3">Department Details</h1>
+        <h1 class="h5 mb-3">@T["Department Details"]</h1>
 
         <div class="row g-3">
             <div class="col-md-4">
-                <label class="form-label text-muted small">Code</label>
+                <label class="form-label text-muted small">@T["Code"]</label>
                 <div class="form-control-plaintext">@Model.Code</div>
             </div>
             <div class="col-md-8">
-                <label class="form-label text-muted small">Name</label>
+                <label class="form-label text-muted small">@T["Name"]</label>
                 <div class="form-control-plaintext">@Model.Name</div>
             </div>
             <div class="col-md-6">
-                <label class="form-label text-muted small">Manager</label>
+                <label class="form-label text-muted small">@T["Manager"]</label>
                 <div class="form-control-plaintext">@(string.IsNullOrWhiteSpace(Model.ManagerName) ? "-" : Model.ManagerName)</div>
             </div>
             <div class="col-md-6">
-                <label class="form-label text-muted small">Parent Department</label>
+                <label class="form-label text-muted small">@T["Parent Department"]</label>
                 <div class="form-control-plaintext">@(string.IsNullOrWhiteSpace(Model.ParentDepartmentName) ? "-" : Model.ParentDepartmentName)</div>
             </div>
             <div class="col-md-6">
-                <label class="form-label text-muted small">Status</label>
+                <label class="form-label text-muted small">@T["Status"]</label>
                 <div class="form-control-plaintext">
                     <span class="badge @(Model.IsActive ? "text-bg-success" : "text-bg-secondary")">@(Model.IsActive ? "Active" : "Inactive")</span>
                 </div>

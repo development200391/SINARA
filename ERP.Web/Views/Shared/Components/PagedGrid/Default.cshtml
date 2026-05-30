@@ -22,7 +22,7 @@
 
     var pageSizeSelectId = $"page-size-{Guid.NewGuid():N}";
     var searchInputId = $"search-{Guid.NewGuid():N}";
-    var searchPlaceholder = string.IsNullOrWhiteSpace(Model.SearchPlaceholder) ? "Search" : Model.SearchPlaceholder;
+    var searchPlaceholder = string.IsNullOrWhiteSpace(Model.SearchPlaceholder) ? T["Search"] : Model.SearchPlaceholder;
 
     var hasColumnFilters = Model.Columns.Any(x => x.Filter is not null && !string.IsNullOrWhiteSpace(x.Filter.QueryKey));
     var filterFormId = $"grid-filter-{Guid.NewGuid():N}";
@@ -228,7 +228,7 @@
                     <input type="hidden" name="@route.Key" value="@route.Value" />
                 }
 
-                <label class="visually-hidden" for="@searchInputId">Search</label>
+                <label class="visually-hidden" for="@searchInputId">@T["Search"]</label>
                 <input id="@searchInputId" type="text" class="form-control form-control-sm sinara-grid-search-input" name="@Model.SearchQueryKey" value="@Model.SearchValue" placeholder="@searchPlaceholder" />
                 <button type="submit" class="btn btn-sm sinara-btn-theme-outline text-nowrap d-inline-flex align-items-center gap-1">
                     <i class="bi bi-search" aria-hidden="true"></i>
@@ -336,8 +336,8 @@
                                         {
                                             var dateFromId = $"filter-{column.Key}-from-{Guid.NewGuid():N}";
                                             var dateToId = $"filter-{column.Key}-to-{Guid.NewGuid():N}";
-                                            var placeholderFrom = string.IsNullOrWhiteSpace(filter.Placeholder) ? "From" : filter.Placeholder;
-                                            var placeholderTo = string.IsNullOrWhiteSpace(filter.PlaceholderTo) ? "To" : filter.PlaceholderTo;
+                                            var placeholderFrom = string.IsNullOrWhiteSpace(filter.Placeholder) ? T["From"] : filter.Placeholder;
+                                            var placeholderTo = string.IsNullOrWhiteSpace(filter.PlaceholderTo) ? T["To"] : filter.PlaceholderTo;
 
                                             <div class="d-flex flex-column gap-2">
                                                 <label class="small text-muted" for="@dateFromId">@placeholderFrom</label>
@@ -380,8 +380,8 @@
                                         {
                                             var numberFromId = $"filter-{column.Key}-number-from-{Guid.NewGuid():N}";
                                             var numberToId = $"filter-{column.Key}-number-to-{Guid.NewGuid():N}";
-                                            var placeholderFrom = string.IsNullOrWhiteSpace(filter.Placeholder) ? "From" : filter.Placeholder;
-                                            var placeholderTo = string.IsNullOrWhiteSpace(filter.PlaceholderTo) ? "To" : filter.PlaceholderTo;
+                                            var placeholderFrom = string.IsNullOrWhiteSpace(filter.Placeholder) ? T["From"] : filter.Placeholder;
+                                            var placeholderTo = string.IsNullOrWhiteSpace(filter.PlaceholderTo) ? T["To"] : filter.PlaceholderTo;
 
                                             <div class="d-flex flex-column gap-2">
                                                 <label class="small text-muted" for="@numberFromId">@placeholderFrom</label>
@@ -609,7 +609,7 @@
             <input type="hidden" name="@route.Key" value="@route.Value" />
         }
 
-        <label class="form-label mb-0" for="@pageSizeSelectId">Page</label>
+        <label class="form-label mb-0" for="@pageSizeSelectId">@T["Page"]</label>
         <select id="@pageSizeSelectId" class="form-select form-select-sm w-auto" name="@Model.PageSizeQueryKey" onchange="this.form.submit()">
             @foreach (var size in pageSizeOptions)
             {
@@ -626,13 +626,13 @@
         <nav aria-label="Page navigation">
             <ul class="pagination mb-0">
                 <li class="page-item @(safePage <= 1 ? "disabled" : string.Empty)">
-                    <a class="page-link" asp-all-route-data="previousRouteValues">Previous</a>
+                    <a class="page-link" asp-all-route-data="previousRouteValues">@T["Previous"]</a>
                 </li>
                 <li class="page-item disabled">
-                    <span class="page-link">Page @safePage of @safeTotalPages</span>
+                    <span class="page-link">@string.Format(T["Page {0} of {1}"], safePage, safeTotalPages)</span>
                 </li>
                 <li class="page-item @(safePage >= safeTotalPages ? "disabled" : string.Empty)">
-                    <a class="page-link" asp-all-route-data="nextRouteValues">Next</a>
+                    <a class="page-link" asp-all-route-data="nextRouteValues">@T["Next"]</a>
                 </li>
             </ul>
         </nav>

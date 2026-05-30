@@ -4,7 +4,7 @@
 
 <div class="card border-0 shadow-sm">
     <div class="card-body">
-        <h1 class="h5 mb-3">Users</h1>
+        <h1 class="h5 mb-3">@T["Users"]</h1>
 
         @{
             var gridModel = new PagedGridViewModel
@@ -14,14 +14,14 @@
                     new PagedGridColumnViewModel
                     {
                         Key = "username",
-                        Title = "Username",
+                        Title = T["Username"],
                         Sortable = true,
                         Filter = new PagedGridFilterViewModel
                         {
                             Type = PagedGridFilterType.Text,
                             QueryKey = "username",
                             Value = Model.UsernameFilter,
-                            Placeholder = "Filter username"
+                            Placeholder = T["Filter username"]
                         }
                     },
                     new PagedGridColumnViewModel
@@ -34,24 +34,24 @@
                             Type = PagedGridFilterType.Text,
                             QueryKey = "fullName",
                             Value = Model.FullNameFilter,
-                            Placeholder = "Filter full name"
+                            Placeholder = T["Filter full name"]
                         }
                     },
                     new PagedGridColumnViewModel
                     {
                         Key = "email",
-                        Title = "Email",
+                        Title = T["Email"],
                         Sortable = true,
                         Filter = new PagedGridFilterViewModel
                         {
                             Type = PagedGridFilterType.Text,
                             QueryKey = "email",
                             Value = Model.EmailFilter,
-                            Placeholder = "Filter email"
+                            Placeholder = T["Filter email"]
                         }
                     },
-                    new PagedGridColumnViewModel { Key = "roles", Title = "Roles" },
-                    new PagedGridColumnViewModel { Key = "isActive", Title = "Status", Sortable = true }
+                    new PagedGridColumnViewModel { Key = "roles", Title = T["Roles"] },
+                    new PagedGridColumnViewModel { Key = "isActive", Title = T["Status"], Sortable = true }
                 ],
                 Rows = Model.Users.Items.Select(user => new PagedGridRowViewModel
                 {
@@ -73,7 +73,7 @@
                         DetailUrl = Url.Action("Details", "ConfigUsers", new { id = user.Id }),
                         EditUrl = Url.Action("Edit", "ConfigUsers", new { id = user.Id }),
                         DeleteUrl = Url.Action("Delete", "ConfigUsers", new { id = user.Id }),
-                        DeleteConfirmMessage = "Delete this user?"
+                        DeleteConfirmMessage = T["Delete this user?"]
                     }
                 }).ToList(),
                 EmptyMessage = T["msg.no_data"],
@@ -88,13 +88,13 @@
                 SearchButtonText = T["common.search"],
                 Actions = new PagedGridActionConfigViewModel
                 {
-                    ActionColumnTitle = "Action",
+                    ActionColumnTitle = T["Action"],
                     AddUrl = Url.Action("Create", "ConfigUsers"),
                     AddButtonText = T["common.add_new"],
-                    DetailButtonText = "Detail",
+                    DetailButtonText = T["Detail"],
                     EditButtonText = T["common.edit"],
                     DeleteButtonText = T["common.delete"],
-                    DeleteConfirmMessage = "Delete this user?"
+                    DeleteConfirmMessage = T["Delete this user?"]
                 }
             };
         }

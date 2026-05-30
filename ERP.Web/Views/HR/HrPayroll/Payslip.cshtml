@@ -5,7 +5,7 @@
         <div class="d-flex justify-content-between align-items-start mb-4">
             <div>
                 <p class="text-uppercase small mb-1">SINARA ERP</p>
-                <h1 class="h4 mb-0">Payslip</h1>
+                <h1 class="h4 mb-0">@T["Payslip"]</h1>
             </div>
             <div class="text-end">
                 <div class="small text-muted">Period</div>
@@ -31,12 +31,12 @@
         <div class="table-responsive mb-4">
             <table class="table table-sm">
                 <tbody>
-                    <tr><th>Basic Salary</th><td class="text-end">@Model.Payslip.BasicSalary.ToString("N2")</td></tr>
-                    <tr><th>Allowances</th><td class="text-end">@Model.Payslip.Allowances.ToString("N2")</td></tr>
-                    <tr><th>Deductions</th><td class="text-end">@Model.Payslip.Deductions.ToString("N2")</td></tr>
-                    <tr><th>Gross Salary</th><td class="text-end">@Model.Payslip.GrossSalary.ToString("N2")</td></tr>
-                    <tr><th>Tax</th><td class="text-end">@Model.Payslip.TaxAmount.ToString("N2")</td></tr>
-                    <tr class="table-light"><th>Net Salary</th><td class="text-end fw-semibold">@Model.Payslip.NetSalary.ToString("N2")</td></tr>
+                    <tr><th>@T["Basic Salary"]</th><td class="text-end">@Model.Payslip.BasicSalary.ToString("N2")</td></tr>
+                    <tr><th>@T["Allowances"]</th><td class="text-end">@Model.Payslip.Allowances.ToString("N2")</td></tr>
+                    <tr><th>@T["Deductions"]</th><td class="text-end">@Model.Payslip.Deductions.ToString("N2")</td></tr>
+                    <tr><th>@T["Gross Salary"]</th><td class="text-end">@Model.Payslip.GrossSalary.ToString("N2")</td></tr>
+                    <tr><th>@T["Tax"]</th><td class="text-end">@Model.Payslip.TaxAmount.ToString("N2")</td></tr>
+                    <tr class="table-light"><th>@T["Net Salary"]</th><td class="text-end fw-semibold">@Model.Payslip.NetSalary.ToString("N2")</td></tr>
                 </tbody>
             </table>
         </div>

@@ -4,35 +4,35 @@
 
 <div class="card border-0 shadow-sm">
     <div class="card-body">
-        <h1 class="h5 mb-3">Attendance Details</h1>
+        <h1 class="h5 mb-3">@T["Attendance Details"]</h1>
 
         <div class="row g-3">
             <div class="col-md-4">
-                <label class="form-label text-muted small">Employee Code</label>
+                <label class="form-label text-muted small">@T["Employee Code"]</label>
                 <div class="form-control-plaintext">@Model.EmployeeCode</div>
             </div>
             <div class="col-md-8">
-                <label class="form-label text-muted small">Employee Name</label>
+                <label class="form-label text-muted small">@T["Employee Name"]</label>
                 <div class="form-control-plaintext">@Model.EmployeeName</div>
             </div>
             <div class="col-md-6">
-                <label class="form-label text-muted small">Department</label>
+                <label class="form-label text-muted small">@T["Department"]</label>
                 <div class="form-control-plaintext">@Model.DepartmentName</div>
             </div>
             <div class="col-md-6">
-                <label class="form-label text-muted small">Date</label>
+                <label class="form-label text-muted small">@T["Date"]</label>
                 <div class="form-control-plaintext">@Model.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)</div>
             </div>
             <div class="col-md-6">
-                <label class="form-label text-muted small">Check In</label>
+                <label class="form-label text-muted small">@T["Check In"]</label>
                 <div class="form-control-plaintext">@(Model.CheckIn?.ToLocalTime().ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) ?? "-")</div>
             </div>
             <div class="col-md-6">
-                <label class="form-label text-muted small">Check Out</label>
+                <label class="form-label text-muted small">@T["Check Out"]</label>
                 <div class="form-control-plaintext">@(Model.CheckOut?.ToLocalTime().ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) ?? "-")</div>
             </div>
             <div class="col-md-6">
-                <label class="form-label text-muted small">Status</label>
+                <label class="form-label text-muted small">@T["Status"]</label>
                 <div class="form-control-plaintext">
                     @if (Model.Status == AttendanceStatus.Present)
                     {
@@ -53,7 +53,7 @@
                 </div>
             </div>
             <div class="col-md-12">
-                <label class="form-label text-muted small">Notes</label>
+                <label class="form-label text-muted small">@T["Notes"]</label>
                 <div class="form-control-plaintext">@(string.IsNullOrWhiteSpace(Model.Notes) ? "-" : Model.Notes)</div>
             </div>
         </div>

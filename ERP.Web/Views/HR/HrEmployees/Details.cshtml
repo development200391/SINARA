@@ -3,11 +3,11 @@
 
 <div class="card border-0 shadow-sm">
     <div class="card-body">
-        <h1 class="h5 mb-3">Employee Details</h1>
+        <h1 class="h5 mb-3">@T["Employee Details"]</h1>
 
         <div class="row g-3">
             <div class="col-md-4">
-                <label class="form-label text-muted small">Employee Code</label>
+                <label class="form-label text-muted small">@T["Employee Code"]</label>
                 <div class="form-control-plaintext">@Model.EmployeeCode</div>
             </div>
             <div class="col-md-8">
@@ -15,19 +15,19 @@
                 <div class="form-control-plaintext">@Model.FullName</div>
             </div>
             <div class="col-md-6">
-                <label class="form-label text-muted small">Email</label>
+                <label class="form-label text-muted small">@T["Email"]</label>
                 <div class="form-control-plaintext">@(string.IsNullOrWhiteSpace(Model.Email) ? "-" : Model.Email)</div>
             </div>
             <div class="col-md-6">
-                <label class="form-label text-muted small">Phone</label>
+                <label class="form-label text-muted small">@T["Phone"]</label>
                 <div class="form-control-plaintext">@(string.IsNullOrWhiteSpace(Model.Phone) ? "-" : Model.Phone)</div>
             </div>
             <div class="col-md-6">
-                <label class="form-label text-muted small">Department</label>
+                <label class="form-label text-muted small">@T["Department"]</label>
                 <div class="form-control-plaintext">@Model.DepartmentName</div>
             </div>
             <div class="col-md-6">
-                <label class="form-label text-muted small">Position</label>
+                <label class="form-label text-muted small">@T["Position"]</label>
                 <div class="form-control-plaintext">@Model.PositionName</div>
             </div>
             <div class="col-md-6">
@@ -35,11 +35,11 @@
                 <div class="form-control-plaintext">@Model.HireDate.ToString("yyyy-MM-dd")</div>
             </div>
             <div class="col-md-6">
-                <label class="form-label text-muted small">Termination Date</label>
+                <label class="form-label text-muted small">@T["Termination Date"]</label>
                 <div class="form-control-plaintext">@(Model.TerminationDate?.ToString("yyyy-MM-dd") ?? "-")</div>
             </div>
             <div class="col-md-6">
-                <label class="form-label text-muted small">Status</label>
+                <label class="form-label text-muted small">@T["Status"]</label>
                 <div class="form-control-plaintext">
                     @if (Model.EmploymentStatus == EmploymentStatus.Active)
                     {

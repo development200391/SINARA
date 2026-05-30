@@ -5,7 +5,7 @@
 
 <div class="card border-0 shadow-sm">
     <div class="card-body">
-        <h1 class="h5 mb-3">Departments</h1>
+        <h1 class="h5 mb-3">@T["Departments"]</h1>
 
         @{
             var selectedManagerId = Model.ManagerIdFilter?.ToString(CultureInfo.InvariantCulture);
@@ -34,8 +34,8 @@
 
             var statusOptions = new List<PagedGridFilterOptionViewModel>
             {
-                new() { Value = "true", Label = "Active" },
-                new() { Value = "false", Label = "Inactive" }
+                new() { Value = "true", Label = T["Active"] },
+                new() { Value = "false", Label = T["Inactive"] }
             };
 
             var gridModel = new PagedGridViewModel
@@ -45,68 +45,68 @@
                     new PagedGridColumnViewModel
                     {
                         Key = "code",
-                        Title = "Code",
+                        Title = T["Code"],
                         Sortable = true,
                         Filter = new PagedGridFilterViewModel
                         {
                             Type = PagedGridFilterType.Text,
                             QueryKey = "code",
                             Value = Model.CodeFilter,
-                            Placeholder = "Filter code"
+                            Placeholder = T["Filter code"]
                         }
                     },
                     new PagedGridColumnViewModel
                     {
                         Key = "name",
-                        Title = "Name",
+                        Title = T["Name"],
                         Sortable = true,
                         Filter = new PagedGridFilterViewModel
                         {
                             Type = PagedGridFilterType.Text,
                             QueryKey = "name",
                             Value = Model.NameFilter,
-                            Placeholder = "Filter name"
+                            Placeholder = T["Filter name"]
                         }
                     },
                     new PagedGridColumnViewModel
                     {
                         Key = "managerName",
-                        Title = "Manager",
+                        Title = T["Manager"],
                         Sortable = true,
                         Filter = new PagedGridFilterViewModel
                         {
                             Type = PagedGridFilterType.Select,
                             QueryKey = "managerId",
                             Value = selectedManagerId,
-                            EmptyOptionLabel = "All Manager",
+                            EmptyOptionLabel = T["All Manager"],
                             Options = managerOptions
                         }
                     },
                     new PagedGridColumnViewModel
                     {
                         Key = "parentDepartmentName",
-                        Title = "Parent Department",
+                        Title = T["Parent Department"],
                         Sortable = true,
                         Filter = new PagedGridFilterViewModel
                         {
                             Type = PagedGridFilterType.Select,
                             QueryKey = "parentDepartmentId",
                             Value = selectedParentId,
-                            EmptyOptionLabel = "All Parent",
+                            EmptyOptionLabel = T["All Parent"],
                             Options = parentOptions
                         }
                     },
                     new PagedGridColumnViewModel
                     {
                         Key = "isActive",
-                        Title = "Status",
+                        Title = T["Status"],
                         Sortable = true,
                         Filter = new PagedGridFilterViewModel
                         {
                             Type = PagedGridFilterType.Select,
                             QueryKey = "isActive",
                             Value = selectedIsActive,
-                            EmptyOptionLabel = "All Status",
+                            EmptyOptionLabel = T["All Status"],
                             Options = statusOptions
                         }
                     }
@@ -131,7 +131,7 @@
                         DetailUrl = Url.Action("Details", "HrDepartments", new { id = item.Id }),
                         EditUrl = Url.Action("Edit", "HrDepartments", new { id = item.Id }),
                         DeleteUrl = Url.Action("Delete", "HrDepartments", new { id = item.Id }),
-                        DeleteConfirmMessage = "Delete this department?"
+                        DeleteConfirmMessage = T["Delete this department?"]
                     }
                 }).ToList(),
                 EmptyMessage = T["msg.no_data"],
@@ -146,13 +146,13 @@
                 SearchButtonText = T["common.search"],
                 Actions = new PagedGridActionConfigViewModel
                 {
-                    ActionColumnTitle = "Action",
+                    ActionColumnTitle = T["Action"],
                     AddUrl = Url.Action("Create", "HrDepartments"),
                     AddButtonText = T["common.add_new"],
-                    DetailButtonText = "Detail",
+                    DetailButtonText = T["Detail"],
                     EditButtonText = T["common.edit"],
                     DeleteButtonText = T["common.delete"],
-                    DeleteConfirmMessage = "Delete this department?"
+                    DeleteConfirmMessage = T["Delete this department?"]
                 }
             };
         }

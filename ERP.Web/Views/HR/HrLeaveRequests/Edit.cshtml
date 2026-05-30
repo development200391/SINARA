@@ -2,16 +2,16 @@
 
 <div class="card border-0 shadow-sm">
     <div class="card-body">
-        <h1 class="h5 mb-3">Edit Leave Request</h1>
+        <h1 class="h5 mb-3">@T["Edit Leave Request"]</h1>
 
         <form method="post" class="row g-3">
             @Html.AntiForgeryToken()
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
             <div class="col-md-6">
-                <label asp-for="EmployeeId" class="form-label">Employee</label>
+                <label asp-for="EmployeeId" class="form-label">@T["Employee"]</label>
                 <select asp-for="EmployeeId" class="form-select">
-                    <option value="">Select Employee</option>
+                    <option value="">@T["Select Employee"]</option>
                     @foreach (var employee in Model.Employees)
                     {
                         <option value="@employee.Id">@employee.Name</option>
@@ -21,9 +21,9 @@
             </div>
 
             <div class="col-md-6">
-                <label asp-for="LeaveTypeId" class="form-label">Leave Type</label>
+                <label asp-for="LeaveTypeId" class="form-label">@T["Leave Type"]</label>
                 <select asp-for="LeaveTypeId" class="form-select">
-                    <option value="">Select Leave Type</option>
+                    <option value="">@T["Select Leave Type"]</option>
                     @foreach (var leaveType in Model.LeaveTypes)
                     {
                         <option value="@leaveType.Id">@leaveType.Name</option>
@@ -33,17 +33,17 @@
             </div>
 
             <div class="col-md-6">
-                <label asp-for="StartDate" class="form-label">Start Date</label>
+                <label asp-for="StartDate" class="form-label">@T["Start Date"]</label>
                 <input asp-for="StartDate" class="form-control" type="date" />
             </div>
 
             <div class="col-md-6">
-                <label asp-for="EndDate" class="form-label">End Date</label>
+                <label asp-for="EndDate" class="form-label">@T["End Date"]</label>
                 <input asp-for="EndDate" class="form-control" type="date" />
             </div>
 
             <div class="col-12">
-                <label asp-for="Reason" class="form-label">Reason</label>
+                <label asp-for="Reason" class="form-label">@T["Reason"]</label>
                 <textarea asp-for="Reason" class="form-control" rows="3"></textarea>
             </div>
 

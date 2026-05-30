@@ -4,7 +4,7 @@
 
 <div class="card border-0 shadow-sm">
     <div class="card-body">
-        <h1 class="h5 mb-3">Audit Log</h1>
+        <h1 class="h5 mb-3">@T["Audit Log"]</h1>
 
         @{
             var statusFilterOptions = Model.StatusOptions
@@ -22,7 +22,7 @@
                     new PagedGridColumnViewModel
                     {
                         Key = "createdAt",
-                        Title = "Created At",
+                        Title = T["Created At"],
                         Sortable = true,
                         Filter = new PagedGridFilterViewModel
                         {
@@ -33,25 +33,25 @@
                             ValueTo = Model.DateTo?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
                         }
                     },
-                    new PagedGridColumnViewModel { Key = "username", Title = "User", Sortable = true },
+                    new PagedGridColumnViewModel { Key = "username", Title = T["User"], Sortable = true },
                     new PagedGridColumnViewModel
                     {
                         Key = "action",
-                        Title = "Action",
+                        Title = T["Action"],
                         Sortable = true,
                         Filter = new PagedGridFilterViewModel
                         {
                             Type = PagedGridFilterType.Select,
                             QueryKey = "status",
                             Value = Model.Status,
-                            EmptyOptionLabel = "All Status",
+                            EmptyOptionLabel = T["All Status"],
                             Options = statusFilterOptions
                         }
                     },
                     new PagedGridColumnViewModel
                     {
                         Key = "entityName",
-                        Title = "Entity",
+                        Title = T["Entity"],
                         Sortable = true,
                         Filter = new PagedGridFilterViewModel
                         {
@@ -62,11 +62,11 @@
                             Size = 3
                         }
                     },
-                    new PagedGridColumnViewModel { Key = "entityId", Title = "Entity Id", Sortable = true },
+                    new PagedGridColumnViewModel { Key = "entityId", Title = T["Entity Id"], Sortable = true },
                     new PagedGridColumnViewModel
                     {
                         Key = "ipAddress",
-                        Title = "IP",
+                        Title = T["IP"],
                         Sortable = true,
                         Filter = new PagedGridFilterViewModel
                         {
@@ -74,7 +74,7 @@
                             QueryKey = "hasIpOnly",
                             IsChecked = Model.HasIpOnly,
                             CheckedValue = "true",
-                            Label = "Has IP"
+                            Label = T["Has IP"]
                         }
                     }
                 ],
@@ -111,7 +111,7 @@
                     hasIpOnly = Model.HasIpOnly,
                     entityNames = string.Join(",", Model.SelectedEntityNames)
                 }),
-                ExportButtonText = "Export Excel"
+                ExportButtonText = T["Export Excel"]
             };
         }
 

@@ -6,7 +6,7 @@
 
 <div class="card border-0 shadow-sm">
     <div class="card-body">
-        <h1 class="h5 mb-3">Attendance</h1>
+        <h1 class="h5 mb-3">@T["Attendance"]</h1>
 
         @{
             var selectedDepartmentId = Model.DepartmentIdFilter?.ToString(CultureInfo.InvariantCulture);
@@ -25,10 +25,10 @@
 
             var statusFilterOptions = new List<PagedGridFilterOptionViewModel>
             {
-                new() { Value = ((int)AttendanceStatus.Present).ToString(CultureInfo.InvariantCulture), Label = "Present" },
-                new() { Value = ((int)AttendanceStatus.Absent).ToString(CultureInfo.InvariantCulture), Label = "Absent" },
-                new() { Value = ((int)AttendanceStatus.Late).ToString(CultureInfo.InvariantCulture), Label = "Late" },
-                new() { Value = ((int)AttendanceStatus.HalfDay).ToString(CultureInfo.InvariantCulture), Label = "Half Day" }
+                new() { Value = ((int)AttendanceStatus.Present).ToString(CultureInfo.InvariantCulture), Label = T["Present"] },
+                new() { Value = ((int)AttendanceStatus.Absent).ToString(CultureInfo.InvariantCulture), Label = T["Absent"] },
+                new() { Value = ((int)AttendanceStatus.Late).ToString(CultureInfo.InvariantCulture), Label = T["Late"] },
+                new() { Value = ((int)AttendanceStatus.HalfDay).ToString(CultureInfo.InvariantCulture), Label = T["Half Day"] }
             };
 
             var gridModel = new PagedGridViewModel
@@ -45,7 +45,7 @@
                             Type = PagedGridFilterType.Text,
                             QueryKey = "employeeCode",
                             Value = Model.EmployeeCodeFilter,
-                            Placeholder = "Filter employee code"
+                            Placeholder = T["Filter employee code"]
                         }
                     },
                     new PagedGridColumnViewModel
@@ -58,7 +58,7 @@
                             Type = PagedGridFilterType.Text,
                             QueryKey = "employeeName",
                             Value = Model.EmployeeNameFilter,
-                            Placeholder = "Filter employee name"
+                            Placeholder = T["Filter employee name"]
                         }
                     },
                     new PagedGridColumnViewModel
@@ -71,14 +71,14 @@
                             Type = PagedGridFilterType.Select,
                             QueryKey = "departmentId",
                             Value = selectedDepartmentId,
-                            EmptyOptionLabel = "All Department",
+                            EmptyOptionLabel = T["All Department"],
                             Options = departmentFilterOptions
                         }
                     },
                     new PagedGridColumnViewModel
                     {
                         Key = "date",
-                        Title = "Date",
+                        Title = T["Date"],
                         Sortable = true,
                         Filter = new PagedGridFilterViewModel
                         {
@@ -92,7 +92,7 @@
                     new PagedGridColumnViewModel
                     {
                         Key = "checkIn",
-                        Title = "Check In",
+                        Title = T["Check In"],
                         Sortable = true,
                         Filter = new PagedGridFilterViewModel
                         {
@@ -106,7 +106,7 @@
                     new PagedGridColumnViewModel
                     {
                         Key = "checkOut",
-                        Title = "Check Out",
+                        Title = T["Check Out"],
                         Sortable = true,
                         Filter = new PagedGridFilterViewModel
                         {
@@ -120,28 +120,28 @@
                     new PagedGridColumnViewModel
                     {
                         Key = "status",
-                        Title = "Status",
+                        Title = T["Status"],
                         Sortable = true,
                         Filter = new PagedGridFilterViewModel
                         {
                             Type = PagedGridFilterType.Select,
                             QueryKey = "status",
                             Value = selectedStatus,
-                            EmptyOptionLabel = "All Status",
+                            EmptyOptionLabel = T["All Status"],
                             Options = statusFilterOptions
                         }
                     },
                     new PagedGridColumnViewModel
                     {
                         Key = "notes",
-                        Title = "Notes",
+                        Title = T["Notes"],
                         Sortable = true,
                         Filter = new PagedGridFilterViewModel
                         {
                             Type = PagedGridFilterType.Text,
                             QueryKey = "notes",
                             Value = Model.NotesFilter,
-                            Placeholder = "Filter notes"
+                            Placeholder = T["Filter notes"]
                         }
                     }
                 ],
@@ -173,7 +173,7 @@
                         DetailUrl = Url.Action("Details", "HrAttendance", new { id = item.Id }),
                         EditUrl = Url.Action("Edit", "HrAttendance", new { id = item.Id }),
                         DeleteUrl = Url.Action("Delete", "HrAttendance", new { id = item.Id }),
-                        DeleteConfirmMessage = "Delete this attendance record?"
+                        DeleteConfirmMessage = T["Delete this attendance record?"]
                     }
                 }).ToList(),
                 EmptyMessage = T["msg.no_data"],
@@ -184,17 +184,17 @@
                 SortDirection = Model.SortDirection,
                 EnableSearch = true,
                 SearchValue = Model.Search,
-                SearchPlaceholder = "Search attendance",
+                SearchPlaceholder = T["Search attendance"],
                 SearchButtonText = T["common.search"],
                 Actions = new PagedGridActionConfigViewModel
                 {
-                    ActionColumnTitle = "Action",
+                    ActionColumnTitle = T["Action"],
                     AddUrl = Url.Action("Create", "HrAttendance"),
                     AddButtonText = T["common.add_new"],
-                    DetailButtonText = "Detail",
+                    DetailButtonText = T["Detail"],
                     EditButtonText = T["common.edit"],
                     DeleteButtonText = T["common.delete"],
-                    DeleteConfirmMessage = "Delete this attendance record?"
+                    DeleteConfirmMessage = T["Delete this attendance record?"]
                 }
             };
         }

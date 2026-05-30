@@ -2,7 +2,7 @@
 
 <div class="card border-0 shadow-sm">
     <div class="card-body">
-        <h1 class="h5 mb-3">Create Department</h1>
+        <h1 class="h5 mb-3">@T["Create Department"]</h1>
 
         <form method="post" class="row g-3">
             @Html.AntiForgeryToken()
@@ -21,9 +21,9 @@
             </div>
 
             <div class="col-md-6">
-                <label asp-for="ManagerId" class="form-label">Manager</label>
+                <label asp-for="ManagerId" class="form-label">@T["Manager"]</label>
                 <select asp-for="ManagerId" class="form-select">
-                    <option value="">No Manager</option>
+                    <option value="">@T["No Manager"]</option>
                     @foreach (var manager in Model.Managers)
                     {
                         <option value="@manager.Id" selected="@(Model.ManagerId == manager.Id)">@manager.Name</option>
@@ -33,9 +33,9 @@
             </div>
 
             <div class="col-md-6">
-                <label asp-for="ParentDepartmentId" class="form-label">Parent Department</label>
+                <label asp-for="ParentDepartmentId" class="form-label">@T["Parent Department"]</label>
                 <select asp-for="ParentDepartmentId" class="form-select">
-                    <option value="">No Parent</option>
+                    <option value="">@T["No Parent"]</option>
                     @foreach (var department in Model.ParentDepartments)
                     {
                         <option value="@department.Id" selected="@(Model.ParentDepartmentId == department.Id)">@department.Code - @department.Name</option>
