@@ -10,6 +10,7 @@ public sealed class EmployeeListDto
     public string FullName { get; set; } = string.Empty;
     public string? Email { get; set; }
     public string? Phone { get; set; }
+    public string? PhotoPath { get; set; }
     public int DepartmentId { get; set; }
     public string DepartmentName { get; set; } = string.Empty;
     public int PositionId { get; set; }
@@ -26,6 +27,7 @@ public sealed class EmployeeDetailDto
     public string FullName { get; set; } = string.Empty;
     public string? Email { get; set; }
     public string? Phone { get; set; }
+    public string? PhotoPath { get; set; }
     public int DepartmentId { get; set; }
     public string DepartmentName { get; set; } = string.Empty;
     public int PositionId { get; set; }
@@ -41,6 +43,7 @@ public class CreateEmployeeRequest
     public string FullName { get; set; } = string.Empty;
     public string? Email { get; set; }
     public string? Phone { get; set; }
+    public string? PhotoPath { get; set; }
     public int DepartmentId { get; set; }
     public int PositionId { get; set; }
     public DateOnly HireDate { get; set; }

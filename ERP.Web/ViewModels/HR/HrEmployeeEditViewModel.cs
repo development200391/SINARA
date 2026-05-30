@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using ERP.Application.DTOs.HR;
 using ERP.Domain.Enums;
+using Microsoft.AspNetCore.Http;
 
 namespace ERP.Web.ViewModels.HR;
 
@@ -21,6 +22,16 @@ public sealed class HrEmployeeEditViewModel
 
     [MaxLength(30)]
     public string? Phone { get; set; }
+
+    [MaxLength(500)]
+    public string? PhotoPath { get; set; }
+
+    public IFormFile? PhotoFile { get; set; }
+
+    public double? PhotoCropX { get; set; }
+    public double? PhotoCropY { get; set; }
+    public double? PhotoCropWidth { get; set; }
+    public double? PhotoCropHeight { get; set; }
 
     [Range(1, int.MaxValue)]
     public int DepartmentId { get; set; }

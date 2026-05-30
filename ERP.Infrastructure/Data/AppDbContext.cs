@@ -337,6 +337,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         builder.Property(x => x.FullName).HasMaxLength(200).IsRequired();
         builder.Property(x => x.Email).HasMaxLength(200);
         builder.Property(x => x.Phone).HasMaxLength(30);
+        builder.Property(x => x.PhotoPath).HasMaxLength(500);
         builder.Property(x => x.HireDate).HasColumnType("date").IsRequired();
         builder.Property(x => x.TerminationDate).HasColumnType("date");
         builder.Property(x => x.EmploymentStatus).HasConversion<int>().IsRequired();

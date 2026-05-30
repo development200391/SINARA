@@ -153,6 +153,7 @@ public sealed class EmployeeService(IUnitOfWork unitOfWork) : IEmployeeService
         var normalizedFullName = NormalizeRequiredText(request.FullName, "Employee full name is required.");
         var normalizedEmail = NormalizeText(request.Email);
         var normalizedPhone = NormalizeText(request.Phone);
+        var normalizedPhotoPath = NormalizePhotoPath(request.PhotoPath);
 
         await ValidateDepartmentAndPositionAsync(request.DepartmentId, request.PositionId, ct);
 
@@ -162,6 +163,7 @@ public sealed class EmployeeService(IUnitOfWork unitOfWork) : IEmployeeService
             FullName = normalizedFullName,
             Email = normalizedEmail,
             Phone = normalizedPhone,
+            PhotoPath = normalizedPhotoPath,
             DepartmentId = request.DepartmentId,
             PositionId = request.PositionId,
             HireDate = request.HireDate,
@@ -190,6 +192,7 @@ public sealed class EmployeeService(IUnitOfWork unitOfWork) : IEmployeeService
         var normalizedFullName = NormalizeRequiredText(request.FullName, "Employee full name is required.");
         var normalizedEmail = NormalizeText(request.Email);
         var normalizedPhone = NormalizeText(request.Phone);
+        var normalizedPhotoPath = NormalizePhotoPath(request.PhotoPath);
 
         if (request.TerminationDate.HasValue && request.TerminationDate.Value < request.HireDate)
         {
@@ -201,6 +204,7 @@ public sealed class EmployeeService(IUnitOfWork unitOfWork) : IEmployeeService
         entity.FullName = normalizedFullName;
         entity.Email = normalizedEmail;
         entity.Phone = normalizedPhone;
+        entity.PhotoPath = normalizedPhotoPath;
         entity.DepartmentId = request.DepartmentId;
         entity.PositionId = request.PositionId;
         entity.HireDate = request.HireDate;
@@ -434,6 +438,17 @@ public sealed class EmployeeService(IUnitOfWork unitOfWork) : IEmployeeService
 
     private static string? NormalizeText(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
+    private static string? NormalizePhotoPath(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        var normalized = value.Trim();
+        return normalized.Length <= 500 ? normalized : normalized[..500];
+    }
+
     private static (DateOnly? From, DateOnly? To) NormalizeDateRange(DateOnly? from, DateOnly? to)
     {
         if (from.HasValue && to.HasValue && from.Value > to.Value)
@@ -453,6 +468,7 @@ public sealed class EmployeeService(IUnitOfWork unitOfWork) : IEmployeeService
             FullName = entity.FullName,
             Email = entity.Email,
             Phone = entity.Phone,
+            PhotoPath = entity.PhotoPath,
             DepartmentId = entity.DepartmentId,
             DepartmentName = entity.Department.Name,
             PositionId = entity.PositionId,
@@ -472,6 +488,7 @@ public sealed class EmployeeService(IUnitOfWork unitOfWork) : IEmployeeService
             FullName = entity.FullName,
             Email = entity.Email,
             Phone = entity.Phone,
+            PhotoPath = entity.PhotoPath,
             DepartmentId = entity.DepartmentId,
             DepartmentName = entity.Department.Name,
             PositionId = entity.PositionId,

@@ -11,7 +11,10 @@ namespace ERP.Web.Controllers;
 
 [Authorize]
 [Route("hr/employees")]
-public sealed class HrEmployeesController(IHrApiClient hrApiClient) : Controller
+public sealed class HrEmployeesController(
+    IHrApiClient hrApiClient,
+    IEmployeePhotoService employeePhotoService,
+    ILogger<HrEmployeesController> logger) : Controller
 {
     private const int DefaultPageSize = 20;
     private const string DefaultSortBy = "fullName";
@@ -173,12 +176,21 @@ public sealed class HrEmployeesController(IHrApiClient hrApiClient) : Controller
             return View(model);
         }
 
+        var newPhotoPath = await SaveEmployeePhotoAsync(model, ct);
+        if (!ModelState.IsValid)
+        {
+            ViewData["Title"] = "Create Employee";
+            ViewData["Breadcrumb"] = "HR / Employees / Create";
+            return View(model);
+        }
+
         var created = await hrApiClient.CreateEmployeeAsync(accessToken, new CreateEmployeeRequest
         {
             EmployeeCode = model.EmployeeCode,
             FullName = model.FullName,
             Email = model.Email,
             Phone = model.Phone,
+            PhotoPath = newPhotoPath,
             DepartmentId = model.DepartmentId,
             PositionId = model.PositionId,
             HireDate = model.HireDate,
@@ -187,6 +199,8 @@ public sealed class HrEmployeesController(IHrApiClient hrApiClient) : Controller
 
         if (created is null)
         {
+            await DeleteEmployeePhotoSafelyAsync(newPhotoPath, ct);
+
             ModelState.AddModelError(string.Empty, "Failed to create employee.");
             ViewData["Title"] = "Create Employee";
             ViewData["Breadcrumb"] = "HR / Employees / Create";
@@ -219,6 +233,7 @@ public sealed class HrEmployeesController(IHrApiClient hrApiClient) : Controller
             FullName = employee.FullName,
             Email = employee.Email,
             Phone = employee.Phone,
+            PhotoPath = employee.PhotoPath,
             DepartmentId = employee.DepartmentId,
             PositionId = employee.PositionId,
             HireDate = employee.HireDate,
@@ -244,6 +259,8 @@ public sealed class HrEmployeesController(IHrApiClient hrApiClient) : Controller
             return RedirectToAction("Login", "Auth");
         }
 
+        var existingPhotoPath = model.PhotoPath;
+
         model.Id = id;
         await PopulateFormOptionsAsync(accessToken, model, ct);
 
@@ -261,12 +278,23 @@ public sealed class HrEmployeesController(IHrApiClient hrApiClient) : Controller
             return View(model);
         }
 
+        var newPhotoPath = await SaveEmployeePhotoAsync(model, ct);
+        if (!ModelState.IsValid)
+        {
+            ViewData["Title"] = "Edit Employee";
+            ViewData["Breadcrumb"] = "HR / Employees / Edit";
+            return View(model);
+        }
+
+        var finalPhotoPath = newPhotoPath ?? existingPhotoPath;
+
         var updated = await hrApiClient.UpdateEmployeeAsync(accessToken, id, new UpdateEmployeeRequest
         {
             EmployeeCode = model.EmployeeCode,
             FullName = model.FullName,
             Email = model.Email,
             Phone = model.Phone,
+            PhotoPath = finalPhotoPath,
             DepartmentId = model.DepartmentId,
             PositionId = model.PositionId,
             HireDate = model.HireDate,
@@ -276,10 +304,19 @@ public sealed class HrEmployeesController(IHrApiClient hrApiClient) : Controller
 
         if (updated is null)
         {
+            await DeleteEmployeePhotoSafelyAsync(newPhotoPath, ct);
+
+            model.PhotoPath = existingPhotoPath;
             ModelState.AddModelError(string.Empty, "Failed to update employee.");
             ViewData["Title"] = "Edit Employee";
             ViewData["Breadcrumb"] = "HR / Employees / Edit";
             return View(model);
+        }
+
+        if (!string.IsNullOrWhiteSpace(newPhotoPath)
+            && !string.Equals(existingPhotoPath, newPhotoPath, StringComparison.OrdinalIgnoreCase))
+        {
+            await DeleteEmployeePhotoSafelyAsync(existingPhotoPath, ct);
         }
 
         TempData["SuccessMessage"] = "Employee updated.";
@@ -302,6 +339,50 @@ public sealed class HrEmployeesController(IHrApiClient hrApiClient) : Controller
             : "Failed to delete employee.";
 
         return RedirectToAction(nameof(Index));
+    }
+
+    private async Task<string?> SaveEmployeePhotoAsync(HrEmployeeEditViewModel model, CancellationToken ct)
+    {
+        if (model.PhotoFile is null || model.PhotoFile.Length <= 0)
+        {
+            return null;
+        }
+
+        try
+        {
+            return await employeePhotoService.SavePhotoAsync(
+                model.PhotoFile,
+                new EmployeePhotoCropData(model.PhotoCropX, model.PhotoCropY, model.PhotoCropWidth, model.PhotoCropHeight),
+                ct);
+        }
+        catch (InvalidOperationException ex)
+        {
+            ModelState.AddModelError(nameof(model.PhotoFile), ex.Message);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to process employee photo.");
+            ModelState.AddModelError(nameof(model.PhotoFile), "Failed to process employee photo.");
+            return null;
+        }
+    }
+
+    private async Task DeleteEmployeePhotoSafelyAsync(string? photoPath, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(photoPath))
+        {
+            return;
+        }
+
+        try
+        {
+            await employeePhotoService.DeletePhotoAsync(photoPath, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to delete employee photo {PhotoPath}", photoPath);
+        }
     }
 
     private async Task PopulateFormOptionsAsync(string accessToken, HrEmployeeEditViewModel model, CancellationToken ct)

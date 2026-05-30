@@ -385,3 +385,34 @@ body {
     }
 }
 
+
+.sinara-employee-photo-component {
+    max-width: 320px;
+}
+
+.sinara-employee-photo-preview {
+    width: 180px;
+    height: 180px;
+    border-radius: 0.75rem;
+    border: 1px solid rgba(var(--sinara-primary-rgb), 0.24);
+    background: rgba(var(--sinara-primary-rgb), 0.05);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sinara-employee-photo-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.sinara-employee-photo-cropper-wrap {
+    max-height: 65vh;
+    min-height: 300px;
+}
+
+.sinara-employee-photo-cropper {
+    max-width: 100%;
+}

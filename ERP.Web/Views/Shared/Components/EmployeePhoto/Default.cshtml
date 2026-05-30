@@ -1,0 +1,51 @@
+@model ERP.Web.ViewModels.HR.HrEmployeeEditViewModel
+@{
+    var componentId = $"employee-photo-{Guid.NewGuid():N}";
+    const string defaultAvatarPath = "/images/default-avatar.svg";
+    var photoPreviewPath = string.IsNullOrWhiteSpace(Model.PhotoPath) ? defaultAvatarPath : Model.PhotoPath;
+}
+
+<div id="@componentId" class="sinara-employee-photo-component" data-default-avatar="@defaultAvatarPath">
+    <input asp-for="PhotoPath" type="hidden" data-photo-path />
+    <input asp-for="PhotoCropX" type="hidden" data-photo-crop-x />
+    <input asp-for="PhotoCropY" type="hidden" data-photo-crop-y />
+    <input asp-for="PhotoCropWidth" type="hidden" data-photo-crop-width />
+    <input asp-for="PhotoCropHeight" type="hidden" data-photo-crop-height />
+
+    <label class="form-label d-block">@T["Photo"]</label>
+
+    <div class="sinara-employee-photo-preview mb-2">
+        <img src="@photoPreviewPath" class="sinara-employee-photo-image" alt="@T["Employee Photo"]" data-photo-preview data-persisted-src="@photoPreviewPath" onerror="this.onerror=null;this.src='@defaultAvatarPath';" />
+    </div>
+
+    <input asp-for="PhotoFile" type="file" class="form-control" accept=".jpg,.jpeg,.png,image/jpeg,image/png" data-photo-input />
+    <div class="form-text">@T["Allowed formats: JPG, JPEG, PNG. Maximum file size: 5 MB."]</div>
+    <span asp-validation-for="PhotoFile" class="text-danger"></span>
+
+    <button type="button" class="btn btn-sm btn-outline-secondary mt-2 d-none" data-photo-recrop>
+        <i class="bi bi-crop me-1"></i>@T["Crop Photo"]
+    </button>
+
+    <div class="text-danger small mt-2 d-none" data-photo-error></div>
+
+    <div class="modal fade" tabindex="-1" aria-hidden="true" data-photo-modal>
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title fs-6">@T["Crop Employee Photo"]</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@T["Close"]"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="sinara-employee-photo-cropper-wrap">
+                        <img class="sinara-employee-photo-cropper" alt="@T["Crop Preview"]" data-photo-cropper-image />
+                    </div>
+                    <p class="small text-muted mt-2 mb-0">@T["Use mouse or touch to drag and zoom before applying crop."]</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@T["common.cancel"]</button>
+                    <button type="button" class="btn btn-primary" data-photo-apply>@T["Apply Crop"]</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

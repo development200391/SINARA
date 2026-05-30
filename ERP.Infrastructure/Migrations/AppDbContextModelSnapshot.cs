@@ -665,6 +665,11 @@ namespace ERP.Infrastructure.Migrations
                         .HasColumnType("character varying(30)")
                         .HasColumnName("phone");
 
+                    b.Property<string>("PhotoPath")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("photo_path");
+
                     b.Property<int>("PositionId")
                         .HasColumnType("integer")
                         .HasColumnName("position_id");

@@ -9,6 +9,7 @@ public sealed class HrEmployee : BaseEntity
     public string FullName { get; set; } = string.Empty;
     public string? Email { get; set; }
     public string? Phone { get; set; }
+    public string? PhotoPath { get; set; }
     public int DepartmentId { get; set; }
     public int PositionId { get; set; }
     public DateOnly HireDate { get; set; }

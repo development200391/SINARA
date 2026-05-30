@@ -34,6 +34,7 @@ builder.Services.AddHttpClient<IConfigApiClient, ConfigApiClient>((serviceProvid
 });
 
 builder.Services.AddScoped<ITextLocalizer, TextLocalizer>();
+builder.Services.AddScoped<IEmployeePhotoService, EmployeePhotoService>();
 builder.Services.AddScoped<IAuditLogExcelExportService, AuditLogExcelExportService>();
 
 builder.Services.AddHttpClient<IHrApiClient, HrApiClient>((serviceProvider, client) =>
