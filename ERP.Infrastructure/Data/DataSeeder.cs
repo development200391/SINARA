@@ -264,6 +264,16 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
                 .Select(x => (int?)x.Id)
                 .FirstOrDefaultAsync(ct);
 
+            await EnsureSampleFinanceBudgetsAsync(
+                fiscalYear.Id,
+                seededPeriod.Id,
+                seededCostCenterId,
+                acc5101.Id,
+                acc5104.Id,
+                acc5105.Id,
+                now,
+                ct);
+
             await EnsureSampleFinanceJournalsAsync(
                 seededPeriod.Id,
                 seededCostCenterId,
@@ -420,7 +430,11 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         await EnsureMenuAsync(finModule.Id, finAr.Id, "AR Receipts", "/finance/ar/receipts", "bi-cash-coin", 3, now, ct);
         await EnsureMenuAsync(finModule.Id, finAr.Id, "AR Aging", "/finance/ar/aging", "bi-hourglass-split", 4, now, ct);
 
-        var finReports = await EnsureMenuAsync(finModule.Id, null, "Financial Reports", null, "bi-bar-chart-line", 6, now, ct);
+        var finBudgetControl = await EnsureMenuAsync(finModule.Id, null, "Budget & Cost Control", null, "bi-calculator", 6, now, ct);
+        await EnsureMenuAsync(finModule.Id, finBudgetControl.Id, "Budgets", "/finance/budgets", "bi-wallet", 1, now, ct);
+        await EnsureMenuAsync(finModule.Id, finBudgetControl.Id, "Budget vs Actual", "/finance/reports/budget-vs-actual", "bi-bar-chart", 2, now, ct);
+
+        var finReports = await EnsureMenuAsync(finModule.Id, null, "Financial Reports", null, "bi-bar-chart-line", 7, now, ct);
         await EnsureMenuAsync(finModule.Id, finReports.Id, "Trial Balance", "/finance/reports/trial-balance", "bi-table", 1, now, ct);
         await EnsureMenuAsync(finModule.Id, finReports.Id, "Balance Sheet", "/finance/reports/balance-sheet", "bi-border-all", 2, now, ct);
         await EnsureMenuAsync(finModule.Id, finReports.Id, "Profit & Loss", "/finance/reports/profit-loss", "bi-graph-up-arrow", 3, now, ct);
@@ -1081,6 +1095,221 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         return existing;
     }
 
+    private async Task EnsureSampleFinanceBudgetsAsync(
+        int fiscalYearId,
+        int fallbackPeriodId,
+        int? costCenterId,
+        int salaryExpenseAccountId,
+        int operationalExpenseAccountId,
+        int depreciationExpenseAccountId,
+        DateTimeOffset now,
+        CancellationToken ct)
+    {
+        var periodIds = await dbContext.FinPeriods
+            .AsNoTracking()
+            .Where(x => x.FiscalYearId == fiscalYearId)
+            .OrderByDescending(x => x.StartDate)
+            .Select(x => x.Id)
+            .Take(3)
+            .ToListAsync(ct);
+
+        if (periodIds.Count == 0)
+        {
+            periodIds.Add(fallbackPeriodId);
+        }
+
+        var periodPrimary = periodIds[0];
+        var periodSecondary = periodIds.Count > 1 ? periodIds[1] : periodPrimary;
+        var periodTertiary = periodIds.Count > 2 ? periodIds[2] : periodPrimary;
+        var budgetYear = DateTime.UtcNow.Year;
+
+        await EnsureBudgetAsync(
+            budgetNo: $"BUD-{budgetYear}-OPS01",
+            name: $"Operational Budget {budgetYear}",
+            fiscalYearId: fiscalYearId,
+            periodId: null,
+            costCenterId: costCenterId,
+            accountId: operationalExpenseAccountId,
+            currencyCode: "IDR",
+            isActive: true,
+            notes: "Budget operasional tahunan",
+            lines:
+            [
+                new SeedBudgetLine
+                {
+                    PeriodId = periodPrimary,
+                    AccountId = operationalExpenseAccountId,
+                    CostCenterId = costCenterId,
+                    Description = "Alokasi biaya operasional",
+                    Amount = 9_500_000m
+                },
+                new SeedBudgetLine
+                {
+                    PeriodId = periodSecondary,
+                    AccountId = operationalExpenseAccountId,
+                    CostCenterId = costCenterId,
+                    Description = "Alokasi biaya operasional",
+                    Amount = 8_900_000m
+                },
+                new SeedBudgetLine
+                {
+                    PeriodId = periodPrimary,
+                    AccountId = depreciationExpenseAccountId,
+                    CostCenterId = null,
+                    Description = "Alokasi biaya penyusutan",
+                    Amount = 1_200_000m
+                }
+            ],
+            now,
+            ct);
+
+        await EnsureBudgetAsync(
+            budgetNo: $"BUD-{budgetYear}-PAY01",
+            name: $"Payroll Budget {budgetYear}",
+            fiscalYearId: fiscalYearId,
+            periodId: null,
+            costCenterId: costCenterId,
+            accountId: salaryExpenseAccountId,
+            currencyCode: "IDR",
+            isActive: true,
+            notes: "Budget payroll tahunan",
+            lines:
+            [
+                new SeedBudgetLine
+                {
+                    PeriodId = periodPrimary,
+                    AccountId = salaryExpenseAccountId,
+                    CostCenterId = costCenterId,
+                    Description = "Alokasi biaya payroll",
+                    Amount = 16_000_000m
+                },
+                new SeedBudgetLine
+                {
+                    PeriodId = periodSecondary,
+                    AccountId = salaryExpenseAccountId,
+                    CostCenterId = costCenterId,
+                    Description = "Alokasi biaya payroll",
+                    Amount = 15_500_000m
+                },
+                new SeedBudgetLine
+                {
+                    PeriodId = periodTertiary,
+                    AccountId = salaryExpenseAccountId,
+                    CostCenterId = costCenterId,
+                    Description = "Alokasi biaya payroll",
+                    Amount = 15_800_000m
+                }
+            ],
+            now,
+            ct);
+    }
+
+    private async Task<FinBudget> EnsureBudgetAsync(
+        string budgetNo,
+        string name,
+        int fiscalYearId,
+        int? periodId,
+        int? costCenterId,
+        int? accountId,
+        string currencyCode,
+        bool isActive,
+        string? notes,
+        IReadOnlyList<SeedBudgetLine> lines,
+        DateTimeOffset now,
+        CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(budgetNo))
+        {
+            throw new InvalidOperationException("Budget number is required.");
+        }
+
+        if (lines.Count == 0)
+        {
+            throw new InvalidOperationException("Budget lines are required.");
+        }
+
+        var normalizedBudgetNo = budgetNo.Trim().ToUpperInvariant();
+        var normalizedName = string.IsNullOrWhiteSpace(name) ? normalizedBudgetNo : name.Trim();
+        var normalizedCurrencyCode = string.IsNullOrWhiteSpace(currencyCode) ? "IDR" : currencyCode.Trim().ToUpperInvariant();
+
+        var existing = await dbContext.FinBudgets
+            .IgnoreQueryFilters()
+            .Include(x => x.Lines)
+            .FirstOrDefaultAsync(x => x.BudgetNo == normalizedBudgetNo, ct);
+
+        if (existing is null)
+        {
+            existing = new FinBudget
+            {
+                BudgetNo = normalizedBudgetNo,
+                Name = normalizedName,
+                FiscalYearId = fiscalYearId,
+                PeriodId = periodId,
+                CostCenterId = costCenterId,
+                AccountId = accountId,
+                CurrencyCode = normalizedCurrencyCode,
+                Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim(),
+                IsActive = isActive,
+                CreatedBy = "system",
+                CreatedAt = now
+            };
+
+            dbContext.FinBudgets.Add(existing);
+        }
+        else
+        {
+            dbContext.FinBudgetLines.RemoveRange(existing.Lines);
+            existing.Lines.Clear();
+
+            existing.Name = normalizedName;
+            existing.FiscalYearId = fiscalYearId;
+            existing.PeriodId = periodId;
+            existing.CostCenterId = costCenterId;
+            existing.AccountId = accountId;
+            existing.CurrencyCode = normalizedCurrencyCode;
+            existing.Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim();
+            existing.IsActive = isActive;
+            existing.IsDeleted = false;
+            existing.DeletedAt = null;
+            existing.UpdatedBy = "system";
+            existing.UpdatedAt = now;
+        }
+
+        for (var indexLine = 0; indexLine < lines.Count; indexLine++)
+        {
+            var line = lines[indexLine];
+
+            if (line.PeriodId <= 0)
+            {
+                throw new InvalidOperationException($"Budget line {indexLine + 1} period is invalid.");
+            }
+
+            if (line.AccountId <= 0)
+            {
+                throw new InvalidOperationException($"Budget line {indexLine + 1} account is invalid.");
+            }
+
+            if (line.Amount < 0)
+            {
+                throw new InvalidOperationException($"Budget line {indexLine + 1} amount cannot be negative.");
+            }
+
+            existing.Lines.Add(new FinBudgetLine
+            {
+                LineNo = indexLine + 1,
+                PeriodId = line.PeriodId,
+                AccountId = line.AccountId,
+                CostCenterId = line.CostCenterId,
+                Description = string.IsNullOrWhiteSpace(line.Description) ? null : line.Description.Trim(),
+                Amount = decimal.Round(line.Amount, 4, MidpointRounding.AwayFromZero)
+            });
+        }
+
+        existing.TotalAmount = decimal.Round(existing.Lines.Sum(x => x.Amount), 4, MidpointRounding.AwayFromZero);
+
+        await dbContext.SaveChangesAsync(ct);
+        return existing;
+    }
     private async Task EnsureSampleFinanceJournalsAsync(
         int periodId,
         int? costCenterId,
@@ -1438,6 +1667,14 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         return existing;
     }
 
+    private sealed class SeedBudgetLine
+    {
+        public int PeriodId { get; init; }
+        public int AccountId { get; init; }
+        public int? CostCenterId { get; init; }
+        public string? Description { get; init; }
+        public decimal Amount { get; init; }
+    }
     private sealed class SeedJournalLine
     {
         public int AccountId { get; init; }
@@ -1508,6 +1745,11 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         return menu;
     }
 }
+
+
+
+
+
 
 
 

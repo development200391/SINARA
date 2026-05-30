@@ -1,0 +1,321 @@
+@model ERP.Web.ViewModels.Finance.FinanceBudgetEditViewModel
+@using System.Globalization
+
+@{
+    var numberCulture = string.Equals(T.CurrentLanguage, "id", StringComparison.OrdinalIgnoreCase)
+        ? CultureInfo.GetCultureInfo("id-ID")
+        : CultureInfo.GetCultureInfo("en-US");
+}
+
+@if (Model.Id.HasValue)
+{
+    <input asp-for="Id" type="hidden" />
+}
+
+<div class="col-md-3">
+    <label asp-for="BudgetNo" class="form-label">@T["Budget No"]</label>
+    <input asp-for="BudgetNo" class="form-control" />
+    <span asp-validation-for="BudgetNo" class="text-danger"></span>
+</div>
+
+<div class="col-md-5">
+    <label asp-for="Name" class="form-label">@T["Name"]</label>
+    <input asp-for="Name" class="form-control" />
+    <span asp-validation-for="Name" class="text-danger"></span>
+</div>
+
+<div class="col-md-2">
+    <label asp-for="CurrencyCode" class="form-label">@T["Currency"]</label>
+    <select asp-for="CurrencyCode" class="form-select">
+        @foreach (var option in Model.CurrencyOptions)
+        {
+            <option value="@option.Code" selected="@string.Equals(Model.CurrencyCode, option.Code, StringComparison.OrdinalIgnoreCase)">@option.Label</option>
+        }
+    </select>
+    <span asp-validation-for="CurrencyCode" class="text-danger"></span>
+</div>
+
+<div class="col-md-2 d-flex align-items-end">
+    <div class="form-check">
+        <input asp-for="IsActive" class="form-check-input" />
+        <label asp-for="IsActive" class="form-check-label">@T["Active"]</label>
+    </div>
+</div>
+
+<div class="col-md-4">
+    <label asp-for="FiscalYearId" class="form-label">@T["Fiscal Year"]</label>
+    <select asp-for="FiscalYearId" class="form-select">
+        @foreach (var option in Model.FiscalYearOptions)
+        {
+            <option value="@option.Id" selected="@(Model.FiscalYearId == option.Id)">@option.Label</option>
+        }
+    </select>
+    <span asp-validation-for="FiscalYearId" class="text-danger"></span>
+</div>
+
+<div class="col-md-4">
+    <label asp-for="PeriodId" class="form-label">@T["Period"]</label>
+    <select asp-for="PeriodId" class="form-select">
+        <option value="">@T["None"]</option>
+        @foreach (var option in Model.PeriodOptions)
+        {
+            <option value="@option.Id" selected="@(Model.PeriodId == option.Id)">@option.Label</option>
+        }
+    </select>
+    <span asp-validation-for="PeriodId" class="text-danger"></span>
+</div>
+
+<div class="col-md-4">
+    <label asp-for="CostCenterId" class="form-label">@T["Cost Center"]</label>
+    <select asp-for="CostCenterId" class="form-select">
+        <option value="">@T["None"]</option>
+        @foreach (var option in Model.CostCenterOptions)
+        {
+            <option value="@option.Id" selected="@(Model.CostCenterId == option.Id)">@option.Label</option>
+        }
+    </select>
+    <span asp-validation-for="CostCenterId" class="text-danger"></span>
+</div>
+
+<div class="col-md-6">
+    <label asp-for="AccountId" class="form-label">@T["Account"]</label>
+    <select asp-for="AccountId" class="form-select">
+        <option value="">@T["None"]</option>
+        @foreach (var option in Model.AccountOptions)
+        {
+            <option value="@option.Id" selected="@(Model.AccountId == option.Id)">@option.Label</option>
+        }
+    </select>
+    <span asp-validation-for="AccountId" class="text-danger"></span>
+</div>
+
+<div class="col-md-6">
+    <label asp-for="Notes" class="form-label">@T["Notes"]</label>
+    <textarea asp-for="Notes" class="form-control" rows="2"></textarea>
+    <span asp-validation-for="Notes" class="text-danger"></span>
+</div>
+
+<div class="col-12">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h2 class="h6 mb-0">@T["Budget Lines"]</h2>
+        <button type="button" id="add-budget-line" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1">
+            <i class="bi bi-plus-circle" aria-hidden="true"></i>
+            <span>@T["Add Line"]</span>
+        </button>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-sm align-middle">
+            <thead>
+                <tr>
+                    <th style="width:48px;">#</th>
+                    <th>@T["Period"]</th>
+                    <th>@T["Account"]</th>
+                    <th>@T["Cost Center"]</th>
+                    <th>@T["Description"]</th>
+                    <th style="width:170px;" class="text-end">@T["Amount"]</th>
+                    <th style="width:64px;" class="text-end">@T["Action"]</th>
+                </tr>
+            </thead>
+            <tbody id="budget-lines-body">
+                @for (var index = 0; index < Model.Lines.Count; index++)
+                {
+                    <tr class="budget-line-row">
+                        <td class="line-no">@(index + 1)</td>
+                        <td>
+                            <input type="hidden" data-field="Id" value="@Model.Lines[index].Id" />
+                            <select class="form-select form-select-sm" data-field="PeriodId">
+                                <option value="">@T["Select Period"]</option>
+                                @foreach (var option in Model.PeriodOptions)
+                                {
+                                    <option value="@option.Id" selected="@(Model.Lines[index].PeriodId == option.Id)">@option.Label</option>
+                                }
+                            </select>
+                        </td>
+                        <td>
+                            <select class="form-select form-select-sm" data-field="AccountId">
+                                <option value="">@T["Select Account"]</option>
+                                @foreach (var option in Model.AccountOptions)
+                                {
+                                    <option value="@option.Id" selected="@(Model.Lines[index].AccountId == option.Id)">@option.Label</option>
+                                }
+                            </select>
+                        </td>
+                        <td>
+                            <select class="form-select form-select-sm" data-field="CostCenterId">
+                                <option value="">@T["None"]</option>
+                                @foreach (var option in Model.CostCenterOptions)
+                                {
+                                    <option value="@option.Id" selected="@(Model.Lines[index].CostCenterId == option.Id)">@option.Label</option>
+                                }
+                            </select>
+                        </td>
+                        <td>
+                            <input type="text" class="form-control form-control-sm" data-field="Description" value="@Model.Lines[index].Description" />
+                        </td>
+                        <td>
+                            <input type="text" inputmode="decimal" class="form-control form-control-sm text-end sinara-text-number sinara-text-number-theme sinara-text-number-input budget-line-amount" data-field="Amount" data-text-number-decimals="2" value="@Model.Lines[index].Amount.ToString("N2", numberCulture)" />
+                        </td>
+                        <td class="text-end">
+                            <button type="button" class="btn btn-sm btn-outline-danger remove-budget-line" title="@T["Delete"]">
+                                <i class="bi bi-trash" aria-hidden="true"></i>
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot>
+                <tr>
+                    <th colspan="5" class="text-end">@T["Total"]</th>
+                    <th id="budget-total-amount" class="text-end sinara-text-number sinara-text-number-theme">0.00</th>
+                    <th></th>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+
+<template id="budget-line-template">
+    <tr class="budget-line-row">
+        <td class="line-no"></td>
+        <td>
+            <input type="hidden" data-field="Id" value="" />
+            <select class="form-select form-select-sm" data-field="PeriodId">
+                <option value="">@T["Select Period"]</option>
+                @foreach (var option in Model.PeriodOptions)
+                {
+                    <option value="@option.Id">@option.Label</option>
+                }
+            </select>
+        </td>
+        <td>
+            <select class="form-select form-select-sm" data-field="AccountId">
+                <option value="">@T["Select Account"]</option>
+                @foreach (var option in Model.AccountOptions)
+                {
+                    <option value="@option.Id">@option.Label</option>
+                }
+            </select>
+        </td>
+        <td>
+            <select class="form-select form-select-sm" data-field="CostCenterId">
+                <option value="">@T["None"]</option>
+                @foreach (var option in Model.CostCenterOptions)
+                {
+                    <option value="@option.Id">@option.Label</option>
+                }
+            </select>
+        </td>
+        <td>
+            <input type="text" class="form-control form-control-sm" data-field="Description" />
+        </td>
+        <td>
+            <input type="text" inputmode="decimal" class="form-control form-control-sm text-end sinara-text-number sinara-text-number-theme sinara-text-number-input budget-line-amount" data-field="Amount" data-text-number-decimals="2" value="@((0m).ToString("N2", numberCulture))" />
+        </td>
+        <td class="text-end">
+            <button type="button" class="btn btn-sm btn-outline-danger remove-budget-line" title="@T["Delete"]">
+                <i class="bi bi-trash" aria-hidden="true"></i>
+            </button>
+        </td>
+    </tr>
+</template>
+
+<script>
+    (() => {
+        const body = document.getElementById('budget-lines-body');
+        if (!body) return;
+
+        const addBtn = document.getElementById('add-budget-line');
+        const template = document.getElementById('budget-line-template');
+        const totalEl = document.getElementById('budget-total-amount');
+        const numberLocale = '@(string.Equals(T.CurrentLanguage, "id", StringComparison.OrdinalIgnoreCase) ? "id-ID" : "en-US")';
+
+        const parseAmount = (value) => {
+            const normalizer = window.SinaraTextNumber && typeof window.SinaraTextNumber.normalizeFreeNumber === 'function'
+                ? window.SinaraTextNumber.normalizeFreeNumber
+                : (raw) => String(raw ?? '').replace(/[^0-9.-]/g, '');
+
+            const normalized = normalizer(value);
+            const parsed = Number.parseFloat(normalized);
+            return Number.isFinite(parsed) ? parsed : 0;
+        };
+
+        const formatAmount = (value) => value.toLocaleString(numberLocale, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+
+        const recalc = () => {
+            let total = 0;
+            body.querySelectorAll('.budget-line-amount').forEach((input) => {
+                if (input instanceof HTMLInputElement) {
+                    total += parseAmount(input.value);
+                }
+            });
+
+            if (totalEl) {
+                totalEl.textContent = formatAmount(total);
+            }
+        };
+
+        const renumber = () => {
+            const rows = body.querySelectorAll('.budget-line-row');
+            rows.forEach((row, index) => {
+                const lineNo = row.querySelector('.line-no');
+                if (lineNo) {
+                    lineNo.textContent = String(index + 1);
+                }
+
+                row.querySelectorAll('[data-field]').forEach((control) => {
+                    const field = control.getAttribute('data-field');
+                    if (!field) return;
+                    control.setAttribute('name', `Lines[${index}].${field}`);
+                    control.setAttribute('id', `Lines_${index}__${field}`);
+                });
+            });
+
+            if (window.SinaraTextNumber && typeof window.SinaraTextNumber.bindAll === 'function') {
+                window.SinaraTextNumber.bindAll();
+            }
+
+            recalc();
+        };
+
+        if (addBtn && template) {
+            addBtn.addEventListener('click', () => {
+                const row = template.content.firstElementChild?.cloneNode(true);
+                if (!row) return;
+                body.appendChild(row);
+                renumber();
+            });
+        }
+
+        body.addEventListener('click', (event) => {
+            const target = event.target;
+            if (!(target instanceof Element)) return;
+
+            const removeButton = target.closest('.remove-budget-line');
+            if (!removeButton) return;
+
+            const rows = body.querySelectorAll('.budget-line-row');
+            if (rows.length <= 1) {
+                return;
+            }
+
+            const row = removeButton.closest('.budget-line-row');
+            row?.remove();
+            renumber();
+        });
+
+        body.addEventListener('input', (event) => {
+            const target = event.target;
+            if (!(target instanceof HTMLInputElement)) return;
+
+            if (target.classList.contains('budget-line-amount')) {
+                recalc();
+            }
+        });
+
+        renumber();
+    })();
+</script>

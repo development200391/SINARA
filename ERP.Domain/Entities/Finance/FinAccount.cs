@@ -1,4 +1,4 @@
-﻿using ERP.Domain.Enums;
+using ERP.Domain.Enums;
 
 namespace ERP.Domain.Entities.Finance;
 
@@ -31,4 +31,6 @@ public sealed class FinAccount : BaseEntity
     public ICollection<FinArInvoiceLine> ArInvoiceLines { get; set; } = new List<FinArInvoiceLine>();
     public ICollection<FinApPayment> ApPayments { get; set; } = new List<FinApPayment>();
     public ICollection<FinArReceipt> ArReceipts { get; set; } = new List<FinArReceipt>();
+    public ICollection<FinBudget> Budgets { get; set; } = new List<FinBudget>();
+    public ICollection<FinBudgetLine> BudgetLines { get; set; } = new List<FinBudgetLine>();
 }

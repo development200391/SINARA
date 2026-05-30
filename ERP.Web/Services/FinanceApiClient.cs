@@ -833,6 +833,95 @@ public sealed class FinanceApiClient(HttpClient httpClient, ILogger<FinanceApiCl
         return response?.IsSuccessStatusCode == true;
     }
 
+    public Task<PagedResult<BudgetDto>?> GetBudgetsAsync(string accessToken, BudgetPagedRequest request, CancellationToken ct = default)
+    {
+        var parameters = new List<string>();
+        AddPagedParameters(parameters, request);
+
+        if (!string.IsNullOrWhiteSpace(request.BudgetNo))
+        {
+            parameters.Add($"budgetNo={Uri.EscapeDataString(request.BudgetNo.Trim())}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Name))
+        {
+            parameters.Add($"name={Uri.EscapeDataString(request.Name.Trim())}");
+        }
+
+        if (request.FiscalYearId.HasValue)
+        {
+            parameters.Add($"fiscalYearId={request.FiscalYearId.Value}");
+        }
+
+        if (request.PeriodId.HasValue)
+        {
+            parameters.Add($"periodId={request.PeriodId.Value}");
+        }
+
+        if (request.CostCenterId.HasValue)
+        {
+            parameters.Add($"costCenterId={request.CostCenterId.Value}");
+        }
+
+        if (request.AccountId.HasValue)
+        {
+            parameters.Add($"accountId={request.AccountId.Value}");
+        }
+
+        if (request.IsActive.HasValue)
+        {
+            parameters.Add($"isActive={(request.IsActive.Value ? "true" : "false")}");
+        }
+
+        if (request.AmountFrom.HasValue)
+        {
+            parameters.Add($"amountFrom={request.AmountFrom.Value.ToString(CultureInfo.InvariantCulture)}");
+        }
+
+        if (request.AmountTo.HasValue)
+        {
+            parameters.Add($"amountTo={request.AmountTo.Value.ToString(CultureInfo.InvariantCulture)}");
+        }
+
+        if (request.ActualFrom.HasValue)
+        {
+            parameters.Add($"actualFrom={request.ActualFrom.Value.ToString(CultureInfo.InvariantCulture)}");
+        }
+
+        if (request.ActualTo.HasValue)
+        {
+            parameters.Add($"actualTo={request.ActualTo.Value.ToString(CultureInfo.InvariantCulture)}");
+        }
+
+        if (request.VarianceFrom.HasValue)
+        {
+            parameters.Add($"varianceFrom={request.VarianceFrom.Value.ToString(CultureInfo.InvariantCulture)}");
+        }
+
+        if (request.VarianceTo.HasValue)
+        {
+            parameters.Add($"varianceTo={request.VarianceTo.Value.ToString(CultureInfo.InvariantCulture)}");
+        }
+
+        var query = $"api/v1/finance/budgets?{string.Join("&", parameters)}";
+        return SendAsync<PagedResult<BudgetDto>>(HttpMethod.Get, query, accessToken, null, ct);
+    }
+
+    public Task<BudgetDto?> GetBudgetByIdAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendAsync<BudgetDto>(HttpMethod.Get, $"api/v1/finance/budgets/{id}", accessToken, null, ct);
+
+    public Task<BudgetDto?> CreateBudgetAsync(string accessToken, BudgetDto request, CancellationToken ct = default)
+        => SendAsync<BudgetDto>(HttpMethod.Post, "api/v1/finance/budgets", accessToken, request, ct);
+
+    public Task<BudgetDto?> UpdateBudgetAsync(string accessToken, int id, BudgetDto request, CancellationToken ct = default)
+        => SendAsync<BudgetDto>(HttpMethod.Put, $"api/v1/finance/budgets/{id}", accessToken, request, ct);
+
+    public async Task<bool> DeleteBudgetAsync(string accessToken, int id, CancellationToken ct = default)
+    {
+        var response = await SendRawAsync(HttpMethod.Delete, $"api/v1/finance/budgets/{id}", accessToken, null, ct);
+        return response?.IsSuccessStatusCode == true;
+    }
+
     public Task<PagedResult<ArInvoiceDto>?> GetArInvoicesAsync(string accessToken, ArInvoicePagedRequest request, CancellationToken ct = default)
     {
         var parameters = new List<string>();
@@ -1012,6 +1101,70 @@ public sealed class FinanceApiClient(HttpClient httpClient, ILogger<FinanceApiCl
     public Task<PagedResult<FinancialStatementRowDto>?> GetCashFlowAsync(string accessToken, FinancialStatementPagedRequest request, CancellationToken ct = default)
         => GetFinancialStatementAsync(accessToken, "cash-flow", request, ct);
 
+    public Task<PagedResult<BudgetVsActualRowDto>?> GetBudgetVsActualAsync(string accessToken, BudgetVsActualPagedRequest request, CancellationToken ct = default)
+    {
+        var parameters = new List<string>();
+        AddPagedParameters(parameters, request);
+
+        if (request.BudgetId.HasValue)
+        {
+            parameters.Add($"budgetId={request.BudgetId.Value}");
+        }
+
+        if (request.FiscalYearId.HasValue)
+        {
+            parameters.Add($"fiscalYearId={request.FiscalYearId.Value}");
+        }
+
+        if (request.PeriodId.HasValue)
+        {
+            parameters.Add($"periodId={request.PeriodId.Value}");
+        }
+
+        if (request.CostCenterId.HasValue)
+        {
+            parameters.Add($"costCenterId={request.CostCenterId.Value}");
+        }
+
+        if (request.AccountId.HasValue)
+        {
+            parameters.Add($"accountId={request.AccountId.Value}");
+        }
+
+        if (request.BudgetFrom.HasValue)
+        {
+            parameters.Add($"budgetFrom={request.BudgetFrom.Value.ToString(CultureInfo.InvariantCulture)}");
+        }
+
+        if (request.BudgetTo.HasValue)
+        {
+            parameters.Add($"budgetTo={request.BudgetTo.Value.ToString(CultureInfo.InvariantCulture)}");
+        }
+
+        if (request.ActualFrom.HasValue)
+        {
+            parameters.Add($"actualFrom={request.ActualFrom.Value.ToString(CultureInfo.InvariantCulture)}");
+        }
+
+        if (request.ActualTo.HasValue)
+        {
+            parameters.Add($"actualTo={request.ActualTo.Value.ToString(CultureInfo.InvariantCulture)}");
+        }
+
+        if (request.VarianceFrom.HasValue)
+        {
+            parameters.Add($"varianceFrom={request.VarianceFrom.Value.ToString(CultureInfo.InvariantCulture)}");
+        }
+
+        if (request.VarianceTo.HasValue)
+        {
+            parameters.Add($"varianceTo={request.VarianceTo.Value.ToString(CultureInfo.InvariantCulture)}");
+        }
+
+        var query = $"api/v1/finance/reports/budget-vs-actual?{string.Join("&", parameters)}";
+        return SendAsync<PagedResult<BudgetVsActualRowDto>>(HttpMethod.Get, query, accessToken, null, ct);
+    }
+
     private Task<PagedResult<FinancialStatementRowDto>?> GetFinancialStatementAsync(
         string accessToken,
         string reportPath,
@@ -1126,6 +1279,7 @@ public sealed class FinanceApiClient(HttpClient httpClient, ILogger<FinanceApiCl
         }
     }
 }
+
 
 
 

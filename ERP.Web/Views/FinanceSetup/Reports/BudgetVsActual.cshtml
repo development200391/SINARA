@@ -1,0 +1,279 @@
+@model ERP.Web.ViewModels.Finance.FinanceBudgetVsActualIndexViewModel
+@using ERP.Web.ViewModels.Shared
+@using System.Globalization
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">@T["Budget vs Actual"]</h1>
+
+        @{
+            var selectedBudgetId = Model.BudgetIdFilter?.ToString(CultureInfo.InvariantCulture);
+            var selectedFiscalYearId = Model.FiscalYearIdFilter?.ToString(CultureInfo.InvariantCulture);
+            var selectedPeriodId = Model.PeriodIdFilter?.ToString(CultureInfo.InvariantCulture);
+            var selectedCostCenterId = Model.CostCenterIdFilter?.ToString(CultureInfo.InvariantCulture);
+            var selectedAccountId = Model.AccountIdFilter?.ToString(CultureInfo.InvariantCulture);
+
+            var budgetOptions = Model.BudgetOptions
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = x.Id.ToString(CultureInfo.InvariantCulture),
+                    Label = x.Label
+                })
+                .ToList();
+
+            var fiscalYearOptions = Model.FiscalYearOptions
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = x.Id.ToString(CultureInfo.InvariantCulture),
+                    Label = x.Label
+                })
+                .ToList();
+
+            var periodOptions = Model.PeriodOptions
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = x.Id.ToString(CultureInfo.InvariantCulture),
+                    Label = x.Label
+                })
+                .ToList();
+
+            var costCenterOptions = Model.CostCenterOptions
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = x.Id.ToString(CultureInfo.InvariantCulture),
+                    Label = x.Label
+                })
+                .ToList();
+
+            var accountOptions = Model.AccountOptions
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = x.Id.ToString(CultureInfo.InvariantCulture),
+                    Label = x.Label
+                })
+                .ToList();
+
+            string FormatReference(string? code, string? name)
+            {
+                if (!string.IsNullOrWhiteSpace(code) && !string.IsNullOrWhiteSpace(name))
+                {
+                    return $"{code} - {name}";
+                }
+
+                if (!string.IsNullOrWhiteSpace(code))
+                {
+                    return code;
+                }
+
+                return string.IsNullOrWhiteSpace(name) ? "-" : name;
+            }
+
+            var rows = new List<PagedGridRowViewModel>();
+            foreach (var item in Model.Items.Items)
+            {
+                var budgetAmountHtml = await Component.InvokeAsync("TextNumber", new
+                {
+                    text = item.BudgetAmount.ToString(CultureInfo.InvariantCulture),
+                    decimals = 2,
+                    cssClass = "sinara-text-number-theme"
+                });
+
+                var actualAmountHtml = await Component.InvokeAsync("TextNumber", new
+                {
+                    text = item.ActualAmount.ToString(CultureInfo.InvariantCulture),
+                    decimals = 2,
+                    cssClass = "sinara-text-number-theme"
+                });
+
+                var varianceAmountHtml = await Component.InvokeAsync("TextNumber", new
+                {
+                    text = item.VarianceAmount.ToString(CultureInfo.InvariantCulture),
+                    decimals = 2,
+                    cssClass = "sinara-text-number-theme"
+                });
+
+                var utilizationHtml = await Component.InvokeAsync("TextNumber", new
+                {
+                    text = item.UtilizationPercentage.ToString(CultureInfo.InvariantCulture),
+                    decimals = 2,
+                    cssClass = "sinara-text-number-theme"
+                });
+
+                rows.Add(new PagedGridRowViewModel
+                {
+                    Cells =
+                    [
+                        new PagedGridCellViewModel { Text = item.BudgetNo },
+                        new PagedGridCellViewModel { Text = item.BudgetName },
+                        new PagedGridCellViewModel { Text = item.FiscalYearName },
+                        new PagedGridCellViewModel { Text = item.PeriodName },
+                        new PagedGridCellViewModel { Text = FormatReference(item.CostCenterCode, item.CostCenterName) },
+                        new PagedGridCellViewModel { Text = $"{item.AccountCode} - {item.AccountName}" },
+                        new PagedGridCellViewModel { Html = budgetAmountHtml, CellClass = "text-end" },
+                        new PagedGridCellViewModel { Html = actualAmountHtml, CellClass = "text-end" },
+                        new PagedGridCellViewModel { Html = varianceAmountHtml, CellClass = "text-end" },
+                        new PagedGridCellViewModel { Html = utilizationHtml, CellClass = "text-end" }
+                    ]
+                });
+            }
+
+            var gridModel = new PagedGridViewModel
+            {
+                Columns =
+                [
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "budgetno",
+                        Title = T["Budget No"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "budgetId",
+                            Value = selectedBudgetId,
+                            EmptyOptionLabel = T["All"],
+                            Options = budgetOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "budgetname",
+                        Title = T["Budget Name"],
+                        Sortable = true
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "fiscalyear",
+                        Title = T["Fiscal Year"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "fiscalYearId",
+                            Value = selectedFiscalYearId,
+                            EmptyOptionLabel = T["All"],
+                            Options = fiscalYearOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "period",
+                        Title = T["Period"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "periodId",
+                            Value = selectedPeriodId,
+                            EmptyOptionLabel = T["All"],
+                            Options = periodOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "costcenter",
+                        Title = T["Cost Center"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "costCenterId",
+                            Value = selectedCostCenterId,
+                            EmptyOptionLabel = T["All"],
+                            Options = costCenterOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "account",
+                        Title = T["Account"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "accountId",
+                            Value = selectedAccountId,
+                            EmptyOptionLabel = T["All"],
+                            Options = accountOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "budgetamount",
+                        Title = T["Budget Amount"],
+                        Sortable = true,
+                        CellClass = "text-end",
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.NumberRange,
+                            QueryKey = "budgetFrom",
+                            QueryKeyTo = "budgetTo",
+                            Value = Model.BudgetFromFilter?.ToString(CultureInfo.InvariantCulture),
+                            ValueTo = Model.BudgetToFilter?.ToString(CultureInfo.InvariantCulture),
+                            Placeholder = T["From"],
+                            PlaceholderTo = T["To"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "actualamount",
+                        Title = T["Actual Amount"],
+                        Sortable = true,
+                        CellClass = "text-end",
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.NumberRange,
+                            QueryKey = "actualFrom",
+                            QueryKeyTo = "actualTo",
+                            Value = Model.ActualFromFilter?.ToString(CultureInfo.InvariantCulture),
+                            ValueTo = Model.ActualToFilter?.ToString(CultureInfo.InvariantCulture),
+                            Placeholder = T["From"],
+                            PlaceholderTo = T["To"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "varianceamount",
+                        Title = T["Variance"],
+                        Sortable = true,
+                        CellClass = "text-end",
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.NumberRange,
+                            QueryKey = "varianceFrom",
+                            QueryKeyTo = "varianceTo",
+                            Value = Model.VarianceFromFilter?.ToString(CultureInfo.InvariantCulture),
+                            ValueTo = Model.VarianceToFilter?.ToString(CultureInfo.InvariantCulture),
+                            Placeholder = T["From"],
+                            PlaceholderTo = T["To"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "utilizationpercentage",
+                        Title = T["Utilization (%)"],
+                        Sortable = true,
+                        CellClass = "text-end"
+                    }
+                ],
+                Rows = rows,
+                EmptyMessage = T["msg.no_data"],
+                Page = Model.Items.Page,
+                TotalPages = Model.Items.TotalPages,
+                PageSize = Model.PageSize,
+                SortBy = Model.SortBy,
+                SortDirection = Model.SortDirection,
+                EnableSearch = true,
+                SearchValue = Model.Search,
+                SearchPlaceholder = T["Search"] + " " + T["Budget vs Actual"],
+                SearchButtonText = T["common.search"],
+                Actions = new PagedGridActionConfigViewModel
+                {
+                    ActionColumnTitle = T["Action"]
+                }
+            };
+        }
+
+        @await Component.InvokeAsync("PagedGrid", gridModel)
+    </div>
+</div>

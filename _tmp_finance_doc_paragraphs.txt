@@ -1,0 +1,91 @@
+SINARA ERP
+Sistem Niaga Ramdan
+PANDUAN DETAIL PENGERJAAN
+MODUL FINANCE (KEUANGAN)
+Dibuat untuk: Ramdan Nur
+Versi: 1.0  |  Modul: Finance
+Stack: ASP.NET Core 8 + PostgreSQL 16 + Redis 7 + Docker
+Koneksi ke: Modul HR (Payroll ? Journal Entry)
+RINGKASAN MODUL FINANCE
+Modul Finance mengelola seluruh aspek keuangan perusahaan: chart of accounts, jurnal umum, buku besar, laporan keuangan (neraca, laba rugi, arus kas), pengelolaan utang-piutang, dan pajak. Modul ini terhubung langsung ke Modul HR melalui integrasi payroll ke jurnal otomatis.
+Koneksi ke Modul HR
+??  Setiap payroll run yang selesai (status = Completed) akan otomatis membuat Journal Entry di Finance. Tidak perlu input manual.
+Ringkasan Teknologi
+Fase Pengerjaan
+FASE 8 — Fondasi Finance
+Fase ini membangun fondasi data master keuangan sebelum transaksi apapun bisa dimasukkan.
+Langkah 20: Chart of Accounts (CoA)
+Chart of Accounts adalah tulang punggung seluruh Finance. Semua transaksi harus punya akun tujuan.
+Tabel: fin_account_groups
+Tabel: fin_accounts (Chart of Accounts)
+Struktur CoA Default (Seed Data)
+Langkah 21: Cost Center, Currency & Fiscal Year
+Tabel: fin_cost_centers
+??  Cost center terhubung ke hr_departments. Setiap departemen HR bisa jadi cost center Finance.
+Tabel: fin_currencies
+Tabel: fin_exchange_rates
+Tabel: fin_fiscal_years
+Tabel: fin_periods (Periode Akuntansi)
+Langkah 22: Konfigurasi Pajak
+Tabel: fin_tax_codes
+Halaman Konfigurasi Finance
+FASE 9 — Journal Entry & Buku Besar
+Langkah 23: Journal Entry (Jurnal Umum)
+Tabel: fin_journal_entries
+Tabel: fin_journal_entry_lines
+??  ATURAN BALANCE: Total Debit harus = Total Kredit per jurnal. Validasi dilakukan di service sebelum Post. Jurnal Draft boleh tidak balance, tapi tidak bisa diposting.
+Langkah 24: Integrasi HR ? Finance (Jurnal Otomatis Payroll)
+??  Integrasi ini dipicu otomatis saat hr_payroll_runs.status berubah menjadi Completed. IPayrollService memanggil IFinanceIntegrationService.CreatePayrollJournalAsync(payrollRunId).
+Pemetaan Akun — Jurnal Otomatis Payroll
+Interface: IFinanceIntegrationService
+Langkah 25: Buku Besar (General Ledger)
+View: fin_general_ledger (PostgreSQL View)
+??  Buku besar bukan tabel fisik — ini adalah VIEW di PostgreSQL yang menggabungkan fin_journal_entries + fin_journal_entry_lines + fin_accounts. Tidak perlu maintenance manual.
+Halaman Journal & Ledger
+FASE 10 — Accounts Payable (Utang Usaha)
+Langkah 26: Vendor & Invoice AP
+Tabel: fin_vendors
+Tabel: fin_ap_invoices (Invoice Utang)
+Tabel: fin_ap_invoice_lines
+Langkah 27: Pembayaran AP
+Tabel: fin_ap_payments
+Tabel: fin_ap_payment_applications
+Langkah 28: Halaman AP
+FASE 11 — Accounts Receivable (Piutang Usaha)
+Langkah 29: Customer & Invoice AR
+Tabel: fin_customers
+Tabel: fin_ar_invoices
+Tabel: fin_ar_invoice_lines
+Langkah 30: Penerimaan Pembayaran AR
+Tabel: fin_ar_receipts
+Tabel: fin_ar_receipt_applications
+Langkah 31: Halaman AR
+FASE 12 — Laporan Keuangan
+Langkah 32: Trial Balance & Laporan Utama
+??  Semua laporan keuangan digenerate secara real-time dari fin_journal_entry_lines yang sudah Posted. Tidak ada tabel fisik untuk laporan — semuanya query + aggregasi.
+Struktur Neraca (Balance Sheet)
+Langkah 33: Export Laporan
+FASE 13 — Budget & Cost Control
+Langkah 34: Anggaran & Realisasi
+Tabel: fin_budgets
+Tabel: fin_budget_lines
+Laporan Budget vs Aktual
+Halaman Budget
+FASE 14 — Finalisasi Finance
+Langkah 35: Period Closing
+Period Closing memastikan tidak ada transaksi baru masuk ke periode yang sudah ditutup.
+Langkah 36: Index Database & Smoke Test
+Index Finance
+Smoke Test Finance
+REFERENSI — Semua Endpoint API Finance
+Master Data
+Journal & Ledger
+Accounts Payable
+Accounts Receivable
+Laporan & Budget
+NAVIGASI — Menu Modul Finance
+Daftarkan di DataSeeder sebagai module code: FIN
+??  Seed 6 role permission untuk modul Finance: Super Admin (full), Finance Manager (full), Finance Staff (no delete), HR Manager (read-only jurnal payroll), Auditor (read-only semua), Employee (tidak ada akses).
+APPLICATION LAYER — Service & DTO Finance
+5.x — DTO Finance
+5.x — Service Finance

@@ -81,6 +81,11 @@ public interface IFinanceApiClient
     Task<CustomerDto?> CreateCustomerAsync(string accessToken, CustomerDto request, CancellationToken ct = default);
     Task<CustomerDto?> UpdateCustomerAsync(string accessToken, int id, CustomerDto request, CancellationToken ct = default);
     Task<bool> DeleteCustomerAsync(string accessToken, int id, CancellationToken ct = default);
+    Task<PagedResult<BudgetDto>?> GetBudgetsAsync(string accessToken, BudgetPagedRequest request, CancellationToken ct = default);
+    Task<BudgetDto?> GetBudgetByIdAsync(string accessToken, int id, CancellationToken ct = default);
+    Task<BudgetDto?> CreateBudgetAsync(string accessToken, BudgetDto request, CancellationToken ct = default);
+    Task<BudgetDto?> UpdateBudgetAsync(string accessToken, int id, BudgetDto request, CancellationToken ct = default);
+    Task<bool> DeleteBudgetAsync(string accessToken, int id, CancellationToken ct = default);
 
     Task<PagedResult<ArInvoiceDto>?> GetArInvoicesAsync(string accessToken, ArInvoicePagedRequest request, CancellationToken ct = default);
     Task<ArInvoiceDto?> GetArInvoiceByIdAsync(string accessToken, int id, CancellationToken ct = default);
@@ -99,7 +104,9 @@ public interface IFinanceApiClient
     Task<PagedResult<FinancialStatementRowDto>?> GetBalanceSheetAsync(string accessToken, FinancialStatementPagedRequest request, CancellationToken ct = default);
     Task<PagedResult<FinancialStatementRowDto>?> GetProfitLossAsync(string accessToken, FinancialStatementPagedRequest request, CancellationToken ct = default);
     Task<PagedResult<FinancialStatementRowDto>?> GetCashFlowAsync(string accessToken, FinancialStatementPagedRequest request, CancellationToken ct = default);
+    Task<PagedResult<BudgetVsActualRowDto>?> GetBudgetVsActualAsync(string accessToken, BudgetVsActualPagedRequest request, CancellationToken ct = default);
 }
+
 
 
 

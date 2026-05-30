@@ -641,3 +641,97 @@ public sealed class FinancialStatementPagedRequest : PagedRequest
     public FinanceAccountType? AccountType { get; set; }
     public string? Section { get; set; }
 }
+
+public sealed class BudgetLineDto
+{
+    public int Id { get; set; }
+    public int LineNo { get; set; }
+    public int PeriodId { get; set; }
+    public string PeriodName { get; set; } = string.Empty;
+    public int AccountId { get; set; }
+    public string AccountCode { get; set; } = string.Empty;
+    public string AccountName { get; set; } = string.Empty;
+    public int? CostCenterId { get; set; }
+    public string? CostCenterCode { get; set; }
+    public string? CostCenterName { get; set; }
+    public string? Description { get; set; }
+    public decimal Amount { get; set; }
+    public decimal ActualAmount { get; set; }
+    public decimal VarianceAmount { get; set; }
+}
+
+public sealed class BudgetDto
+{
+    public int Id { get; set; }
+    public string BudgetNo { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public int FiscalYearId { get; set; }
+    public string FiscalYearName { get; set; } = string.Empty;
+    public int? PeriodId { get; set; }
+    public string? PeriodName { get; set; }
+    public int? CostCenterId { get; set; }
+    public string? CostCenterCode { get; set; }
+    public string? CostCenterName { get; set; }
+    public int? AccountId { get; set; }
+    public string? AccountCode { get; set; }
+    public string? AccountName { get; set; }
+    public string CurrencyCode { get; set; } = "IDR";
+    public decimal TotalAmount { get; set; }
+    public decimal TotalActualAmount { get; set; }
+    public decimal TotalVarianceAmount { get; set; }
+    public string? Notes { get; set; }
+    public bool IsActive { get; set; }
+    public IReadOnlyList<BudgetLineDto> Lines { get; set; } = [];
+}
+
+public sealed class BudgetPagedRequest : PagedRequest
+{
+    public string? BudgetNo { get; set; }
+    public string? Name { get; set; }
+    public int? FiscalYearId { get; set; }
+    public int? PeriodId { get; set; }
+    public int? CostCenterId { get; set; }
+    public int? AccountId { get; set; }
+    public bool? IsActive { get; set; }
+    public decimal? AmountFrom { get; set; }
+    public decimal? AmountTo { get; set; }
+    public decimal? ActualFrom { get; set; }
+    public decimal? ActualTo { get; set; }
+    public decimal? VarianceFrom { get; set; }
+    public decimal? VarianceTo { get; set; }
+}
+
+public sealed class BudgetVsActualRowDto
+{
+    public int BudgetId { get; set; }
+    public string BudgetNo { get; set; } = string.Empty;
+    public string BudgetName { get; set; } = string.Empty;
+    public string FiscalYearName { get; set; } = string.Empty;
+    public int PeriodId { get; set; }
+    public string PeriodName { get; set; } = string.Empty;
+    public int? CostCenterId { get; set; }
+    public string? CostCenterCode { get; set; }
+    public string? CostCenterName { get; set; }
+    public int AccountId { get; set; }
+    public string AccountCode { get; set; } = string.Empty;
+    public string AccountName { get; set; } = string.Empty;
+    public decimal BudgetAmount { get; set; }
+    public decimal ActualAmount { get; set; }
+    public decimal VarianceAmount { get; set; }
+    public decimal UtilizationPercentage { get; set; }
+}
+
+public sealed class BudgetVsActualPagedRequest : PagedRequest
+{
+    public int? BudgetId { get; set; }
+    public int? FiscalYearId { get; set; }
+    public int? PeriodId { get; set; }
+    public int? CostCenterId { get; set; }
+    public int? AccountId { get; set; }
+    public decimal? BudgetFrom { get; set; }
+    public decimal? BudgetTo { get; set; }
+    public decimal? ActualFrom { get; set; }
+    public decimal? ActualTo { get; set; }
+    public decimal? VarianceFrom { get; set; }
+    public decimal? VarianceTo { get; set; }
+}

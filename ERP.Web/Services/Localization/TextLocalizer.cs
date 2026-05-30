@@ -155,6 +155,7 @@ public sealed class TextLocalizer(IHttpContextAccessor httpContextAccessor) : IT
         ["Delete this employee?"] = "Hapus karyawan ini?",
         ["Delete this holiday?"] = "Hapus hari libur ini?",
         ["Delete this position?"] = "Hapus jabatan ini?",
+        ["Delete this data?"] = "Hapus data ini?",
         ["Delete this user?"] = "Hapus pengguna ini?",
         ["Department"] = "Departemen",
         ["Department Details"] = "Detail Departemen",
@@ -397,6 +398,21 @@ public sealed class TextLocalizer(IHttpContextAccessor httpContextAccessor) : IT
         ["Balance Sheet"] = "Neraca",
         ["Profit & Loss"] = "Laba Rugi",
         ["Cash Flow"] = "Arus Kas",
+        ["Budget"] = "Anggaran",
+        ["Budgets"] = "Daftar Anggaran",
+        ["Budget No"] = "No. Anggaran",
+        ["Budget Name"] = "Nama Anggaran",
+        ["Budget Lines"] = "Baris Anggaran",
+        ["Budget Amount"] = "Nilai Anggaran",
+        ["Actual Amount"] = "Nilai Aktual",
+        ["Variance"] = "Selisih",
+        ["Budget vs Actual"] = "Anggaran vs Aktual",
+        ["Budget & Cost Control"] = "Kontrol Anggaran & Biaya",
+        ["Fiscal Year"] = "Tahun Fiskal",
+        ["Select Period"] = "Pilih Periode",
+        ["Utilization (%)"] = "Pemakaian (%)",
+        ["Create Budget"] = "Buat Anggaran",
+        ["Edit Budget"] = "Ubah Anggaran",
         ["Date Range"] = "Rentang Tanggal",
         ["Section"] = "Bagian",
         ["Type"] = "Tipe",
@@ -503,12 +519,3 @@ public sealed class TextLocalizer(IHttpContextAccessor httpContextAccessor) : IT
         return !string.IsNullOrWhiteSpace(code) && Resources.ContainsKey(code);
     }
 }
-
-
-
-
-
-
-
-
-

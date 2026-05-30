@@ -1,4 +1,4 @@
-﻿using System.Linq.Expressions;
+using System.Linq.Expressions;
 using ERP.Domain.Entities;
 using ERP.Domain.Entities.Config;
 using ERP.Domain.Entities.HR;
@@ -55,6 +55,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<FinArInvoiceLine> FinArInvoiceLines => Set<FinArInvoiceLine>();
     public DbSet<FinArReceipt> FinArReceipts => Set<FinArReceipt>();
     public DbSet<FinArReceiptApplication> FinArReceiptApplications => Set<FinArReceiptApplication>();
+    public DbSet<FinBudget> FinBudgets => Set<FinBudget>();
+    public DbSet<FinBudgetLine> FinBudgetLines => Set<FinBudgetLine>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -102,6 +104,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         ConfigureFinArInvoiceLine(modelBuilder.Entity<FinArInvoiceLine>());
         ConfigureFinArReceipt(modelBuilder.Entity<FinArReceipt>());
         ConfigureFinArReceiptApplication(modelBuilder.Entity<FinArReceiptApplication>());
+        ConfigureFinBudget(modelBuilder.Entity<FinBudget>());
+        ConfigureFinBudgetLine(modelBuilder.Entity<FinBudgetLine>());
 
         ApplySoftDeleteQueryFilters(modelBuilder);
 
@@ -1259,6 +1263,98 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         builder.HasIndex(x => new { x.ReceiptId, x.InvoiceId }).IsUnique();
     }
 
+
+    private static void ConfigureFinBudget(EntityTypeBuilder<FinBudget> builder)
+    {
+        builder.ToTable("fin_budgets", t =>
+        {
+            t.HasCheckConstraint("ck_fin_budgets_non_negative_total", "total_amount >= 0");
+        });
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.BudgetNo).HasMaxLength(30).IsRequired();
+        builder.Property(x => x.Name).HasMaxLength(200).IsRequired();
+        builder.Property(x => x.CurrencyCode).HasMaxLength(10).HasDefaultValue("IDR").IsRequired();
+        builder.Property(x => x.TotalAmount).HasColumnType("numeric(18,4)").HasDefaultValue(0m).IsRequired();
+        builder.Property(x => x.Notes).HasColumnType("text");
+        builder.Property(x => x.IsActive).HasDefaultValue(true).IsRequired();
+
+        builder.HasOne(x => x.FiscalYear)
+            .WithMany(x => x.Budgets)
+            .HasForeignKey(x => x.FiscalYearId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.Period)
+            .WithMany(x => x.Budgets)
+            .HasForeignKey(x => x.PeriodId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.CostCenter)
+            .WithMany(x => x.Budgets)
+            .HasForeignKey(x => x.CostCenterId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.Account)
+            .WithMany(x => x.Budgets)
+            .HasForeignKey(x => x.AccountId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.Currency)
+            .WithMany(x => x.Budgets)
+            .HasForeignKey(x => x.CurrencyCode)
+            .HasPrincipalKey(x => x.Code)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(x => x.BudgetNo).IsUnique();
+        builder.HasIndex(x => x.Name);
+        builder.HasIndex(x => x.FiscalYearId);
+        builder.HasIndex(x => x.PeriodId);
+        builder.HasIndex(x => x.CostCenterId);
+        builder.HasIndex(x => x.AccountId);
+        builder.HasIndex(x => x.CurrencyCode);
+        builder.HasIndex(x => x.IsActive);
+        builder.HasIndex(x => x.TotalAmount);
+    }
+
+    private static void ConfigureFinBudgetLine(EntityTypeBuilder<FinBudgetLine> builder)
+    {
+        builder.ToTable("fin_budget_lines", t =>
+        {
+            t.HasCheckConstraint("ck_fin_budget_lines_non_negative_amount", "amount >= 0");
+        });
+
+        builder.Property(x => x.Id).UseIdentityAlwaysColumn();
+        builder.Property(x => x.LineNo).IsRequired();
+        builder.Property(x => x.Description).HasMaxLength(200);
+        builder.Property(x => x.Amount).HasColumnType("numeric(18,4)").IsRequired();
+
+        builder.HasOne(x => x.Budget)
+            .WithMany(x => x.Lines)
+            .HasForeignKey(x => x.BudgetId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(x => x.Period)
+            .WithMany(x => x.BudgetLines)
+            .HasForeignKey(x => x.PeriodId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.Account)
+            .WithMany(x => x.BudgetLines)
+            .HasForeignKey(x => x.AccountId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.CostCenter)
+            .WithMany(x => x.BudgetLines)
+            .HasForeignKey(x => x.CostCenterId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasIndex(x => x.BudgetId);
+        builder.HasIndex(x => new { x.BudgetId, x.LineNo }).IsUnique();
+        builder.HasIndex(x => x.PeriodId);
+        builder.HasIndex(x => x.AccountId);
+        builder.HasIndex(x => x.CostCenterId);
+    }
+
     private static void ApplySoftDeleteQueryFilters(ModelBuilder modelBuilder)
     {
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
@@ -1280,6 +1376,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         }
     }
 }
+
+
 
 
 

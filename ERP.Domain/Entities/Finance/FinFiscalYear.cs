@@ -10,4 +10,5 @@ public sealed class FinFiscalYear : BaseEntity
     public FinancePeriodStatus Status { get; set; } = FinancePeriodStatus.Open;
 
     public ICollection<FinPeriod> Periods { get; set; } = new List<FinPeriod>();
+    public ICollection<FinBudget> Budgets { get; set; } = new List<FinBudget>();
 }
