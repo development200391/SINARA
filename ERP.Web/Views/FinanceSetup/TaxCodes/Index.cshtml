@@ -1,0 +1,202 @@
+@model ERP.Web.ViewModels.Finance.FinanceTaxCodesIndexViewModel
+@using ERP.Domain.Enums
+@using ERP.Web.ViewModels.Shared
+@using Microsoft.AspNetCore.Html
+@using System.Globalization
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">@T["Tax Codes"]</h1>
+
+        @{
+            var selectedType = Model.TypeFilter.HasValue ? ((int)Model.TypeFilter.Value).ToString(CultureInfo.InvariantCulture) : null;
+            var selectedIsInclusive = Model.IsInclusiveFilter.HasValue ? (Model.IsInclusiveFilter.Value ? "true" : "false") : null;
+            var selectedAccountId = Model.AccountIdFilter?.ToString(CultureInfo.InvariantCulture);
+            var selectedIsActive = Model.IsActiveFilter.HasValue ? (Model.IsActiveFilter.Value ? "true" : "false") : null;
+
+            var typeOptions = Enum.GetValues<FinanceTaxType>()
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = ((int)x).ToString(CultureInfo.InvariantCulture),
+                    Label = x.ToString()
+                })
+                .ToList();
+
+            var yesNoOptions = new List<PagedGridFilterOptionViewModel>
+            {
+                new() { Value = "true", Label = T["Yes"] },
+                new() { Value = "false", Label = T["No"] }
+            };
+
+            var accountOptions = Model.AccountOptions
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = x.Id.ToString(CultureInfo.InvariantCulture),
+                    Label = x.Label
+                })
+                .ToList();
+
+            var statusOptions = new List<PagedGridFilterOptionViewModel>
+            {
+                new() { Value = "true", Label = T["Active"] },
+                new() { Value = "false", Label = T["Inactive"] }
+            };
+
+            var gridModel = new PagedGridViewModel
+            {
+                Columns =
+                [
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "code",
+                        Title = T["Code"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Text,
+                            QueryKey = "code",
+                            Value = Model.CodeFilter,
+                            Placeholder = T["Filter code"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "name",
+                        Title = T["Name"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Text,
+                            QueryKey = "name",
+                            Value = Model.NameFilter,
+                            Placeholder = T["Filter name"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "type",
+                        Title = T["Type"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "type",
+                            Value = selectedType,
+                            EmptyOptionLabel = T["All"],
+                            Options = typeOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "rate",
+                        Title = T["Rate"],
+                        Sortable = true,
+                        CellClass = "text-end",
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.NumberRange,
+                            QueryKey = "rateFrom",
+                            QueryKeyTo = "rateTo",
+                            Value = Model.RateFromFilter?.ToString(CultureInfo.InvariantCulture),
+                            ValueTo = Model.RateToFilter?.ToString(CultureInfo.InvariantCulture),
+                            Placeholder = T["From"],
+                            PlaceholderTo = T["To"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "isinclusive",
+                        Title = T["Inclusive"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "isInclusive",
+                            Value = selectedIsInclusive,
+                            EmptyOptionLabel = T["All"],
+                            Options = yesNoOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "accountcode",
+                        Title = T["Account"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "accountId",
+                            Value = selectedAccountId,
+                            EmptyOptionLabel = T["All"],
+                            Options = accountOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "isactive",
+                        Title = T["Status"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "isActive",
+                            Value = selectedIsActive,
+                            EmptyOptionLabel = T["All"],
+                            Options = statusOptions
+                        }
+                    }
+                ],
+                Rows = Model.Items.Items.Select(item => new PagedGridRowViewModel
+                {
+                    Cells =
+                    [
+                        new PagedGridCellViewModel { Text = item.Code },
+                        new PagedGridCellViewModel { Text = item.Name },
+                        new PagedGridCellViewModel { Text = item.Type.ToString() },
+                        new PagedGridCellViewModel { Text = item.Rate.ToString("N2", CultureInfo.InvariantCulture), CellClass = "text-end" },
+                        new PagedGridCellViewModel
+                        {
+                            Html = new HtmlString(item.IsInclusive
+                                ? "<span class=\"badge text-bg-info\">Yes</span>"
+                                : "<span class=\"badge text-bg-secondary\">No</span>")
+                        },
+                        new PagedGridCellViewModel { Text = $"{item.AccountCode} - {item.AccountName}" },
+                        new PagedGridCellViewModel
+                        {
+                            Html = new HtmlString(item.IsActive
+                                ? "<span class=\"badge text-bg-success\">Active</span>"
+                                : "<span class=\"badge text-bg-secondary\">Inactive</span>")
+                        }
+                    ],
+                    Actions = new PagedGridRowActionViewModel
+                    {
+                        EditUrl = Url.Action("EditTaxCode", "FinanceSetup", new { id = item.Id }),
+                        DeleteUrl = Url.Action("DeleteTaxCode", "FinanceSetup", new { id = item.Id }),
+                        DeleteConfirmMessage = T["Delete this data?"]
+                    }
+                }).ToList(),
+                EmptyMessage = T["msg.no_data"],
+                Page = Model.Items.Page,
+                TotalPages = Model.Items.TotalPages,
+                PageSize = Model.PageSize,
+                SortBy = Model.SortBy,
+                SortDirection = Model.SortDirection,
+                EnableSearch = true,
+                SearchValue = Model.Search,
+                SearchPlaceholder = T["Search"] + " tax codes",
+                SearchButtonText = T["common.search"],
+                Actions = new PagedGridActionConfigViewModel
+                {
+                    ActionColumnTitle = T["Action"],
+                    AddUrl = Url.Action("CreateTaxCode", "FinanceSetup"),
+                    AddButtonText = T["common.add_new"],
+                    EditButtonText = T["common.edit"],
+                    DeleteButtonText = T["common.delete"],
+                    DeleteConfirmMessage = T["Delete this data?"]
+                }
+            };
+        }
+
+        @await Component.InvokeAsync("PagedGrid", gridModel)
+    </div>
+</div>

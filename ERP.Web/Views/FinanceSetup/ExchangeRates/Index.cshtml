@@ -1,0 +1,133 @@
+@model ERP.Web.ViewModels.Finance.FinanceExchangeRatesIndexViewModel
+@using ERP.Web.ViewModels.Shared
+@using System.Globalization
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">@T["Exchange Rates"]</h1>
+
+        @{
+            var currencyOptions = Model.CurrencyOptions
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = x.Code,
+                    Label = x.Label
+                })
+                .ToList();
+
+            var gridModel = new PagedGridViewModel
+            {
+                Columns =
+                [
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "fromcurrencycode",
+                        Title = T["From Currency"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "fromCurrencyCode",
+                            Value = Model.FromCurrencyCodeFilter,
+                            EmptyOptionLabel = T["All"],
+                            Options = currencyOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "tocurrencycode",
+                        Title = T["To Currency"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "toCurrencyCode",
+                            Value = Model.ToCurrencyCodeFilter,
+                            EmptyOptionLabel = T["All"],
+                            Options = currencyOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "rate",
+                        Title = T["Rate"],
+                        Sortable = true,
+                        CellClass = "text-end"
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "effectivedate",
+                        Title = T["Effective Date"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.DateRange,
+                            QueryKey = "effectiveDateFrom",
+                            QueryKeyTo = "effectiveDateTo",
+                            Value = Model.EffectiveDateFromFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                            ValueTo = Model.EffectiveDateToFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                            Placeholder = T["From"],
+                            PlaceholderTo = T["To"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "source",
+                        Title = T["Source"],
+                        Sortable = false,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Text,
+                            QueryKey = "source",
+                            Value = Model.SourceFilter,
+                            Placeholder = T["Source"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "createdby",
+                        Title = T["Created By"],
+                        Sortable = false
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "createdat",
+                        Title = T["Created At"],
+                        Sortable = true
+                    }
+                ],
+                Rows = Model.Items.Items.Select(item => new PagedGridRowViewModel
+                {
+                    Cells =
+                    [
+                        new PagedGridCellViewModel { Text = item.FromCurrencyCode },
+                        new PagedGridCellViewModel { Text = item.ToCurrencyCode },
+                        new PagedGridCellViewModel { Text = item.Rate.ToString("N6", CultureInfo.InvariantCulture), CellClass = "text-end" },
+                        new PagedGridCellViewModel { Text = item.EffectiveDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) },
+                        new PagedGridCellViewModel { Text = string.IsNullOrWhiteSpace(item.Source) ? "-" : item.Source },
+                        new PagedGridCellViewModel { Text = item.CreatedBy },
+                        new PagedGridCellViewModel { Text = item.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) }
+                    ]
+                }).ToList(),
+                EmptyMessage = T["msg.no_data"],
+                Page = Model.Items.Page,
+                TotalPages = Model.Items.TotalPages,
+                PageSize = Model.PageSize,
+                SortBy = Model.SortBy,
+                SortDirection = Model.SortDirection,
+                EnableSearch = true,
+                SearchValue = Model.Search,
+                SearchPlaceholder = T["Search"] + " rates",
+                SearchButtonText = T["common.search"],
+                Actions = new PagedGridActionConfigViewModel
+                {
+                    ActionColumnTitle = T["Action"],
+                    AddUrl = Url.Action("CreateExchangeRate", "FinanceSetup"),
+                    AddButtonText = T["common.add_new"]
+                }
+            };
+        }
+
+        @await Component.InvokeAsync("PagedGrid", gridModel)
+    </div>
+</div>

@@ -230,6 +230,11 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         await EnsureTaxCodeAsync("PPH21", "PPh 21 Karyawan", FinanceTaxType.Pph21, 5m, false, acc2103.Id, true, now, ct);
         await EnsureTaxCodeAsync("PPH23", "PPh 23", FinanceTaxType.Pph23, 2m, false, acc2103.Id, true, now, ct);
         await EnsureTaxCodeAsync("PPH4_2", "PPh 4(2)", FinanceTaxType.Pph4Ayat2, 10m, false, acc2103.Id, true, now, ct);
+
+        var currentMonthStart = new DateOnly(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
+        await EnsureExchangeRateAsync("USD", "IDR", 16250m, currentMonthStart, "BI", now, ct);
+        await EnsureExchangeRateAsync("EUR", "IDR", 17680m, currentMonthStart, "BI", now, ct);
+        await EnsureExchangeRateAsync("SGD", "IDR", 11980m, currentMonthStart, "BI", now, ct);
     }
     private async Task SeedAdminUserAsync(DateTimeOffset now, CancellationToken ct)
     {
@@ -822,6 +827,49 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         return existing;
     }
 
+    private async Task<FinExchangeRate> EnsureExchangeRateAsync(
+        string fromCurrencyCode,
+        string toCurrencyCode,
+        decimal rate,
+        DateOnly effectiveDate,
+        string? source,
+        DateTimeOffset now,
+        CancellationToken ct)
+    {
+        var normalizedFromCurrencyCode = fromCurrencyCode.Trim().ToUpperInvariant();
+        var normalizedToCurrencyCode = toCurrencyCode.Trim().ToUpperInvariant();
+
+        var existing = await dbContext.FinExchangeRates
+            .FirstOrDefaultAsync(x =>
+                x.FromCurrencyCode == normalizedFromCurrencyCode &&
+                x.ToCurrencyCode == normalizedToCurrencyCode &&
+                x.EffectiveDate == effectiveDate,
+                ct);
+
+        if (existing is null)
+        {
+            existing = new FinExchangeRate
+            {
+                FromCurrencyCode = normalizedFromCurrencyCode,
+                ToCurrencyCode = normalizedToCurrencyCode,
+                Rate = rate,
+                EffectiveDate = effectiveDate,
+                Source = string.IsNullOrWhiteSpace(source) ? null : source.Trim(),
+                CreatedBy = "system",
+                CreatedAt = now
+            };
+
+            dbContext.FinExchangeRates.Add(existing);
+        }
+        else
+        {
+            existing.Rate = rate;
+            existing.Source = string.IsNullOrWhiteSpace(source) ? null : source.Trim();
+        }
+
+        await dbContext.SaveChangesAsync(ct);
+        return existing;
+    }
     private async Task<FinFiscalYear> EnsureFiscalYearAsync(
         string name,
         DateOnly startDate,
@@ -1023,4 +1071,5 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         return menu;
     }
 }
+
 

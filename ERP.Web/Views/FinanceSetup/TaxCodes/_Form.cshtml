@@ -1,0 +1,57 @@
+@model ERP.Web.ViewModels.Finance.FinanceTaxCodeEditViewModel
+@using ERP.Domain.Enums
+
+<form method="post" class="row g-3">
+    @Html.AntiForgeryToken()
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <div class="col-md-3">
+        <label asp-for="Code" class="form-label"></label>
+        <input asp-for="Code" class="form-control" />
+        <span asp-validation-for="Code" class="text-danger"></span>
+    </div>
+
+    <div class="col-md-5">
+        <label asp-for="Name" class="form-label"></label>
+        <input asp-for="Name" class="form-control" />
+        <span asp-validation-for="Name" class="text-danger"></span>
+    </div>
+
+    <div class="col-md-4">
+        <label asp-for="Type" class="form-label"></label>
+        <select asp-for="Type" class="form-select" asp-items="Html.GetEnumSelectList<FinanceTaxType>()"></select>
+        <span asp-validation-for="Type" class="text-danger"></span>
+    </div>
+
+    <div class="col-md-3">
+        <label asp-for="Rate" class="form-label"></label>
+        <input asp-for="Rate" class="form-control" type="number" min="0" max="100" step="0.01" />
+        <span asp-validation-for="Rate" class="text-danger"></span>
+    </div>
+
+    <div class="col-md-6">
+        <label asp-for="AccountId" class="form-label">@T["Account"]</label>
+        <select asp-for="AccountId" class="form-select">
+            @foreach (var option in Model.AccountOptions)
+            {
+                <option value="@option.Id" selected="@(Model.AccountId == option.Id)">@option.Label</option>
+            }
+        </select>
+        <span asp-validation-for="AccountId" class="text-danger"></span>
+    </div>
+
+    <div class="col-md-3 form-check mt-2">
+        <input asp-for="IsInclusive" class="form-check-input" />
+        <label asp-for="IsInclusive" class="form-check-label"></label>
+    </div>
+
+    <div class="col-md-3 form-check mt-2">
+        <input asp-for="IsActive" class="form-check-input" />
+        <label asp-for="IsActive" class="form-check-label"></label>
+    </div>
+
+    <div class="col-12 d-flex gap-2">
+        <button type="submit" class="btn btn-primary">@T["common.save"]</button>
+        <a asp-action="TaxCodes" class="btn btn-outline-secondary">@T["common.cancel"]</a>
+    </div>
+</form>

@@ -1,0 +1,61 @@
+@model ERP.Web.ViewModels.Finance.FinanceExchangeRateCreateViewModel
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">@T["Create"] @T["Exchange Rates"]</h1>
+
+        <form method="post" class="row g-3">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="col-md-4">
+                <label asp-for="FromCurrencyCode" class="form-label">@T["From Currency"]</label>
+                <select asp-for="FromCurrencyCode" class="form-select">
+                    @foreach (var option in Model.CurrencyOptions)
+                    {
+                        <option value="@option.Code" selected="@string.Equals(Model.FromCurrencyCode, option.Code, StringComparison.OrdinalIgnoreCase)">@option.Label</option>
+                    }
+                </select>
+                <span asp-validation-for="FromCurrencyCode" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-4">
+                <label asp-for="ToCurrencyCode" class="form-label">@T["To Currency"]</label>
+                <select asp-for="ToCurrencyCode" class="form-select">
+                    @foreach (var option in Model.CurrencyOptions)
+                    {
+                        <option value="@option.Code" selected="@string.Equals(Model.ToCurrencyCode, option.Code, StringComparison.OrdinalIgnoreCase)">@option.Label</option>
+                    }
+                </select>
+                <span asp-validation-for="ToCurrencyCode" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-4">
+                <label asp-for="Rate" class="form-label"></label>
+                <input asp-for="Rate" class="form-control" type="number" min="0" step="0.000001" />
+                <span asp-validation-for="Rate" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-4">
+                <label asp-for="EffectiveDate" class="form-label">@T["Effective Date"]</label>
+                <input asp-for="EffectiveDate" class="form-control" type="date" />
+                <span asp-validation-for="EffectiveDate" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-8">
+                <label asp-for="Source" class="form-label"></label>
+                <input asp-for="Source" class="form-control" />
+                <span asp-validation-for="Source" class="text-danger"></span>
+            </div>
+
+            <div class="col-12 d-flex gap-2">
+                <button type="submit" class="btn btn-primary">@T["common.save"]</button>
+                <a asp-action="ExchangeRates" class="btn btn-outline-secondary">@T["common.cancel"]</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

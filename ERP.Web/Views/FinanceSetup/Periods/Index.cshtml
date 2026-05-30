@@ -1,0 +1,159 @@
+@model ERP.Web.ViewModels.Finance.FinancePeriodsIndexViewModel
+@using ERP.Domain.Enums
+@using ERP.Web.ViewModels.Shared
+@using Microsoft.AspNetCore.Html
+@using System.Globalization
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">@T["Accounting Periods"]</h1>
+
+        @{
+            var selectedFiscalYearId = Model.FiscalYearIdFilter?.ToString(CultureInfo.InvariantCulture);
+            var selectedStatus = Model.StatusFilter.HasValue ? ((int)Model.StatusFilter.Value).ToString(CultureInfo.InvariantCulture) : null;
+
+            var fiscalYearOptions = Model.FiscalYearOptions
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = x.Id.ToString(CultureInfo.InvariantCulture),
+                    Label = x.Label
+                })
+                .ToList();
+
+            var statusOptions = Enum.GetValues<FinancePeriodStatus>()
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = ((int)x).ToString(CultureInfo.InvariantCulture),
+                    Label = x.ToString()
+                })
+                .ToList();
+
+            var gridModel = new PagedGridViewModel
+            {
+                Columns =
+                [
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "fiscalyearname",
+                        Title = T["Fiscal Year"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "fiscalYearId",
+                            Value = selectedFiscalYearId,
+                            EmptyOptionLabel = T["All"],
+                            Options = fiscalYearOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "periodnumber",
+                        Title = T["Period"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.NumberRange,
+                            QueryKey = "periodNumberFrom",
+                            QueryKeyTo = "periodNumberTo",
+                            Value = Model.PeriodNumberFromFilter?.ToString(CultureInfo.InvariantCulture),
+                            ValueTo = Model.PeriodNumberToFilter?.ToString(CultureInfo.InvariantCulture),
+                            Placeholder = T["From"],
+                            PlaceholderTo = T["To"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "name",
+                        Title = T["Name"],
+                        Sortable = true
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "startdate",
+                        Title = T["Start Date"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.DateRange,
+                            QueryKey = "startDateFrom",
+                            QueryKeyTo = "startDateTo",
+                            Value = Model.StartDateFromFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                            ValueTo = Model.StartDateToFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                            Placeholder = T["From"],
+                            PlaceholderTo = T["To"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "enddate",
+                        Title = T["End Date"],
+                        Sortable = true
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "status",
+                        Title = T["Status"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "status",
+                            Value = selectedStatus,
+                            EmptyOptionLabel = T["All"],
+                            Options = statusOptions
+                        }
+                    }
+                ],
+                Rows = Model.Items.Items.Select(item =>
+                {
+                    var isOpen = item.Status == FinancePeriodStatus.Open;
+
+                    return new PagedGridRowViewModel
+                    {
+                        Cells =
+                        [
+                            new PagedGridCellViewModel { Text = item.FiscalYearName },
+                            new PagedGridCellViewModel { Text = item.PeriodNumber.ToString(CultureInfo.InvariantCulture) },
+                            new PagedGridCellViewModel { Text = item.Name },
+                            new PagedGridCellViewModel { Text = item.StartDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) },
+                            new PagedGridCellViewModel { Text = item.EndDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) },
+                            new PagedGridCellViewModel
+                            {
+                                Html = new HtmlString(item.Status switch
+                                {
+                                    FinancePeriodStatus.Open => "<span class=\"badge text-bg-success\">Open</span>",
+                                    FinancePeriodStatus.Closed => "<span class=\"badge text-bg-secondary\">Closed</span>",
+                                    _ => "<span class=\"badge text-bg-danger\">Locked</span>"
+                                })
+                            }
+                        ],
+                        Actions = new PagedGridRowActionViewModel
+                        {
+                            ApproveUrl = isOpen ? Url.Action("ClosePeriod", "FinanceSetup", new { id = item.Id }) : null,
+                            ApproveConfirmMessage = T["Close this period?"]
+                        }
+                    };
+                }).ToList(),
+                EmptyMessage = T["msg.no_data"],
+                Page = Model.Items.Page,
+                TotalPages = Model.Items.TotalPages,
+                PageSize = Model.PageSize,
+                SortBy = Model.SortBy,
+                SortDirection = Model.SortDirection,
+                EnableSearch = true,
+                SearchValue = Model.Search,
+                SearchPlaceholder = T["Search"] + " periods",
+                SearchButtonText = T["common.search"],
+                Actions = new PagedGridActionConfigViewModel
+                {
+                    ActionColumnTitle = T["Action"],
+                    ApproveButtonText = T["Close"],
+                    ApproveConfirmMessage = T["Close this period?"]
+                }
+            };
+        }
+
+        @await Component.InvokeAsync("PagedGrid", gridModel)
+    </div>
+</div>

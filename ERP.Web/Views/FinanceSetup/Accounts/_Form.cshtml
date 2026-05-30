@@ -1,0 +1,107 @@
+@model ERP.Web.ViewModels.Finance.FinanceAccountEditViewModel
+@using ERP.Domain.Enums
+
+<form method="post" class="row g-3">
+    @Html.AntiForgeryToken()
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <div class="col-md-4">
+        <label asp-for="Code" class="form-label"></label>
+        <input asp-for="Code" class="form-control" />
+        <span asp-validation-for="Code" class="text-danger"></span>
+    </div>
+
+    <div class="col-md-8">
+        <label asp-for="Name" class="form-label"></label>
+        <input asp-for="Name" class="form-control" />
+        <span asp-validation-for="Name" class="text-danger"></span>
+    </div>
+
+    <div class="col-md-6">
+        <label asp-for="GroupId" class="form-label">@T["Group"]</label>
+        <select asp-for="GroupId" class="form-select">
+            @foreach (var option in Model.GroupOptions)
+            {
+                <option value="@option.Id" selected="@(Model.GroupId == option.Id)">@option.Label</option>
+            }
+        </select>
+        <span asp-validation-for="GroupId" class="text-danger"></span>
+    </div>
+
+    <div class="col-md-6">
+        <label asp-for="ParentAccountId" class="form-label">@T["Parent"]</label>
+        <select asp-for="ParentAccountId" class="form-select">
+            <option value="">@T["No Parent"]</option>
+            @foreach (var option in Model.ParentAccountOptions)
+            {
+                <option value="@option.Id" selected="@(Model.ParentAccountId == option.Id)">@option.Label</option>
+            }
+        </select>
+        <span asp-validation-for="ParentAccountId" class="text-danger"></span>
+    </div>
+
+    <div class="col-md-3">
+        <label asp-for="Type" class="form-label"></label>
+        <select asp-for="Type" class="form-select" asp-items="Html.GetEnumSelectList<FinanceAccountType>()"></select>
+        <span asp-validation-for="Type" class="text-danger"></span>
+    </div>
+
+    <div class="col-md-3">
+        <label asp-for="NormalBalance" class="form-label"></label>
+        <select asp-for="NormalBalance" class="form-select" asp-items="Html.GetEnumSelectList<FinanceNormalBalance>()"></select>
+        <span asp-validation-for="NormalBalance" class="text-danger"></span>
+    </div>
+
+    <div class="col-md-3">
+        <label asp-for="CurrencyCode" class="form-label">@T["Currency"]</label>
+        <select asp-for="CurrencyCode" class="form-select">
+            @foreach (var option in Model.CurrencyOptions)
+            {
+                <option value="@option.Code" selected="@string.Equals(Model.CurrencyCode, option.Code, StringComparison.OrdinalIgnoreCase)">@option.Label</option>
+            }
+        </select>
+        <span asp-validation-for="CurrencyCode" class="text-danger"></span>
+    </div>
+
+    <div class="col-md-3 d-flex align-items-end">
+        <div class="form-check">
+            <input asp-for="IsHeader" class="form-check-input" />
+            <label asp-for="IsHeader" class="form-check-label"></label>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <label asp-for="Description" class="form-label"></label>
+        <textarea asp-for="Description" class="form-control" rows="2"></textarea>
+        <span asp-validation-for="Description" class="text-danger"></span>
+    </div>
+
+    <div class="col-md-3 d-flex align-items-end">
+        <div class="form-check">
+            <input asp-for="IsBankAccount" class="form-check-input" id="isBankAccountToggle" />
+            <label asp-for="IsBankAccount" class="form-check-label"></label>
+        </div>
+    </div>
+
+    <div class="col-md-4 bank-account-fields">
+        <label asp-for="BankName" class="form-label"></label>
+        <input asp-for="BankName" class="form-control" />
+        <span asp-validation-for="BankName" class="text-danger"></span>
+    </div>
+
+    <div class="col-md-5 bank-account-fields">
+        <label asp-for="BankAccountNo" class="form-label"></label>
+        <input asp-for="BankAccountNo" class="form-control" />
+        <span asp-validation-for="BankAccountNo" class="text-danger"></span>
+    </div>
+
+    <div class="col-12 form-check mt-2">
+        <input asp-for="IsActive" class="form-check-input" />
+        <label asp-for="IsActive" class="form-check-label"></label>
+    </div>
+
+    <div class="col-12 d-flex gap-2">
+        <button type="submit" class="btn btn-primary">@T["common.save"]</button>
+        <a asp-action="Coa" class="btn btn-outline-secondary">@T["common.cancel"]</a>
+    </div>
+</form>

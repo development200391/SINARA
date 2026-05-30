@@ -1,0 +1,64 @@
+@model ERP.Web.ViewModels.Finance.FinanceCostCenterEditViewModel
+
+<form method="post" class="row g-3">
+    @Html.AntiForgeryToken()
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <div class="col-md-4">
+        <label asp-for="Code" class="form-label"></label>
+        <input asp-for="Code" class="form-control" />
+        <span asp-validation-for="Code" class="text-danger"></span>
+    </div>
+
+    <div class="col-md-8">
+        <label asp-for="Name" class="form-label"></label>
+        <input asp-for="Name" class="form-control" />
+        <span asp-validation-for="Name" class="text-danger"></span>
+    </div>
+
+    <div class="col-md-4">
+        <label asp-for="DepartmentId" class="form-label">@T["Department"]</label>
+        <select asp-for="DepartmentId" class="form-select">
+            <option value="">@T["All"]</option>
+            @foreach (var option in Model.DepartmentOptions)
+            {
+                <option value="@option.Id" selected="@(Model.DepartmentId == option.Id)">@option.Label</option>
+            }
+        </select>
+        <span asp-validation-for="DepartmentId" class="text-danger"></span>
+    </div>
+
+    <div class="col-md-4">
+        <label asp-for="ManagerId" class="form-label">@T["Manager"]</label>
+        <select asp-for="ManagerId" class="form-select">
+            <option value="">@T["All"]</option>
+            @foreach (var option in Model.ManagerOptions)
+            {
+                <option value="@option.Id" selected="@(Model.ManagerId == option.Id)">@option.Label</option>
+            }
+        </select>
+        <span asp-validation-for="ManagerId" class="text-danger"></span>
+    </div>
+
+    <div class="col-md-4">
+        <label asp-for="BudgetAccountId" class="form-label">@T["Budget Account"]</label>
+        <select asp-for="BudgetAccountId" class="form-select">
+            <option value="">@T["All"]</option>
+            @foreach (var option in Model.BudgetAccountOptions)
+            {
+                <option value="@option.Id" selected="@(Model.BudgetAccountId == option.Id)">@option.Label</option>
+            }
+        </select>
+        <span asp-validation-for="BudgetAccountId" class="text-danger"></span>
+    </div>
+
+    <div class="col-12 form-check mt-2">
+        <input asp-for="IsActive" class="form-check-input" />
+        <label asp-for="IsActive" class="form-check-label"></label>
+    </div>
+
+    <div class="col-12 d-flex gap-2">
+        <button type="submit" class="btn btn-primary">@T["common.save"]</button>
+        <a asp-action="CostCenters" class="btn btn-outline-secondary">@T["common.cancel"]</a>
+    </div>
+</form>

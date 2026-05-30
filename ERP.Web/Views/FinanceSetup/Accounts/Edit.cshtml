@@ -1,0 +1,25 @@
+@model ERP.Web.ViewModels.Finance.FinanceAccountEditViewModel
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">@T["Edit"] @T["Chart of Accounts"]</h1>
+        <partial name="Accounts/_Form" model="Model" />
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            var toggle = document.getElementById('isBankAccountToggle');
+            var bankFields = document.querySelectorAll('.bank-account-fields');
+            function refresh() {
+                var show = toggle && toggle.checked;
+                bankFields.forEach(function (el) { el.style.display = show ? '' : 'none'; });
+            }
+            if (toggle) { toggle.addEventListener('change', refresh); }
+            refresh();
+        })();
+    </script>
+}
+
