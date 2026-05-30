@@ -189,7 +189,7 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         await EnsureAccountAsync("2106", "Pendapatan Diterima Dimuka", group2100.Id, FinanceAccountType.Liability, FinanceNormalBalance.Credit, false, acc2100.Id, null, false, null, null, "IDR", true, now, ct);
 
         var acc3000 = await EnsureAccountAsync("3000", "EKUITAS", group3000.Id, FinanceAccountType.Equity, FinanceNormalBalance.Credit, true, null, null, false, null, null, "IDR", true, now, ct);
-        await EnsureAccountAsync("3101", "Modal Disetor", group3000.Id, FinanceAccountType.Equity, FinanceNormalBalance.Credit, false, acc3000.Id, null, false, null, null, "IDR", true, now, ct);
+        var acc3101 = await EnsureAccountAsync("3101", "Modal Disetor", group3000.Id, FinanceAccountType.Equity, FinanceNormalBalance.Credit, false, acc3000.Id, null, false, null, null, "IDR", true, now, ct);
         await EnsureAccountAsync("3102", "Laba Ditahan", group3000.Id, FinanceAccountType.Equity, FinanceNormalBalance.Credit, false, acc3000.Id, null, false, null, null, "IDR", true, now, ct);
         await EnsureAccountAsync("3103", "Laba Tahun Berjalan", group3000.Id, FinanceAccountType.Equity, FinanceNormalBalance.Credit, false, acc3000.Id, null, false, null, null, "IDR", true, now, ct);
 
@@ -280,6 +280,7 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
                 acc5103.Id,
                 acc5104.Id,
                 acc5105.Id,
+                acc3101.Id,
                 now,
                 ct);
         }
@@ -412,6 +413,18 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         await EnsureMenuAsync(finModule.Id, finAp.Id, "AP Invoices", "/finance/ap/invoices", "bi-receipt", 2, now, ct);
         await EnsureMenuAsync(finModule.Id, finAp.Id, "AP Payments", "/finance/ap/payments", "bi-cash-coin", 3, now, ct);
         await EnsureMenuAsync(finModule.Id, finAp.Id, "AP Aging", "/finance/ap/aging", "bi-hourglass-split", 4, now, ct);
+
+        var finAr = await EnsureMenuAsync(finModule.Id, null, "Accounts Receivable", null, "bi-cash-stack", 5, now, ct);
+        await EnsureMenuAsync(finModule.Id, finAr.Id, "Customers", "/finance/customers", "bi-people", 1, now, ct);
+        await EnsureMenuAsync(finModule.Id, finAr.Id, "AR Invoices", "/finance/ar/invoices", "bi-receipt", 2, now, ct);
+        await EnsureMenuAsync(finModule.Id, finAr.Id, "AR Receipts", "/finance/ar/receipts", "bi-cash-coin", 3, now, ct);
+        await EnsureMenuAsync(finModule.Id, finAr.Id, "AR Aging", "/finance/ar/aging", "bi-hourglass-split", 4, now, ct);
+
+        var finReports = await EnsureMenuAsync(finModule.Id, null, "Financial Reports", null, "bi-bar-chart-line", 6, now, ct);
+        await EnsureMenuAsync(finModule.Id, finReports.Id, "Trial Balance", "/finance/reports/trial-balance", "bi-table", 1, now, ct);
+        await EnsureMenuAsync(finModule.Id, finReports.Id, "Balance Sheet", "/finance/reports/balance-sheet", "bi-border-all", 2, now, ct);
+        await EnsureMenuAsync(finModule.Id, finReports.Id, "Profit & Loss", "/finance/reports/profit-loss", "bi-graph-up-arrow", 3, now, ct);
+        await EnsureMenuAsync(finModule.Id, finReports.Id, "Cash Flow", "/finance/reports/cash-flow", "bi-water", 4, now, ct);
     }
 
     private async Task SeedSuperAdminPermissionsAsync(CancellationToken ct)
@@ -1084,6 +1097,7 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         int bpjsExpenseAccountId,
         int operationalExpenseAccountId,
         int depreciationExpenseAccountId,
+        int paidInCapitalAccountId,
         DateTimeOffset now,
         CancellationToken ct)
     {
@@ -1189,6 +1203,41 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
                     Description = "Akumulasi penyusutan",
                     Debit = 0m,
                     Credit = 1_200_000m
+                }
+            ],
+            now,
+            ct);
+
+        await EnsureJournalAsync(
+            journalNo: $"JE-{postingDate.Year}-900004",
+            periodId: periodId,
+            date: postingDate,
+            description: "Setoran modal pemilik",
+            source: FinanceJournalSource.Manual,
+            sourceRefId: null,
+            sourceRefType: null,
+            status: FinanceJournalStatus.Posted,
+            postedBy: postedByUserId,
+            postedAt: now,
+            currencyCode: "IDR",
+            exchangeRate: 1m,
+            lines:
+            [
+                new SeedJournalLine
+                {
+                    AccountId = bankAccountId,
+                    CostCenterId = null,
+                    Description = "Setoran modal via bank",
+                    Debit = 20_000_000m,
+                    Credit = 0m
+                },
+                new SeedJournalLine
+                {
+                    AccountId = paidInCapitalAccountId,
+                    CostCenterId = null,
+                    Description = "Modal disetor",
+                    Debit = 0m,
+                    Credit = 20_000_000m
                 }
             ],
             now,
@@ -1459,6 +1508,11 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         return menu;
     }
 }
+
+
+
+
+
 
 
 

@@ -1,4 +1,4 @@
-using ERP.Domain.Enums;
+﻿using ERP.Domain.Enums;
 
 namespace ERP.Domain.Entities.Finance;
 
@@ -14,5 +14,7 @@ public sealed class FinTaxCode : BaseEntity
 
     public FinAccount Account { get; set; } = null!;
     public ICollection<FinVendor> VendorDefaults { get; set; } = new List<FinVendor>();
+    public ICollection<FinCustomer> CustomerDefaults { get; set; } = new List<FinCustomer>();
     public ICollection<FinApInvoiceLine> ApInvoiceLines { get; set; } = new List<FinApInvoiceLine>();
+    public ICollection<FinArInvoiceLine> ArInvoiceLines { get; set; } = new List<FinArInvoiceLine>();
 }

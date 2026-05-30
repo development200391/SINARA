@@ -1,4 +1,4 @@
-using ERP.Domain.Entities.HR;
+﻿using ERP.Domain.Entities.HR;
 
 namespace ERP.Domain.Entities.Finance;
 
@@ -16,4 +16,5 @@ public sealed class FinCostCenter : BaseEntity
     public FinAccount? BudgetAccount { get; set; }
     public ICollection<FinJournalEntryLine> JournalLines { get; set; } = new List<FinJournalEntryLine>();
     public ICollection<FinApInvoiceLine> ApInvoiceLines { get; set; } = new List<FinApInvoiceLine>();
+    public ICollection<FinArInvoiceLine> ArInvoiceLines { get; set; } = new List<FinArInvoiceLine>();
 }

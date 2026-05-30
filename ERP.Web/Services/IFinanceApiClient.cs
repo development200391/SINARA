@@ -75,5 +75,32 @@ public interface IFinanceApiClient
     Task<ApPaymentDto?> CreateApPaymentAsync(string accessToken, ApPaymentDto request, CancellationToken ct = default);
 
     Task<PagedResult<ApAgingRowDto>?> GetApAgingAsync(string accessToken, ApAgingPagedRequest request, CancellationToken ct = default);
+
+    Task<PagedResult<CustomerDto>?> GetCustomersAsync(string accessToken, CustomerPagedRequest request, CancellationToken ct = default);
+    Task<CustomerDto?> GetCustomerByIdAsync(string accessToken, int id, CancellationToken ct = default);
+    Task<CustomerDto?> CreateCustomerAsync(string accessToken, CustomerDto request, CancellationToken ct = default);
+    Task<CustomerDto?> UpdateCustomerAsync(string accessToken, int id, CustomerDto request, CancellationToken ct = default);
+    Task<bool> DeleteCustomerAsync(string accessToken, int id, CancellationToken ct = default);
+
+    Task<PagedResult<ArInvoiceDto>?> GetArInvoicesAsync(string accessToken, ArInvoicePagedRequest request, CancellationToken ct = default);
+    Task<ArInvoiceDto?> GetArInvoiceByIdAsync(string accessToken, int id, CancellationToken ct = default);
+    Task<ArInvoiceDto?> CreateArInvoiceAsync(string accessToken, ArInvoiceDto request, CancellationToken ct = default);
+    Task<ArInvoiceDto?> UpdateArInvoiceAsync(string accessToken, int id, ArInvoiceDto request, CancellationToken ct = default);
+    Task<ArInvoiceDto?> SendArInvoiceAsync(string accessToken, int id, CancellationToken ct = default);
+    Task<bool> DeleteArInvoiceAsync(string accessToken, int id, CancellationToken ct = default);
+
+    Task<PagedResult<ArReceiptDto>?> GetArReceiptsAsync(string accessToken, ArReceiptPagedRequest request, CancellationToken ct = default);
+    Task<ArReceiptDto?> GetArReceiptByIdAsync(string accessToken, int id, CancellationToken ct = default);
+    Task<ArReceiptDto?> CreateArReceiptAsync(string accessToken, ArReceiptDto request, CancellationToken ct = default);
+
+    Task<PagedResult<ArAgingRowDto>?> GetArAgingAsync(string accessToken, ArAgingPagedRequest request, CancellationToken ct = default);
+
+    Task<PagedResult<TrialBalanceRowDto>?> GetTrialBalanceAsync(string accessToken, TrialBalancePagedRequest request, CancellationToken ct = default);
+    Task<PagedResult<FinancialStatementRowDto>?> GetBalanceSheetAsync(string accessToken, FinancialStatementPagedRequest request, CancellationToken ct = default);
+    Task<PagedResult<FinancialStatementRowDto>?> GetProfitLossAsync(string accessToken, FinancialStatementPagedRequest request, CancellationToken ct = default);
+    Task<PagedResult<FinancialStatementRowDto>?> GetCashFlowAsync(string accessToken, FinancialStatementPagedRequest request, CancellationToken ct = default);
 }
+
+
+
 

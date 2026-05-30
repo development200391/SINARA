@@ -50,6 +50,11 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<FinApInvoiceLine> FinApInvoiceLines => Set<FinApInvoiceLine>();
     public DbSet<FinApPayment> FinApPayments => Set<FinApPayment>();
     public DbSet<FinApPaymentApplication> FinApPaymentApplications => Set<FinApPaymentApplication>();
+    public DbSet<FinCustomer> FinCustomers => Set<FinCustomer>();
+    public DbSet<FinArInvoice> FinArInvoices => Set<FinArInvoice>();
+    public DbSet<FinArInvoiceLine> FinArInvoiceLines => Set<FinArInvoiceLine>();
+    public DbSet<FinArReceipt> FinArReceipts => Set<FinArReceipt>();
+    public DbSet<FinArReceiptApplication> FinArReceiptApplications => Set<FinArReceiptApplication>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -92,6 +97,11 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         ConfigureFinApInvoiceLine(modelBuilder.Entity<FinApInvoiceLine>());
         ConfigureFinApPayment(modelBuilder.Entity<FinApPayment>());
         ConfigureFinApPaymentApplication(modelBuilder.Entity<FinApPaymentApplication>());
+        ConfigureFinCustomer(modelBuilder.Entity<FinCustomer>());
+        ConfigureFinArInvoice(modelBuilder.Entity<FinArInvoice>());
+        ConfigureFinArInvoiceLine(modelBuilder.Entity<FinArInvoiceLine>());
+        ConfigureFinArReceipt(modelBuilder.Entity<FinArReceipt>());
+        ConfigureFinArReceiptApplication(modelBuilder.Entity<FinArReceiptApplication>());
 
         ApplySoftDeleteQueryFilters(modelBuilder);
 
@@ -1045,6 +1055,210 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         builder.HasIndex(x => x.InvoiceId);
         builder.HasIndex(x => new { x.PaymentId, x.InvoiceId }).IsUnique();
     }
+
+    private static void ConfigureFinCustomer(EntityTypeBuilder<FinCustomer> builder)
+    {
+        builder.ToTable("fin_customers", t =>
+        {
+            t.HasCheckConstraint("ck_fin_customers_non_negative_credit_limit", "credit_limit >= 0");
+            t.HasCheckConstraint("ck_fin_customers_non_negative_terms", "payment_terms_days >= 0");
+        });
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.Code).HasMaxLength(20).IsRequired();
+        builder.Property(x => x.Name).HasMaxLength(200).IsRequired();
+        builder.Property(x => x.TaxId).HasMaxLength(30);
+        builder.Property(x => x.Address).HasColumnType("text");
+        builder.Property(x => x.Phone).HasMaxLength(30);
+        builder.Property(x => x.Email).HasMaxLength(200);
+        builder.Property(x => x.ContactPerson).HasMaxLength(100);
+        builder.Property(x => x.CreditLimit).HasColumnType("numeric(18,4)").HasDefaultValue(0m).IsRequired();
+        builder.Property(x => x.PaymentTermsDays).HasDefaultValue(30).IsRequired();
+        builder.Property(x => x.IsActive).HasDefaultValue(true).IsRequired();
+
+        builder.HasOne(x => x.DefaultAccount)
+            .WithMany(x => x.CustomerDefaultAccounts)
+            .HasForeignKey(x => x.DefaultAccountId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.DefaultTaxCode)
+            .WithMany(x => x.CustomerDefaults)
+            .HasForeignKey(x => x.DefaultTaxCodeId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasIndex(x => x.Code).IsUnique();
+        builder.HasIndex(x => x.Name);
+        builder.HasIndex(x => x.IsActive);
+        builder.HasIndex(x => x.DefaultAccountId);
+        builder.HasIndex(x => x.DefaultTaxCodeId);
+    }
+
+    private static void ConfigureFinArInvoice(EntityTypeBuilder<FinArInvoice> builder)
+    {
+        builder.ToTable("fin_ar_invoices", t =>
+        {
+            t.HasCheckConstraint("ck_fin_ar_invoices_non_negative", "subtotal >= 0 AND tax_amount >= 0 AND total_amount >= 0 AND received_amount >= 0 AND outstanding_amount >= 0");
+        });
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.InvoiceNo).HasMaxLength(50).IsRequired();
+        builder.Property(x => x.InvoiceDate).HasColumnType("date").IsRequired();
+        builder.Property(x => x.DueDate).HasColumnType("date").IsRequired();
+        builder.Property(x => x.Description).HasColumnType("text");
+        builder.Property(x => x.Subtotal).HasColumnType("numeric(18,4)").HasDefaultValue(0m).IsRequired();
+        builder.Property(x => x.TaxAmount).HasColumnType("numeric(18,4)").HasDefaultValue(0m).IsRequired();
+        builder.Property(x => x.TotalAmount).HasColumnType("numeric(18,4)").HasDefaultValue(0m).IsRequired();
+        builder.Property(x => x.ReceivedAmount).HasColumnType("numeric(18,4)").HasDefaultValue(0m).IsRequired();
+        builder.Property(x => x.OutstandingAmount).HasColumnType("numeric(18,4)").HasDefaultValue(0m).IsRequired();
+        builder.Property(x => x.CurrencyCode).HasMaxLength(10).HasDefaultValue("IDR").IsRequired();
+        builder.Property(x => x.ExchangeRate).HasColumnType("numeric(18,6)").HasDefaultValue(1m).IsRequired();
+        builder.Property(x => x.Status).HasConversion<int>().HasDefaultValue(FinanceArInvoiceStatus.Draft).IsRequired();
+        builder.Property(x => x.SentAt).HasColumnType("timestamptz");
+
+        builder.HasOne(x => x.Customer)
+            .WithMany(x => x.ArInvoices)
+            .HasForeignKey(x => x.CustomerId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.Period)
+            .WithMany(x => x.ArInvoices)
+            .HasForeignKey(x => x.PeriodId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.Currency)
+            .WithMany(x => x.ArInvoices)
+            .HasForeignKey(x => x.CurrencyCode)
+            .HasPrincipalKey(x => x.Code)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.SentByUser)
+            .WithMany()
+            .HasForeignKey(x => x.SentBy)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.JournalEntry)
+            .WithMany()
+            .HasForeignKey(x => x.JournalEntryId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasIndex(x => x.InvoiceNo).IsUnique();
+        builder.HasIndex(x => x.CustomerId);
+        builder.HasIndex(x => x.PeriodId);
+        builder.HasIndex(x => x.InvoiceDate);
+        builder.HasIndex(x => x.DueDate);
+        builder.HasIndex(x => x.Status);
+        builder.HasIndex(x => x.OutstandingAmount);
+        builder.HasIndex(x => x.CurrencyCode);
+        builder.HasIndex(x => x.SentBy);
+        builder.HasIndex(x => x.JournalEntryId);
+    }
+
+    private static void ConfigureFinArInvoiceLine(EntityTypeBuilder<FinArInvoiceLine> builder)
+    {
+        builder.ToTable("fin_ar_invoice_lines", t =>
+        {
+            t.HasCheckConstraint("ck_fin_ar_invoice_lines_positive_qty", "quantity > 0");
+            t.HasCheckConstraint("ck_fin_ar_invoice_lines_non_negative", "unit_price >= 0 AND amount >= 0 AND tax_amount >= 0");
+        });
+
+        builder.Property(x => x.Id).UseIdentityAlwaysColumn();
+        builder.Property(x => x.LineNo).IsRequired();
+        builder.Property(x => x.Description).HasMaxLength(200).IsRequired();
+        builder.Property(x => x.Quantity).HasColumnType("numeric(18,4)").HasDefaultValue(1m).IsRequired();
+        builder.Property(x => x.UnitPrice).HasColumnType("numeric(18,4)").HasDefaultValue(0m).IsRequired();
+        builder.Property(x => x.Amount).HasColumnType("numeric(18,4)").HasDefaultValue(0m).IsRequired();
+        builder.Property(x => x.TaxAmount).HasColumnType("numeric(18,4)").HasDefaultValue(0m).IsRequired();
+
+        builder.HasOne(x => x.Invoice)
+            .WithMany(x => x.Lines)
+            .HasForeignKey(x => x.InvoiceId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(x => x.TaxCode)
+            .WithMany(x => x.ArInvoiceLines)
+            .HasForeignKey(x => x.TaxCodeId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.Account)
+            .WithMany(x => x.ArInvoiceLines)
+            .HasForeignKey(x => x.AccountId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.CostCenter)
+            .WithMany(x => x.ArInvoiceLines)
+            .HasForeignKey(x => x.CostCenterId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasIndex(x => x.InvoiceId);
+        builder.HasIndex(x => new { x.InvoiceId, x.LineNo }).IsUnique();
+        builder.HasIndex(x => x.AccountId);
+        builder.HasIndex(x => x.TaxCodeId);
+        builder.HasIndex(x => x.CostCenterId);
+    }
+
+    private static void ConfigureFinArReceipt(EntityTypeBuilder<FinArReceipt> builder)
+    {
+        builder.ToTable("fin_ar_receipts", t =>
+        {
+            t.HasCheckConstraint("ck_fin_ar_receipts_positive_amount", "amount > 0");
+        });
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.ReceiptNo).HasMaxLength(30).IsRequired();
+        builder.Property(x => x.ReceiptDate).HasColumnType("date").IsRequired();
+        builder.Property(x => x.Amount).HasColumnType("numeric(18,4)").IsRequired();
+        builder.Property(x => x.PaymentMethod).HasConversion<int>().IsRequired();
+        builder.Property(x => x.ReferenceNo).HasMaxLength(100);
+        builder.Property(x => x.Notes).HasColumnType("text");
+
+        builder.HasOne(x => x.Customer)
+            .WithMany(x => x.ArReceipts)
+            .HasForeignKey(x => x.CustomerId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.BankAccount)
+            .WithMany(x => x.ArReceipts)
+            .HasForeignKey(x => x.BankAccountId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.JournalEntry)
+            .WithMany()
+            .HasForeignKey(x => x.JournalEntryId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasIndex(x => x.ReceiptNo).IsUnique();
+        builder.HasIndex(x => x.CustomerId);
+        builder.HasIndex(x => x.ReceiptDate);
+        builder.HasIndex(x => x.PaymentMethod);
+        builder.HasIndex(x => x.BankAccountId);
+        builder.HasIndex(x => x.JournalEntryId);
+    }
+
+    private static void ConfigureFinArReceiptApplication(EntityTypeBuilder<FinArReceiptApplication> builder)
+    {
+        builder.ToTable("fin_ar_receipt_applications", t =>
+        {
+            t.HasCheckConstraint("ck_fin_ar_receipt_apps_positive", "applied_amount > 0");
+        });
+
+        builder.Property(x => x.Id).UseIdentityAlwaysColumn();
+        builder.Property(x => x.AppliedAmount).HasColumnType("numeric(18,4)").IsRequired();
+
+        builder.HasOne(x => x.Receipt)
+            .WithMany(x => x.Applications)
+            .HasForeignKey(x => x.ReceiptId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(x => x.Invoice)
+            .WithMany(x => x.ReceiptApplications)
+            .HasForeignKey(x => x.InvoiceId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(x => x.ReceiptId);
+        builder.HasIndex(x => x.InvoiceId);
+        builder.HasIndex(x => new { x.ReceiptId, x.InvoiceId }).IsUnique();
+    }
+
     private static void ApplySoftDeleteQueryFilters(ModelBuilder modelBuilder)
     {
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
@@ -1066,6 +1280,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         }
     }
 }
+
 
 
 

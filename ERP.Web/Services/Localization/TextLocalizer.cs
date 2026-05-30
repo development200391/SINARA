@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 
 namespace ERP.Web.Services.Localization;
 
@@ -181,6 +181,7 @@ public sealed class TextLocalizer(IHttpContextAccessor httpContextAccessor) : IT
         ["Entity"] = "Entitas",
         ["Entity Id"] = "ID Entitas",
         ["Export Excel"] = "Ekspor Excel",
+        ["Export CSV"] = "Ekspor CSV",
         ["Filter code"] = "Filter kode",
         ["Filter description"] = "Filter deskripsi",
         ["Filter email"] = "Filter email",
@@ -345,8 +346,15 @@ public sealed class TextLocalizer(IHttpContextAccessor httpContextAccessor) : IT
         ["Bank Account No"] = "No. Rekening",
         ["None"] = "Tidak Ada",
         ["Accounts Payable"] = "Utang Usaha",
+        ["Accounts Receivable"] = "Piutang Usaha",
+        ["Customer"] = "Pelanggan",
+        ["Customers"] = "Pelanggan",
+        ["Customer Code"] = "Kode Pelanggan",
+        ["Credit Limit"] = "Batas Kredit",
         ["AP Invoice"] = "Faktur AP",
         ["AP Invoices"] = "Faktur AP",
+        ["AR Invoice"] = "Faktur AR",
+        ["AR Invoices"] = "Faktur AR",
         ["Invoice No"] = "No. Faktur",
         ["Vendor Invoice No"] = "No. Faktur Vendor",
         ["Invoice Date"] = "Tanggal Faktur",
@@ -362,11 +370,18 @@ public sealed class TextLocalizer(IHttpContextAccessor httpContextAccessor) : IT
         ["Approve this invoice?"] = "Setujui faktur ini?",
         ["PartiallyPaid"] = "Dibayar Sebagian",
         ["Paid"] = "Lunas",
+        ["Sent"] = "Terkirim",
         ["Cancelled"] = "Dibatalkan",
+        ["Send"] = "Kirim",
+        ["Send this invoice?"] = "Kirim faktur ini?",
         ["AP Payment"] = "Pembayaran AP",
         ["AP Payments"] = "Pembayaran AP",
+        ["AR Receipt"] = "Penerimaan AR",
+        ["AR Receipts"] = "Penerimaan AR",
         ["Payment No"] = "No. Pembayaran",
+        ["Receipt No"] = "No. Penerimaan",
         ["Payment Date"] = "Tanggal Pembayaran",
+        ["Receipt Date"] = "Tanggal Penerimaan",
         ["Payment Method"] = "Metode Pembayaran",
         ["Bank Account"] = "Rekening Bank",
         ["Reference No"] = "No. Referensi",
@@ -376,6 +391,27 @@ public sealed class TextLocalizer(IHttpContextAccessor httpContextAccessor) : IT
         ["Total Applied"] = "Total Dialokasikan",
         ["Select Invoice"] = "Pilih Faktur",
         ["AP Aging"] = "Umur Utang",
+        ["AR Aging"] = "Umur Piutang",
+        ["Financial Reports"] = "Laporan Keuangan",
+        ["Trial Balance"] = "Neraca Saldo",
+        ["Balance Sheet"] = "Neraca",
+        ["Profit & Loss"] = "Laba Rugi",
+        ["Cash Flow"] = "Arus Kas",
+        ["Date Range"] = "Rentang Tanggal",
+        ["Section"] = "Bagian",
+        ["Type"] = "Tipe",
+        ["Total Debit"] = "Total Debit",
+        ["Total Credit"] = "Total Kredit",
+        ["Ending Debit"] = "Saldo Akhir Debit",
+        ["Ending Credit"] = "Saldo Akhir Kredit",
+        ["Asset"] = "Aset",
+        ["Liability"] = "Kewajiban",
+        ["Equity"] = "Ekuitas",
+        ["Revenue"] = "Pendapatan",
+        ["Expense"] = "Beban",
+        ["Operating"] = "Operasional",
+        ["Investing"] = "Investasi",
+        ["Financing"] = "Pendanaan",
         ["As Of Date"] = "Per Tanggal",
         ["Current"] = "Belum Jatuh Tempo",
         ["1-30 Days"] = "1-30 Hari",
@@ -467,6 +503,10 @@ public sealed class TextLocalizer(IHttpContextAccessor httpContextAccessor) : IT
         return !string.IsNullOrWhiteSpace(code) && Resources.ContainsKey(code);
     }
 }
+
+
+
+
 
 
 

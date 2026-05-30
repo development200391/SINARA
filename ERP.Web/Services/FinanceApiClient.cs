@@ -1,8 +1,10 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Globalization;
 using ERP.Application.DTOs.Common;
 using ERP.Application.DTOs.Finance;
+using ERP.Domain.Enums;
 
 namespace ERP.Web.Services;
 
@@ -761,6 +763,269 @@ public sealed class FinanceApiClient(HttpClient httpClient, ILogger<FinanceApiCl
         var query = $"api/v1/finance/ap/aging?{string.Join("&", parameters)}";
         return SendAsync<PagedResult<ApAgingRowDto>>(HttpMethod.Get, query, accessToken, null, ct);
     }
+
+    public Task<PagedResult<CustomerDto>?> GetCustomersAsync(string accessToken, CustomerPagedRequest request, CancellationToken ct = default)
+    {
+        var parameters = new List<string>();
+        AddPagedParameters(parameters, request);
+
+        if (!string.IsNullOrWhiteSpace(request.Code))
+        {
+            parameters.Add($"code={Uri.EscapeDataString(request.Code.Trim())}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Name))
+        {
+            parameters.Add($"name={Uri.EscapeDataString(request.Name.Trim())}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.TaxId))
+        {
+            parameters.Add($"taxId={Uri.EscapeDataString(request.TaxId.Trim())}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.ContactPerson))
+        {
+            parameters.Add($"contactPerson={Uri.EscapeDataString(request.ContactPerson.Trim())}");
+        }
+
+        if (request.CreditLimitFrom.HasValue)
+        {
+            parameters.Add($"creditLimitFrom={request.CreditLimitFrom.Value.ToString(CultureInfo.InvariantCulture)}");
+        }
+
+        if (request.CreditLimitTo.HasValue)
+        {
+            parameters.Add($"creditLimitTo={request.CreditLimitTo.Value.ToString(CultureInfo.InvariantCulture)}");
+        }
+
+        if (request.PaymentTermsFrom.HasValue)
+        {
+            parameters.Add($"paymentTermsFrom={request.PaymentTermsFrom.Value}");
+        }
+
+        if (request.PaymentTermsTo.HasValue)
+        {
+            parameters.Add($"paymentTermsTo={request.PaymentTermsTo.Value}");
+        }
+
+        if (request.IsActive.HasValue)
+        {
+            parameters.Add($"isActive={(request.IsActive.Value ? "true" : "false")}");
+        }
+
+        var query = $"api/v1/finance/customers?{string.Join("&", parameters)}";
+        return SendAsync<PagedResult<CustomerDto>>(HttpMethod.Get, query, accessToken, null, ct);
+    }
+
+    public Task<CustomerDto?> GetCustomerByIdAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendAsync<CustomerDto>(HttpMethod.Get, $"api/v1/finance/customers/{id}", accessToken, null, ct);
+
+    public Task<CustomerDto?> CreateCustomerAsync(string accessToken, CustomerDto request, CancellationToken ct = default)
+        => SendAsync<CustomerDto>(HttpMethod.Post, "api/v1/finance/customers", accessToken, request, ct);
+
+    public Task<CustomerDto?> UpdateCustomerAsync(string accessToken, int id, CustomerDto request, CancellationToken ct = default)
+        => SendAsync<CustomerDto>(HttpMethod.Put, $"api/v1/finance/customers/{id}", accessToken, request, ct);
+
+    public async Task<bool> DeleteCustomerAsync(string accessToken, int id, CancellationToken ct = default)
+    {
+        var response = await SendRawAsync(HttpMethod.Delete, $"api/v1/finance/customers/{id}", accessToken, null, ct);
+        return response?.IsSuccessStatusCode == true;
+    }
+
+    public Task<PagedResult<ArInvoiceDto>?> GetArInvoicesAsync(string accessToken, ArInvoicePagedRequest request, CancellationToken ct = default)
+    {
+        var parameters = new List<string>();
+        AddPagedParameters(parameters, request);
+
+        if (!string.IsNullOrWhiteSpace(request.InvoiceNo))
+        {
+            parameters.Add($"invoiceNo={Uri.EscapeDataString(request.InvoiceNo.Trim())}");
+        }
+
+        if (request.CustomerId.HasValue)
+        {
+            parameters.Add($"customerId={request.CustomerId.Value}");
+        }
+
+        if (request.PeriodId.HasValue)
+        {
+            parameters.Add($"periodId={request.PeriodId.Value}");
+        }
+
+        if (request.InvoiceDateFrom.HasValue)
+        {
+            parameters.Add($"invoiceDateFrom={request.InvoiceDateFrom.Value:yyyy-MM-dd}");
+        }
+
+        if (request.InvoiceDateTo.HasValue)
+        {
+            parameters.Add($"invoiceDateTo={request.InvoiceDateTo.Value:yyyy-MM-dd}");
+        }
+
+        if (request.DueDateFrom.HasValue)
+        {
+            parameters.Add($"dueDateFrom={request.DueDateFrom.Value:yyyy-MM-dd}");
+        }
+
+        if (request.DueDateTo.HasValue)
+        {
+            parameters.Add($"dueDateTo={request.DueDateTo.Value:yyyy-MM-dd}");
+        }
+
+        if (request.Status.HasValue)
+        {
+            parameters.Add($"status={(int)request.Status.Value}");
+        }
+
+        if (request.OutstandingFrom.HasValue)
+        {
+            parameters.Add($"outstandingFrom={request.OutstandingFrom.Value.ToString(CultureInfo.InvariantCulture)}");
+        }
+
+        if (request.OutstandingTo.HasValue)
+        {
+            parameters.Add($"outstandingTo={request.OutstandingTo.Value.ToString(CultureInfo.InvariantCulture)}");
+        }
+
+        if (request.IsOverdue.HasValue)
+        {
+            parameters.Add($"isOverdue={(request.IsOverdue.Value ? "true" : "false")}");
+        }
+
+        var query = $"api/v1/finance/ar/invoices?{string.Join("&", parameters)}";
+        return SendAsync<PagedResult<ArInvoiceDto>>(HttpMethod.Get, query, accessToken, null, ct);
+    }
+
+    public Task<ArInvoiceDto?> GetArInvoiceByIdAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendAsync<ArInvoiceDto>(HttpMethod.Get, $"api/v1/finance/ar/invoices/{id}", accessToken, null, ct);
+
+    public Task<ArInvoiceDto?> CreateArInvoiceAsync(string accessToken, ArInvoiceDto request, CancellationToken ct = default)
+        => SendAsync<ArInvoiceDto>(HttpMethod.Post, "api/v1/finance/ar/invoices", accessToken, request, ct);
+
+    public Task<ArInvoiceDto?> UpdateArInvoiceAsync(string accessToken, int id, ArInvoiceDto request, CancellationToken ct = default)
+        => SendAsync<ArInvoiceDto>(HttpMethod.Put, $"api/v1/finance/ar/invoices/{id}", accessToken, request, ct);
+
+    public Task<ArInvoiceDto?> SendArInvoiceAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendAsync<ArInvoiceDto>(HttpMethod.Put, $"api/v1/finance/ar/invoices/{id}/send", accessToken, null, ct);
+
+    public async Task<bool> DeleteArInvoiceAsync(string accessToken, int id, CancellationToken ct = default)
+    {
+        var response = await SendRawAsync(HttpMethod.Delete, $"api/v1/finance/ar/invoices/{id}", accessToken, null, ct);
+        return response?.IsSuccessStatusCode == true;
+    }
+
+    public Task<PagedResult<ArReceiptDto>?> GetArReceiptsAsync(string accessToken, ArReceiptPagedRequest request, CancellationToken ct = default)
+    {
+        var parameters = new List<string>();
+        AddPagedParameters(parameters, request);
+
+        if (!string.IsNullOrWhiteSpace(request.ReceiptNo))
+        {
+            parameters.Add($"receiptNo={Uri.EscapeDataString(request.ReceiptNo.Trim())}");
+        }
+
+        if (request.CustomerId.HasValue)
+        {
+            parameters.Add($"customerId={request.CustomerId.Value}");
+        }
+
+        if (request.ReceiptDateFrom.HasValue)
+        {
+            parameters.Add($"receiptDateFrom={request.ReceiptDateFrom.Value:yyyy-MM-dd}");
+        }
+
+        if (request.ReceiptDateTo.HasValue)
+        {
+            parameters.Add($"receiptDateTo={request.ReceiptDateTo.Value:yyyy-MM-dd}");
+        }
+
+        if (request.PaymentMethod.HasValue)
+        {
+            parameters.Add($"paymentMethod={(int)request.PaymentMethod.Value}");
+        }
+
+        if (request.AmountFrom.HasValue)
+        {
+            parameters.Add($"amountFrom={request.AmountFrom.Value.ToString(CultureInfo.InvariantCulture)}");
+        }
+
+        if (request.AmountTo.HasValue)
+        {
+            parameters.Add($"amountTo={request.AmountTo.Value.ToString(CultureInfo.InvariantCulture)}");
+        }
+
+        var query = $"api/v1/finance/ar/receipts?{string.Join("&", parameters)}";
+        return SendAsync<PagedResult<ArReceiptDto>>(HttpMethod.Get, query, accessToken, null, ct);
+    }
+
+    public Task<ArReceiptDto?> GetArReceiptByIdAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendAsync<ArReceiptDto>(HttpMethod.Get, $"api/v1/finance/ar/receipts/{id}", accessToken, null, ct);
+
+    public Task<ArReceiptDto?> CreateArReceiptAsync(string accessToken, ArReceiptDto request, CancellationToken ct = default)
+        => SendAsync<ArReceiptDto>(HttpMethod.Post, "api/v1/finance/ar/receipts", accessToken, request, ct);
+
+    public Task<PagedResult<ArAgingRowDto>?> GetArAgingAsync(string accessToken, ArAgingPagedRequest request, CancellationToken ct = default)
+    {
+        var parameters = new List<string>();
+        AddPagedParameters(parameters, request);
+
+        if (request.CustomerId.HasValue)
+        {
+            parameters.Add($"customerId={request.CustomerId.Value}");
+        }
+
+        if (request.AsOfDate.HasValue)
+        {
+            parameters.Add($"asOfDate={request.AsOfDate.Value:yyyy-MM-dd}");
+        }
+
+        if (request.OutstandingMin.HasValue)
+        {
+            parameters.Add($"outstandingMin={request.OutstandingMin.Value.ToString(CultureInfo.InvariantCulture)}");
+        }
+
+        if (request.OutstandingMax.HasValue)
+        {
+            parameters.Add($"outstandingMax={request.OutstandingMax.Value.ToString(CultureInfo.InvariantCulture)}");
+        }
+
+        var query = $"api/v1/finance/ar/aging?{string.Join("&", parameters)}";
+        return SendAsync<PagedResult<ArAgingRowDto>>(HttpMethod.Get, query, accessToken, null, ct);
+    }
+    public Task<PagedResult<TrialBalanceRowDto>?> GetTrialBalanceAsync(string accessToken, TrialBalancePagedRequest request, CancellationToken ct = default)
+    {
+        var parameters = new List<string>();
+        AddPagedParameters(parameters, request);
+        AddReportParameters(parameters, request.PeriodId, request.DateFrom, request.DateTo, request.AccountId, request.CostCenterId, request.Type, null);
+
+        var query = $"api/v1/finance/reports/trial-balance?{string.Join("&", parameters)}";
+        return SendAsync<PagedResult<TrialBalanceRowDto>>(HttpMethod.Get, query, accessToken, null, ct);
+    }
+
+    public Task<PagedResult<FinancialStatementRowDto>?> GetBalanceSheetAsync(string accessToken, FinancialStatementPagedRequest request, CancellationToken ct = default)
+        => GetFinancialStatementAsync(accessToken, "balance-sheet", request, ct);
+
+    public Task<PagedResult<FinancialStatementRowDto>?> GetProfitLossAsync(string accessToken, FinancialStatementPagedRequest request, CancellationToken ct = default)
+        => GetFinancialStatementAsync(accessToken, "profit-loss", request, ct);
+
+    public Task<PagedResult<FinancialStatementRowDto>?> GetCashFlowAsync(string accessToken, FinancialStatementPagedRequest request, CancellationToken ct = default)
+        => GetFinancialStatementAsync(accessToken, "cash-flow", request, ct);
+
+    private Task<PagedResult<FinancialStatementRowDto>?> GetFinancialStatementAsync(
+        string accessToken,
+        string reportPath,
+        FinancialStatementPagedRequest request,
+        CancellationToken ct = default)
+    {
+        var parameters = new List<string>();
+        AddPagedParameters(parameters, request);
+        AddReportParameters(parameters, request.PeriodId, request.DateFrom, request.DateTo, null, request.CostCenterId, request.AccountType, request.Section);
+
+        var query = $"api/v1/finance/reports/{reportPath}?{string.Join("&", parameters)}";
+        return SendAsync<PagedResult<FinancialStatementRowDto>>(HttpMethod.Get, query, accessToken, null, ct);
+    }
+
     private static void AddPagedParameters(List<string> parameters, PagedRequest request)
     {
         parameters.Add($"page={request.Page}");
@@ -768,6 +1033,51 @@ public sealed class FinanceApiClient(HttpClient httpClient, ILogger<FinanceApiCl
         parameters.Add($"search={Uri.EscapeDataString(request.Search ?? string.Empty)}");
         parameters.Add($"sortBy={Uri.EscapeDataString(request.SortBy ?? string.Empty)}");
         parameters.Add($"sortDirection={Uri.EscapeDataString(request.SortDirection ?? string.Empty)}");
+    }
+    private static void AddReportParameters(
+        List<string> parameters,
+        int? periodId,
+        DateOnly? dateFrom,
+        DateOnly? dateTo,
+        int? accountId,
+        int? costCenterId,
+        FinanceAccountType? accountType,
+        string? section)
+    {
+        if (periodId.HasValue)
+        {
+            parameters.Add($"periodId={periodId.Value}");
+        }
+
+        if (dateFrom.HasValue)
+        {
+            parameters.Add($"dateFrom={dateFrom.Value:yyyy-MM-dd}");
+        }
+
+        if (dateTo.HasValue)
+        {
+            parameters.Add($"dateTo={dateTo.Value:yyyy-MM-dd}");
+        }
+
+        if (accountId.HasValue)
+        {
+            parameters.Add($"accountId={accountId.Value}");
+        }
+
+        if (costCenterId.HasValue)
+        {
+            parameters.Add($"costCenterId={costCenterId.Value}");
+        }
+
+        if (accountType.HasValue)
+        {
+            parameters.Add($"accountType={(int)accountType.Value}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(section))
+        {
+            parameters.Add($"section={Uri.EscapeDataString(section.Trim())}");
+        }
     }
 
     private async Task<T?> SendAsync<T>(HttpMethod method, string uri, string accessToken, object? body, CancellationToken ct)
@@ -816,5 +1126,8 @@ public sealed class FinanceApiClient(HttpClient httpClient, ILogger<FinanceApiCl
         }
     }
 }
+
+
+
 
 

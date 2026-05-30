@@ -1,0 +1,247 @@
+@model ERP.Web.ViewModels.Finance.FinanceTrialBalanceIndexViewModel
+@using ERP.Domain.Enums
+@using ERP.Web.ViewModels.Shared
+@using System.Globalization
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">@T["Trial Balance"]</h1>
+
+        @{
+            var selectedPeriodId = Model.PeriodIdFilter?.ToString(CultureInfo.InvariantCulture);
+            var selectedAccountId = Model.AccountIdFilter?.ToString(CultureInfo.InvariantCulture);
+            var selectedCostCenterId = Model.CostCenterIdFilter?.ToString(CultureInfo.InvariantCulture);
+            var selectedType = Model.TypeFilter.HasValue ? ((int)Model.TypeFilter.Value).ToString(CultureInfo.InvariantCulture) : null;
+
+            var periodOptions = Model.PeriodOptions
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = x.Id.ToString(CultureInfo.InvariantCulture),
+                    Label = x.Label
+                })
+                .ToList();
+
+            var accountOptions = Model.AccountOptions
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = x.Id.ToString(CultureInfo.InvariantCulture),
+                    Label = x.Label
+                })
+                .ToList();
+
+            var costCenterOptions = Model.CostCenterOptions
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = x.Id.ToString(CultureInfo.InvariantCulture),
+                    Label = x.Label
+                })
+                .ToList();
+
+            var typeOptions = Enum.GetValues<FinanceAccountType>()
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = ((int)x).ToString(CultureInfo.InvariantCulture),
+                    Label = T[x.ToString()]
+                })
+                .ToList();
+
+            var selectedPeriodLabel = Model.PeriodOptions.FirstOrDefault(x => x.Id == Model.PeriodIdFilter)?.Label ?? T["All"];
+            var selectedCostCenterLabel = Model.CostCenterOptions.FirstOrDefault(x => x.Id == Model.CostCenterIdFilter)?.Label ?? T["All"];
+            var dateRangeText = (Model.DateFromFilter.HasValue || Model.DateToFilter.HasValue)
+                ? $"{(Model.DateFromFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "-")} - {(Model.DateToFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "-")}"
+                : T["All"];
+
+            var rows = new List<PagedGridRowViewModel>();
+            foreach (var item in Model.Items.Items)
+            {
+                var totalDebitHtml = await Component.InvokeAsync("TextNumber", new
+                {
+                    text = item.TotalDebit.ToString(CultureInfo.InvariantCulture),
+                    decimals = 2,
+                    cssClass = "sinara-text-number-theme"
+                });
+                var totalCreditHtml = await Component.InvokeAsync("TextNumber", new
+                {
+                    text = item.TotalCredit.ToString(CultureInfo.InvariantCulture),
+                    decimals = 2,
+                    cssClass = "sinara-text-number-theme"
+                });
+                var endingDebitHtml = await Component.InvokeAsync("TextNumber", new
+                {
+                    text = item.EndingDebit.ToString(CultureInfo.InvariantCulture),
+                    decimals = 2,
+                    cssClass = "sinara-text-number-theme"
+                });
+                var endingCreditHtml = await Component.InvokeAsync("TextNumber", new
+                {
+                    text = item.EndingCredit.ToString(CultureInfo.InvariantCulture),
+                    decimals = 2,
+                    cssClass = "sinara-text-number-theme"
+                });
+
+                rows.Add(new PagedGridRowViewModel
+                {
+                    Cells =
+                    [
+                        new PagedGridCellViewModel { Text = selectedPeriodLabel },
+                        new PagedGridCellViewModel { Text = dateRangeText },
+                        new PagedGridCellViewModel { Text = selectedCostCenterLabel },
+                        new PagedGridCellViewModel { Text = item.AccountCode },
+                        new PagedGridCellViewModel { Text = item.AccountName },
+                        new PagedGridCellViewModel { Text = T[item.AccountType.ToString()] },
+                        new PagedGridCellViewModel { Html = totalDebitHtml, CellClass = "text-end" },
+                        new PagedGridCellViewModel { Html = totalCreditHtml, CellClass = "text-end" },
+                        new PagedGridCellViewModel { Html = endingDebitHtml, CellClass = "text-end" },
+                        new PagedGridCellViewModel { Html = endingCreditHtml, CellClass = "text-end" }
+                    ]
+                });
+            }
+
+            var exportUrl = Url.Action("ExportTrialBalance", "FinanceSetup", new
+            {
+                search = Model.Search,
+                sortBy = Model.SortBy,
+                sortDirection = Model.SortDirection,
+                periodId = Model.PeriodIdFilter,
+                dateFrom = Model.DateFromFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                dateTo = Model.DateToFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                accountId = Model.AccountIdFilter,
+                costCenterId = Model.CostCenterIdFilter,
+                type = Model.TypeFilter
+            });
+
+            var gridModel = new PagedGridViewModel
+            {
+                Columns =
+                [
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "period",
+                        Title = T["Period"],
+                        Sortable = false,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "periodId",
+                            Value = selectedPeriodId,
+                            EmptyOptionLabel = T["All"],
+                            Options = periodOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "daterange",
+                        Title = T["Date Range"],
+                        Sortable = false,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.DateRange,
+                            QueryKey = "dateFrom",
+                            QueryKeyTo = "dateTo",
+                            Value = Model.DateFromFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                            ValueTo = Model.DateToFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                            Placeholder = T["From"],
+                            PlaceholderTo = T["To"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "costcenter",
+                        Title = T["Cost Center"],
+                        Sortable = false,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "costCenterId",
+                            Value = selectedCostCenterId,
+                            EmptyOptionLabel = T["All"],
+                            Options = costCenterOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "accountcode",
+                        Title = T["Account Code"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "accountId",
+                            Value = selectedAccountId,
+                            EmptyOptionLabel = T["All"],
+                            Options = accountOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "accountname",
+                        Title = T["Account Name"],
+                        Sortable = true
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "type",
+                        Title = T["Type"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "type",
+                            Value = selectedType,
+                            EmptyOptionLabel = T["All"],
+                            Options = typeOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "totaldebit",
+                        Title = T["Total Debit"],
+                        Sortable = true,
+                        CellClass = "text-end"
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "totalcredit",
+                        Title = T["Total Credit"],
+                        Sortable = true,
+                        CellClass = "text-end"
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "endingdebit",
+                        Title = T["Ending Debit"],
+                        Sortable = true,
+                        CellClass = "text-end"
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "endingcredit",
+                        Title = T["Ending Credit"],
+                        Sortable = true,
+                        CellClass = "text-end"
+                    }
+                ],
+                Rows = rows,
+                EmptyMessage = T["msg.no_data"],
+                Page = Model.Items.Page,
+                TotalPages = Model.Items.TotalPages,
+                PageSize = Model.PageSize,
+                SortBy = Model.SortBy,
+                SortDirection = Model.SortDirection,
+                EnableSearch = true,
+                SearchValue = Model.Search,
+                SearchPlaceholder = T["Search"] + " " + T["Trial Balance"],
+                SearchButtonText = T["common.search"],
+                ExportUrl = exportUrl,
+                ExportButtonText = T["Export CSV"],
+                Actions = new PagedGridActionConfigViewModel
+                {
+                    ActionColumnTitle = T["Action"]
+                }
+            };
+        }
+
+        @await Component.InvokeAsync("PagedGrid", gridModel)
+    </div>
+</div>
+

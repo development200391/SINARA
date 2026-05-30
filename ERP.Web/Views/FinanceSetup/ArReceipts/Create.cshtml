@@ -1,0 +1,409 @@
+@model ERP.Web.ViewModels.Finance.FinanceArReceiptCreateViewModel
+@using ERP.Domain.Enums
+@using System.Globalization
+@using System.Text.Json
+
+@{
+    var initialApplications = Model.Applications.ToList();
+    if (initialApplications.Count == 0)
+    {
+        initialApplications.Add(new ERP.Web.ViewModels.Finance.FinanceArReceiptApplicationEditViewModel());
+    }
+
+    var invoiceOptionsJson = JsonSerializer.Serialize(Model.OutstandingInvoiceOptions.Select(x => new
+    {
+        customerId = x.CustomerId,
+        id = x.InvoiceId,
+        label = x.Label,
+        outstanding = x.OutstandingAmount
+    }));
+
+    var numberLocale = string.Equals(T.CurrentLanguage, "id", StringComparison.OrdinalIgnoreCase) ? "id-ID" : "en-US";
+}
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">@T["Create"] @T["AR Receipt"]</h1>
+
+        <form method="post" class="row g-3" id="ar-receipt-form">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="col-md-4">
+                <label asp-for="CustomerId" class="form-label">@T["Customer"]</label>
+                <select asp-for="CustomerId" class="form-select" id="ar-receipt-customer">
+                    @foreach (var option in Model.CustomerOptions)
+                    {
+                        <option value="@option.Id" selected="@(Model.CustomerId == option.Id)">@option.Label</option>
+                    }
+                </select>
+                <span asp-validation-for="CustomerId" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-3">
+                <label asp-for="ReceiptDate" class="form-label">@T["Receipt Date"]</label>
+                <input asp-for="ReceiptDate" class="form-control" type="date" />
+                <span asp-validation-for="ReceiptDate" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-3">
+                <label asp-for="PaymentMethod" class="form-label">@T["Payment Method"]</label>
+                <select asp-for="PaymentMethod" class="form-select">
+                    @foreach (var method in Enum.GetValues<FinanceArReceiptMethod>())
+                    {
+                        <option value="@method" selected="@(Model.PaymentMethod == method)">@T[method.ToString()]</option>
+                    }
+                </select>
+                <span asp-validation-for="PaymentMethod" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-2">
+                <label asp-for="Amount" class="form-label">@T["Amount"]</label>
+                <input asp-for="Amount" id="ar-receipt-amount" class="form-control text-end sinara-text-number sinara-text-number-theme" type="text" inputmode="decimal" value="@Model.Amount.ToString("N2", CultureInfo.GetCultureInfo(numberLocale))" />
+                <span asp-validation-for="Amount" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="BankAccountId" class="form-label">@T["Bank Account"]</label>
+                <select asp-for="BankAccountId" class="form-select">
+                    @foreach (var option in Model.BankAccountOptions)
+                    {
+                        <option value="@option.Id" selected="@(Model.BankAccountId == option.Id)">@option.Label</option>
+                    }
+                </select>
+                <span asp-validation-for="BankAccountId" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-3">
+                <label asp-for="ReferenceNo" class="form-label">@T["Reference No"]</label>
+                <input asp-for="ReferenceNo" class="form-control" />
+                <span asp-validation-for="ReferenceNo" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-3">
+                <label asp-for="Notes" class="form-label">@T["Notes"]</label>
+                <input asp-for="Notes" class="form-control" />
+                <span asp-validation-for="Notes" class="text-danger"></span>
+            </div>
+
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h2 class="h6 mb-0">@T["Applications"]</h2>
+                    <button type="button" id="add-ar-receipt-app" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1">
+                        <i class="bi bi-plus-circle" aria-hidden="true"></i>
+                        <span>@T["Add Line"]</span>
+                    </button>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle">
+                        <thead>
+                            <tr>
+                                <th style="width:48px;">#</th>
+                                <th>@T["Invoice"]</th>
+                                <th class="text-end" style="width:200px;">@T["Applied Amount"]</th>
+                                <th class="text-end" style="width:72px;">@T["Action"]</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ar-receipt-apps-body">
+                            @for (var index = 0; index < initialApplications.Count; index++)
+                            {
+                                <tr class="ar-receipt-app-row">
+                                    <td class="line-no">@(index + 1)</td>
+                                    <td>
+                                        <select class="form-select form-select-sm ar-receipt-invoice" data-field="InvoiceId" data-selected="@initialApplications[index].InvoiceId"></select>
+                                    </td>
+                                    <td>
+                                        <input type="text" inputmode="decimal" class="form-control form-control-sm text-end ar-receipt-applied sinara-text-number sinara-text-number-theme" data-field="AppliedAmount" value="@initialApplications[index].AppliedAmount.ToString("N2", CultureInfo.GetCultureInfo(numberLocale))" />
+                                    </td>
+                                    <td class="text-end">
+                                        <button type="button" class="btn btn-sm btn-outline-danger remove-ar-receipt-app" title="@T["Delete"]">
+                                            <i class="bi bi-trash" aria-hidden="true"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <th colspan="2" class="text-end">@T["Total Applied"]</th>
+                                <th id="ar-receipt-total-applied" class="text-end sinara-text-number sinara-text-number-theme">0.00</th>
+                                <th></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
+            <div class="col-12 d-flex gap-2">
+                <button type="submit" class="btn btn-primary">@T["common.save"]</button>
+                <a asp-action="ArReceipts" class="btn btn-outline-secondary">@T["common.cancel"]</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<template id="ar-receipt-app-template">
+    <tr class="ar-receipt-app-row">
+        <td class="line-no"></td>
+        <td>
+            <select class="form-select form-select-sm ar-receipt-invoice" data-field="InvoiceId"></select>
+        </td>
+        <td>
+            <input type="text" inputmode="decimal" class="form-control form-control-sm text-end ar-receipt-applied sinara-text-number sinara-text-number-theme" data-field="AppliedAmount" value="0" />
+        </td>
+        <td class="text-end">
+            <button type="button" class="btn btn-sm btn-outline-danger remove-ar-receipt-app" title="@T["Delete"]">
+                <i class="bi bi-trash" aria-hidden="true"></i>
+            </button>
+        </td>
+    </tr>
+</template>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (() => {
+            const customerSelect = document.getElementById('ar-receipt-customer');
+            const amountInput = document.getElementById('ar-receipt-amount');
+            const body = document.getElementById('ar-receipt-apps-body');
+            const addButton = document.getElementById('add-ar-receipt-app');
+            const template = document.getElementById('ar-receipt-app-template');
+            const totalAppliedEl = document.getElementById('ar-receipt-total-applied');
+            const form = document.getElementById('ar-receipt-form');
+            const invoiceOptions = @Html.Raw(invoiceOptionsJson);
+            const numberLocale = '@numberLocale';
+
+            if (!customerSelect || !body || !template) {
+                return;
+            }
+
+            const parseFreeNumber = (value) => {
+                const raw = String(value ?? '').trim();
+                if (!raw) return 0;
+
+                const compact = raw.replace(/\s+/g, '');
+                const lastDot = compact.lastIndexOf('.');
+                const lastComma = compact.lastIndexOf(',');
+                let normalized = compact;
+
+                if (lastDot >= 0 && lastComma >= 0) {
+                    normalized = lastDot > lastComma
+                        ? compact.replace(/,/g, '')
+                        : compact.replace(/\./g, '').replace(',', '.');
+                } else if (lastComma >= 0) {
+                    const commaCount = (compact.match(/,/g) || []).length;
+                    if (commaCount > 1) {
+                        normalized = compact.replace(/,/g, '');
+                    } else {
+                        const digitsAfter = compact.length - lastComma - 1;
+                        normalized = digitsAfter === 3
+                            ? compact.replace(/,/g, '')
+                            : compact.replace(',', '.');
+                    }
+                } else {
+                    normalized = compact.replace(/,/g, '');
+                }
+
+                normalized = normalized.replace(/[^0-9.-]/g, '');
+                const parsed = Number.parseFloat(normalized);
+                return Number.isFinite(parsed) ? parsed : 0;
+            };
+
+            const formatNumber = (value) => value.toLocaleString(numberLocale, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+            const selectAllInputValue = (input) => {
+                if (!input || input.readOnly || input.disabled) return;
+                window.requestAnimationFrame(() => input.select());
+            };
+
+            const populateInvoiceSelect = (select, selectedId) => {
+                const customerId = Number.parseInt(customerSelect.value || '0', 10);
+                const options = invoiceOptions.filter((item) => item.customerId === customerId);
+
+                const currentValue = Number.parseInt(String(selectedId || ''), 10);
+                const hasCurrentValue = Number.isFinite(currentValue) && options.some((item) => item.id === currentValue);
+
+                select.innerHTML = '';
+
+                const emptyOption = document.createElement('option');
+                emptyOption.value = '';
+                emptyOption.textContent = '@T["Select Invoice"]';
+                select.appendChild(emptyOption);
+
+                options.forEach((item) => {
+                    const option = document.createElement('option');
+                    option.value = String(item.id);
+                    option.textContent = item.label;
+                    if (hasCurrentValue && item.id === currentValue) {
+                        option.selected = true;
+                    }
+                    select.appendChild(option);
+                });
+
+                if (!hasCurrentValue) {
+                    select.value = '';
+                }
+            };
+
+            const recalc = () => {
+                let totalApplied = 0;
+                body.querySelectorAll('.ar-receipt-applied').forEach((input) => {
+                    totalApplied += parseFreeNumber(input.value);
+                });
+
+                if (totalAppliedEl) {
+                    totalAppliedEl.textContent = formatNumber(totalApplied);
+                }
+
+                if (amountInput instanceof HTMLInputElement && parseFreeNumber(amountInput.value) <= 0 && totalApplied > 0) {
+                    amountInput.value = formatNumber(totalApplied);
+                }
+            };
+
+            const renumber = () => {
+                const rows = body.querySelectorAll('.ar-receipt-app-row');
+                rows.forEach((row, index) => {
+                    const lineNo = row.querySelector('.line-no');
+                    if (lineNo) {
+                        lineNo.textContent = String(index + 1);
+                    }
+
+                    row.querySelectorAll('[data-field]').forEach((control) => {
+                        const field = control.getAttribute('data-field');
+                        if (!field) return;
+                        control.setAttribute('name', `Applications[${index}].${field}`);
+                        control.setAttribute('id', `Applications_${index}__${field}`);
+                    });
+                });
+
+                recalc();
+            };
+
+            const refreshInvoiceSelects = () => {
+                body.querySelectorAll('.ar-receipt-invoice').forEach((select) => {
+                    const selected = select.getAttribute('data-selected') || select.value;
+                    populateInvoiceSelect(select, selected);
+                    select.setAttribute('data-selected', select.value);
+                });
+            };
+
+            const formatNumericInput = (input) => {
+                if (!(input instanceof HTMLInputElement)) return;
+                input.value = formatNumber(parseFreeNumber(input.value));
+            };
+
+            addButton?.addEventListener('click', () => {
+                const row = template.content.firstElementChild?.cloneNode(true);
+                if (!row) return;
+                body.appendChild(row);
+
+                const select = row.querySelector('.ar-receipt-invoice');
+                if (select) {
+                    populateInvoiceSelect(select, null);
+                }
+
+                renumber();
+            });
+
+            body.addEventListener('click', (event) => {
+                const target = event.target;
+                if (!(target instanceof Element)) return;
+
+                const removeButton = target.closest('.remove-ar-receipt-app');
+                if (!removeButton) return;
+
+                const rows = body.querySelectorAll('.ar-receipt-app-row');
+                if (rows.length <= 1) {
+                    return;
+                }
+
+                const row = removeButton.closest('.ar-receipt-app-row');
+                row?.remove();
+                renumber();
+            });
+
+            body.addEventListener('change', (event) => {
+                const target = event.target;
+                if (!(target instanceof HTMLSelectElement)) return;
+
+                if (target.classList.contains('ar-receipt-invoice')) {
+                    target.setAttribute('data-selected', target.value);
+                }
+            });
+
+            body.addEventListener('input', (event) => {
+                const target = event.target;
+                if (!(target instanceof HTMLInputElement)) return;
+
+                if (target.classList.contains('ar-receipt-applied')) {
+                    recalc();
+                }
+            });
+
+            body.addEventListener('focusin', (event) => {
+                const target = event.target;
+                if (!(target instanceof HTMLInputElement)) return;
+
+                if (target.classList.contains('ar-receipt-applied')) {
+                    selectAllInputValue(target);
+                }
+            });
+
+            body.addEventListener('click', (event) => {
+                const target = event.target;
+                if (!(target instanceof HTMLInputElement)) return;
+
+                if (target.classList.contains('ar-receipt-applied')) {
+                    selectAllInputValue(target);
+                }
+            });
+
+            body.addEventListener('focusout', (event) => {
+                const target = event.target;
+                if (!(target instanceof HTMLInputElement)) return;
+
+                if (target.classList.contains('ar-receipt-applied')) {
+                    formatNumericInput(target);
+                    recalc();
+                }
+            });
+
+            if (amountInput instanceof HTMLInputElement) {
+                amountInput.addEventListener('focus', () => selectAllInputValue(amountInput));
+                amountInput.addEventListener('click', () => selectAllInputValue(amountInput));
+                amountInput.addEventListener('focusout', () => formatNumericInput(amountInput));
+            }
+
+            customerSelect.addEventListener('change', () => {
+                refreshInvoiceSelects();
+                renumber();
+            });
+
+            if (form instanceof HTMLFormElement) {
+                form.addEventListener('submit', () => {
+                    if (amountInput instanceof HTMLInputElement) {
+                        amountInput.value = parseFreeNumber(amountInput.value).toFixed(4);
+                    }
+
+                    body.querySelectorAll('.ar-receipt-applied').forEach((input) => {
+                        if (input instanceof HTMLInputElement) {
+                            input.value = parseFreeNumber(input.value).toFixed(4);
+                        }
+                    });
+                });
+            }
+
+            refreshInvoiceSelects();
+            renumber();
+
+            if (amountInput instanceof HTMLInputElement) {
+                formatNumericInput(amountInput);
+            }
+
+            body.querySelectorAll('.ar-receipt-applied').forEach((input) => {
+                formatNumericInput(input);
+            });
+        })();
+    </script>
+}

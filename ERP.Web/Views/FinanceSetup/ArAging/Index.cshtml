@@ -1,0 +1,201 @@
+@model ERP.Web.ViewModels.Finance.FinanceArAgingIndexViewModel
+@using ERP.Web.ViewModels.Shared
+@using System.Globalization
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">@T["AR Aging"]</h1>
+
+        @{
+            var selectedCustomerId = Model.CustomerIdFilter?.ToString(CultureInfo.InvariantCulture);
+
+            var customerOptions = Model.CustomerOptions
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = x.Id.ToString(CultureInfo.InvariantCulture),
+                    Label = x.Label
+                })
+                .ToList();
+
+            var rows = new List<PagedGridRowViewModel>();
+            foreach (var item in Model.Items.Items)
+            {
+                var currentHtml = await Component.InvokeAsync("TextNumber", new
+                {
+                    text = item.CurrentAmount.ToString(CultureInfo.InvariantCulture),
+                    decimals = 2,
+                    cssClass = "sinara-text-number-theme"
+                });
+                var bucket1To30Html = await Component.InvokeAsync("TextNumber", new
+                {
+                    text = item.Bucket1To30.ToString(CultureInfo.InvariantCulture),
+                    decimals = 2,
+                    cssClass = "sinara-text-number-theme"
+                });
+                var bucket31To60Html = await Component.InvokeAsync("TextNumber", new
+                {
+                    text = item.Bucket31To60.ToString(CultureInfo.InvariantCulture),
+                    decimals = 2,
+                    cssClass = "sinara-text-number-theme"
+                });
+                var bucket61To90Html = await Component.InvokeAsync("TextNumber", new
+                {
+                    text = item.Bucket61To90.ToString(CultureInfo.InvariantCulture),
+                    decimals = 2,
+                    cssClass = "sinara-text-number-theme"
+                });
+                var bucketOver90Html = await Component.InvokeAsync("TextNumber", new
+                {
+                    text = item.BucketOver90.ToString(CultureInfo.InvariantCulture),
+                    decimals = 2,
+                    cssClass = "sinara-text-number-theme"
+                });
+                var totalOutstandingHtml = await Component.InvokeAsync("TextNumber", new
+                {
+                    text = item.TotalOutstanding.ToString(CultureInfo.InvariantCulture),
+                    decimals = 2,
+                    cssClass = "sinara-text-number-theme"
+                });
+
+                rows.Add(new PagedGridRowViewModel
+                {
+                    Cells =
+                    [
+                        new PagedGridCellViewModel { Text = Model.AsOfDateFilter.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) },
+                        new PagedGridCellViewModel { Text = item.CustomerCode },
+                        new PagedGridCellViewModel { Text = item.CustomerName },
+                        new PagedGridCellViewModel { Html = currentHtml, CellClass = "text-end" },
+                        new PagedGridCellViewModel { Html = bucket1To30Html, CellClass = "text-end" },
+                        new PagedGridCellViewModel { Html = bucket31To60Html, CellClass = "text-end" },
+                        new PagedGridCellViewModel { Html = bucket61To90Html, CellClass = "text-end" },
+                        new PagedGridCellViewModel { Html = bucketOver90Html, CellClass = "text-end" },
+                        new PagedGridCellViewModel { Html = totalOutstandingHtml, CellClass = "text-end" },
+                        new PagedGridCellViewModel { Text = item.OldestInvoiceDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "-" },
+                        new PagedGridCellViewModel { Text = item.LatestDueDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "-" }
+                    ]
+                });
+            }
+
+            var gridModel = new PagedGridViewModel
+            {
+                Columns =
+                [
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "asofdate",
+                        Title = T["As Of Date"],
+                        Sortable = false,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.DatePicker,
+                            QueryKey = "asOfDate",
+                            Value = Model.AsOfDateFilter.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                            Placeholder = T["As Of Date"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "customercode",
+                        Title = T["Customer Code"],
+                        Sortable = true
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "customername",
+                        Title = T["Customer"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "customerId",
+                            Value = selectedCustomerId,
+                            EmptyOptionLabel = T["All"],
+                            Options = customerOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "currentamount",
+                        Title = T["Current"],
+                        Sortable = true,
+                        CellClass = "text-end"
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "bucket1to30",
+                        Title = T["1-30 Days"],
+                        Sortable = true,
+                        CellClass = "text-end"
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "bucket31to60",
+                        Title = T["31-60 Days"],
+                        Sortable = true,
+                        CellClass = "text-end"
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "bucket61to90",
+                        Title = T["61-90 Days"],
+                        Sortable = true,
+                        CellClass = "text-end"
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "bucketover90",
+                        Title = T[">90 Days"],
+                        Sortable = true,
+                        CellClass = "text-end"
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "totaloutstanding",
+                        Title = T["Total Outstanding"],
+                        Sortable = true,
+                        CellClass = "text-end",
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.NumberRange,
+                            QueryKey = "outstandingMin",
+                            QueryKeyTo = "outstandingMax",
+                            Value = Model.OutstandingMinFilter?.ToString(CultureInfo.InvariantCulture),
+                            ValueTo = Model.OutstandingMaxFilter?.ToString(CultureInfo.InvariantCulture),
+                            Placeholder = T["From"],
+                            PlaceholderTo = T["To"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "oldest",
+                        Title = T["Oldest Invoice Date"],
+                        Sortable = false
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "latestdue",
+                        Title = T["Latest Due Date"],
+                        Sortable = false
+                    }
+                ],
+                Rows = rows,
+                EmptyMessage = T["msg.no_data"],
+                Page = Model.Items.Page,
+                TotalPages = Model.Items.TotalPages,
+                PageSize = Model.PageSize,
+                SortBy = Model.SortBy,
+                SortDirection = Model.SortDirection,
+                EnableSearch = true,
+                SearchValue = Model.Search,
+                SearchPlaceholder = T["Search"] + " " + T["AR Aging"],
+                SearchButtonText = T["common.search"],
+                Actions = new PagedGridActionConfigViewModel
+                {
+                    ActionColumnTitle = T["Action"]
+                }
+            };
+        }
+
+        @await Component.InvokeAsync("PagedGrid", gridModel)
+    </div>
+</div>

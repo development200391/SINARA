@@ -1,4 +1,4 @@
-using ERP.Domain.Enums;
+﻿using ERP.Domain.Enums;
 
 namespace ERP.Domain.Entities.Finance;
 
@@ -14,4 +14,5 @@ public sealed class FinPeriod : BaseEntity
     public FinFiscalYear FiscalYear { get; set; } = null!;
     public ICollection<FinJournalEntry> JournalEntries { get; set; } = new List<FinJournalEntry>();
     public ICollection<FinApInvoice> ApInvoices { get; set; } = new List<FinApInvoice>();
+    public ICollection<FinArInvoice> ArInvoices { get; set; } = new List<FinArInvoice>();
 }
