@@ -735,3 +735,51 @@ public sealed class BudgetVsActualPagedRequest : PagedRequest
     public decimal? VarianceFrom { get; set; }
     public decimal? VarianceTo { get; set; }
 }
+public sealed class PeriodClosingRowDto
+{
+    public int PeriodId { get; set; }
+    public int FiscalYearId { get; set; }
+    public string FiscalYearName { get; set; } = string.Empty;
+    public int PeriodNumber { get; set; }
+    public string PeriodName { get; set; } = string.Empty;
+    public DateOnly StartDate { get; set; }
+    public DateOnly EndDate { get; set; }
+    public FinancePeriodStatus Status { get; set; }
+    public int DraftJournalCount { get; set; }
+    public int PostedJournalCount { get; set; }
+    public int PendingApInvoiceCount { get; set; }
+    public int PendingArInvoiceCount { get; set; }
+    public decimal NetIncomeLossAmount { get; set; }
+    public bool CanClose { get; set; }
+}
+
+public sealed class PeriodClosingPagedRequest : PagedRequest
+{
+    public int? FiscalYearId { get; set; }
+    public FinancePeriodStatus? Status { get; set; }
+    public int? DraftJournalFrom { get; set; }
+    public int? DraftJournalTo { get; set; }
+    public int? PendingApFrom { get; set; }
+    public int? PendingApTo { get; set; }
+    public int? PendingArFrom { get; set; }
+    public int? PendingArTo { get; set; }
+    public decimal? NetIncomeLossFrom { get; set; }
+    public decimal? NetIncomeLossTo { get; set; }
+}
+
+public sealed class SmokeTestRowDto
+{
+    public int SortOrder { get; set; }
+    public string Category { get; set; } = string.Empty;
+    public string CheckItem { get; set; } = string.Empty;
+    public decimal ExpectedValue { get; set; }
+    public decimal ActualValue { get; set; }
+    public bool Passed { get; set; }
+    public string Notes { get; set; } = string.Empty;
+}
+
+public sealed class SmokeTestPagedRequest : PagedRequest
+{
+    public string? Category { get; set; }
+    public bool? Passed { get; set; }
+}

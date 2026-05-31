@@ -1,0 +1,142 @@
+@model ERP.Web.ViewModels.Finance.FinanceSmokeTestsIndexViewModel
+@using ERP.Web.ViewModels.Shared
+@using Microsoft.AspNetCore.Html
+@using System.Globalization
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">@T["Smoke Tests"]</h1>
+
+        @{
+            var selectedCategory = Model.CategoryFilter;
+            var selectedPassed = Model.PassedFilter.HasValue ? (Model.PassedFilter.Value ? "true" : "false") : null;
+
+            var categoryOptions = Model.CategoryOptions
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = x,
+                    Label = T[x]
+                })
+                .ToList();
+
+            var passedOptions = new List<PagedGridFilterOptionViewModel>
+            {
+                new() { Value = "true", Label = T["Passed"] },
+                new() { Value = "false", Label = T["Failed"] }
+            };
+
+            var rows = new List<PagedGridRowViewModel>();
+            foreach (var item in Model.Items.Items)
+            {
+                var expectedHtml = await Component.InvokeAsync("TextNumber", new
+                {
+                    text = item.ExpectedValue.ToString(CultureInfo.InvariantCulture),
+                    decimals = 0,
+                    cssClass = "sinara-text-number-theme"
+                });
+
+                var actualHtml = await Component.InvokeAsync("TextNumber", new
+                {
+                    text = item.ActualValue.ToString(CultureInfo.InvariantCulture),
+                    decimals = 4,
+                    cssClass = "sinara-text-number-theme"
+                });
+
+                var passedBadge = item.Passed
+                    ? $"<span class=\"badge text-bg-success\">{T["Passed"]}</span>"
+                    : $"<span class=\"badge text-bg-danger\">{T["Failed"]}</span>";
+
+                rows.Add(new PagedGridRowViewModel
+                {
+                    Cells =
+                    [
+                        new PagedGridCellViewModel { Text = T[item.Category] },
+                        new PagedGridCellViewModel { Text = T[item.CheckItem] },
+                        new PagedGridCellViewModel { Html = expectedHtml, CellClass = "text-end" },
+                        new PagedGridCellViewModel { Html = actualHtml, CellClass = "text-end" },
+                        new PagedGridCellViewModel { Html = new HtmlString(passedBadge) },
+                        new PagedGridCellViewModel { Text = T[item.Notes] }
+                    ]
+                });
+            }
+
+            var gridModel = new PagedGridViewModel
+            {
+                Columns =
+                [
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "category",
+                        Title = T["Category"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "category",
+                            Value = selectedCategory,
+                            EmptyOptionLabel = T["All"],
+                            Options = categoryOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "checkitem",
+                        Title = T["Check Item"],
+                        Sortable = true
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "expectedvalue",
+                        Title = T["Expected"],
+                        Sortable = true,
+                        CellClass = "text-end"
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "actualvalue",
+                        Title = T["Actual"],
+                        Sortable = true,
+                        CellClass = "text-end"
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "passed",
+                        Title = T["Status"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "passed",
+                            Value = selectedPassed,
+                            EmptyOptionLabel = T["All"],
+                            Options = passedOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "notes",
+                        Title = T["Notes"],
+                        Sortable = false
+                    }
+                ],
+                Rows = rows,
+                EmptyMessage = T["msg.no_data"],
+                Page = Model.Items.Page,
+                TotalPages = Model.Items.TotalPages,
+                PageSize = Model.PageSize,
+                SortBy = Model.SortBy,
+                SortDirection = Model.SortDirection,
+                EnableSearch = true,
+                SearchValue = Model.Search,
+                SearchPlaceholder = T["Search"] + " " + T["Smoke Tests"],
+                SearchButtonText = T["common.search"],
+                Actions = new PagedGridActionConfigViewModel
+                {
+                    ActionColumnTitle = T["Action"]
+                }
+            };
+        }
+
+        @await Component.InvokeAsync("PagedGrid", gridModel)
+    </div>
+</div>

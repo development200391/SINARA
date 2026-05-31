@@ -833,6 +833,84 @@ public sealed class FinanceApiClient(HttpClient httpClient, ILogger<FinanceApiCl
         return response?.IsSuccessStatusCode == true;
     }
 
+    public Task<PagedResult<PeriodClosingRowDto>?> GetPeriodClosingAsync(string accessToken, PeriodClosingPagedRequest request, CancellationToken ct = default)
+    {
+        var parameters = new List<string>();
+        AddPagedParameters(parameters, request);
+
+        if (request.FiscalYearId.HasValue)
+        {
+            parameters.Add($"fiscalYearId={request.FiscalYearId.Value}");
+        }
+
+        if (request.Status.HasValue)
+        {
+            parameters.Add($"status={(int)request.Status.Value}");
+        }
+
+        if (request.DraftJournalFrom.HasValue)
+        {
+            parameters.Add($"draftJournalFrom={request.DraftJournalFrom.Value}");
+        }
+
+        if (request.DraftJournalTo.HasValue)
+        {
+            parameters.Add($"draftJournalTo={request.DraftJournalTo.Value}");
+        }
+
+        if (request.PendingApFrom.HasValue)
+        {
+            parameters.Add($"pendingApFrom={request.PendingApFrom.Value}");
+        }
+
+        if (request.PendingApTo.HasValue)
+        {
+            parameters.Add($"pendingApTo={request.PendingApTo.Value}");
+        }
+
+        if (request.PendingArFrom.HasValue)
+        {
+            parameters.Add($"pendingArFrom={request.PendingArFrom.Value}");
+        }
+
+        if (request.PendingArTo.HasValue)
+        {
+            parameters.Add($"pendingArTo={request.PendingArTo.Value}");
+        }
+
+        if (request.NetIncomeLossFrom.HasValue)
+        {
+            parameters.Add($"netIncomeLossFrom={request.NetIncomeLossFrom.Value.ToString(CultureInfo.InvariantCulture)}");
+        }
+
+        if (request.NetIncomeLossTo.HasValue)
+        {
+            parameters.Add($"netIncomeLossTo={request.NetIncomeLossTo.Value.ToString(CultureInfo.InvariantCulture)}");
+        }
+
+        var query = $"api/v1/finance/finalization/period-closing?{string.Join("&", parameters)}";
+        return SendAsync<PagedResult<PeriodClosingRowDto>>(HttpMethod.Get, query, accessToken, null, ct);
+    }
+
+    public Task<PagedResult<SmokeTestRowDto>?> GetSmokeTestsAsync(string accessToken, SmokeTestPagedRequest request, CancellationToken ct = default)
+    {
+        var parameters = new List<string>();
+        AddPagedParameters(parameters, request);
+
+        if (!string.IsNullOrWhiteSpace(request.Category))
+        {
+            parameters.Add($"category={Uri.EscapeDataString(request.Category.Trim())}");
+        }
+
+        if (request.Passed.HasValue)
+        {
+            parameters.Add($"passed={(request.Passed.Value ? "true" : "false")}");
+        }
+
+        var query = $"api/v1/finance/finalization/smoke-tests?{string.Join("&", parameters)}";
+        return SendAsync<PagedResult<SmokeTestRowDto>>(HttpMethod.Get, query, accessToken, null, ct);
+    }
+
     public Task<PagedResult<BudgetDto>?> GetBudgetsAsync(string accessToken, BudgetPagedRequest request, CancellationToken ct = default)
     {
         var parameters = new List<string>();

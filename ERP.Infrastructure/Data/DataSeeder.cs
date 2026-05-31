@@ -439,6 +439,10 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         await EnsureMenuAsync(finModule.Id, finReports.Id, "Balance Sheet", "/finance/reports/balance-sheet", "bi-border-all", 2, now, ct);
         await EnsureMenuAsync(finModule.Id, finReports.Id, "Profit & Loss", "/finance/reports/profit-loss", "bi-graph-up-arrow", 3, now, ct);
         await EnsureMenuAsync(finModule.Id, finReports.Id, "Cash Flow", "/finance/reports/cash-flow", "bi-water", 4, now, ct);
+
+        var finFinalization = await EnsureMenuAsync(finModule.Id, null, "Finance Finalization", null, "bi-check2-square", 8, now, ct);
+        await EnsureMenuAsync(finModule.Id, finFinalization.Id, "Period Closing", "/finance/finalization/period-closing", "bi-calendar-check", 1, now, ct);
+        await EnsureMenuAsync(finModule.Id, finFinalization.Id, "Smoke Tests", "/finance/finalization/smoke-tests", "bi-clipboard-check", 2, now, ct);
     }
 
     private async Task SeedSuperAdminPermissionsAsync(CancellationToken ct)

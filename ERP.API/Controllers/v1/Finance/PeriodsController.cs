@@ -121,6 +121,15 @@ public sealed class PeriodsController(AppDbContext dbContext) : FinanceControlle
             return BadRequest(new { message = "Period is locked and cannot be closed." });
         }
 
+        var draftJournalCount = await dbContext.FinJournalEntries
+            .AsNoTracking()
+            .CountAsync(x => x.PeriodId == id && x.Status == FinanceJournalStatus.Draft, ct);
+
+        if (draftJournalCount > 0)
+        {
+            return BadRequest(new { message = "Period still has draft journals. Post or delete them before closing." });
+        }
+
         entity.Status = FinancePeriodStatus.Closed;
         entity.UpdatedBy = "system";
         entity.UpdatedAt = DateTimeOffset.UtcNow;

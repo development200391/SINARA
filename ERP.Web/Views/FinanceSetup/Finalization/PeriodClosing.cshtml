@@ -1,0 +1,257 @@
+@model ERP.Web.ViewModels.Finance.FinancePeriodClosingIndexViewModel
+@using ERP.Domain.Enums
+@using ERP.Web.ViewModels.Shared
+@using Microsoft.AspNetCore.Html
+@using System.Globalization
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">@T["Period Closing"]</h1>
+
+        @{
+            var selectedFiscalYearId = Model.FiscalYearIdFilter?.ToString(CultureInfo.InvariantCulture);
+            var selectedStatus = Model.StatusFilter.HasValue ? ((int)Model.StatusFilter.Value).ToString(CultureInfo.InvariantCulture) : null;
+
+            var fiscalYearOptions = Model.FiscalYearOptions
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = x.Id.ToString(CultureInfo.InvariantCulture),
+                    Label = x.Label
+                })
+                .ToList();
+
+            var statusOptions = Enum.GetValues<FinancePeriodStatus>()
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = ((int)x).ToString(CultureInfo.InvariantCulture),
+                    Label = T[x.ToString()]
+                })
+                .ToList();
+
+            string BuildStatusBadge(FinancePeriodStatus status)
+            {
+                return status switch
+                {
+                    FinancePeriodStatus.Open => $"<span class=\"badge text-bg-success\">{T["Open"]}</span>",
+                    FinancePeriodStatus.Closed => $"<span class=\"badge text-bg-secondary\">{T["Closed"]}</span>",
+                    _ => $"<span class=\"badge text-bg-danger\">{T["Locked"]}</span>"
+                };
+            }
+
+            var rows = new List<PagedGridRowViewModel>();
+            foreach (var item in Model.Items.Items)
+            {
+                var draftCountHtml = await Component.InvokeAsync("TextNumber", new
+                {
+                    text = item.DraftJournalCount.ToString(CultureInfo.InvariantCulture),
+                    decimals = 0,
+                    cssClass = "sinara-text-number-theme"
+                });
+
+                var postedCountHtml = await Component.InvokeAsync("TextNumber", new
+                {
+                    text = item.PostedJournalCount.ToString(CultureInfo.InvariantCulture),
+                    decimals = 0,
+                    cssClass = "sinara-text-number-theme"
+                });
+
+                var pendingApHtml = await Component.InvokeAsync("TextNumber", new
+                {
+                    text = item.PendingApInvoiceCount.ToString(CultureInfo.InvariantCulture),
+                    decimals = 0,
+                    cssClass = "sinara-text-number-theme"
+                });
+
+                var pendingArHtml = await Component.InvokeAsync("TextNumber", new
+                {
+                    text = item.PendingArInvoiceCount.ToString(CultureInfo.InvariantCulture),
+                    decimals = 0,
+                    cssClass = "sinara-text-number-theme"
+                });
+
+                var netIncomeLossHtml = await Component.InvokeAsync("TextNumber", new
+                {
+                    text = item.NetIncomeLossAmount.ToString(CultureInfo.InvariantCulture),
+                    decimals = 2,
+                    cssClass = "sinara-text-number-theme"
+                });
+
+                rows.Add(new PagedGridRowViewModel
+                {
+                    Cells =
+                    [
+                        new PagedGridCellViewModel { Text = item.FiscalYearName },
+                        new PagedGridCellViewModel { Text = item.PeriodNumber.ToString(CultureInfo.InvariantCulture) },
+                        new PagedGridCellViewModel { Text = item.PeriodName },
+                        new PagedGridCellViewModel { Text = item.StartDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) },
+                        new PagedGridCellViewModel { Text = item.EndDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) },
+                        new PagedGridCellViewModel { Html = new HtmlString(BuildStatusBadge(item.Status)) },
+                        new PagedGridCellViewModel { Html = draftCountHtml, CellClass = "text-end" },
+                        new PagedGridCellViewModel { Html = postedCountHtml, CellClass = "text-end" },
+                        new PagedGridCellViewModel { Html = pendingApHtml, CellClass = "text-end" },
+                        new PagedGridCellViewModel { Html = pendingArHtml, CellClass = "text-end" },
+                        new PagedGridCellViewModel { Html = netIncomeLossHtml, CellClass = "text-end" }
+                    ],
+                    Actions = new PagedGridRowActionViewModel
+                    {
+                        ApproveUrl = item.CanClose ? Url.Action("ClosePeriod", "FinanceSetup", new { id = item.PeriodId }) : null,
+                        ApproveConfirmMessage = T["Close this period?"]
+                    }
+                });
+            }
+
+            var gridModel = new PagedGridViewModel
+            {
+                Columns =
+                [
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "fiscalyearname",
+                        Title = T["Fiscal Year"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "fiscalYearId",
+                            Value = selectedFiscalYearId,
+                            EmptyOptionLabel = T["All"],
+                            Options = fiscalYearOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "periodnumber",
+                        Title = T["Period"],
+                        Sortable = true
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "periodname",
+                        Title = T["Name"],
+                        Sortable = true
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "startdate",
+                        Title = T["Start Date"],
+                        Sortable = true
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "enddate",
+                        Title = T["End Date"],
+                        Sortable = true
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "status",
+                        Title = T["Status"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "status",
+                            Value = selectedStatus,
+                            EmptyOptionLabel = T["All"],
+                            Options = statusOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "draftjournalcount",
+                        Title = T["Draft Journals"],
+                        Sortable = true,
+                        CellClass = "text-end",
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.NumberRange,
+                            QueryKey = "draftJournalFrom",
+                            QueryKeyTo = "draftJournalTo",
+                            Value = Model.DraftJournalFromFilter?.ToString(CultureInfo.InvariantCulture),
+                            ValueTo = Model.DraftJournalToFilter?.ToString(CultureInfo.InvariantCulture),
+                            Placeholder = T["From"],
+                            PlaceholderTo = T["To"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "postedjournalcount",
+                        Title = T["Posted Journals"],
+                        Sortable = true,
+                        CellClass = "text-end"
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "pendingapinvoicecount",
+                        Title = T["Pending AP Invoices"],
+                        Sortable = true,
+                        CellClass = "text-end",
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.NumberRange,
+                            QueryKey = "pendingApFrom",
+                            QueryKeyTo = "pendingApTo",
+                            Value = Model.PendingApFromFilter?.ToString(CultureInfo.InvariantCulture),
+                            ValueTo = Model.PendingApToFilter?.ToString(CultureInfo.InvariantCulture),
+                            Placeholder = T["From"],
+                            PlaceholderTo = T["To"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "pendingarinvoicecount",
+                        Title = T["Pending AR Invoices"],
+                        Sortable = true,
+                        CellClass = "text-end",
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.NumberRange,
+                            QueryKey = "pendingArFrom",
+                            QueryKeyTo = "pendingArTo",
+                            Value = Model.PendingArFromFilter?.ToString(CultureInfo.InvariantCulture),
+                            ValueTo = Model.PendingArToFilter?.ToString(CultureInfo.InvariantCulture),
+                            Placeholder = T["From"],
+                            PlaceholderTo = T["To"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "netincomelossamount",
+                        Title = T["Net Income/Loss"],
+                        Sortable = true,
+                        CellClass = "text-end",
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.NumberRange,
+                            QueryKey = "netIncomeLossFrom",
+                            QueryKeyTo = "netIncomeLossTo",
+                            Value = Model.NetIncomeLossFromFilter?.ToString(CultureInfo.InvariantCulture),
+                            ValueTo = Model.NetIncomeLossToFilter?.ToString(CultureInfo.InvariantCulture),
+                            Placeholder = T["From"],
+                            PlaceholderTo = T["To"]
+                        }
+                    }
+                ],
+                Rows = rows,
+                EmptyMessage = T["msg.no_data"],
+                Page = Model.Items.Page,
+                TotalPages = Model.Items.TotalPages,
+                PageSize = Model.PageSize,
+                SortBy = Model.SortBy,
+                SortDirection = Model.SortDirection,
+                EnableSearch = true,
+                SearchValue = Model.Search,
+                SearchPlaceholder = T["Search"] + " " + T["Period Closing"],
+                SearchButtonText = T["common.search"],
+                Actions = new PagedGridActionConfigViewModel
+                {
+                    ActionColumnTitle = T["Action"],
+                    ApproveButtonText = T["Close"],
+                    ApproveConfirmMessage = T["Close this period?"]
+                }
+            };
+        }
+
+        @await Component.InvokeAsync("PagedGrid", gridModel)
+    </div>
+</div>

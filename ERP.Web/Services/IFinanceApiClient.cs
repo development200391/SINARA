@@ -81,6 +81,10 @@ public interface IFinanceApiClient
     Task<CustomerDto?> CreateCustomerAsync(string accessToken, CustomerDto request, CancellationToken ct = default);
     Task<CustomerDto?> UpdateCustomerAsync(string accessToken, int id, CustomerDto request, CancellationToken ct = default);
     Task<bool> DeleteCustomerAsync(string accessToken, int id, CancellationToken ct = default);
+
+    Task<PagedResult<PeriodClosingRowDto>?> GetPeriodClosingAsync(string accessToken, PeriodClosingPagedRequest request, CancellationToken ct = default);
+    Task<PagedResult<SmokeTestRowDto>?> GetSmokeTestsAsync(string accessToken, SmokeTestPagedRequest request, CancellationToken ct = default);
+
     Task<PagedResult<BudgetDto>?> GetBudgetsAsync(string accessToken, BudgetPagedRequest request, CancellationToken ct = default);
     Task<BudgetDto?> GetBudgetByIdAsync(string accessToken, int id, CancellationToken ct = default);
     Task<BudgetDto?> CreateBudgetAsync(string accessToken, BudgetDto request, CancellationToken ct = default);

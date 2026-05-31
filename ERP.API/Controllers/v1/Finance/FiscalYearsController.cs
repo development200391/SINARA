@@ -202,6 +202,15 @@ public sealed class FiscalYearsController(AppDbContext dbContext) : FinanceContr
             return BadRequest(new { message = "Fiscal year is locked and cannot be closed." });
         }
 
+        var draftJournalCount = await dbContext.FinJournalEntries
+            .AsNoTracking()
+            .CountAsync(x => x.Period.FiscalYearId == id && x.Status == FinanceJournalStatus.Draft, ct);
+
+        if (draftJournalCount > 0)
+        {
+            return BadRequest(new { message = "Fiscal year still has draft journals. Post or delete them before closing." });
+        }
+
         entity.Status = FinancePeriodStatus.Closed;
         entity.UpdatedBy = "system";
         entity.UpdatedAt = DateTimeOffset.UtcNow;
