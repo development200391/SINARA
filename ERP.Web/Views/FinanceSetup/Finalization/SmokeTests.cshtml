@@ -5,6 +5,33 @@
 
 <div class="card border-0 shadow-sm">
     <div class="card-body">
+        @{
+            var finalizationTabs = new TabsViewModel
+            {
+                AriaLabel = T["Finance Finalization"],
+                Items =
+                [
+                    new TabItemViewModel
+                    {
+                        Key = "period-closing",
+                        Title = T["Period Closing"],
+                        Url = Url.Action("PeriodClosing", "FinanceSetup"),
+                        IconClass = "bi-calendar2-check"
+                    },
+                    new TabItemViewModel
+                    {
+                        Key = "smoke-tests",
+                        Title = T["Smoke Tests"],
+                        Url = Url.Action("SmokeTests", "FinanceSetup"),
+                        IconClass = "bi-clipboard2-pulse",
+                        IsActive = true
+                    }
+                ]
+            };
+        }
+
+        @await Component.InvokeAsync("Tabs", finalizationTabs)
+
         <h1 class="h5 mb-3">@T["Smoke Tests"]</h1>
 
         @{

@@ -52,13 +52,20 @@ public sealed partial class InventoryController
         }, ct);
 
         ViewData["Title"] = "Warehouse Locations";
-        ViewData["Breadcrumb"] = $"Inventory / Warehouses / {warehouse.Code} / Locations";
+        ViewData["Breadcrumb"] = $"Inventory / Warehouses / {warehouse.Code} / Detail / Locations";
 
         return View("Warehouses/Locations", new InventoryWarehouseLocationsIndexViewModel
         {
             WarehouseId = warehouseId,
             WarehouseCode = warehouse.Code,
             WarehouseName = warehouse.Name,
+            WarehouseDescription = warehouse.Description,
+            WarehouseAddress = warehouse.Address,
+            WarehousePhone = warehouse.Phone,
+            WarehouseManagerName = warehouse.ManagerName,
+            WarehouseCostCenterCode = warehouse.CostCenterCode,
+            WarehouseIsTransit = warehouse.IsTransit,
+            WarehouseIsActive = warehouse.IsActive,
             Search = search,
             PageSize = normalizedPageSize,
             SortBy = normalizedSortBy,
@@ -267,13 +274,20 @@ public sealed partial class InventoryController
         await Task.WhenAll(stockTask, itemOptionsTask, locationOptionsTask);
 
         ViewData["Title"] = "Warehouse Stock";
-        ViewData["Breadcrumb"] = $"Inventory / Warehouses / {warehouse.Code} / Stock";
+        ViewData["Breadcrumb"] = $"Inventory / Warehouses / {warehouse.Code} / Detail / Stock";
 
         return View("Warehouses/Stock", new InventoryWarehouseStockIndexViewModel
         {
             WarehouseId = warehouseId,
             WarehouseCode = warehouse.Code,
             WarehouseName = warehouse.Name,
+            WarehouseDescription = warehouse.Description,
+            WarehouseAddress = warehouse.Address,
+            WarehousePhone = warehouse.Phone,
+            WarehouseManagerName = warehouse.ManagerName,
+            WarehouseCostCenterCode = warehouse.CostCenterCode,
+            WarehouseIsTransit = warehouse.IsTransit,
+            WarehouseIsActive = warehouse.IsActive,
             Search = search,
             PageSize = normalizedPageSize,
             SortBy = normalizedSortBy,
@@ -286,3 +300,4 @@ public sealed partial class InventoryController
         });
     }
 }
+

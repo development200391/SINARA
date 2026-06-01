@@ -1,22 +1,101 @@
-﻿@model ERP.Web.ViewModels.Inventory.InventoryWarehouseLocationsIndexViewModel
+@model ERP.Web.ViewModels.Inventory.InventoryWarehouseLocationsIndexViewModel
 @using ERP.Web.ViewModels.Shared
 @using Microsoft.AspNetCore.Html
 
 <div class="card border-0 shadow-sm">
     <div class="card-body">
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h1 class="h5 mb-0">@T["Warehouse Locations"] - @Model.WarehouseCode</h1>
-            <div class="d-flex gap-2">
-                <a asp-action="WarehouseStock" asp-controller="Inventory" asp-route-warehouseId="@Model.WarehouseId" class="btn btn-sm btn-outline-info">@T["Stock"]</a>
-                <a asp-action="Warehouses" asp-controller="Inventory" class="btn btn-sm btn-outline-secondary">@T["Back"]</a>
+            <h1 class="h5 mb-0">@T["Detail"] @T["Warehouses"]</h1>
+            <a asp-action="Warehouses" asp-controller="Inventory" class="btn btn-sm btn-outline-secondary">@T["Back"]</a>
+        </div>
+
+        @{
+            string BuildStatusBadge(bool isActive)
+            {
+                return isActive
+                    ? $"<span class=\"badge text-bg-success\">{T["Active"]}</span>"
+                    : $"<span class=\"badge text-bg-secondary\">{T["Inactive"]}</span>";
+            }
+
+            string BuildTransitBadge(bool isTransit)
+            {
+                return isTransit
+                    ? $"<span class=\"badge text-bg-info\">{T["Yes"]}</span>"
+                    : $"<span class=\"badge text-bg-light text-dark\">{T["No"]}</span>";
+            }
+
+            var warehouseTabs = new TabsViewModel
+            {
+                AriaLabel = $"{T["Warehouses"]} {T["Detail"]}",
+                Items =
+                [
+                    new TabItemViewModel
+                    {
+                        Key = "locations",
+                        Title = T["Locations"],
+                        Url = Url.Action("WarehouseLocations", "Inventory", new { warehouseId = Model.WarehouseId }),
+                        IconClass = "bi-geo-alt",
+                        IsActive = true
+                    },
+                    new TabItemViewModel
+                    {
+                        Key = "stock",
+                        Title = T["Stock"],
+                        Url = Url.Action("WarehouseStock", "Inventory", new { warehouseId = Model.WarehouseId }),
+                        IconClass = "bi-box-seam"
+                    }
+                ]
+            };
+        }
+
+        <div class="border rounded-3 p-3 mb-3 bg-body-tertiary">
+            <div class="row g-3">
+                <div class="col-6 col-lg-2">
+                    <div class="small text-muted">@T["Code"]</div>
+                    <div class="fw-semibold">@Model.WarehouseCode</div>
+                </div>
+                <div class="col-6 col-lg-3">
+                    <div class="small text-muted">@T["Name"]</div>
+                    <div class="fw-semibold">@Model.WarehouseName</div>
+                </div>
+                <div class="col-6 col-lg-2">
+                    <div class="small text-muted">@T["Manager"]</div>
+                    <div>@(string.IsNullOrWhiteSpace(Model.WarehouseManagerName) ? "-" : Model.WarehouseManagerName)</div>
+                </div>
+                <div class="col-6 col-lg-2">
+                    <div class="small text-muted">@T["Cost Center"]</div>
+                    <div>@(string.IsNullOrWhiteSpace(Model.WarehouseCostCenterCode) ? "-" : Model.WarehouseCostCenterCode)</div>
+                </div>
+                <div class="col-6 col-lg-1">
+                    <div class="small text-muted">@T["Transit"]</div>
+                    @Html.Raw(BuildTransitBadge(Model.WarehouseIsTransit))
+                </div>
+                <div class="col-6 col-lg-2">
+                    <div class="small text-muted">@T["Status"]</div>
+                    @Html.Raw(BuildStatusBadge(Model.WarehouseIsActive))
+                </div>
+                <div class="col-12 col-lg-4">
+                    <div class="small text-muted">@T["Phone"]</div>
+                    <div>@(string.IsNullOrWhiteSpace(Model.WarehousePhone) ? "-" : Model.WarehousePhone)</div>
+                </div>
+                <div class="col-12 col-lg-4">
+                    <div class="small text-muted">@T["Address"]</div>
+                    <div>@(string.IsNullOrWhiteSpace(Model.WarehouseAddress) ? "-" : Model.WarehouseAddress)</div>
+                </div>
+                <div class="col-12 col-lg-4">
+                    <div class="small text-muted">@T["Description"]</div>
+                    <div>@(string.IsNullOrWhiteSpace(Model.WarehouseDescription) ? "-" : Model.WarehouseDescription)</div>
+                </div>
             </div>
         </div>
+
+        @await Component.InvokeAsync("Tabs", warehouseTabs)
 
         @{
             var selectedIsDefault = Model.IsDefaultFilter.HasValue ? (Model.IsDefaultFilter.Value ? "true" : "false") : null;
             var selectedIsActive = Model.IsActiveFilter.HasValue ? (Model.IsActiveFilter.Value ? "true" : "false") : null;
 
-            string BuildStatusBadge(bool isActive)
+            string BuildLocationStatusBadge(bool isActive)
             {
                 return isActive
                     ? $"<span class=\"badge text-bg-success\">{T["Active"]}</span>"
@@ -110,7 +189,7 @@
                         new PagedGridCellViewModel { Text = item.Name },
                         new PagedGridCellViewModel { Text = string.IsNullOrWhiteSpace(item.Description) ? "-" : item.Description },
                         new PagedGridCellViewModel { Html = new HtmlString(BuildDefaultBadge(item.IsDefault)) },
-                        new PagedGridCellViewModel { Html = new HtmlString(BuildStatusBadge(item.IsActive)) }
+                        new PagedGridCellViewModel { Html = new HtmlString(BuildLocationStatusBadge(item.IsActive)) }
                     ],
                     Actions = new PagedGridRowActionViewModel
                     {
@@ -144,3 +223,4 @@
         @await Component.InvokeAsync("PagedGrid", gridModel)
     </div>
 </div>
+

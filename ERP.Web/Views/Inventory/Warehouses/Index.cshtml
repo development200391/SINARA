@@ -1,4 +1,4 @@
-﻿@model ERP.Web.ViewModels.Inventory.InventoryWarehousesIndexViewModel
+@model ERP.Web.ViewModels.Inventory.InventoryWarehousesIndexViewModel
 @using ERP.Web.ViewModels.Shared
 @using Microsoft.AspNetCore.Html
 @using System.Globalization
@@ -65,10 +65,6 @@
                     new PagedGridCellViewModel { Text = string.IsNullOrWhiteSpace(item.CostCenterCode) ? "-" : item.CostCenterCode },
                     new PagedGridCellViewModel { Text = string.IsNullOrWhiteSpace(item.Phone) ? "-" : item.Phone },
                     new PagedGridCellViewModel { Html = new HtmlString(BuildTransitBadge(item.IsTransit)) },
-                    new PagedGridCellViewModel
-                    {
-                        Html = new HtmlString($"<a class=\"btn btn-sm btn-outline-info\" href=\"{Url.Action("WarehouseStock", "Inventory", new { warehouseId = item.Id })}\">{T["Stock"]}</a>")
-                    },
                     new PagedGridCellViewModel { Html = new HtmlString(BuildStatusBadge(item.IsActive)) }
                 ],
                 Actions = new PagedGridRowActionViewModel
@@ -153,7 +149,6 @@
                             Options = transitOptions
                         }
                     },
-                    new PagedGridColumnViewModel { Key = "stock", Title = T["Stock"], Sortable = false },
                     new PagedGridColumnViewModel
                     {
                         Key = "isactive",
@@ -185,7 +180,7 @@
                     ActionColumnTitle = T["Action"],
                     AddUrl = Url.Action("CreateWarehouse", "Inventory"),
                     AddButtonText = T["common.add_new"],
-                    DetailButtonText = T["Locations"],
+                    DetailButtonText = T["Detail"],
                     EditButtonText = T["common.edit"],
                     DeleteButtonText = T["common.delete"],
                     DeleteConfirmMessage = T["Delete this data?"]
@@ -196,3 +191,4 @@
         @await Component.InvokeAsync("PagedGrid", gridModel)
     </div>
 </div>
+

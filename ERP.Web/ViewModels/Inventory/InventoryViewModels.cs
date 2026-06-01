@@ -280,6 +280,13 @@ public sealed class InventoryWarehouseLocationsIndexViewModel
     public int WarehouseId { get; init; }
     public string WarehouseCode { get; init; } = string.Empty;
     public string WarehouseName { get; init; } = string.Empty;
+    public string? WarehouseDescription { get; init; }
+    public string? WarehouseAddress { get; init; }
+    public string? WarehousePhone { get; init; }
+    public string? WarehouseManagerName { get; init; }
+    public string? WarehouseCostCenterCode { get; init; }
+    public bool WarehouseIsTransit { get; init; }
+    public bool WarehouseIsActive { get; init; }
     public string? Search { get; init; }
     public int PageSize { get; init; } = 20;
     public string SortBy { get; init; } = "code";
@@ -316,6 +323,13 @@ public sealed class InventoryWarehouseStockIndexViewModel
     public int WarehouseId { get; init; }
     public string WarehouseCode { get; init; } = string.Empty;
     public string WarehouseName { get; init; } = string.Empty;
+    public string? WarehouseDescription { get; init; }
+    public string? WarehouseAddress { get; init; }
+    public string? WarehousePhone { get; init; }
+    public string? WarehouseManagerName { get; init; }
+    public string? WarehouseCostCenterCode { get; init; }
+    public bool WarehouseIsTransit { get; init; }
+    public bool WarehouseIsActive { get; init; }
     public string? Search { get; init; }
     public int PageSize { get; init; } = 20;
     public string SortBy { get; init; } = "itemcode";

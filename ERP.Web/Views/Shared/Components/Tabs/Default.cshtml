@@ -1,0 +1,93 @@
+@model ERP.Web.ViewModels.Shared.TabsViewModel
+
+@{
+    var tabsId = string.IsNullOrWhiteSpace(Model.Id) ? $"sinara-tabs-{Guid.NewGuid():N}" : Model.Id;
+    var containerClass = string.IsNullOrWhiteSpace(Model.ContainerClass) ? string.Empty : Model.ContainerClass;
+}
+
+@if (Model.Items.Count > 0)
+{
+    <nav class="sinara-tabs @containerClass" aria-label="@Model.AriaLabel">
+        <ul id="@tabsId" class="nav sinara-tabs-nav @(Model.Fill ? "nav-fill" : string.Empty)">
+            @for (var index = 0; index < Model.Items.Count; index++)
+            {
+                var tab = Model.Items[index];
+                var normalizedKey = string.IsNullOrWhiteSpace(tab.Key)
+                    ? $"item-{index + 1}"
+                    : tab.Key.Trim().ToLowerInvariant().Replace(" ", "-");
+                var tabPaneId = tab.TabPaneId?.Trim().TrimStart('#');
+                var tabId = $"{tabsId}-{normalizedKey}";
+                var linkClass = string.Join(" ", new[]
+                {
+                    "nav-link",
+                    "sinara-tab-link",
+                    tab.IsActive ? "active" : string.Empty,
+                    tab.Disabled ? "disabled" : string.Empty,
+                    tab.CssClass
+                }.Where(x => !string.IsNullOrWhiteSpace(x)));
+                var iconClass = string.IsNullOrWhiteSpace(tab.IconClass)
+                    ? null
+                    : tab.IconClass!.Contains("bi-", StringComparison.OrdinalIgnoreCase) && !tab.IconClass.Contains("bi ", StringComparison.OrdinalIgnoreCase)
+                        ? $"bi {tab.IconClass}"
+                        : tab.IconClass;
+
+                <li class="nav-item" role="presentation">
+                    @if (!string.IsNullOrWhiteSpace(tabPaneId))
+                    {
+                        <button id="@tabId"
+                                type="button"
+                                class="@linkClass"
+                                data-bs-toggle="tab"
+                                data-bs-target="#@tabPaneId"
+                                role="tab"
+                                aria-controls="@tabPaneId"
+                                aria-selected="@(tab.IsActive ? "true" : "false")"
+                                disabled="@tab.Disabled">
+                            @if (!string.IsNullOrWhiteSpace(iconClass))
+                            {
+                                <i class="@iconClass sinara-tab-icon" aria-hidden="true"></i>
+                            }
+                            <span>@tab.Title</span>
+                            @if (!string.IsNullOrWhiteSpace(tab.BadgeText))
+                            {
+                                <span class="sinara-tab-badge">@tab.BadgeText</span>
+                            }
+                        </button>
+                    }
+                    else if (!string.IsNullOrWhiteSpace(tab.Url))
+                    {
+                        <a id="@tabId"
+                           class="@linkClass"
+                           href="@(tab.Disabled ? "#" : tab.Url)"
+                           aria-current="@(tab.IsActive ? "page" : null)"
+                           aria-disabled="@(tab.Disabled ? "true" : null)">
+                            @if (!string.IsNullOrWhiteSpace(iconClass))
+                            {
+                                <i class="@iconClass sinara-tab-icon" aria-hidden="true"></i>
+                            }
+                            <span>@tab.Title</span>
+                            @if (!string.IsNullOrWhiteSpace(tab.BadgeText))
+                            {
+                                <span class="sinara-tab-badge">@tab.BadgeText</span>
+                            }
+                        </a>
+                    }
+                    else
+                    {
+                        <span id="@tabId" class="@linkClass" aria-disabled="true">
+                            @if (!string.IsNullOrWhiteSpace(iconClass))
+                            {
+                                <i class="@iconClass sinara-tab-icon" aria-hidden="true"></i>
+                            }
+                            <span>@tab.Title</span>
+                            @if (!string.IsNullOrWhiteSpace(tab.BadgeText))
+                            {
+                                <span class="sinara-tab-badge">@tab.BadgeText</span>
+                            }
+                        </span>
+                    }
+                </li>
+            }
+        </ul>
+    </nav>
+}
