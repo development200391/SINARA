@@ -151,7 +151,7 @@ public sealed class AssetsController(AppDbContext dbContext) : FixedAssetsContro
             return NotFound();
         }
 
-        var schedulesTask = dbContext.FaDepreciationSchedules
+        var schedules = await dbContext.FaDepreciationSchedules
             .AsNoTracking()
             .Where(x => x.AssetId == id)
             .OrderBy(x => x.PeriodYear)
@@ -169,7 +169,7 @@ public sealed class AssetsController(AppDbContext dbContext) : FixedAssetsContro
             })
             .ToListAsync(ct);
 
-        var transfersTask = dbContext.FaAssetTransfers
+        var transfers = await dbContext.FaAssetTransfers
             .AsNoTracking()
             .Include(x => x.Asset)
             .Include(x => x.FromLocation)
@@ -199,7 +199,7 @@ public sealed class AssetsController(AppDbContext dbContext) : FixedAssetsContro
             })
             .ToListAsync(ct);
 
-        var maintenanceTask = dbContext.FaMaintenanceOrders
+        var maintenance = await dbContext.FaMaintenanceOrders
             .AsNoTracking()
             .Include(x => x.Asset)
             .Where(x => x.AssetId == id)
@@ -221,7 +221,7 @@ public sealed class AssetsController(AppDbContext dbContext) : FixedAssetsContro
             })
             .ToListAsync(ct);
 
-        var disposalsTask = dbContext.FaDisposals
+        var disposals = await dbContext.FaDisposals
             .AsNoTracking()
             .Include(x => x.Asset)
             .Where(x => x.AssetId == id)
@@ -243,7 +243,7 @@ public sealed class AssetsController(AppDbContext dbContext) : FixedAssetsContro
             })
             .ToListAsync(ct);
 
-        var revaluationsTask = dbContext.FaRevaluations
+        var revaluations = await dbContext.FaRevaluations
             .AsNoTracking()
             .Include(x => x.Asset)
             .Where(x => x.AssetId == id)
@@ -264,7 +264,7 @@ public sealed class AssetsController(AppDbContext dbContext) : FixedAssetsContro
             })
             .ToListAsync(ct);
 
-        var historiesTask = dbContext.FaAssetHistories
+        var histories = await dbContext.FaAssetHistories
             .AsNoTracking()
             .Where(x => x.AssetId == id)
             .OrderByDescending(x => x.EventDate)
@@ -280,17 +280,15 @@ public sealed class AssetsController(AppDbContext dbContext) : FixedAssetsContro
             })
             .ToListAsync(ct);
 
-        await Task.WhenAll(schedulesTask, transfersTask, maintenanceTask, disposalsTask, revaluationsTask, historiesTask);
-
         return Ok(new FixedAssetDetailDto
         {
             Asset = MapDto(asset, asset.Documents.Count),
-            DepreciationSchedules = await schedulesTask,
-            Transfers = await transfersTask,
-            MaintenanceOrders = await maintenanceTask,
-            Disposals = await disposalsTask,
-            Revaluations = await revaluationsTask,
-            Histories = await historiesTask
+            DepreciationSchedules = schedules,
+            Transfers = transfers,
+            MaintenanceOrders = maintenance,
+            Disposals = disposals,
+            Revaluations = revaluations,
+            Histories = histories
         });
     }
 
