@@ -1,0 +1,112 @@
+@model ERP.Web.ViewModels.Inventory.InventoryTransferEditViewModel
+
+<div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+<div class="row g-3">
+    <div class="col-md-4">
+        <label asp-for="TransferDate" class="form-label">@T["Transfer Date"]</label>
+        <input asp-for="TransferDate" type="date" class="form-control" />
+        <span asp-validation-for="TransferDate" class="text-danger small"></span>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="FromWarehouseId" class="form-label">@T["From Warehouse"]</label>
+        <select asp-for="FromWarehouseId" class="form-select">
+            <option value="">@T["Select Warehouse"]</option>
+            @foreach (var option in Model.WarehouseOptions)
+            {
+                <option value="@option.Id">@option.Label</option>
+            }
+        </select>
+        <span asp-validation-for="FromWarehouseId" class="text-danger small"></span>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="ToWarehouseId" class="form-label">@T["To Warehouse"]</label>
+        <select asp-for="ToWarehouseId" class="form-select">
+            <option value="">@T["Select Warehouse"]</option>
+            @foreach (var option in Model.WarehouseOptions)
+            {
+                <option value="@option.Id">@option.Label</option>
+            }
+        </select>
+        <span asp-validation-for="ToWarehouseId" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-4">
+        <label asp-for="FromLocationId" class="form-label">@T["From Location"]</label>
+        <select asp-for="FromLocationId" class="form-select">
+            <option value="">@T["All"]</option>
+            @foreach (var option in Model.FromLocationOptions)
+            {
+                <option value="@option.Id">@option.Label</option>
+            }
+        </select>
+        <span asp-validation-for="FromLocationId" class="text-danger small"></span>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="ToLocationId" class="form-label">@T["To Location"]</label>
+        <select asp-for="ToLocationId" class="form-select">
+            <option value="">@T["All"]</option>
+            @foreach (var option in Model.ToLocationOptions)
+            {
+                <option value="@option.Id">@option.Label</option>
+            }
+        </select>
+        <span asp-validation-for="ToLocationId" class="text-danger small"></span>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="ReferenceNo" class="form-label">@T["Reference No"]</label>
+        <input asp-for="ReferenceNo" class="form-control" />
+        <span asp-validation-for="ReferenceNo" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-12">
+        <label asp-for="Description" class="form-label">@T["Description"]</label>
+        <input asp-for="Description" class="form-control" />
+        <span asp-validation-for="Description" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-4">
+        <label asp-for="ItemId" class="form-label">@T["Item"]</label>
+        <select asp-for="ItemId" class="form-select">
+            <option value="">@T["Select Item"]</option>
+            @foreach (var option in Model.ItemOptions)
+            {
+                <option value="@option.Id">@option.Label</option>
+            }
+        </select>
+        <span asp-validation-for="ItemId" class="text-danger small"></span>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="UomId" class="form-label">@T["UOM"]</label>
+        <select asp-for="UomId" class="form-select">
+            <option value="">@T["All"]</option>
+            @foreach (var option in Model.UomOptions)
+            {
+                <option value="@option.Id">@option.Label</option>
+            }
+        </select>
+        <span asp-validation-for="UomId" class="text-danger small"></span>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="QtyTransfer" class="form-label">@T["Qty Transfer"]</label>
+        <input asp-for="QtyTransfer" class="form-control text-end sinara-text-number sinara-text-number-theme sinara-text-number-input" type="text" inputmode="decimal" data-text-number-decimals="2" autocomplete="off" />
+        <span asp-validation-for="QtyTransfer" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-4">
+        <label asp-for="QtyBase" class="form-label">@T["Qty Base"]</label>
+        <input asp-for="QtyBase" class="form-control text-end sinara-text-number sinara-text-number-theme sinara-text-number-input" type="text" inputmode="decimal" data-text-number-decimals="2" autocomplete="off" />
+        <span asp-validation-for="QtyBase" class="text-danger small"></span>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="UnitCost" class="form-label">@T["Unit Cost"]</label>
+        <input asp-for="UnitCost" class="form-control text-end sinara-text-number sinara-text-number-theme sinara-text-number-input" type="text" inputmode="decimal" data-text-number-decimals="2" autocomplete="off" />
+        <span asp-validation-for="UnitCost" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-12">
+        <label asp-for="LineNotes" class="form-label">@T["Line Notes"]</label>
+        <input asp-for="LineNotes" class="form-control" />
+        <span asp-validation-for="LineNotes" class="text-danger small"></span>
+    </div>
+</div>

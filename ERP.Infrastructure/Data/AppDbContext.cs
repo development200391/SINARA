@@ -4,8 +4,10 @@ using ERP.Domain.Entities.Config;
 using ERP.Domain.Entities.HR;
 using ERP.Domain.Entities.Finance;
 using ERP.Domain.Entities.System;
+using ERP.Domain.Entities.Inventory;
 using ERP.Domain.Interfaces;
 using ERP.Domain.Enums;
+using ERP.Domain.Enums.Inventory;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Npgsql.EntityFrameworkCore.PostgreSQL;
@@ -57,6 +59,36 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<FinArReceiptApplication> FinArReceiptApplications => Set<FinArReceiptApplication>();
     public DbSet<FinBudget> FinBudgets => Set<FinBudget>();
     public DbSet<FinBudgetLine> FinBudgetLines => Set<FinBudgetLine>();
+    
+
+    public DbSet<InvItemCategory> InvItemCategories => Set<InvItemCategory>();
+
+    
+    public DbSet<InvUnitOfMeasure> InvUnitsOfMeasure => Set<InvUnitOfMeasure>();
+    
+    public DbSet<InvBrand> InvBrands => Set<InvBrand>();
+    
+    public DbSet<InvItem> InvItems => Set<InvItem>();
+    
+    public DbSet<InvItemUnitConversion> InvItemUnitConversions => Set<InvItemUnitConversion>();
+    
+    public DbSet<InvWarehouse> InvWarehouses => Set<InvWarehouse>();
+    
+    public DbSet<InvWarehouseLocation> InvWarehouseLocations => Set<InvWarehouseLocation>();
+    
+    public DbSet<InvStockBalance> InvStockBalances => Set<InvStockBalance>();
+    
+    public DbSet<InvGoodsReceipt> InvGoodsReceipts => Set<InvGoodsReceipt>();
+    public DbSet<InvGoodsReceiptLine> InvGoodsReceiptLines => Set<InvGoodsReceiptLine>();
+    public DbSet<InvGoodsIssue> InvGoodsIssues => Set<InvGoodsIssue>();
+    public DbSet<InvGoodsIssueLine> InvGoodsIssueLines => Set<InvGoodsIssueLine>();
+    public DbSet<InvStockTransfer> InvStockTransfers => Set<InvStockTransfer>();
+    public DbSet<InvStockTransferLine> InvStockTransferLines => Set<InvStockTransferLine>();
+    public DbSet<InvStockAdjustment> InvStockAdjustments => Set<InvStockAdjustment>();
+    public DbSet<InvStockAdjustmentLine> InvStockAdjustmentLines => Set<InvStockAdjustmentLine>();
+    public DbSet<InvStockOpname> InvStockOpnames => Set<InvStockOpname>();
+    public DbSet<InvStockOpnameLine> InvStockOpnameLines => Set<InvStockOpnameLine>();
+    public DbSet<InvStockMovement> InvStockMovements => Set<InvStockMovement>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -106,6 +138,36 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         ConfigureFinArReceiptApplication(modelBuilder.Entity<FinArReceiptApplication>());
         ConfigureFinBudget(modelBuilder.Entity<FinBudget>());
         ConfigureFinBudgetLine(modelBuilder.Entity<FinBudgetLine>());
+        
+
+        ConfigureInvItemCategory(modelBuilder.Entity<InvItemCategory>());
+
+        
+        ConfigureInvUnitOfMeasure(modelBuilder.Entity<InvUnitOfMeasure>());
+        
+        ConfigureInvBrand(modelBuilder.Entity<InvBrand>());
+        
+        ConfigureInvItem(modelBuilder.Entity<InvItem>());
+        
+        ConfigureInvItemUnitConversion(modelBuilder.Entity<InvItemUnitConversion>());
+        
+        ConfigureInvWarehouse(modelBuilder.Entity<InvWarehouse>());
+        
+        ConfigureInvWarehouseLocation(modelBuilder.Entity<InvWarehouseLocation>());
+        
+        ConfigureInvStockBalance(modelBuilder.Entity<InvStockBalance>());
+        
+        ConfigureInvGoodsReceipt(modelBuilder.Entity<InvGoodsReceipt>());
+        ConfigureInvGoodsReceiptLine(modelBuilder.Entity<InvGoodsReceiptLine>());
+        ConfigureInvGoodsIssue(modelBuilder.Entity<InvGoodsIssue>());
+        ConfigureInvGoodsIssueLine(modelBuilder.Entity<InvGoodsIssueLine>());
+        ConfigureInvStockTransfer(modelBuilder.Entity<InvStockTransfer>());
+        ConfigureInvStockTransferLine(modelBuilder.Entity<InvStockTransferLine>());
+        ConfigureInvStockAdjustment(modelBuilder.Entity<InvStockAdjustment>());
+        ConfigureInvStockAdjustmentLine(modelBuilder.Entity<InvStockAdjustmentLine>());
+        ConfigureInvStockOpname(modelBuilder.Entity<InvStockOpname>());
+        ConfigureInvStockOpnameLine(modelBuilder.Entity<InvStockOpnameLine>());
+        ConfigureInvStockMovement(modelBuilder.Entity<InvStockMovement>());
 
         ApplySoftDeleteQueryFilters(modelBuilder);
 
@@ -1355,6 +1417,765 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         builder.HasIndex(x => x.CostCenterId);
     }
 
+
+    private static void ConfigureInvItemCategory(EntityTypeBuilder<InvItemCategory> builder)
+    {
+        builder.ToTable("inv_item_categories");
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.Code).HasMaxLength(30).IsRequired();
+        builder.Property(x => x.Name).HasMaxLength(100).IsRequired();
+        builder.Property(x => x.Description).HasColumnType("text");
+        builder.Property(x => x.IsActive).HasDefaultValue(true).IsRequired();
+
+        builder.HasOne(x => x.ParentCategory)
+            .WithMany(x => x.ChildCategories)
+            .HasForeignKey(x => x.ParentCategoryId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(x => x.Code).IsUnique();
+        builder.HasIndex(x => x.Name);
+        builder.HasIndex(x => x.ParentCategoryId);
+        builder.HasIndex(x => x.IsActive);
+    }
+
+    private static void ConfigureInvUnitOfMeasure(EntityTypeBuilder<InvUnitOfMeasure> builder)
+    {
+        builder.ToTable("inv_units_of_measure");
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.Code).HasMaxLength(20).IsRequired();
+        builder.Property(x => x.Name).HasMaxLength(50).IsRequired();
+        builder.Property(x => x.Description).HasColumnType("text");
+        builder.Property(x => x.IsActive).HasDefaultValue(true).IsRequired();
+
+        builder.HasIndex(x => x.Code).IsUnique();
+        builder.HasIndex(x => x.Name);
+        builder.HasIndex(x => x.IsActive);
+    }
+
+    private static void ConfigureInvBrand(EntityTypeBuilder<InvBrand> builder)
+    {
+        builder.ToTable("inv_brands");
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.Name).HasMaxLength(100).IsRequired();
+        builder.Property(x => x.Description).HasColumnType("text");
+        builder.Property(x => x.IsActive).HasDefaultValue(true).IsRequired();
+
+        builder.HasIndex(x => x.Name).IsUnique();
+        builder.HasIndex(x => x.IsActive);
+    }
+
+    private static void ConfigureInvItem(EntityTypeBuilder<InvItem> builder)
+    {
+        builder.ToTable("inv_items", t =>
+        {
+            t.HasCheckConstraint("ck_inv_items_last_purchase_price_non_negative", "last_purchase_price IS NULL OR last_purchase_price >= 0");
+            t.HasCheckConstraint("ck_inv_items_avg_cost_non_negative", "avg_cost >= 0");
+            t.HasCheckConstraint("ck_inv_items_min_stock_non_negative", "min_stock >= 0");
+            t.HasCheckConstraint("ck_inv_items_max_stock_non_negative", "max_stock >= 0");
+            t.HasCheckConstraint("ck_inv_items_reorder_point_non_negative", "reorder_point >= 0");
+            t.HasCheckConstraint("ck_inv_items_lead_time_days_non_negative", "lead_time_days >= 0");
+        });
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.ItemCode).HasMaxLength(30).IsRequired();
+        builder.Property(x => x.Sku).HasMaxLength(100);
+        builder.Property(x => x.Name).HasMaxLength(200).IsRequired();
+        builder.Property(x => x.Description).HasColumnType("text");
+        builder.Property(x => x.Type).HasConversion<int>().HasDefaultValue(ItemType.Product).IsRequired();
+        builder.Property(x => x.Status).HasConversion<int>().HasDefaultValue(ItemStatus.Active).IsRequired();
+        builder.Property(x => x.ValuationMethod).HasConversion<int>().HasDefaultValue(ValuationMethod.WeightedAverageCost).IsRequired();
+        builder.Property(x => x.LastPurchasePrice).HasColumnType("numeric(18,4)");
+        builder.Property(x => x.AvgCost).HasColumnType("numeric(18,4)").HasDefaultValue(0m).IsRequired();
+        builder.Property(x => x.MinStock).HasColumnType("numeric(18,4)").HasDefaultValue(0m).IsRequired();
+        builder.Property(x => x.MaxStock).HasColumnType("numeric(18,4)").HasDefaultValue(0m).IsRequired();
+        builder.Property(x => x.ReorderPoint).HasColumnType("numeric(18,4)").HasDefaultValue(0m).IsRequired();
+        builder.Property(x => x.LeadTimeDays).HasDefaultValue(0).IsRequired();
+        builder.Property(x => x.InventoryAccountId).HasColumnName("account_inventory_id");
+        builder.Property(x => x.CogsAccountId).HasColumnName("account_cogs_id");
+        builder.Property(x => x.AdjustmentAccountId).HasColumnName("account_adjustment_id");
+        builder.Property(x => x.Notes).HasColumnType("text");
+        builder.Property(x => x.IsActive).HasDefaultValue(true).IsRequired();
+
+        builder.HasOne(x => x.Category)
+            .WithMany(x => x.Items)
+            .HasForeignKey(x => x.CategoryId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.Brand)
+            .WithMany(x => x.Items)
+            .HasForeignKey(x => x.BrandId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.BaseUom)
+            .WithMany(x => x.BaseItems)
+            .HasForeignKey(x => x.BaseUomId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.PurchaseUom)
+            .WithMany(x => x.PurchaseItems)
+            .HasForeignKey(x => x.PurchaseUomId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.InventoryAccount)
+            .WithMany()
+            .HasForeignKey(x => x.InventoryAccountId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.CogsAccount)
+            .WithMany()
+            .HasForeignKey(x => x.CogsAccountId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.AdjustmentAccount)
+            .WithMany()
+            .HasForeignKey(x => x.AdjustmentAccountId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasIndex(x => x.ItemCode).IsUnique();
+        builder.HasIndex(x => x.Sku).IsUnique();
+        builder.HasIndex(x => x.Name);
+        builder.HasIndex(x => x.CategoryId);
+        builder.HasIndex(x => x.BrandId);
+        builder.HasIndex(x => x.Type);
+        builder.HasIndex(x => x.Status);
+        builder.HasIndex(x => x.BaseUomId);
+        builder.HasIndex(x => x.PurchaseUomId);
+        builder.HasIndex(x => x.IsActive);
+        builder.HasIndex(x => x.MinStock);
+        builder.HasIndex(x => x.ReorderPoint);
+    }
+
+    private static void ConfigureInvItemUnitConversion(EntityTypeBuilder<InvItemUnitConversion> builder)
+    {
+        builder.ToTable("inv_item_unit_conversions", t =>
+        {
+            t.HasCheckConstraint("ck_inv_item_unit_conversions_factor_positive", "conversion_factor > 0");
+        });
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.ConversionFactor).HasColumnType("numeric(18,6)").IsRequired();
+        builder.Property(x => x.IsActive).HasDefaultValue(true).IsRequired();
+
+        builder.HasOne(x => x.Item)
+            .WithMany(x => x.UnitConversions)
+            .HasForeignKey(x => x.ItemId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(x => x.FromUom)
+            .WithMany(x => x.FromConversions)
+            .HasForeignKey(x => x.FromUomId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.ToUom)
+            .WithMany(x => x.ToConversions)
+            .HasForeignKey(x => x.ToUomId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(x => x.ItemId);
+        builder.HasIndex(x => x.FromUomId);
+        builder.HasIndex(x => x.ToUomId);
+        builder.HasIndex(x => x.IsActive);
+        builder.HasIndex(x => new { x.ItemId, x.FromUomId, x.ToUomId }).IsUnique();
+    }
+
+    private static void ConfigureInvWarehouse(EntityTypeBuilder<InvWarehouse> builder)
+    {
+        builder.ToTable("inv_warehouses");
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.Code).HasMaxLength(20).IsRequired();
+        builder.Property(x => x.Name).HasMaxLength(100).IsRequired();
+        builder.Property(x => x.Description).HasColumnType("text");
+        builder.Property(x => x.Address).HasColumnType("text");
+        builder.Property(x => x.Phone).HasMaxLength(30);
+        builder.Property(x => x.ManagerId).HasColumnName("manager_id");
+        builder.Property(x => x.IsTransit).HasDefaultValue(false).IsRequired();
+        builder.Property(x => x.IsActive).HasDefaultValue(true).IsRequired();
+
+        builder.HasOne(x => x.Manager)
+            .WithMany()
+            .HasForeignKey(x => x.ManagerId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.CostCenter)
+            .WithMany()
+            .HasForeignKey(x => x.CostCenterId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasIndex(x => x.Code).IsUnique();
+        builder.HasIndex(x => x.Name);
+        builder.HasIndex(x => x.ManagerId);
+        builder.HasIndex(x => x.CostCenterId);
+        builder.HasIndex(x => x.IsTransit);
+        builder.HasIndex(x => x.IsActive);
+    }
+
+    private static void ConfigureInvWarehouseLocation(EntityTypeBuilder<InvWarehouseLocation> builder)
+    {
+        builder.ToTable("inv_warehouse_locations");
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.Code).HasMaxLength(30).IsRequired();
+        builder.Property(x => x.Name).HasMaxLength(100).IsRequired();
+        builder.Property(x => x.Description).HasColumnType("text");
+        builder.Property(x => x.IsDefault).HasDefaultValue(false).IsRequired();
+        builder.Property(x => x.IsActive).HasDefaultValue(true).IsRequired();
+
+        builder.HasOne(x => x.Warehouse)
+            .WithMany(x => x.Locations)
+            .HasForeignKey(x => x.WarehouseId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasIndex(x => x.WarehouseId);
+        builder.HasIndex(x => x.Code);
+        builder.HasIndex(x => x.Name);
+        builder.HasIndex(x => x.IsDefault);
+        builder.HasIndex(x => x.IsActive);
+        builder.HasIndex(x => new { x.WarehouseId, x.Code }).IsUnique();
+    }
+
+    private static void ConfigureInvStockBalance(EntityTypeBuilder<InvStockBalance> builder)
+    {
+        builder.ToTable("inv_stock_balances", t =>
+        {
+            t.HasCheckConstraint("ck_inv_stock_balances_qty_on_hand_non_negative", "qty_on_hand >= 0");
+            t.HasCheckConstraint("ck_inv_stock_balances_qty_reserved_non_negative", "qty_reserved >= 0");
+            t.HasCheckConstraint("ck_inv_stock_balances_qty_available_non_negative", "qty_on_hand - qty_reserved >= 0");
+            t.HasCheckConstraint("ck_inv_stock_balances_avg_cost_non_negative", "avg_cost >= 0");
+        });
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.QtyOnHand).HasColumnType("numeric(18,4)").HasDefaultValue(0m).IsRequired();
+        builder.Property(x => x.QtyReserved).HasColumnType("numeric(18,4)").HasDefaultValue(0m).IsRequired();
+        builder.Property(x => x.QtyAvailable).HasColumnType("numeric(18,4)").HasComputedColumnSql("qty_on_hand - qty_reserved", stored: true);
+        builder.Property(x => x.AvgCost).HasColumnType("numeric(18,4)").HasDefaultValue(0m).IsRequired();
+        builder.Property(x => x.TotalValue).HasColumnType("numeric(18,4)").HasComputedColumnSql("qty_on_hand * avg_cost", stored: true);
+        builder.Property(x => x.LastMovementAt).HasColumnType("timestamptz");
+
+        builder.HasOne(x => x.Item)
+            .WithMany(x => x.StockBalances)
+            .HasForeignKey(x => x.ItemId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(x => x.Warehouse)
+            .WithMany(x => x.StockBalances)
+            .HasForeignKey(x => x.WarehouseId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(x => x.Location)
+            .WithMany(x => x.StockBalances)
+            .HasForeignKey(x => x.LocationId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasIndex(x => x.ItemId);
+        builder.HasIndex(x => x.WarehouseId);
+        builder.HasIndex(x => x.LocationId);
+        builder.HasIndex(x => x.QtyAvailable);
+        builder.HasIndex(x => x.TotalValue);
+        builder.HasIndex(x => new { x.ItemId, x.WarehouseId, x.LocationId }).IsUnique();
+        builder.HasIndex(x => new { x.ItemId, x.WarehouseId }).IsUnique().HasFilter("\"location_id\" IS NULL");
+    }
+
+    private static void ConfigureInvGoodsReceipt(EntityTypeBuilder<InvGoodsReceipt> builder)
+    {
+        builder.ToTable("inv_goods_receipts");
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.ReceiptNo).HasMaxLength(30).IsRequired();
+        builder.Property(x => x.ReceiptDate).HasColumnType("date").IsRequired();
+        builder.Property(x => x.ReceiptType).HasConversion<int>().IsRequired();
+        builder.Property(x => x.SupplierName).HasMaxLength(200);
+        builder.Property(x => x.ReferenceNo).HasMaxLength(100);
+        builder.Property(x => x.Description).HasColumnType("text");
+        builder.Property(x => x.Status).HasConversion<int>().IsRequired();
+        builder.Property(x => x.ConfirmedAt).HasColumnType("timestamptz");
+
+        builder.HasOne(x => x.Warehouse)
+            .WithMany()
+            .HasForeignKey(x => x.WarehouseId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.Location)
+            .WithMany()
+            .HasForeignKey(x => x.LocationId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.ReceivedByUser)
+            .WithMany()
+            .HasForeignKey(x => x.ReceivedBy)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.ConfirmedByUser)
+            .WithMany()
+            .HasForeignKey(x => x.ConfirmedBy)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.JournalEntry)
+            .WithMany()
+            .HasForeignKey(x => x.JournalEntryId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasIndex(x => x.ReceiptNo).IsUnique();
+        builder.HasIndex(x => x.ReceiptDate);
+        builder.HasIndex(x => x.Status);
+        builder.HasIndex(x => x.WarehouseId);
+        builder.HasIndex(x => x.LocationId);
+        builder.HasIndex(x => x.ReceiptType);
+    }
+
+    private static void ConfigureInvGoodsReceiptLine(EntityTypeBuilder<InvGoodsReceiptLine> builder)
+    {
+        builder.ToTable("inv_goods_receipt_lines", t =>
+        {
+            t.HasCheckConstraint("ck_inv_goods_receipt_lines_qty_received_positive", "qty_received > 0");
+            t.HasCheckConstraint("ck_inv_goods_receipt_lines_qty_base_positive", "qty_base > 0");
+            t.HasCheckConstraint("ck_inv_goods_receipt_lines_unit_cost_non_negative", "unit_cost >= 0");
+        });
+
+        builder.Property(x => x.Id).UseIdentityAlwaysColumn();
+        builder.Property(x => x.LineNo).IsRequired();
+        builder.Property(x => x.QtyReceived).HasColumnType("numeric(18,4)").IsRequired();
+        builder.Property(x => x.QtyBase).HasColumnType("numeric(18,4)").IsRequired();
+        builder.Property(x => x.UnitCost).HasColumnType("numeric(18,4)").IsRequired();
+        builder.Property(x => x.TotalCost).HasColumnType("numeric(18,4)").HasComputedColumnSql("qty_base * unit_cost", stored: true);
+        builder.Property(x => x.Notes).HasColumnType("text");
+
+        builder.HasOne(x => x.GoodsReceipt)
+            .WithMany(x => x.Lines)
+            .HasForeignKey(x => x.GoodsReceiptId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(x => x.Item)
+            .WithMany()
+            .HasForeignKey(x => x.ItemId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.Uom)
+            .WithMany()
+            .HasForeignKey(x => x.UomId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasIndex(x => x.GoodsReceiptId);
+        builder.HasIndex(x => x.ItemId);
+        builder.HasIndex(x => x.UomId);
+        builder.HasIndex(x => new { x.GoodsReceiptId, x.LineNo }).IsUnique();
+    }
+
+    private static void ConfigureInvGoodsIssue(EntityTypeBuilder<InvGoodsIssue> builder)
+    {
+        builder.ToTable("inv_goods_issues");
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.IssueNo).HasMaxLength(30).IsRequired();
+        builder.Property(x => x.IssueDate).HasColumnType("date").IsRequired();
+        builder.Property(x => x.IssueType).HasConversion<int>().IsRequired();
+        builder.Property(x => x.ReferenceNo).HasMaxLength(100);
+        builder.Property(x => x.Description).HasColumnType("text");
+        builder.Property(x => x.Status).HasConversion<int>().IsRequired();
+        builder.Property(x => x.ConfirmedAt).HasColumnType("timestamptz");
+
+        builder.HasOne(x => x.Warehouse)
+            .WithMany()
+            .HasForeignKey(x => x.WarehouseId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.Location)
+            .WithMany()
+            .HasForeignKey(x => x.LocationId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.Department)
+            .WithMany()
+            .HasForeignKey(x => x.DepartmentId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.CostCenter)
+            .WithMany()
+            .HasForeignKey(x => x.CostCenterId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.RequestedByUser)
+            .WithMany()
+            .HasForeignKey(x => x.RequestedBy)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.IssuedByUser)
+            .WithMany()
+            .HasForeignKey(x => x.IssuedBy)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.ConfirmedByUser)
+            .WithMany()
+            .HasForeignKey(x => x.ConfirmedBy)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.JournalEntry)
+            .WithMany()
+            .HasForeignKey(x => x.JournalEntryId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasIndex(x => x.IssueNo).IsUnique();
+        builder.HasIndex(x => x.IssueDate);
+        builder.HasIndex(x => x.Status);
+        builder.HasIndex(x => x.WarehouseId);
+        builder.HasIndex(x => x.LocationId);
+        builder.HasIndex(x => x.DepartmentId);
+        builder.HasIndex(x => x.CostCenterId);
+        builder.HasIndex(x => x.IssueType);
+    }
+
+    private static void ConfigureInvGoodsIssueLine(EntityTypeBuilder<InvGoodsIssueLine> builder)
+    {
+        builder.ToTable("inv_goods_issue_lines", t =>
+        {
+            t.HasCheckConstraint("ck_inv_goods_issue_lines_qty_requested_positive", "qty_requested > 0");
+            t.HasCheckConstraint("ck_inv_goods_issue_lines_qty_issued_positive", "qty_issued > 0");
+            t.HasCheckConstraint("ck_inv_goods_issue_lines_qty_base_positive", "qty_base > 0");
+            t.HasCheckConstraint("ck_inv_goods_issue_lines_unit_cost_non_negative", "unit_cost >= 0");
+            t.HasCheckConstraint("ck_inv_goods_issue_lines_qty_not_exceed_requested", "qty_issued <= qty_requested");
+        });
+
+        builder.Property(x => x.Id).UseIdentityAlwaysColumn();
+        builder.Property(x => x.LineNo).IsRequired();
+        builder.Property(x => x.QtyRequested).HasColumnType("numeric(18,4)").IsRequired();
+        builder.Property(x => x.QtyIssued).HasColumnType("numeric(18,4)").IsRequired();
+        builder.Property(x => x.QtyBase).HasColumnType("numeric(18,4)").IsRequired();
+        builder.Property(x => x.UnitCost).HasColumnType("numeric(18,4)").IsRequired();
+        builder.Property(x => x.TotalCost).HasColumnType("numeric(18,4)").HasComputedColumnSql("qty_base * unit_cost", stored: true);
+        builder.Property(x => x.Notes).HasColumnType("text");
+
+        builder.HasOne(x => x.GoodsIssue)
+            .WithMany(x => x.Lines)
+            .HasForeignKey(x => x.GoodsIssueId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(x => x.Item)
+            .WithMany()
+            .HasForeignKey(x => x.ItemId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.Uom)
+            .WithMany()
+            .HasForeignKey(x => x.UomId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasIndex(x => x.GoodsIssueId);
+        builder.HasIndex(x => x.ItemId);
+        builder.HasIndex(x => x.UomId);
+        builder.HasIndex(x => new { x.GoodsIssueId, x.LineNo }).IsUnique();
+    }
+
+    private static void ConfigureInvStockTransfer(EntityTypeBuilder<InvStockTransfer> builder)
+    {
+        builder.ToTable("inv_stock_transfers", t =>
+        {
+            t.HasCheckConstraint("ck_inv_stock_transfers_warehouse_not_same", "from_warehouse_id <> to_warehouse_id");
+        });
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.TransferNo).HasMaxLength(30).IsRequired();
+        builder.Property(x => x.TransferDate).HasColumnType("date").IsRequired();
+        builder.Property(x => x.ReferenceNo).HasMaxLength(100);
+        builder.Property(x => x.Description).HasColumnType("text");
+        builder.Property(x => x.Status).HasConversion<int>().IsRequired();
+        builder.Property(x => x.ConfirmedAt).HasColumnType("timestamptz");
+
+        builder.HasOne(x => x.FromWarehouse)
+            .WithMany()
+            .HasForeignKey(x => x.FromWarehouseId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.ToWarehouse)
+            .WithMany()
+            .HasForeignKey(x => x.ToWarehouseId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.FromLocation)
+            .WithMany()
+            .HasForeignKey(x => x.FromLocationId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.ToLocation)
+            .WithMany()
+            .HasForeignKey(x => x.ToLocationId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.TransferredByUser)
+            .WithMany()
+            .HasForeignKey(x => x.TransferredBy)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.ConfirmedByUser)
+            .WithMany()
+            .HasForeignKey(x => x.ConfirmedBy)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.JournalEntry)
+            .WithMany()
+            .HasForeignKey(x => x.JournalEntryId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasIndex(x => x.TransferNo).IsUnique();
+        builder.HasIndex(x => x.TransferDate);
+        builder.HasIndex(x => x.Status);
+        builder.HasIndex(x => x.FromWarehouseId);
+        builder.HasIndex(x => x.ToWarehouseId);
+    }
+
+    private static void ConfigureInvStockTransferLine(EntityTypeBuilder<InvStockTransferLine> builder)
+    {
+        builder.ToTable("inv_stock_transfer_lines", t =>
+        {
+            t.HasCheckConstraint("ck_inv_stock_transfer_lines_qty_transfer_positive", "qty_transfer > 0");
+            t.HasCheckConstraint("ck_inv_stock_transfer_lines_qty_base_positive", "qty_base > 0");
+            t.HasCheckConstraint("ck_inv_stock_transfer_lines_unit_cost_non_negative", "unit_cost >= 0");
+        });
+
+        builder.Property(x => x.Id).UseIdentityAlwaysColumn();
+        builder.Property(x => x.LineNo).IsRequired();
+        builder.Property(x => x.QtyTransfer).HasColumnType("numeric(18,4)").IsRequired();
+        builder.Property(x => x.QtyBase).HasColumnType("numeric(18,4)").IsRequired();
+        builder.Property(x => x.UnitCost).HasColumnType("numeric(18,4)").IsRequired();
+        builder.Property(x => x.TotalCost).HasColumnType("numeric(18,4)").HasComputedColumnSql("qty_base * unit_cost", stored: true);
+        builder.Property(x => x.Notes).HasColumnType("text");
+
+        builder.HasOne(x => x.StockTransfer)
+            .WithMany(x => x.Lines)
+            .HasForeignKey(x => x.StockTransferId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(x => x.Item)
+            .WithMany()
+            .HasForeignKey(x => x.ItemId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.Uom)
+            .WithMany()
+            .HasForeignKey(x => x.UomId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasIndex(x => x.StockTransferId);
+        builder.HasIndex(x => x.ItemId);
+        builder.HasIndex(x => x.UomId);
+        builder.HasIndex(x => new { x.StockTransferId, x.LineNo }).IsUnique();
+    }
+
+    private static void ConfigureInvStockAdjustment(EntityTypeBuilder<InvStockAdjustment> builder)
+    {
+        builder.ToTable("inv_stock_adjustments");
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.AdjustmentNo).HasMaxLength(30).IsRequired();
+        builder.Property(x => x.AdjustmentDate).HasColumnType("date").IsRequired();
+        builder.Property(x => x.Reason).HasConversion<int>().IsRequired();
+        builder.Property(x => x.ReferenceNo).HasMaxLength(100);
+        builder.Property(x => x.Description).HasColumnType("text");
+        builder.Property(x => x.Status).HasConversion<int>().IsRequired();
+        builder.Property(x => x.ApprovedAt).HasColumnType("timestamptz");
+        builder.Property(x => x.ConfirmedAt).HasColumnType("timestamptz");
+
+        builder.HasOne(x => x.Warehouse)
+            .WithMany()
+            .HasForeignKey(x => x.WarehouseId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.Location)
+            .WithMany()
+            .HasForeignKey(x => x.LocationId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.RequestedByUser)
+            .WithMany()
+            .HasForeignKey(x => x.RequestedBy)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.ApprovedByUser)
+            .WithMany()
+            .HasForeignKey(x => x.ApprovedBy)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.ConfirmedByUser)
+            .WithMany()
+            .HasForeignKey(x => x.ConfirmedBy)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.JournalEntry)
+            .WithMany()
+            .HasForeignKey(x => x.JournalEntryId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasIndex(x => x.AdjustmentNo).IsUnique();
+        builder.HasIndex(x => x.AdjustmentDate);
+        builder.HasIndex(x => x.Status);
+        builder.HasIndex(x => x.Reason);
+        builder.HasIndex(x => x.WarehouseId);
+    }
+
+    private static void ConfigureInvStockAdjustmentLine(EntityTypeBuilder<InvStockAdjustmentLine> builder)
+    {
+        builder.ToTable("inv_stock_adjustment_lines", t =>
+        {
+            t.HasCheckConstraint("ck_inv_stock_adjustment_lines_qty_adjustment_not_zero", "qty_adjustment <> 0");
+            t.HasCheckConstraint("ck_inv_stock_adjustment_lines_unit_cost_non_negative", "unit_cost >= 0");
+        });
+
+        builder.Property(x => x.Id).UseIdentityAlwaysColumn();
+        builder.Property(x => x.LineNo).IsRequired();
+        builder.Property(x => x.QtyAdjustment).HasColumnType("numeric(18,4)").IsRequired();
+        builder.Property(x => x.UnitCost).HasColumnType("numeric(18,4)").IsRequired();
+        builder.Property(x => x.TotalCost).HasColumnType("numeric(18,4)").HasComputedColumnSql("qty_adjustment * unit_cost", stored: true);
+        builder.Property(x => x.Notes).HasColumnType("text");
+
+        builder.HasOne(x => x.StockAdjustment)
+            .WithMany(x => x.Lines)
+            .HasForeignKey(x => x.StockAdjustmentId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(x => x.Item)
+            .WithMany()
+            .HasForeignKey(x => x.ItemId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.Uom)
+            .WithMany()
+            .HasForeignKey(x => x.UomId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasIndex(x => x.StockAdjustmentId);
+        builder.HasIndex(x => x.ItemId);
+        builder.HasIndex(x => x.UomId);
+        builder.HasIndex(x => new { x.StockAdjustmentId, x.LineNo }).IsUnique();
+    }
+
+    private static void ConfigureInvStockOpname(EntityTypeBuilder<InvStockOpname> builder)
+    {
+        builder.ToTable("inv_stock_opnames");
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.OpnameNo).HasMaxLength(30).IsRequired();
+        builder.Property(x => x.OpnameDate).HasColumnType("date").IsRequired();
+        builder.Property(x => x.Description).HasColumnType("text");
+        builder.Property(x => x.Status).HasConversion<int>().IsRequired();
+        builder.Property(x => x.ApprovedAt).HasColumnType("timestamptz");
+
+        builder.HasOne(x => x.Warehouse)
+            .WithMany()
+            .HasForeignKey(x => x.WarehouseId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.Location)
+            .WithMany()
+            .HasForeignKey(x => x.LocationId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.CountedByUser)
+            .WithMany()
+            .HasForeignKey(x => x.CountedBy)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.ApprovedByUser)
+            .WithMany()
+            .HasForeignKey(x => x.ApprovedBy)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.Adjustment)
+            .WithMany()
+            .HasForeignKey(x => x.AdjustmentId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasIndex(x => x.OpnameNo).IsUnique();
+        builder.HasIndex(x => x.OpnameDate);
+        builder.HasIndex(x => x.Status);
+        builder.HasIndex(x => x.WarehouseId);
+    }
+
+    private static void ConfigureInvStockOpnameLine(EntityTypeBuilder<InvStockOpnameLine> builder)
+    {
+        builder.ToTable("inv_opname_lines", t =>
+        {
+            t.HasCheckConstraint("ck_inv_opname_lines_qty_system_non_negative", "qty_system >= 0");
+            t.HasCheckConstraint("ck_inv_opname_lines_qty_counted_non_negative", "qty_counted >= 0");
+            t.HasCheckConstraint("ck_inv_opname_lines_unit_cost_non_negative", "unit_cost >= 0");
+        });
+
+        builder.Property(x => x.Id).UseIdentityAlwaysColumn();
+        builder.Property(x => x.LineNo).IsRequired();
+        builder.Property(x => x.QtySystem).HasColumnType("numeric(18,4)").IsRequired();
+        builder.Property(x => x.QtyCounted).HasColumnType("numeric(18,4)").IsRequired();
+        builder.Property(x => x.QtyVariance).HasColumnType("numeric(18,4)").HasComputedColumnSql("qty_counted - qty_system", stored: true);
+        builder.Property(x => x.UnitCost).HasColumnType("numeric(18,4)").IsRequired();
+        builder.Property(x => x.TotalVarianceValue).HasColumnType("numeric(18,4)").HasComputedColumnSql("(qty_counted - qty_system) * unit_cost", stored: true);
+        builder.Property(x => x.Notes).HasColumnType("text");
+
+        builder.HasOne(x => x.StockOpname)
+            .WithMany(x => x.Lines)
+            .HasForeignKey(x => x.StockOpnameId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(x => x.Item)
+            .WithMany()
+            .HasForeignKey(x => x.ItemId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.Location)
+            .WithMany()
+            .HasForeignKey(x => x.LocationId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasIndex(x => x.StockOpnameId);
+        builder.HasIndex(x => x.ItemId);
+        builder.HasIndex(x => x.LocationId);
+        builder.HasIndex(x => new { x.StockOpnameId, x.LineNo }).IsUnique();
+        builder.HasIndex(x => new { x.StockOpnameId, x.ItemId, x.LocationId }).IsUnique();
+    }
+
+    private static void ConfigureInvStockMovement(EntityTypeBuilder<InvStockMovement> builder)
+    {
+        builder.ToTable("inv_stock_movements", t =>
+        {
+            t.HasCheckConstraint("ck_inv_stock_movements_qty_non_negative", "qty_in >= 0 AND qty_out >= 0");
+            t.HasCheckConstraint("ck_inv_stock_movements_unit_cost_non_negative", "unit_cost >= 0");
+        });
+
+        builder.Property(x => x.Id).UseIdentityAlwaysColumn();
+        builder.Property(x => x.MovementDate).HasColumnType("date").IsRequired();
+        builder.Property(x => x.MovementType).HasConversion<int>().IsRequired();
+        builder.Property(x => x.QtyIn).HasColumnType("numeric(18,4)").IsRequired();
+        builder.Property(x => x.QtyOut).HasColumnType("numeric(18,4)").IsRequired();
+        builder.Property(x => x.QtyBalance).HasColumnType("numeric(18,4)").IsRequired();
+        builder.Property(x => x.UnitCost).HasColumnType("numeric(18,4)").IsRequired();
+        builder.Property(x => x.TotalCost).HasColumnType("numeric(18,4)").IsRequired();
+        builder.Property(x => x.SourceTable).HasMaxLength(50).IsRequired();
+        builder.Property(x => x.Notes).HasColumnType("text");
+        builder.Property(x => x.CreatedBy).HasMaxLength(100).IsRequired();
+        builder.Property(x => x.CreatedAt).HasColumnType("timestamptz").IsRequired();
+
+        builder.HasOne(x => x.Item)
+            .WithMany()
+            .HasForeignKey(x => x.ItemId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.Warehouse)
+            .WithMany()
+            .HasForeignKey(x => x.WarehouseId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.Location)
+            .WithMany()
+            .HasForeignKey(x => x.LocationId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasIndex(x => x.MovementDate);
+        builder.HasIndex(x => x.ItemId);
+        builder.HasIndex(x => x.WarehouseId);
+        builder.HasIndex(x => x.LocationId);
+        builder.HasIndex(x => x.MovementType);
+        builder.HasIndex(x => new { x.ItemId, x.WarehouseId, x.LocationId, x.MovementDate });
+        builder.HasIndex(x => new { x.SourceTable, x.SourceId });
+    }
     private static void ApplySoftDeleteQueryFilters(ModelBuilder modelBuilder)
     {
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
@@ -1376,6 +2197,19 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         }
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

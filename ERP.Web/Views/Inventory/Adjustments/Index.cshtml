@@ -1,0 +1,213 @@
+@model ERP.Web.ViewModels.Inventory.InventoryAdjustmentsIndexViewModel
+@using ERP.Domain.Enums.Inventory
+@using ERP.Web.ViewModels.Shared
+@using Microsoft.AspNetCore.Html
+@using System.Globalization
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">@T["Stock Adjustments"]</h1>
+
+        @{
+            var selectedWarehouse = Model.WarehouseIdFilter?.ToString(CultureInfo.InvariantCulture);
+            var selectedReason = Model.ReasonFilter.HasValue ? ((int)Model.ReasonFilter.Value).ToString(CultureInfo.InvariantCulture) : null;
+            var selectedStatus = Model.StatusFilter.HasValue ? ((int)Model.StatusFilter.Value).ToString(CultureInfo.InvariantCulture) : null;
+
+            string LocalizeStatus(TransactionStatus value)
+            {
+                return value switch
+                {
+                    TransactionStatus.Draft => T["Draft"],
+                    TransactionStatus.Confirmed => T["Confirmed"],
+                    TransactionStatus.Cancelled => T["Cancelled"],
+                    _ => value.ToString()
+                };
+            }
+
+            string LocalizeReason(AdjustmentReason value)
+            {
+                return value switch
+                {
+                    AdjustmentReason.DamageOrExpiry => T["Damage Or Expiry"],
+                    AdjustmentReason.DataCorrection => T["Data Correction"],
+                    AdjustmentReason.Theft => T["Theft"],
+                    AdjustmentReason.ProductionWaste => T["Production Waste"],
+                    AdjustmentReason.FoundItem => T["Found Item"],
+                    AdjustmentReason.Other => T["Other"],
+                    _ => value.ToString()
+                };
+            }
+
+            string BuildStatusBadge(TransactionStatus value)
+            {
+                return value switch
+                {
+                    TransactionStatus.Confirmed => $"<span class=\"badge text-bg-success\">{T["Confirmed"]}</span>",
+                    TransactionStatus.Cancelled => $"<span class=\"badge text-bg-secondary\">{T["Cancelled"]}</span>",
+                    _ => $"<span class=\"badge text-bg-warning\">{T["Draft"]}</span>"
+                };
+            }
+
+            var warehouseOptions = Model.WarehouseOptions
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = x.Id.ToString(CultureInfo.InvariantCulture),
+                    Label = x.Label
+                })
+                .ToList();
+
+            var reasonOptions = Enum.GetValues<AdjustmentReason>()
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = ((int)x).ToString(CultureInfo.InvariantCulture),
+                    Label = LocalizeReason(x)
+                })
+                .ToList();
+
+            var statusOptions = Enum.GetValues<TransactionStatus>()
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = ((int)x).ToString(CultureInfo.InvariantCulture),
+                    Label = LocalizeStatus(x)
+                })
+                .ToList();
+
+            var rows = new List<PagedGridRowViewModel>();
+            foreach (var item in Model.Items.Items)
+            {
+                var totalQtyHtml = await Component.InvokeAsync("TextNumber", new { value = item.TotalQuantity, decimals = 2, cssClass = "sinara-text-number-theme" });
+                var totalCostHtml = await Component.InvokeAsync("TextNumber", new { value = item.TotalCost, decimals = 2, cssClass = "sinara-text-number-theme" });
+
+                rows.Add(new PagedGridRowViewModel
+                {
+                    Cells =
+                    [
+                        new PagedGridCellViewModel { Text = item.AdjustmentNo },
+                        new PagedGridCellViewModel { Text = item.AdjustmentDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) },
+                        new PagedGridCellViewModel { Text = item.WarehouseCode },
+                        new PagedGridCellViewModel { Text = LocalizeReason(item.Reason) },
+                        new PagedGridCellViewModel { Html = new HtmlString(BuildStatusBadge(item.Status)) },
+                        new PagedGridCellViewModel { Html = totalQtyHtml, CellClass = "text-end" },
+                        new PagedGridCellViewModel { Html = totalCostHtml, CellClass = "text-end" }
+                    ],
+                    Actions = new PagedGridRowActionViewModel
+                    {
+                        EditUrl = item.Status == TransactionStatus.Draft ? Url.Action("EditAdjustment", "Inventory", new { id = item.Id }) : null,
+                        DeleteUrl = item.Status == TransactionStatus.Draft ? Url.Action("DeleteAdjustment", "Inventory", new { id = item.Id }) : null,
+                        ApproveUrl = item.Status == TransactionStatus.Draft ? Url.Action("ConfirmAdjustment", "Inventory", new { id = item.Id }) : null,
+                        RejectUrl = item.Status == TransactionStatus.Draft ? Url.Action("CancelAdjustment", "Inventory", new { id = item.Id }) : null,
+                        DeleteConfirmMessage = T["Delete this data?"],
+                        ApproveConfirmMessage = T["Confirm this data?"],
+                        RejectConfirmMessage = T["Cancel this data?"]
+                    }
+                });
+            }
+
+            var gridModel = new PagedGridViewModel
+            {
+                Columns =
+                [
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "adjustmentno",
+                        Title = T["Adjustment No"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Text,
+                            QueryKey = "adjustmentNo",
+                            Value = Model.AdjustmentNoFilter,
+                            Placeholder = T["Adjustment No"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "adjustmentdate",
+                        Title = T["Adjustment Date"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.DateRange,
+                            QueryKey = "dateFrom",
+                            QueryKeyTo = "dateTo",
+                            Value = Model.DateFromFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                            ValueTo = Model.DateToFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                            Placeholder = T["From"],
+                            PlaceholderTo = T["To"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "warehousecode",
+                        Title = T["Warehouse"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "warehouseId",
+                            Value = selectedWarehouse,
+                            EmptyOptionLabel = T["All"],
+                            Options = warehouseOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "reason",
+                        Title = T["Reason"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "reason",
+                            Value = selectedReason,
+                            EmptyOptionLabel = T["All"],
+                            Options = reasonOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "status",
+                        Title = T["Status"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "status",
+                            Value = selectedStatus,
+                            EmptyOptionLabel = T["All"],
+                            Options = statusOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel { Key = "totalquantity", Title = T["Total Quantity"], Sortable = false, CellClass = "text-end" },
+                    new PagedGridColumnViewModel { Key = "totalcost", Title = T["Total Cost"], Sortable = false, CellClass = "text-end" }
+                ],
+                Rows = rows,
+                EmptyMessage = T["msg.no_data"],
+                Page = Model.Items.Page,
+                TotalPages = Model.Items.TotalPages,
+                PageSize = Model.PageSize,
+                SortBy = Model.SortBy,
+                SortDirection = Model.SortDirection,
+                EnableSearch = true,
+                SearchValue = Model.Search,
+                SearchPlaceholder = T["Search"] + " " + T["Stock Adjustments"],
+                SearchButtonText = T["common.search"],
+                Actions = new PagedGridActionConfigViewModel
+                {
+                    ActionColumnTitle = T["Action"],
+                    AddUrl = Url.Action("CreateAdjustment", "Inventory"),
+                    AddButtonText = T["common.add_new"],
+                    EditButtonText = T["common.edit"],
+                    ApproveButtonText = T["Confirm"],
+                    RejectButtonText = T["Cancel"],
+                    DeleteButtonText = T["common.delete"],
+                    ApproveConfirmMessage = T["Confirm this data?"],
+                    RejectConfirmMessage = T["Cancel this data?"],
+                    DeleteConfirmMessage = T["Delete this data?"]
+                }
+            };
+        }
+
+        @await Component.InvokeAsync("PagedGrid", gridModel)
+    </div>
+</div>

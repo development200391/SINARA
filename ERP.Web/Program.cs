@@ -14,6 +14,7 @@ builder.Services
     {
         options.ViewLocationFormats.Insert(0, "/Views/HR/{1}/{0}.cshtml");
         options.ViewLocationFormats.Insert(0, "/Views/Config/{1}/{0}.cshtml");
+        options.ViewLocationFormats.Insert(0, "/Views/Inventory/{1}/{0}.cshtml");
     });
 builder.Services.AddHttpContextAccessor();
 
@@ -45,6 +46,13 @@ builder.Services.AddHttpClient<IHrApiClient, HrApiClient>((serviceProvider, clie
 });
 
 builder.Services.AddHttpClient<IFinanceApiClient, FinanceApiClient>((serviceProvider, client) =>
+{
+    var options = serviceProvider.GetRequiredService<IOptions<ApiSettings>>().Value;
+    var baseUrl = options.BaseUrl?.TrimEnd('/') ?? "http://localhost:8081";
+    client.BaseAddress = new Uri($"{baseUrl}/");
+});
+
+builder.Services.AddHttpClient<IInventoryApiClient, InventoryApiClient>((serviceProvider, client) =>
 {
     var options = serviceProvider.GetRequiredService<IOptions<ApiSettings>>().Value;
     var baseUrl = options.BaseUrl?.TrimEnd('/') ?? "http://localhost:8081";

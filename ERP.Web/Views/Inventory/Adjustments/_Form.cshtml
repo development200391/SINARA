@@ -1,0 +1,110 @@
+@model ERP.Web.ViewModels.Inventory.InventoryAdjustmentEditViewModel
+@using ERP.Domain.Enums.Inventory
+
+@{
+    string LocalizeReason(AdjustmentReason value)
+    {
+        return value switch
+        {
+            AdjustmentReason.DamageOrExpiry => T["Damage Or Expiry"],
+            AdjustmentReason.DataCorrection => T["Data Correction"],
+            AdjustmentReason.Theft => T["Theft"],
+            AdjustmentReason.ProductionWaste => T["Production Waste"],
+            AdjustmentReason.FoundItem => T["Found Item"],
+            AdjustmentReason.Other => T["Other"],
+            _ => value.ToString()
+        };
+    }
+}
+
+<div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+<div class="row g-3">
+    <div class="col-md-4">
+        <label asp-for="AdjustmentDate" class="form-label">@T["Adjustment Date"]</label>
+        <input asp-for="AdjustmentDate" type="date" class="form-control" />
+        <span asp-validation-for="AdjustmentDate" class="text-danger small"></span>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="WarehouseId" class="form-label">@T["Warehouse"]</label>
+        <select asp-for="WarehouseId" class="form-select">
+            <option value="">@T["Select Warehouse"]</option>
+            @foreach (var option in Model.WarehouseOptions)
+            {
+                <option value="@option.Id">@option.Label</option>
+            }
+        </select>
+        <span asp-validation-for="WarehouseId" class="text-danger small"></span>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="LocationId" class="form-label">@T["Location"]</label>
+        <select asp-for="LocationId" class="form-select">
+            <option value="">@T["All"]</option>
+            @foreach (var option in Model.LocationOptions)
+            {
+                <option value="@option.Id">@option.Label</option>
+            }
+        </select>
+        <span asp-validation-for="LocationId" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-4">
+        <label asp-for="Reason" class="form-label">@T["Reason"]</label>
+        <select asp-for="Reason" class="form-select">
+            @foreach (var option in Enum.GetValues<AdjustmentReason>())
+            {
+                <option value="@option">@LocalizeReason(option)</option>
+            }
+        </select>
+        <span asp-validation-for="Reason" class="text-danger small"></span>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="ReferenceNo" class="form-label">@T["Reference No"]</label>
+        <input asp-for="ReferenceNo" class="form-control" />
+        <span asp-validation-for="ReferenceNo" class="text-danger small"></span>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="Description" class="form-label">@T["Description"]</label>
+        <input asp-for="Description" class="form-control" />
+        <span asp-validation-for="Description" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-4">
+        <label asp-for="ItemId" class="form-label">@T["Item"]</label>
+        <select asp-for="ItemId" class="form-select">
+            <option value="">@T["Select Item"]</option>
+            @foreach (var option in Model.ItemOptions)
+            {
+                <option value="@option.Id">@option.Label</option>
+            }
+        </select>
+        <span asp-validation-for="ItemId" class="text-danger small"></span>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="UomId" class="form-label">@T["UOM"]</label>
+        <select asp-for="UomId" class="form-select">
+            <option value="">@T["All"]</option>
+            @foreach (var option in Model.UomOptions)
+            {
+                <option value="@option.Id">@option.Label</option>
+            }
+        </select>
+        <span asp-validation-for="UomId" class="text-danger small"></span>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="QtyAdjustment" class="form-label">@T["Qty Adjustment"]</label>
+        <input asp-for="QtyAdjustment" class="form-control text-end sinara-text-number sinara-text-number-theme sinara-text-number-input" type="text" inputmode="decimal" data-text-number-decimals="2" autocomplete="off" />
+        <span asp-validation-for="QtyAdjustment" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-4">
+        <label asp-for="UnitCost" class="form-label">@T["Unit Cost"]</label>
+        <input asp-for="UnitCost" class="form-control text-end sinara-text-number sinara-text-number-theme sinara-text-number-input" type="text" inputmode="decimal" data-text-number-decimals="2" autocomplete="off" />
+        <span asp-validation-for="UnitCost" class="text-danger small"></span>
+    </div>
+    <div class="col-md-8">
+        <label asp-for="LineNotes" class="form-label">@T["Line Notes"]</label>
+        <input asp-for="LineNotes" class="form-control" />
+        <span asp-validation-for="LineNotes" class="text-danger small"></span>
+    </div>
+</div>

@@ -1,0 +1,22 @@
+﻿@model ERP.Web.ViewModels.Inventory.InventoryBrandEditViewModel
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">@T["Edit Brand"]</h1>
+
+        <form asp-action="EditBrand" asp-controller="Inventory" asp-route-id="@Model.Id" method="post" novalidate>
+            @Html.AntiForgeryToken()
+            <partial name="~/Views/Inventory/Brands/_Form.cshtml" model="Model" />
+
+            <div class="mt-4 d-flex gap-2">
+                <button type="submit" class="btn btn-primary">@T["common.save"]</button>
+                <a asp-action="Brands" asp-controller="Inventory" class="btn btn-outline-secondary">@T["common.cancel"]</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
+

@@ -1,0 +1,304 @@
+﻿@model ERP.Web.ViewModels.Inventory.InventoryItemsIndexViewModel
+@using ERP.Domain.Enums.Inventory
+@using ERP.Web.ViewModels.Shared
+@using Microsoft.AspNetCore.Html
+@using System.Globalization
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h1 class="h5 mb-0">@(Model.LowStockOnly ? T["Low Stock Items"] : T["Items"])</h1>
+            @if (Model.LowStockOnly)
+            {
+                <a asp-action="Items" asp-controller="Inventory" class="btn btn-outline-secondary btn-sm">@T["Back"]</a>
+            }
+            else
+            {
+                <a asp-action="Items" asp-controller="Inventory" asp-route-lowStockOnly="true" class="btn btn-outline-danger btn-sm">@T["Low Stock"]</a>
+            }
+        </div>
+
+        @{
+            var selectedCategory = Model.CategoryIdFilter?.ToString(CultureInfo.InvariantCulture);
+            var selectedBrand = Model.BrandIdFilter?.ToString(CultureInfo.InvariantCulture);
+            var selectedType = Model.TypeFilter.HasValue ? ((int)Model.TypeFilter.Value).ToString(CultureInfo.InvariantCulture) : null;
+            var selectedStatus = Model.StatusFilter.HasValue ? ((int)Model.StatusFilter.Value).ToString(CultureInfo.InvariantCulture) : null;
+            var selectedIsActive = Model.IsActiveFilter.HasValue ? (Model.IsActiveFilter.Value ? "true" : "false") : null;
+
+            string BuildActiveBadge(bool isActive)
+            {
+                return isActive
+                    ? $"<span class=\"badge text-bg-success\">{T["Active"]}</span>"
+                    : $"<span class=\"badge text-bg-secondary\">{T["Inactive"]}</span>";
+            }
+
+            string LocalizeType(ItemType type)
+            {
+                return type switch
+                {
+                    ItemType.Product => T["Product"],
+                    ItemType.RawMaterial => T["Raw Material"],
+                    ItemType.Asset => T["Asset"],
+                    ItemType.Consumable => T["Consumable"],
+                    ItemType.Service => T["Service"],
+                    _ => type.ToString()
+                };
+            }
+
+            string LocalizeStatus(ItemStatus status)
+            {
+                return status switch
+                {
+                    ItemStatus.Active => T["Active"],
+                    ItemStatus.Discontinued => T["Discontinued"],
+                    ItemStatus.Draft => T["Draft"],
+                    _ => status.ToString()
+                };
+            }
+
+            var categoryOptions = Model.Categories.Select(x => new PagedGridFilterOptionViewModel
+            {
+                Value = x.Id.ToString(CultureInfo.InvariantCulture),
+                Label = x.Label
+            }).ToList();
+
+            var brandOptions = Model.Brands.Select(x => new PagedGridFilterOptionViewModel
+            {
+                Value = x.Id.ToString(CultureInfo.InvariantCulture),
+                Label = x.Label
+            }).ToList();
+
+            var typeOptions = new List<PagedGridFilterOptionViewModel>
+            {
+                new() { Value = ((int)ItemType.Product).ToString(CultureInfo.InvariantCulture), Label = T["Product"] },
+                new() { Value = ((int)ItemType.RawMaterial).ToString(CultureInfo.InvariantCulture), Label = T["Raw Material"] },
+                new() { Value = ((int)ItemType.Asset).ToString(CultureInfo.InvariantCulture), Label = T["Asset"] },
+                new() { Value = ((int)ItemType.Consumable).ToString(CultureInfo.InvariantCulture), Label = T["Consumable"] },
+                new() { Value = ((int)ItemType.Service).ToString(CultureInfo.InvariantCulture), Label = T["Service"] }
+            };
+
+            var statusOptions = new List<PagedGridFilterOptionViewModel>
+            {
+                new() { Value = ((int)ItemStatus.Active).ToString(CultureInfo.InvariantCulture), Label = T["Active"] },
+                new() { Value = ((int)ItemStatus.Discontinued).ToString(CultureInfo.InvariantCulture), Label = T["Discontinued"] },
+                new() { Value = ((int)ItemStatus.Draft).ToString(CultureInfo.InvariantCulture), Label = T["Draft"] }
+            };
+
+            var activeOptions = new List<PagedGridFilterOptionViewModel>
+            {
+                new() { Value = "true", Label = T["Active"] },
+                new() { Value = "false", Label = T["Inactive"] }
+            };
+
+            var rows = new List<PagedGridRowViewModel>();
+            foreach (var item in Model.Items.Items)
+            {
+                var minStockHtml = await Component.InvokeAsync("TextNumber", new { value = item.MinStock, decimals = 2, cssClass = "sinara-text-number-theme" });
+                var reorderHtml = await Component.InvokeAsync("TextNumber", new { value = item.ReorderPoint, decimals = 2, cssClass = "sinara-text-number-theme" });
+                var qtyHtml = await Component.InvokeAsync("TextNumber", new { value = item.QtyAvailable, decimals = 2, cssClass = "sinara-text-number-theme" });
+
+                rows.Add(new PagedGridRowViewModel
+                {
+                    Cells =
+                    [
+                        new PagedGridCellViewModel { Text = item.ItemCode },
+                        new PagedGridCellViewModel { Text = string.IsNullOrWhiteSpace(item.Sku) ? "-" : item.Sku },
+                        new PagedGridCellViewModel { Text = item.Name },
+                        new PagedGridCellViewModel { Text = item.CategoryName },
+                        new PagedGridCellViewModel { Text = string.IsNullOrWhiteSpace(item.BrandName) ? "-" : item.BrandName },
+                        new PagedGridCellViewModel { Text = LocalizeType(item.Type) },
+                        new PagedGridCellViewModel { Text = LocalizeStatus(item.Status) },
+                        new PagedGridCellViewModel { Html = minStockHtml, CellClass = "text-end" },
+                        new PagedGridCellViewModel { Html = reorderHtml, CellClass = "text-end" },
+                        new PagedGridCellViewModel { Html = qtyHtml, CellClass = "text-end" },
+                        new PagedGridCellViewModel { Html = new HtmlString(BuildActiveBadge(item.IsActive)) }
+                    ],
+                    Actions = new PagedGridRowActionViewModel
+                    {
+                        EditUrl = Url.Action("EditItem", "Inventory", new { id = item.Id }),
+                        DeleteUrl = Url.Action("DeleteItem", "Inventory", new { id = item.Id }),
+                        DeleteConfirmMessage = T["Delete this data?"]
+                    }
+                });
+            }
+
+            var gridModel = new PagedGridViewModel
+            {
+                Columns =
+                [
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "itemcode",
+                        Title = T["Item Code"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Text,
+                            QueryKey = "itemCode",
+                            Value = Model.ItemCodeFilter,
+                            Placeholder = T["Filter code"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "sku",
+                        Title = T["SKU"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Text,
+                            QueryKey = "sku",
+                            Value = Model.SkuFilter,
+                            Placeholder = T["SKU"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "name",
+                        Title = T["Name"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Text,
+                            QueryKey = "name",
+                            Value = Model.NameFilter,
+                            Placeholder = T["Filter name"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "categoryname",
+                        Title = T["Category"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "categoryId",
+                            Value = selectedCategory,
+                            EmptyOptionLabel = T["All"],
+                            Options = categoryOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "brandname",
+                        Title = T["Brand"],
+                        Sortable = false,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "brandId",
+                            Value = selectedBrand,
+                            EmptyOptionLabel = T["All"],
+                            Options = brandOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "type",
+                        Title = T["Type"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "type",
+                            Value = selectedType,
+                            EmptyOptionLabel = T["All Type"],
+                            Options = typeOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "status",
+                        Title = T["Status"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "status",
+                            Value = selectedStatus,
+                            EmptyOptionLabel = T["All Status"],
+                            Options = statusOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "minstock",
+                        Title = T["Min Stock"],
+                        Sortable = true,
+                        CellClass = "text-end",
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.NumberRange,
+                            QueryKey = "minStockFrom",
+                            QueryKeyTo = "minStockTo",
+                            Value = Model.MinStockFromFilter?.ToString(CultureInfo.InvariantCulture),
+                            ValueTo = Model.MinStockToFilter?.ToString(CultureInfo.InvariantCulture),
+                            Placeholder = T["From"],
+                            PlaceholderTo = T["To"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "reorderpoint",
+                        Title = T["Reorder Point"],
+                        Sortable = true,
+                        CellClass = "text-end",
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.NumberRange,
+                            QueryKey = "reorderPointFrom",
+                            QueryKeyTo = "reorderPointTo",
+                            Value = Model.ReorderPointFromFilter?.ToString(CultureInfo.InvariantCulture),
+                            ValueTo = Model.ReorderPointToFilter?.ToString(CultureInfo.InvariantCulture),
+                            Placeholder = T["From"],
+                            PlaceholderTo = T["To"]
+                        }
+                    },
+                    new PagedGridColumnViewModel { Key = "qtyavailable", Title = T["Qty Available"], Sortable = true, CellClass = "text-end" },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "isactive",
+                        Title = T["Active"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "isActive",
+                            Value = selectedIsActive,
+                            EmptyOptionLabel = T["All"],
+                            Options = activeOptions
+                        }
+                    }
+                ],
+                Rows = rows,
+                EmptyMessage = T["msg.no_data"],
+                Page = Model.Items.Page,
+                TotalPages = Model.Items.TotalPages,
+                PageSize = Model.PageSize,
+                SortBy = Model.SortBy,
+                SortDirection = Model.SortDirection,
+                EnableSearch = true,
+                SearchValue = Model.Search,
+                SearchPlaceholder = T["Search"] + " " + T["Items"],
+                SearchButtonText = T["common.search"],
+                SearchQueryKey = "search",
+                RouteValues = new Dictionary<string, string?>
+                {
+                    ["lowStockOnly"] = Model.LowStockOnly ? "true" : null
+                },
+                Actions = new PagedGridActionConfigViewModel
+                {
+                    ActionColumnTitle = T["Action"],
+                    AddUrl = Url.Action("CreateItem", "Inventory"),
+                    AddButtonText = T["common.add_new"],
+                    EditButtonText = T["common.edit"],
+                    DeleteButtonText = T["common.delete"],
+                    DeleteConfirmMessage = T["Delete this data?"]
+                }
+            };
+        }
+
+        @await Component.InvokeAsync("PagedGrid", gridModel)
+    </div>
+</div>

@@ -1,0 +1,39 @@
+@model ERP.Web.ViewModels.Inventory.InventoryOpnameEditViewModel
+
+<div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+<div class="row g-3">
+    <div class="col-md-4">
+        <label asp-for="OpnameDate" class="form-label">@T["Opname Date"]</label>
+        <input asp-for="OpnameDate" type="date" class="form-control" />
+        <span asp-validation-for="OpnameDate" class="text-danger small"></span>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="WarehouseId" class="form-label">@T["Warehouse"]</label>
+        <select asp-for="WarehouseId" class="form-select">
+            <option value="">@T["Select Warehouse"]</option>
+            @foreach (var option in Model.WarehouseOptions)
+            {
+                <option value="@option.Id">@option.Label</option>
+            }
+        </select>
+        <span asp-validation-for="WarehouseId" class="text-danger small"></span>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="LocationId" class="form-label">@T["Location"]</label>
+        <select asp-for="LocationId" class="form-select">
+            <option value="">@T["All"]</option>
+            @foreach (var option in Model.LocationOptions)
+            {
+                <option value="@option.Id">@option.Label</option>
+            }
+        </select>
+        <span asp-validation-for="LocationId" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-12">
+        <label asp-for="Description" class="form-label">@T["Description"]</label>
+        <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+        <span asp-validation-for="Description" class="text-danger small"></span>
+    </div>
+</div>

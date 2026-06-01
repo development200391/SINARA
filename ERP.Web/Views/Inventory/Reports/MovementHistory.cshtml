@@ -1,0 +1,168 @@
+@model ERP.Web.ViewModels.Inventory.InventoryMovementReportViewModel
+@using ERP.Domain.Enums.Inventory
+@using ERP.Web.ViewModels.Shared
+@using System.Globalization
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">@T["Movement History"]</h1>
+
+        @{
+            var selectedWarehouse = Model.WarehouseIdFilter?.ToString(CultureInfo.InvariantCulture);
+            var selectedItem = Model.ItemIdFilter?.ToString(CultureInfo.InvariantCulture);
+            var selectedMovementType = Model.MovementTypeFilter.HasValue ? ((int)Model.MovementTypeFilter.Value).ToString(CultureInfo.InvariantCulture) : null;
+
+            string LocalizeMovementType(StockMovementType value)
+            {
+                return value switch
+                {
+                    StockMovementType.GoodsReceipt => T["Goods Receipt"],
+                    StockMovementType.GoodsIssue => T["Goods Issue"],
+                    StockMovementType.TransferIn => T["Transfer In"],
+                    StockMovementType.TransferOut => T["Transfer Out"],
+                    StockMovementType.AdjustmentIn => T["Adjustment In"],
+                    StockMovementType.AdjustmentOut => T["Adjustment Out"],
+                    StockMovementType.OpnameIn => T["Opname In"],
+                    StockMovementType.OpnameOut => T["Opname Out"],
+                    StockMovementType.OpeningBalance => T["Opening Balance"],
+                    _ => value.ToString()
+                };
+            }
+
+            var warehouseOptions = Model.WarehouseOptions
+                .Select(x => new PagedGridFilterOptionViewModel { Value = x.Id.ToString(CultureInfo.InvariantCulture), Label = x.Label })
+                .ToList();
+            var itemOptions = Model.ItemOptions
+                .Select(x => new PagedGridFilterOptionViewModel { Value = x.Id.ToString(CultureInfo.InvariantCulture), Label = x.Label })
+                .ToList();
+            var movementTypeOptions = Enum.GetValues<StockMovementType>()
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = ((int)x).ToString(CultureInfo.InvariantCulture),
+                    Label = LocalizeMovementType(x)
+                })
+                .ToList();
+
+            var rows = new List<PagedGridRowViewModel>();
+            foreach (var item in Model.Items.Items)
+            {
+                var qtyInHtml = await Component.InvokeAsync("TextNumber", new { value = item.QtyIn, decimals = 2, cssClass = "sinara-text-number-theme" });
+                var qtyOutHtml = await Component.InvokeAsync("TextNumber", new { value = item.QtyOut, decimals = 2, cssClass = "sinara-text-number-theme" });
+                var qtyBalanceHtml = await Component.InvokeAsync("TextNumber", new { value = item.QtyBalance, decimals = 2, cssClass = "sinara-text-number-theme" });
+                var unitCostHtml = await Component.InvokeAsync("TextNumber", new { value = item.UnitCost, decimals = 2, cssClass = "sinara-text-number-theme" });
+                var totalCostHtml = await Component.InvokeAsync("TextNumber", new { value = item.TotalCost, decimals = 2, cssClass = "sinara-text-number-theme" });
+
+                rows.Add(new PagedGridRowViewModel
+                {
+                    Cells =
+                    [
+                        new PagedGridCellViewModel { Text = item.MovementDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) },
+                        new PagedGridCellViewModel { Text = item.ItemCode },
+                        new PagedGridCellViewModel { Text = item.ItemName },
+                        new PagedGridCellViewModel { Text = item.WarehouseCode },
+                        new PagedGridCellViewModel { Text = string.IsNullOrWhiteSpace(item.LocationCode) ? "-" : item.LocationCode },
+                        new PagedGridCellViewModel { Text = LocalizeMovementType(item.MovementType) },
+                        new PagedGridCellViewModel { Html = qtyInHtml, CellClass = "text-end" },
+                        new PagedGridCellViewModel { Html = qtyOutHtml, CellClass = "text-end" },
+                        new PagedGridCellViewModel { Html = qtyBalanceHtml, CellClass = "text-end" },
+                        new PagedGridCellViewModel { Html = unitCostHtml, CellClass = "text-end" },
+                        new PagedGridCellViewModel { Html = totalCostHtml, CellClass = "text-end" },
+                        new PagedGridCellViewModel { Text = item.SourceTable },
+                        new PagedGridCellViewModel { Text = item.SourceId.ToString(CultureInfo.InvariantCulture) }
+                    ]
+                });
+            }
+
+            var gridModel = new PagedGridViewModel
+            {
+                Columns =
+                [
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "movementdate",
+                        Title = T["Movement Date"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.DateRange,
+                            QueryKey = "dateFrom",
+                            QueryKeyTo = "dateTo",
+                            Value = Model.DateFromFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                            ValueTo = Model.DateToFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                            Placeholder = T["From"],
+                            PlaceholderTo = T["To"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "itemcode",
+                        Title = T["Item Code"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "itemId",
+                            Value = selectedItem,
+                            EmptyOptionLabel = T["All"],
+                            Options = itemOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel { Key = "itemname", Title = T["Item Name"], Sortable = false },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "warehousecode",
+                        Title = T["Warehouse"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "warehouseId",
+                            Value = selectedWarehouse,
+                            EmptyOptionLabel = T["All"],
+                            Options = warehouseOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel { Key = "location", Title = T["Location"], Sortable = false },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "movementtype",
+                        Title = T["Movement Type"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "movementType",
+                            Value = selectedMovementType,
+                            EmptyOptionLabel = T["All"],
+                            Options = movementTypeOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel { Key = "qtyin", Title = T["Qty In"], Sortable = false, CellClass = "text-end" },
+                    new PagedGridColumnViewModel { Key = "qtyout", Title = T["Qty Out"], Sortable = false, CellClass = "text-end" },
+                    new PagedGridColumnViewModel { Key = "qtybalance", Title = T["Qty Balance"], Sortable = false, CellClass = "text-end" },
+                    new PagedGridColumnViewModel { Key = "unitcost", Title = T["Unit Cost"], Sortable = false, CellClass = "text-end" },
+                    new PagedGridColumnViewModel { Key = "totalcost", Title = T["Total Cost"], Sortable = false, CellClass = "text-end" },
+                    new PagedGridColumnViewModel { Key = "sourcetable", Title = T["Source Table"], Sortable = false },
+                    new PagedGridColumnViewModel { Key = "sourceid", Title = T["Source ID"], Sortable = false }
+                ],
+                Rows = rows,
+                EmptyMessage = T["msg.no_data"],
+                Page = Model.Items.Page,
+                TotalPages = Model.Items.TotalPages,
+                PageSize = Model.PageSize,
+                SortBy = Model.SortBy,
+                SortDirection = Model.SortDirection,
+                EnableSearch = true,
+                SearchValue = Model.Search,
+                SearchPlaceholder = T["Search"] + " " + T["Movement History"],
+                SearchButtonText = T["common.search"],
+                Actions = new PagedGridActionConfigViewModel
+                {
+                    ActionColumnTitle = T["Action"]
+                }
+            };
+        }
+
+        @await Component.InvokeAsync("PagedGrid", gridModel)
+    </div>
+</div>

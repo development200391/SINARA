@@ -1,0 +1,52 @@
+﻿@model ERP.Web.ViewModels.Inventory.InventoryItemConversionEditViewModel
+
+<div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+<div class="row g-3">
+    <div class="col-md-6">
+        <label asp-for="ItemId" class="form-label">@T["Item"]</label>
+        <select asp-for="ItemId" class="form-select">
+            <option value="">@T["Select Item"]</option>
+            @foreach (var option in Model.ItemOptions)
+            {
+                <option value="@option.Id">@option.Label</option>
+            }
+        </select>
+        <span asp-validation-for="ItemId" class="text-danger small"></span>
+    </div>
+    <div class="col-md-3">
+        <label asp-for="FromUomId" class="form-label">@T["From UOM"]</label>
+        <select asp-for="FromUomId" class="form-select">
+            <option value="">@T["Select UOM"]</option>
+            @foreach (var option in Model.UomOptions)
+            {
+                <option value="@option.Id">@option.Label</option>
+            }
+        </select>
+        <span asp-validation-for="FromUomId" class="text-danger small"></span>
+    </div>
+    <div class="col-md-3">
+        <label asp-for="ToUomId" class="form-label">@T["To UOM"]</label>
+        <select asp-for="ToUomId" class="form-select">
+            <option value="">@T["Select UOM"]</option>
+            @foreach (var option in Model.UomOptions)
+            {
+                <option value="@option.Id">@option.Label</option>
+            }
+        </select>
+        <span asp-validation-for="ToUomId" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-4">
+        <label asp-for="ConversionFactor" class="form-label">@T["Conversion Factor"]</label>
+        <input asp-for="ConversionFactor" class="form-control text-end sinara-text-number sinara-text-number-theme sinara-text-number-input" type="text" inputmode="decimal" data-text-number-decimals="6" autocomplete="off" />
+        <span asp-validation-for="ConversionFactor" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-4">
+        <div class="form-check mt-4">
+            <input asp-for="IsActive" class="form-check-input" />
+            <label asp-for="IsActive" class="form-check-label">@T["Active"]</label>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,196 @@
+@model ERP.Web.ViewModels.Inventory.InventoryOpnamesIndexViewModel
+@using ERP.Domain.Enums.Inventory
+@using ERP.Web.ViewModels.Shared
+@using Microsoft.AspNetCore.Html
+@using System.Globalization
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">@T["Stock Opnames"]</h1>
+
+        @{
+            var selectedWarehouse = Model.WarehouseIdFilter?.ToString(CultureInfo.InvariantCulture);
+            var selectedStatus = Model.StatusFilter.HasValue ? ((int)Model.StatusFilter.Value).ToString(CultureInfo.InvariantCulture) : null;
+
+            string LocalizeStatus(OpnameStatus value)
+            {
+                return value switch
+                {
+                    OpnameStatus.Draft => T["Draft"],
+                    OpnameStatus.InProgress => T["In Progress"],
+                    OpnameStatus.Completed => T["Completed"],
+                    OpnameStatus.Cancelled => T["Cancelled"],
+                    _ => value.ToString()
+                };
+            }
+
+            string BuildStatusBadge(OpnameStatus value)
+            {
+                return value switch
+                {
+                    OpnameStatus.Completed => $"<span class=\"badge text-bg-success\">{T["Completed"]}</span>",
+                    OpnameStatus.Cancelled => $"<span class=\"badge text-bg-secondary\">{T["Cancelled"]}</span>",
+                    OpnameStatus.InProgress => $"<span class=\"badge text-bg-info\">{T["In Progress"]}</span>",
+                    _ => $"<span class=\"badge text-bg-warning\">{T["Draft"]}</span>"
+                };
+            }
+
+            var warehouseOptions = Model.WarehouseOptions
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = x.Id.ToString(CultureInfo.InvariantCulture),
+                    Label = x.Label
+                })
+                .ToList();
+
+            var statusOptions = Enum.GetValues<OpnameStatus>()
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = ((int)x).ToString(CultureInfo.InvariantCulture),
+                    Label = LocalizeStatus(x)
+                })
+                .ToList();
+
+            var rows = new List<PagedGridRowViewModel>();
+            foreach (var item in Model.Items.Items)
+            {
+                var totalVarianceHtml = await Component.InvokeAsync("TextNumber", new { value = item.TotalVarianceValue, decimals = 2, cssClass = "sinara-text-number-theme" });
+
+                string? processUrl = null;
+                string processConfirmMessage = T["Process this data?"];
+                string? cancelUrl = null;
+
+                if (item.Status == OpnameStatus.Draft)
+                {
+                    processUrl = Url.Action("StartOpname", "Inventory", new { id = item.Id });
+                    processConfirmMessage = T["Start this data?"];
+                    cancelUrl = Url.Action("CancelOpname", "Inventory", new { id = item.Id });
+                }
+                else if (item.Status == OpnameStatus.InProgress)
+                {
+                    processUrl = Url.Action("CompleteOpname", "Inventory", new { id = item.Id });
+                    processConfirmMessage = T["Complete this data?"];
+                    cancelUrl = Url.Action("CancelOpname", "Inventory", new { id = item.Id });
+                }
+                else if (item.Status == OpnameStatus.Completed)
+                {
+                    processUrl = Url.Action("ApproveOpname", "Inventory", new { id = item.Id });
+                    processConfirmMessage = T["Approve this data?"];
+                }
+
+                rows.Add(new PagedGridRowViewModel
+                {
+                    Cells =
+                    [
+                        new PagedGridCellViewModel { Text = item.OpnameNo },
+                        new PagedGridCellViewModel { Text = item.OpnameDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) },
+                        new PagedGridCellViewModel { Text = item.WarehouseCode },
+                        new PagedGridCellViewModel { Text = string.IsNullOrWhiteSpace(item.LocationCode) ? "-" : item.LocationCode },
+                        new PagedGridCellViewModel { Html = new HtmlString(BuildStatusBadge(item.Status)) },
+                        new PagedGridCellViewModel { Html = totalVarianceHtml, CellClass = "text-end" },
+                        new PagedGridCellViewModel { Text = item.AdjustmentId.HasValue ? item.AdjustmentId.Value.ToString(CultureInfo.InvariantCulture) : "-" }
+                    ],
+                    Actions = new PagedGridRowActionViewModel
+                    {
+                        EditUrl = item.Status == OpnameStatus.Draft ? Url.Action("EditOpname", "Inventory", new { id = item.Id }) : null,
+                        ApproveUrl = processUrl,
+                        RejectUrl = cancelUrl,
+                        ApproveConfirmMessage = processConfirmMessage,
+                        RejectConfirmMessage = T["Cancel this data?"]
+                    }
+                });
+            }
+
+            var gridModel = new PagedGridViewModel
+            {
+                Columns =
+                [
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "opnameno",
+                        Title = T["Opname No"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Text,
+                            QueryKey = "opnameNo",
+                            Value = Model.OpnameNoFilter,
+                            Placeholder = T["Opname No"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "opnamedate",
+                        Title = T["Opname Date"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.DateRange,
+                            QueryKey = "dateFrom",
+                            QueryKeyTo = "dateTo",
+                            Value = Model.DateFromFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                            ValueTo = Model.DateToFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                            Placeholder = T["From"],
+                            PlaceholderTo = T["To"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "warehousecode",
+                        Title = T["Warehouse"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "warehouseId",
+                            Value = selectedWarehouse,
+                            EmptyOptionLabel = T["All"],
+                            Options = warehouseOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel { Key = "locationcode", Title = T["Location"], Sortable = false },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "status",
+                        Title = T["Status"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "status",
+                            Value = selectedStatus,
+                            EmptyOptionLabel = T["All"],
+                            Options = statusOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel { Key = "totalvariance", Title = T["Total Variance Value"], Sortable = false, CellClass = "text-end" },
+                    new PagedGridColumnViewModel { Key = "adjustment", Title = T["Adjustment"] }
+                ],
+                Rows = rows,
+                EmptyMessage = T["msg.no_data"],
+                Page = Model.Items.Page,
+                TotalPages = Model.Items.TotalPages,
+                PageSize = Model.PageSize,
+                SortBy = Model.SortBy,
+                SortDirection = Model.SortDirection,
+                EnableSearch = true,
+                SearchValue = Model.Search,
+                SearchPlaceholder = T["Search"] + " " + T["Stock Opnames"],
+                SearchButtonText = T["common.search"],
+                Actions = new PagedGridActionConfigViewModel
+                {
+                    ActionColumnTitle = T["Action"],
+                    AddUrl = Url.Action("CreateOpname", "Inventory"),
+                    AddButtonText = T["common.add_new"],
+                    EditButtonText = T["common.edit"],
+                    ApproveButtonText = T["Process"],
+                    RejectButtonText = T["Cancel"],
+                    ApproveConfirmMessage = T["Process this data?"],
+                    RejectConfirmMessage = T["Cancel this data?"]
+                }
+            };
+        }
+
+        @await Component.InvokeAsync("PagedGrid", gridModel)
+    </div>
+</div>

@@ -1,9 +1,11 @@
-using ERP.Application.Services;
+﻿using ERP.Application.Services;
 using ERP.Domain.Entities.Config;
 using ERP.Domain.Entities.HR;
 using ERP.Domain.Entities.Finance;
+using ERP.Domain.Entities.Inventory;
 using ERP.Domain.Entities.System;
 using ERP.Domain.Enums;
+using ERP.Domain.Enums.Inventory;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -21,9 +23,11 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         await SeedLeaveTypesAsync(now, ct);
         await SeedAttendanceSettingAsync(now, ct);
         await SeedFinanceMasterDataAsync(now, ct);
+        await SeedInventoryMasterDataAsync(now, ct);
         await SeedAdminUserAsync(now, ct);
         await SeedMenusAsync(now, ct);
         await SeedSuperAdminPermissionsAsync(ct);
+        await SeedInventoryRolePermissionsAsync(ct);
     }
 
     private async Task SeedModulesAsync(DateTimeOffset now, CancellationToken ct)
@@ -31,6 +35,7 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         await EnsureModuleAsync("Human Resources", "HR", "bi-people", 1, now, ct);
         await EnsureModuleAsync("System Configuration", "CFG", "bi-gear", 2, now, ct);
         await EnsureModuleAsync("Finance", "FIN", "bi-cash-coin", 3, now, ct);
+        await EnsureModuleAsync("Inventory", "INV", "bi-box-seam", 4, now, ct);
     }
 
     private async Task SeedRolesAsync(DateTimeOffset now, CancellationToken ct)
@@ -40,6 +45,9 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
             "Super Admin",
             "HR Manager",
             "HR Staff",
+            "Inventory Manager",
+            "Gudang Staff",
+            "Finance Staff",
             "Employee",
             "Viewer"
         };
@@ -174,6 +182,7 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         await EnsureAccountAsync("1120", "Piutang Lain-lain", group1100.Id, FinanceAccountType.Asset, FinanceNormalBalance.Debit, false, acc1100.Id, null, false, null, null, "IDR", true, now, ct);
         await EnsureAccountAsync("1130", "Persekot/Uang Muka", group1100.Id, FinanceAccountType.Asset, FinanceNormalBalance.Debit, false, acc1100.Id, null, false, null, null, "IDR", true, now, ct);
         await EnsureAccountAsync("1140", "PPN Masukan", group1100.Id, FinanceAccountType.Asset, FinanceNormalBalance.Debit, false, acc1100.Id, null, false, null, null, "IDR", true, now, ct);
+        await EnsureAccountAsync("1150", "Persediaan Barang", group1100.Id, FinanceAccountType.Asset, FinanceNormalBalance.Debit, false, acc1100.Id, null, false, null, null, "IDR", true, now, ct);
 
         var acc1200 = await EnsureAccountAsync("1200", "Aset Tidak Lancar", group1200.Id, FinanceAccountType.Asset, FinanceNormalBalance.Debit, true, acc1000.Id, null, false, null, null, "IDR", true, now, ct);
         await EnsureAccountAsync("1201", "Aset Tetap", group1200.Id, FinanceAccountType.Asset, FinanceNormalBalance.Debit, false, acc1200.Id, null, false, null, null, "IDR", true, now, ct);
@@ -205,6 +214,9 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         var acc5104 = await EnsureAccountAsync("5104", "Beban Operasional", group5000.Id, FinanceAccountType.Expense, FinanceNormalBalance.Debit, false, acc5000.Id, null, false, null, null, "IDR", true, now, ct);
         var acc5105 = await EnsureAccountAsync("5105", "Beban Penyusutan", group5000.Id, FinanceAccountType.Expense, FinanceNormalBalance.Debit, false, acc5000.Id, null, false, null, null, "IDR", true, now, ct);
         await EnsureAccountAsync("5106", "Beban Pajak Lain", group5000.Id, FinanceAccountType.Expense, FinanceNormalBalance.Debit, false, acc5000.Id, null, false, null, null, "IDR", true, now, ct);
+        await EnsureAccountAsync("5201", "HPP/Beban Pemakaian", group5000.Id, FinanceAccountType.Expense, FinanceNormalBalance.Debit, false, acc5000.Id, null, false, null, null, "IDR", true, now, ct);
+        await EnsureAccountAsync("5202", "Penyesuaian Persediaan", group5000.Id, FinanceAccountType.Expense, FinanceNormalBalance.Debit, false, acc5000.Id, null, false, null, null, "IDR", true, now, ct);
+        await EnsureAccountAsync("6001", "Beban Kerugian Persediaan", group5000.Id, FinanceAccountType.Expense, FinanceNormalBalance.Debit, false, acc5000.Id, null, false, null, null, "IDR", true, now, ct);
 
         var currentYear = DateTime.UtcNow.Year;
         var fiscalYear = await EnsureFiscalYearAsync($"FY {currentYear}", new DateOnly(currentYear, 1, 1), new DateOnly(currentYear, 12, 31), FinancePeriodStatus.Open, now, ct);
@@ -295,6 +307,1027 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
                 ct);
         }
     }
+    private async Task SeedInventoryMasterDataAsync(DateTimeOffset now, CancellationToken ct)
+    {
+        var categoryRawMaterial = await EnsureInvItemCategoryAsync("RAW", "Raw Materials", null, "Raw materials and production supplies", true, now, ct);
+        var categoryFinishedGoods = await EnsureInvItemCategoryAsync("FG", "Finished Goods", null, "Products ready for sale", true, now, ct);
+        var categorySparePart = await EnsureInvItemCategoryAsync("SP", "Spare Parts", null, "Maintenance and spare parts", true, now, ct);
+        await EnsureInvItemCategoryAsync("ELEC", "Elektronik", null, "Kategori barang elektronik", true, now, ct);
+        await EnsureInvItemCategoryAsync("CONS", "Bahan Habis Pakai", null, "Kategori consumable", true, now, ct);
+        await EnsureInvItemCategoryAsync("ATK", "Alat Tulis Kantor", null, "Kategori ATK", true, now, ct);
+        await EnsureInvItemCategoryAsync("TOOLS", "Peralatan", null, "Kategori peralatan", true, now, ct);
+        await EnsureInvItemCategoryAsync("BAHAN", "Bahan Bangunan", null, "Kategori bahan bangunan", true, now, ct);
+
+        var uomPcs = await EnsureInvUnitOfMeasureAsync("PCS", "Pieces", "Default unit for countable items", true, now, ct);
+        var uomBox = await EnsureInvUnitOfMeasureAsync("BOX", "Box", "Packaging unit", true, now, ct);
+        var uomKg = await EnsureInvUnitOfMeasureAsync("KG", "Kilogram", "Weight unit", true, now, ct);
+        await EnsureInvUnitOfMeasureAsync("EA", "Each/Buah", "Default each unit", true, now, ct);
+        await EnsureInvUnitOfMeasureAsync("M", "Meter", "Length unit", true, now, ct);
+        await EnsureInvUnitOfMeasureAsync("M2", "Meter Persegi", "Area unit", true, now, ct);
+        await EnsureInvUnitOfMeasureAsync("PCE", "Piece", "Piece unit", true, now, ct);
+        await EnsureInvUnitOfMeasureAsync("SET", "Set", "Set unit", true, now, ct);
+        await EnsureInvUnitOfMeasureAsync("LITER", "Liter", "Volume unit", true, now, ct);
+        await EnsureInvUnitOfMeasureAsync("ROLL", "Roll", "Roll unit", true, now, ct);
+        await EnsureInvUnitOfMeasureAsync("UNIT", "Unit", "Unit count", true, now, ct);
+
+        var brandSinara = await EnsureInvBrandAsync("SINARA", "Default internal brand", true, now, ct);
+        var brandGeneric = await EnsureInvBrandAsync("GENERIC", "General-purpose supplier brand", true, now, ct);
+
+        var inventoryAccountId = await dbContext.FinAccounts
+            .AsNoTracking()
+            .Where(x => x.Code == "1150" && x.IsActive)
+            .Select(x => (int?)x.Id)
+            .FirstOrDefaultAsync(ct);
+
+        var cogsAccountId = await dbContext.FinAccounts
+            .AsNoTracking()
+            .Where(x => x.Code == "5201" && x.IsActive)
+            .Select(x => (int?)x.Id)
+            .FirstOrDefaultAsync(ct);
+
+        var adjustmentAccountId = await dbContext.FinAccounts
+            .AsNoTracking()
+            .Where(x => x.Code == "5202" && x.IsActive)
+            .Select(x => (int?)x.Id)
+            .FirstOrDefaultAsync(ct);
+
+        var itemSteelPlate = await EnsureInvItemAsync(
+            itemCode: "ITEM-RM-001",
+            sku: "RM-STEEL-A36",
+            name: "Steel Plate A36",
+            description: "Raw material for fabrication",
+            categoryId: categoryRawMaterial.Id,
+            brandId: brandGeneric.Id,
+            type: ItemType.RawMaterial,
+            baseUomId: uomKg.Id,
+            purchaseUomId: uomKg.Id,
+            status: ItemStatus.Active,
+            valuationMethod: ValuationMethod.WeightedAverageCost,
+            lastPurchasePrice: 18000m,
+            avgCost: 18000m,
+            minStock: 100m,
+            maxStock: 1500m,
+            reorderPoint: 250m,
+            leadTimeDays: 7,
+            inventoryAccountId: inventoryAccountId,
+            cogsAccountId: cogsAccountId,
+            adjustmentAccountId: adjustmentAccountId,
+            notes: "Seeded by system",
+            isActive: true,
+            now,
+            ct);
+
+        var itemBolt = await EnsureInvItemAsync(
+            itemCode: "ITEM-FG-001",
+            sku: "FG-BOLT-M10",
+            name: "Bolt M10",
+            description: "Finished goods fastener",
+            categoryId: categoryFinishedGoods.Id,
+            brandId: brandSinara.Id,
+            type: ItemType.Product,
+            baseUomId: uomPcs.Id,
+            purchaseUomId: uomBox.Id,
+            status: ItemStatus.Active,
+            valuationMethod: ValuationMethod.WeightedAverageCost,
+            lastPurchasePrice: 1500m,
+            avgCost: 1500m,
+            minStock: 500m,
+            maxStock: 5000m,
+            reorderPoint: 1000m,
+            leadTimeDays: 5,
+            inventoryAccountId: inventoryAccountId,
+            cogsAccountId: cogsAccountId,
+            adjustmentAccountId: adjustmentAccountId,
+            notes: "Seeded by system",
+            isActive: true,
+            now,
+            ct);
+
+        var itemBearing = await EnsureInvItemAsync(
+            itemCode: "ITEM-SP-001",
+            sku: "SP-BRG-6205",
+            name: "Bearing 6205",
+            description: "Spare part for machine maintenance",
+            categoryId: categorySparePart.Id,
+            brandId: brandGeneric.Id,
+            type: ItemType.Consumable,
+            baseUomId: uomPcs.Id,
+            purchaseUomId: uomBox.Id,
+            status: ItemStatus.Active,
+            valuationMethod: ValuationMethod.WeightedAverageCost,
+            lastPurchasePrice: 25000m,
+            avgCost: 25000m,
+            minStock: 30m,
+            maxStock: 300m,
+            reorderPoint: 60m,
+            leadTimeDays: 10,
+            inventoryAccountId: inventoryAccountId,
+            cogsAccountId: cogsAccountId,
+            adjustmentAccountId: adjustmentAccountId,
+            notes: "Seeded by system",
+            isActive: true,
+            now,
+            ct);
+
+        await EnsureInvItemConversionAsync(itemBolt.Id, uomBox.Id, uomPcs.Id, 100m, true, now, ct);
+        await EnsureInvItemConversionAsync(itemBearing.Id, uomBox.Id, uomPcs.Id, 20m, true, now, ct);
+
+        var managerId = await dbContext.HrEmployees
+            .AsNoTracking()
+            .Where(x => x.EmploymentStatus == EmploymentStatus.Active)
+            .OrderBy(x => x.EmployeeCode)
+            .Select(x => (int?)x.Id)
+            .FirstOrDefaultAsync(ct);
+
+        var costCenterId = await dbContext.FinCostCenters
+            .AsNoTracking()
+            .Where(x => x.IsActive)
+            .OrderBy(x => x.Code)
+            .Select(x => (int?)x.Id)
+            .FirstOrDefaultAsync(ct);
+
+        var warehouseMain = await EnsureInvWarehouseAsync(
+            code: "GDG-UTM",
+            name: "Gudang Utama",
+            description: "Gudang utama operasional",
+            address: "Jl. Gudang Utama No. 1",
+            phone: "021-5550111",
+            managerId,
+            costCenterId,
+            isTransit: false,
+            isActive: true,
+            now,
+            ct);
+
+        var warehouseTransit = await EnsureInvWarehouseAsync(
+            code: "GDG-TRSIT",
+            name: "Gudang Transit",
+            description: "Gudang transit sementara",
+            address: "Jl. Gudang Transit No. 2",
+            phone: "021-5550112",
+            managerId,
+            costCenterId,
+            isTransit: true,
+            isActive: true,
+            now,
+            ct);
+
+        var locationMainA1 = await EnsureInvWarehouseLocationAsync(warehouseMain.Id, "RAK-A1", "RAK-A1", "Fast moving items", true, true, now, ct);
+        var locationMainA2 = await EnsureInvWarehouseLocationAsync(warehouseMain.Id, "RAK-A2", "RAK-A2", "General storage", false, true, now, ct);
+        await EnsureInvWarehouseLocationAsync(warehouseMain.Id, "RAK-B1", "RAK-B1", "Storage rack B1", false, true, now, ct);
+        await EnsureInvWarehouseLocationAsync(warehouseMain.Id, "RAK-B2", "RAK-B2", "Storage rack B2", false, true, now, ct);
+        await EnsureInvWarehouseLocationAsync(warehouseMain.Id, "ZONA-UMUM", "ZONA-UMUM", "General zone", false, true, now, ct);
+        var locationTransit01 = await EnsureInvWarehouseLocationAsync(warehouseTransit.Id, "TRS-01", "TRS-01", "Transit buffer", true, true, now, ct);
+
+        await EnsureInvStockBalanceAsync(itemSteelPlate.Id, warehouseMain.Id, locationMainA1.Id, 500m, 50m, itemSteelPlate.AvgCost, now, ct);
+        await EnsureInvStockBalanceAsync(itemBolt.Id, warehouseMain.Id, locationMainA2.Id, 1200m, 100m, itemBolt.AvgCost, now, ct);
+        await EnsureInvStockBalanceAsync(itemBearing.Id, warehouseTransit.Id, locationTransit01.Id, 80m, 0m, itemBearing.AvgCost, now, ct);
+
+        await SeedInventoryTransactionDataAsync(
+            itemSteelPlate,
+            itemBolt,
+            itemBearing,
+            uomKg,
+            uomPcs,
+            warehouseMain,
+            warehouseTransit,
+            locationMainA1,
+            locationMainA2,
+            locationTransit01,
+            costCenterId,
+            now,
+            ct);
+    }
+
+    private async Task<InvItemCategory> EnsureInvItemCategoryAsync(
+        string code,
+        string name,
+        int? parentCategoryId,
+        string? description,
+        bool isActive,
+        DateTimeOffset now,
+        CancellationToken ct)
+    {
+        var normalizedCode = code.Trim().ToUpperInvariant();
+        var normalizedName = name.Trim();
+
+        var existing = await dbContext.InvItemCategories
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(x => x.Code == normalizedCode, ct);
+
+        if (existing is null)
+        {
+            existing = new InvItemCategory
+            {
+                Code = normalizedCode,
+                Name = normalizedName,
+                ParentCategoryId = parentCategoryId,
+                Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim(),
+                IsActive = isActive,
+                CreatedBy = "system",
+                CreatedAt = now
+            };
+
+            dbContext.InvItemCategories.Add(existing);
+        }
+        else
+        {
+            existing.Name = normalizedName;
+            existing.ParentCategoryId = parentCategoryId;
+            existing.Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
+            existing.IsActive = isActive;
+            existing.IsDeleted = false;
+            existing.DeletedAt = null;
+            existing.UpdatedBy = "system";
+            existing.UpdatedAt = now;
+        }
+
+        await dbContext.SaveChangesAsync(ct);
+        return existing;
+    }
+
+    private async Task<InvUnitOfMeasure> EnsureInvUnitOfMeasureAsync(
+        string code,
+        string name,
+        string? description,
+        bool isActive,
+        DateTimeOffset now,
+        CancellationToken ct)
+    {
+        var normalizedCode = code.Trim().ToUpperInvariant();
+        var normalizedName = name.Trim();
+
+        var existing = await dbContext.InvUnitsOfMeasure
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(x => x.Code == normalizedCode, ct);
+
+        if (existing is null)
+        {
+            existing = new InvUnitOfMeasure
+            {
+                Code = normalizedCode,
+                Name = normalizedName,
+                Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim(),
+                IsActive = isActive,
+                CreatedBy = "system",
+                CreatedAt = now
+            };
+
+            dbContext.InvUnitsOfMeasure.Add(existing);
+        }
+        else
+        {
+            existing.Name = normalizedName;
+            existing.Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
+            existing.IsActive = isActive;
+            existing.IsDeleted = false;
+            existing.DeletedAt = null;
+            existing.UpdatedBy = "system";
+            existing.UpdatedAt = now;
+        }
+
+        await dbContext.SaveChangesAsync(ct);
+        return existing;
+    }
+
+    private async Task<InvBrand> EnsureInvBrandAsync(
+        string name,
+        string? description,
+        bool isActive,
+        DateTimeOffset now,
+        CancellationToken ct)
+    {
+        var normalizedName = name.Trim();
+
+        var existing = await dbContext.InvBrands
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(x => x.Name == normalizedName, ct);
+
+        if (existing is null)
+        {
+            existing = new InvBrand
+            {
+                Name = normalizedName,
+                Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim(),
+                IsActive = isActive,
+                CreatedBy = "system",
+                CreatedAt = now
+            };
+
+            dbContext.InvBrands.Add(existing);
+        }
+        else
+        {
+            existing.Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
+            existing.IsActive = isActive;
+            existing.IsDeleted = false;
+            existing.DeletedAt = null;
+            existing.UpdatedBy = "system";
+            existing.UpdatedAt = now;
+        }
+
+        await dbContext.SaveChangesAsync(ct);
+        return existing;
+    }
+
+    private async Task<InvItem> EnsureInvItemAsync(
+        string itemCode,
+        string? sku,
+        string name,
+        string? description,
+        int categoryId,
+        int? brandId,
+        ItemType type,
+        int baseUomId,
+        int? purchaseUomId,
+        ItemStatus status,
+        ValuationMethod valuationMethod,
+        decimal? lastPurchasePrice,
+        decimal avgCost,
+        decimal minStock,
+        decimal maxStock,
+        decimal reorderPoint,
+        int leadTimeDays,
+        int? inventoryAccountId,
+        int? cogsAccountId,
+        int? adjustmentAccountId,
+        string? notes,
+        bool isActive,
+        DateTimeOffset now,
+        CancellationToken ct)
+    {
+        var normalizedCode = itemCode.Trim().ToUpperInvariant();
+        var normalizedSku = string.IsNullOrWhiteSpace(sku) ? null : sku.Trim().ToUpperInvariant();
+        var normalizedName = name.Trim();
+
+        var existing = await dbContext.InvItems
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(x => x.ItemCode == normalizedCode, ct);
+
+        if (existing is null)
+        {
+            existing = new InvItem
+            {
+                ItemCode = normalizedCode,
+                CreatedBy = "system",
+                CreatedAt = now
+            };
+
+            dbContext.InvItems.Add(existing);
+        }
+        else
+        {
+            existing.UpdatedBy = "system";
+            existing.UpdatedAt = now;
+        }
+
+        existing.Sku = normalizedSku;
+        existing.Name = normalizedName;
+        existing.Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
+        existing.CategoryId = categoryId;
+        existing.BrandId = brandId;
+        existing.Type = type;
+        existing.BaseUomId = baseUomId;
+        existing.PurchaseUomId = purchaseUomId;
+        existing.Status = status;
+        existing.ValuationMethod = valuationMethod;
+        existing.LastPurchasePrice = lastPurchasePrice;
+        existing.AvgCost = decimal.Round(avgCost, 4, MidpointRounding.AwayFromZero);
+        existing.MinStock = decimal.Round(minStock, 4, MidpointRounding.AwayFromZero);
+        existing.MaxStock = decimal.Round(maxStock, 4, MidpointRounding.AwayFromZero);
+        existing.ReorderPoint = decimal.Round(reorderPoint, 4, MidpointRounding.AwayFromZero);
+        existing.LeadTimeDays = leadTimeDays;
+        existing.InventoryAccountId = inventoryAccountId;
+        existing.CogsAccountId = cogsAccountId;
+        existing.AdjustmentAccountId = adjustmentAccountId;
+        existing.Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim();
+        existing.IsActive = isActive;
+        existing.IsDeleted = false;
+        existing.DeletedAt = null;
+
+        await dbContext.SaveChangesAsync(ct);
+        return existing;
+    }
+
+    private async Task<InvItemUnitConversion> EnsureInvItemConversionAsync(
+        int itemId,
+        int fromUomId,
+        int toUomId,
+        decimal conversionFactor,
+        bool isActive,
+        DateTimeOffset now,
+        CancellationToken ct)
+    {
+        var existing = await dbContext.InvItemUnitConversions
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(x => x.ItemId == itemId && x.FromUomId == fromUomId && x.ToUomId == toUomId, ct);
+
+        if (existing is null)
+        {
+            existing = new InvItemUnitConversion
+            {
+                ItemId = itemId,
+                FromUomId = fromUomId,
+                ToUomId = toUomId,
+                CreatedBy = "system",
+                CreatedAt = now
+            };
+
+            dbContext.InvItemUnitConversions.Add(existing);
+        }
+        else
+        {
+            existing.UpdatedBy = "system";
+            existing.UpdatedAt = now;
+        }
+
+        existing.ConversionFactor = decimal.Round(conversionFactor, 6, MidpointRounding.AwayFromZero);
+        existing.IsActive = isActive;
+        existing.IsDeleted = false;
+        existing.DeletedAt = null;
+
+        await dbContext.SaveChangesAsync(ct);
+        return existing;
+    }
+
+    private async Task<InvWarehouse> EnsureInvWarehouseAsync(
+        string code,
+        string name,
+        string? description,
+        string? address,
+        string? phone,
+        int? managerId,
+        int? costCenterId,
+        bool isTransit,
+        bool isActive,
+        DateTimeOffset now,
+        CancellationToken ct)
+    {
+        var normalizedCode = code.Trim().ToUpperInvariant();
+        var normalizedName = name.Trim();
+
+        var existing = await dbContext.InvWarehouses
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(x => x.Code == normalizedCode, ct);
+
+        if (existing is null)
+        {
+            existing = new InvWarehouse
+            {
+                Code = normalizedCode,
+                CreatedBy = "system",
+                CreatedAt = now
+            };
+
+            dbContext.InvWarehouses.Add(existing);
+        }
+        else
+        {
+            existing.UpdatedBy = "system";
+            existing.UpdatedAt = now;
+        }
+
+        existing.Name = normalizedName;
+        existing.Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
+        existing.Address = string.IsNullOrWhiteSpace(address) ? null : address.Trim();
+        existing.Phone = string.IsNullOrWhiteSpace(phone) ? null : phone.Trim();
+        existing.ManagerId = managerId;
+        existing.CostCenterId = costCenterId;
+        existing.IsTransit = isTransit;
+        existing.IsActive = isActive;
+        existing.IsDeleted = false;
+        existing.DeletedAt = null;
+
+        await dbContext.SaveChangesAsync(ct);
+        return existing;
+    }
+
+    private async Task<InvWarehouseLocation> EnsureInvWarehouseLocationAsync(
+        int warehouseId,
+        string code,
+        string name,
+        string? description,
+        bool isDefault,
+        bool isActive,
+        DateTimeOffset now,
+        CancellationToken ct)
+    {
+        var normalizedCode = code.Trim().ToUpperInvariant();
+        var normalizedName = name.Trim();
+
+        var existing = await dbContext.InvWarehouseLocations
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(x => x.WarehouseId == warehouseId && x.Code == normalizedCode, ct);
+
+        if (existing is null)
+        {
+            existing = new InvWarehouseLocation
+            {
+                WarehouseId = warehouseId,
+                Code = normalizedCode,
+                CreatedBy = "system",
+                CreatedAt = now
+            };
+
+            dbContext.InvWarehouseLocations.Add(existing);
+        }
+        else
+        {
+            existing.UpdatedBy = "system";
+            existing.UpdatedAt = now;
+        }
+
+        if (isDefault)
+        {
+            var defaults = await dbContext.InvWarehouseLocations
+                .Where(x => x.WarehouseId == warehouseId && x.Id != existing.Id && x.IsDefault)
+                .ToListAsync(ct);
+
+            foreach (var currentDefault in defaults)
+            {
+                currentDefault.IsDefault = false;
+                currentDefault.UpdatedBy = "system";
+                currentDefault.UpdatedAt = now;
+            }
+        }
+
+        existing.Name = normalizedName;
+        existing.Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
+        existing.IsDefault = isDefault;
+        existing.IsActive = isActive;
+        existing.IsDeleted = false;
+        existing.DeletedAt = null;
+
+        await dbContext.SaveChangesAsync(ct);
+        return existing;
+    }
+
+    private async Task<InvStockBalance> EnsureInvStockBalanceAsync(
+        int itemId,
+        int warehouseId,
+        int? locationId,
+        decimal qtyOnHand,
+        decimal qtyReserved,
+        decimal avgCost,
+        DateTimeOffset now,
+        CancellationToken ct)
+    {
+        var existing = await dbContext.InvStockBalances
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(x => x.ItemId == itemId && x.WarehouseId == warehouseId && x.LocationId == locationId, ct);
+
+        if (existing is null)
+        {
+            existing = new InvStockBalance
+            {
+                ItemId = itemId,
+                WarehouseId = warehouseId,
+                LocationId = locationId,
+                CreatedBy = "system",
+                CreatedAt = now
+            };
+
+            dbContext.InvStockBalances.Add(existing);
+        }
+        else
+        {
+            existing.UpdatedBy = "system";
+            existing.UpdatedAt = now;
+        }
+
+        existing.QtyOnHand = decimal.Round(qtyOnHand, 4, MidpointRounding.AwayFromZero);
+        existing.QtyReserved = decimal.Round(qtyReserved, 4, MidpointRounding.AwayFromZero);
+        existing.AvgCost = decimal.Round(avgCost, 4, MidpointRounding.AwayFromZero);
+        existing.LastMovementAt = now;
+        existing.IsDeleted = false;
+        existing.DeletedAt = null;
+
+        await dbContext.SaveChangesAsync(ct);
+        return existing;
+    }
+
+    private async Task SeedInventoryTransactionDataAsync(
+        InvItem itemSteelPlate,
+        InvItem itemBolt,
+        InvItem itemBearing,
+        InvUnitOfMeasure uomKg,
+        InvUnitOfMeasure uomPcs,
+        InvWarehouse warehouseMain,
+        InvWarehouse warehouseTransit,
+        InvWarehouseLocation locationMainA1,
+        InvWarehouseLocation locationMainA2,
+        InvWarehouseLocation locationTransit01,
+        int? costCenterId,
+        DateTimeOffset now,
+        CancellationToken ct)
+    {
+        var departmentId = await dbContext.HrDepartments
+            .AsNoTracking()
+            .Where(x => x.IsActive)
+            .OrderBy(x => x.Code)
+            .Select(x => (int?)x.Id)
+            .FirstOrDefaultAsync(ct);
+
+        var goodsReceipt = await dbContext.InvGoodsReceipts
+            .IgnoreQueryFilters()
+            .Include(x => x.Lines)
+            .FirstOrDefaultAsync(x => x.ReceiptNo == "GR-2026-0001", ct);
+
+        if (goodsReceipt is null)
+        {
+            goodsReceipt = new InvGoodsReceipt
+            {
+                ReceiptNo = "GR-2026-0001",
+                CreatedBy = "system",
+                CreatedAt = now
+            };
+
+            dbContext.InvGoodsReceipts.Add(goodsReceipt);
+        }
+        else
+        {
+            dbContext.InvGoodsReceiptLines.RemoveRange(goodsReceipt.Lines);
+            goodsReceipt.Lines.Clear();
+            goodsReceipt.UpdatedBy = "system";
+            goodsReceipt.UpdatedAt = now;
+        }
+
+        goodsReceipt.ReceiptDate = new DateOnly(2026, 1, 5);
+        goodsReceipt.ReceiptType = GoodsReceiptType.PurchaseReceipt;
+        goodsReceipt.WarehouseId = warehouseMain.Id;
+        goodsReceipt.LocationId = locationMainA1.Id;
+        goodsReceipt.SupplierName = "PT Baja Nusantara";
+        goodsReceipt.ReferenceNo = "PO-2026-001";
+        goodsReceipt.Description = "Seeded goods receipt";
+        goodsReceipt.Status = TransactionStatus.Draft;
+        goodsReceipt.IsDeleted = false;
+        goodsReceipt.DeletedAt = null;
+
+        goodsReceipt.Lines.Add(new InvGoodsReceiptLine
+        {
+            LineNo = 1,
+            ItemId = itemSteelPlate.Id,
+            UomId = uomKg.Id,
+            QtyReceived = 120m,
+            QtyBase = 120m,
+            UnitCost = 18000m,
+            TotalCost = 2_160_000m,
+            Notes = "Seeded line"
+        });
+
+        await dbContext.SaveChangesAsync(ct);
+
+        var goodsIssue = await dbContext.InvGoodsIssues
+            .IgnoreQueryFilters()
+            .Include(x => x.Lines)
+            .FirstOrDefaultAsync(x => x.IssueNo == "GI-2026-0001", ct);
+
+        if (goodsIssue is null)
+        {
+            goodsIssue = new InvGoodsIssue
+            {
+                IssueNo = "GI-2026-0001",
+                CreatedBy = "system",
+                CreatedAt = now
+            };
+
+            dbContext.InvGoodsIssues.Add(goodsIssue);
+        }
+        else
+        {
+            dbContext.InvGoodsIssueLines.RemoveRange(goodsIssue.Lines);
+            goodsIssue.Lines.Clear();
+            goodsIssue.UpdatedBy = "system";
+            goodsIssue.UpdatedAt = now;
+        }
+
+        goodsIssue.IssueDate = new DateOnly(2026, 1, 8);
+        goodsIssue.IssueType = GoodsIssueType.DepartmentalUse;
+        goodsIssue.WarehouseId = warehouseMain.Id;
+        goodsIssue.LocationId = locationMainA2.Id;
+        goodsIssue.DepartmentId = departmentId;
+        goodsIssue.CostCenterId = costCenterId;
+        goodsIssue.ReferenceNo = "REQ-2026-017";
+        goodsIssue.Description = "Seeded goods issue";
+        goodsIssue.Status = TransactionStatus.Draft;
+        goodsIssue.IsDeleted = false;
+        goodsIssue.DeletedAt = null;
+
+        goodsIssue.Lines.Add(new InvGoodsIssueLine
+        {
+            LineNo = 1,
+            ItemId = itemBolt.Id,
+            UomId = uomPcs.Id,
+            QtyRequested = 80m,
+            QtyIssued = 80m,
+            QtyBase = 80m,
+            UnitCost = 1500m,
+            TotalCost = 120_000m,
+            Notes = "Seeded line"
+        });
+
+        await dbContext.SaveChangesAsync(ct);
+
+        var stockTransfer = await dbContext.InvStockTransfers
+            .IgnoreQueryFilters()
+            .Include(x => x.Lines)
+            .FirstOrDefaultAsync(x => x.TransferNo == "TRF-2026-0001", ct);
+
+        if (stockTransfer is null)
+        {
+            stockTransfer = new InvStockTransfer
+            {
+                TransferNo = "TRF-2026-0001",
+                CreatedBy = "system",
+                CreatedAt = now
+            };
+
+            dbContext.InvStockTransfers.Add(stockTransfer);
+        }
+        else
+        {
+            dbContext.InvStockTransferLines.RemoveRange(stockTransfer.Lines);
+            stockTransfer.Lines.Clear();
+            stockTransfer.UpdatedBy = "system";
+            stockTransfer.UpdatedAt = now;
+        }
+
+        stockTransfer.TransferDate = new DateOnly(2026, 1, 12);
+        stockTransfer.FromWarehouseId = warehouseMain.Id;
+        stockTransfer.FromLocationId = locationMainA2.Id;
+        stockTransfer.ToWarehouseId = warehouseTransit.Id;
+        stockTransfer.ToLocationId = locationTransit01.Id;
+        stockTransfer.ReferenceNo = "TRN-2026-004";
+        stockTransfer.Description = "Seeded stock transfer";
+        stockTransfer.Status = TransactionStatus.Draft;
+        stockTransfer.IsDeleted = false;
+        stockTransfer.DeletedAt = null;
+
+        stockTransfer.Lines.Add(new InvStockTransferLine
+        {
+            LineNo = 1,
+            ItemId = itemBolt.Id,
+            UomId = uomPcs.Id,
+            QtyTransfer = 50m,
+            QtyBase = 50m,
+            UnitCost = 1500m,
+            TotalCost = 75_000m,
+            Notes = "Seeded line"
+        });
+
+        await dbContext.SaveChangesAsync(ct);
+
+        var stockAdjustment = await dbContext.InvStockAdjustments
+            .IgnoreQueryFilters()
+            .Include(x => x.Lines)
+            .FirstOrDefaultAsync(x => x.AdjustmentNo == "ADJ-2026-0001", ct);
+
+        if (stockAdjustment is null)
+        {
+            stockAdjustment = new InvStockAdjustment
+            {
+                AdjustmentNo = "ADJ-2026-0001",
+                CreatedBy = "system",
+                CreatedAt = now
+            };
+
+            dbContext.InvStockAdjustments.Add(stockAdjustment);
+        }
+        else
+        {
+            dbContext.InvStockAdjustmentLines.RemoveRange(stockAdjustment.Lines);
+            stockAdjustment.Lines.Clear();
+            stockAdjustment.UpdatedBy = "system";
+            stockAdjustment.UpdatedAt = now;
+        }
+
+        stockAdjustment.AdjustmentDate = new DateOnly(2026, 1, 15);
+        stockAdjustment.WarehouseId = warehouseMain.Id;
+        stockAdjustment.LocationId = locationMainA2.Id;
+        stockAdjustment.Reason = AdjustmentReason.DataCorrection;
+        stockAdjustment.ReferenceNo = "ADJ-REQ-2026-001";
+        stockAdjustment.Description = "Seeded stock adjustment";
+        stockAdjustment.Status = TransactionStatus.Draft;
+        stockAdjustment.IsDeleted = false;
+        stockAdjustment.DeletedAt = null;
+
+        stockAdjustment.Lines.Add(new InvStockAdjustmentLine
+        {
+            LineNo = 1,
+            ItemId = itemBolt.Id,
+            UomId = uomPcs.Id,
+            QtyAdjustment = -10m,
+            UnitCost = 1500m,
+            TotalCost = 15_000m,
+            Notes = "Seeded line"
+        });
+
+        await dbContext.SaveChangesAsync(ct);
+
+        var stockOpname = await dbContext.InvStockOpnames
+            .IgnoreQueryFilters()
+            .Include(x => x.Lines)
+            .FirstOrDefaultAsync(x => x.OpnameNo == "OPN-2026-0001", ct);
+
+        if (stockOpname is null)
+        {
+            stockOpname = new InvStockOpname
+            {
+                OpnameNo = "OPN-2026-0001",
+                CreatedBy = "system",
+                CreatedAt = now
+            };
+
+            dbContext.InvStockOpnames.Add(stockOpname);
+        }
+        else
+        {
+            dbContext.InvStockOpnameLines.RemoveRange(stockOpname.Lines);
+            stockOpname.Lines.Clear();
+            stockOpname.UpdatedBy = "system";
+            stockOpname.UpdatedAt = now;
+        }
+
+        stockOpname.OpnameDate = new DateOnly(2026, 1, 20);
+        stockOpname.WarehouseId = warehouseMain.Id;
+        stockOpname.LocationId = locationMainA2.Id;
+        stockOpname.Description = "Seeded stock opname";
+        stockOpname.Status = OpnameStatus.Draft;
+        stockOpname.IsDeleted = false;
+        stockOpname.DeletedAt = null;
+
+        stockOpname.Lines.Add(new InvStockOpnameLine
+        {
+            LineNo = 1,
+            ItemId = itemBolt.Id,
+            LocationId = locationMainA2.Id,
+            QtySystem = 1200m,
+            QtyCounted = 1188m,
+            QtyVariance = -12m,
+            UnitCost = 1500m,
+            TotalVarianceValue = -18_000m,
+            Notes = "Seeded line"
+        });
+
+        await dbContext.SaveChangesAsync(ct);
+
+        var stockMainA1 = await dbContext.InvStockBalances
+            .FirstOrDefaultAsync(x => x.ItemId == itemSteelPlate.Id && x.WarehouseId == warehouseMain.Id && x.LocationId == locationMainA1.Id, ct);
+        if (stockMainA1 is not null)
+        {
+            stockMainA1.LastMovementAt = new DateTimeOffset(new DateTime(2026, 1, 5, 0, 0, 0, DateTimeKind.Utc));
+        }
+
+        var stockMainA2 = await dbContext.InvStockBalances
+            .FirstOrDefaultAsync(x => x.ItemId == itemBolt.Id && x.WarehouseId == warehouseMain.Id && x.LocationId == locationMainA2.Id, ct);
+        if (stockMainA2 is not null)
+        {
+            stockMainA2.LastMovementAt = new DateTimeOffset(new DateTime(2026, 2, 10, 0, 0, 0, DateTimeKind.Utc));
+        }
+
+        var stockTransitT1 = await dbContext.InvStockBalances
+            .FirstOrDefaultAsync(x => x.ItemId == itemBearing.Id && x.WarehouseId == warehouseTransit.Id && x.LocationId == locationTransit01.Id, ct);
+        if (stockTransitT1 is not null)
+        {
+            stockTransitT1.LastMovementAt = new DateTimeOffset(new DateTime(2025, 8, 20, 0, 0, 0, DateTimeKind.Utc));
+        }
+
+        await dbContext.SaveChangesAsync(ct);
+
+        await EnsureInvStockMovementSeedAsync(
+            movementDate: new DateOnly(2026, 1, 5),
+            itemId: itemSteelPlate.Id,
+            warehouseId: warehouseMain.Id,
+            locationId: locationMainA1.Id,
+            movementType: StockMovementType.GoodsReceipt,
+            qtyIn: 120m,
+            qtyOut: 0m,
+            qtyBalance: 620m,
+            unitCost: 18000m,
+            sourceTable: "inv_goods_receipts",
+            sourceId: goodsReceipt.Id,
+            sourceLineId: goodsReceipt.Lines.FirstOrDefault()?.Id,
+            notes: "Seeded movement",
+            ct: ct);
+
+        await EnsureInvStockMovementSeedAsync(
+            movementDate: new DateOnly(2026, 1, 8),
+            itemId: itemBolt.Id,
+            warehouseId: warehouseMain.Id,
+            locationId: locationMainA2.Id,
+            movementType: StockMovementType.GoodsIssue,
+            qtyIn: 0m,
+            qtyOut: 80m,
+            qtyBalance: 1120m,
+            unitCost: 1500m,
+            sourceTable: "inv_goods_issues",
+            sourceId: goodsIssue.Id,
+            sourceLineId: goodsIssue.Lines.FirstOrDefault()?.Id,
+            notes: "Seeded movement",
+            ct: ct);
+
+        await EnsureInvStockMovementSeedAsync(
+            movementDate: new DateOnly(2026, 1, 12),
+            itemId: itemBolt.Id,
+            warehouseId: warehouseMain.Id,
+            locationId: locationMainA2.Id,
+            movementType: StockMovementType.TransferOut,
+            qtyIn: 0m,
+            qtyOut: 50m,
+            qtyBalance: 1070m,
+            unitCost: 1500m,
+            sourceTable: "inv_stock_transfers",
+            sourceId: stockTransfer.Id,
+            sourceLineId: stockTransfer.Lines.FirstOrDefault()?.Id,
+            notes: "Seeded movement",
+            ct: ct);
+
+        await EnsureInvStockMovementSeedAsync(
+            movementDate: new DateOnly(2026, 1, 12),
+            itemId: itemBolt.Id,
+            warehouseId: warehouseTransit.Id,
+            locationId: locationTransit01.Id,
+            movementType: StockMovementType.TransferIn,
+            qtyIn: 50m,
+            qtyOut: 0m,
+            qtyBalance: 130m,
+            unitCost: 1500m,
+            sourceTable: "inv_stock_transfers",
+            sourceId: stockTransfer.Id,
+            sourceLineId: stockTransfer.Lines.FirstOrDefault()?.Id,
+            notes: "Seeded movement",
+            ct: ct);
+
+        await EnsureInvStockMovementSeedAsync(
+            movementDate: new DateOnly(2026, 1, 15),
+            itemId: itemBolt.Id,
+            warehouseId: warehouseMain.Id,
+            locationId: locationMainA2.Id,
+            movementType: StockMovementType.AdjustmentOut,
+            qtyIn: 0m,
+            qtyOut: 10m,
+            qtyBalance: 1110m,
+            unitCost: 1500m,
+            sourceTable: "inv_stock_adjustments",
+            sourceId: stockAdjustment.Id,
+            sourceLineId: stockAdjustment.Lines.FirstOrDefault()?.Id,
+            notes: "Seeded movement",
+            ct: ct);
+    }
+
+    private async Task EnsureInvStockMovementSeedAsync(
+        DateOnly movementDate,
+        int itemId,
+        int warehouseId,
+        int? locationId,
+        StockMovementType movementType,
+        decimal qtyIn,
+        decimal qtyOut,
+        decimal qtyBalance,
+        decimal unitCost,
+        string sourceTable,
+        int sourceId,
+        int? sourceLineId,
+        string? notes,
+        CancellationToken ct)
+    {
+        var existing = await dbContext.InvStockMovements
+            .FirstOrDefaultAsync(x => x.SourceTable == sourceTable
+                && x.SourceId == sourceId
+                && x.SourceLineId == sourceLineId
+                && x.MovementType == movementType
+                && x.ItemId == itemId
+                && x.WarehouseId == warehouseId
+                && x.LocationId == locationId, ct);
+
+        if (existing is null)
+        {
+            existing = new InvStockMovement
+            {
+                CreatedBy = "system",
+                CreatedAt = DateTimeOffset.UtcNow
+            };
+
+            dbContext.InvStockMovements.Add(existing);
+        }
+
+        existing.MovementDate = movementDate;
+        existing.ItemId = itemId;
+        existing.WarehouseId = warehouseId;
+        existing.LocationId = locationId;
+        existing.MovementType = movementType;
+        existing.QtyIn = decimal.Round(qtyIn, 4, MidpointRounding.AwayFromZero);
+        existing.QtyOut = decimal.Round(qtyOut, 4, MidpointRounding.AwayFromZero);
+        existing.QtyBalance = decimal.Round(qtyBalance, 4, MidpointRounding.AwayFromZero);
+        existing.UnitCost = decimal.Round(unitCost, 4, MidpointRounding.AwayFromZero);
+        existing.TotalCost = decimal.Round((qtyIn - qtyOut) * unitCost, 4, MidpointRounding.AwayFromZero);
+        existing.SourceTable = sourceTable;
+        existing.SourceId = sourceId;
+        existing.SourceLineId = sourceLineId;
+        existing.Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim();
+
+        await dbContext.SaveChangesAsync(ct);
+    }
     private async Task SeedAdminUserAsync(DateTimeOffset now, CancellationToken ct)
     {
         var adminUser = await dbContext.SysUsers
@@ -357,6 +1390,10 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         var finModule = await dbContext.CfgModules
             .IgnoreQueryFilters()
             .FirstAsync(x => x.Code == "FIN", ct);
+
+        var invModule = await dbContext.CfgModules
+            .IgnoreQueryFilters()
+            .FirstAsync(x => x.Code == "INV", ct);
 
         var hrEmployees = await EnsureMenuAsync(hrModule.Id, null, "Employees", null, "bi-people", 1, now, ct);
         await EnsureMenuAsync(hrModule.Id, hrEmployees.Id, "All Employees", "/hr/employees", "bi-list", 1, now, ct);
@@ -443,6 +1480,34 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         var finFinalization = await EnsureMenuAsync(finModule.Id, null, "Finance Finalization", null, "bi-check2-square", 8, now, ct);
         await EnsureMenuAsync(finModule.Id, finFinalization.Id, "Period Closing", "/finance/finalization/period-closing", "bi-calendar-check", 1, now, ct);
         await EnsureMenuAsync(finModule.Id, finFinalization.Id, "Smoke Tests", "/finance/finalization/smoke-tests", "bi-clipboard-check", 2, now, ct);
+
+        var invMaster = await EnsureMenuAsync(invModule.Id, null, "Inventory Master", null, "bi-boxes", 1, now, ct);
+        await EnsureMenuAsync(invModule.Id, invMaster.Id, "Item Categories", "/inventory/categories", "bi-diagram-2", 1, now, ct);
+        await EnsureMenuAsync(invModule.Id, invMaster.Id, "Units of Measure", "/inventory/units", "bi-rulers", 2, now, ct);
+        await EnsureMenuAsync(invModule.Id, invMaster.Id, "Brands", "/inventory/brands", "bi-tags", 3, now, ct);
+        await EnsureMenuAsync(invModule.Id, invMaster.Id, "Item Conversions", "/inventory/item-conversions", "bi-arrow-left-right", 4, now, ct);
+        await EnsureMenuAsync(invModule.Id, invMaster.Id, "Items", "/inventory/items", "bi-box-seam", 5, now, ct);
+
+        var invWarehouse = await EnsureMenuAsync(invModule.Id, null, "Warehouse & Stock", null, "bi-building", 2, now, ct);
+        await EnsureMenuAsync(invModule.Id, invWarehouse.Id, "Warehouses", "/inventory/warehouses", "bi-house-gear", 1, now, ct);
+
+        var invTransactions = await EnsureMenuAsync(invModule.Id, null, "Inventory Transactions", null, "bi-arrow-left-right", 3, now, ct);
+        await EnsureMenuAsync(invModule.Id, invTransactions.Id, "Goods Receipts", "/inventory/goods-receipts", "bi-box-arrow-in-down", 1, now, ct);
+        await EnsureMenuAsync(invModule.Id, invTransactions.Id, "Goods Issues", "/inventory/goods-issues", "bi-box-arrow-up", 2, now, ct);
+        await EnsureMenuAsync(invModule.Id, invTransactions.Id, "Stock Transfers", "/inventory/transfers", "bi-arrow-left-right", 3, now, ct);
+        await EnsureMenuAsync(invModule.Id, invTransactions.Id, "Stock Adjustments", "/inventory/adjustments", "bi-sliders2-vertical", 4, now, ct);
+        await EnsureMenuAsync(invModule.Id, invTransactions.Id, "Stock Opnames", "/inventory/opnames", "bi-clipboard2-check", 5, now, ct);
+
+        var invReports = await EnsureMenuAsync(invModule.Id, null, "Inventory Reports", null, "bi-bar-chart-line", 4, now, ct);
+        await EnsureMenuAsync(invModule.Id, invReports.Id, "Stock Summary", "/inventory/reports/stock-summary", "bi-table", 1, now, ct);
+        await EnsureMenuAsync(invModule.Id, invReports.Id, "Movement History", "/inventory/reports/movement-history", "bi-activity", 2, now, ct);
+        await EnsureMenuAsync(invModule.Id, invReports.Id, "Low Stock Report", "/inventory/reports/low-stock", "bi-exclamation-triangle", 3, now, ct);
+        await EnsureMenuAsync(invModule.Id, invReports.Id, "Inventory Valuation", "/inventory/reports/inventory-valuation", "bi-currency-dollar", 4, now, ct);
+        await EnsureMenuAsync(invModule.Id, invReports.Id, "Inventory Aging", "/inventory/reports/inventory-aging", "bi-hourglass-split", 5, now, ct);
+        await EnsureMenuAsync(invModule.Id, invReports.Id, "Receipt Summary", "/inventory/reports/receipt-summary", "bi-journal-text", 6, now, ct);
+        await EnsureMenuAsync(invModule.Id, invReports.Id, "Issue Summary", "/inventory/reports/issue-summary", "bi-journal-minus", 7, now, ct);
+        await EnsureMenuAsync(invModule.Id, invReports.Id, "Transfer Summary", "/inventory/reports/transfer-summary", "bi-arrows-move", 8, now, ct);
+        await EnsureMenuAsync(invModule.Id, invReports.Id, "Adjustment Summary", "/inventory/reports/adjustment-summary", "bi-journal-check", 9, now, ct);
     }
 
     private async Task SeedSuperAdminPermissionsAsync(CancellationToken ct)
@@ -486,6 +1551,177 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
                 permission.CanEdit = true;
                 permission.CanDelete = true;
             }
+        }
+
+        await dbContext.SaveChangesAsync(ct);
+    }
+
+    private async Task SeedInventoryRolePermissionsAsync(CancellationToken ct)
+    {
+        var inventoryModule = await dbContext.CfgModules
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(x => x.Code == "INV", ct);
+
+        if (inventoryModule is null)
+        {
+            return;
+        }
+
+        var inventoryMenus = await dbContext.CfgMenus
+            .IgnoreQueryFilters()
+            .Where(x => x.ModuleId == inventoryModule.Id)
+            .ToListAsync(ct);
+
+        if (inventoryMenus.Count == 0)
+        {
+            return;
+        }
+
+        var allInventoryMenuIds = inventoryMenus.Select(x => x.Id).ToHashSet();
+        var menuById = inventoryMenus.ToDictionary(x => x.Id);
+
+        HashSet<int> ExpandWithAncestors(IEnumerable<int> ids)
+        {
+            var result = new HashSet<int>();
+            foreach (var id in ids)
+            {
+                var currentId = id;
+                while (currentId > 0 && result.Add(currentId))
+                {
+                    if (!menuById.TryGetValue(currentId, out var menu) || !menu.ParentId.HasValue)
+                    {
+                        break;
+                    }
+
+                    currentId = menu.ParentId.Value;
+                }
+            }
+
+            return result;
+        }
+
+        var reportRoot = inventoryMenus.FirstOrDefault(x => x.ParentId is null && x.Name == "Inventory Reports");
+        var reportMenuIds = reportRoot is null
+            ? new HashSet<int>()
+            : inventoryMenus
+                .Where(x => x.Id == reportRoot.Id || x.ParentId == reportRoot.Id)
+                .Select(x => x.Id)
+                .ToHashSet();
+
+        var goodsIssueMenuIds = inventoryMenus
+            .Where(x => x.Name == "Goods Issues")
+            .Select(x => x.Id)
+            .ToHashSet();
+
+        var roles = await dbContext.CfgRoles
+            .IgnoreQueryFilters()
+            .Where(x =>
+                x.Name == "Inventory Manager" ||
+                x.Name == "Gudang Staff" ||
+                x.Name == "Finance Staff" ||
+                x.Name == "HR Staff" ||
+                x.Name == "Employee")
+            .ToDictionaryAsync(x => x.Name, StringComparer.OrdinalIgnoreCase, ct);
+
+        if (roles.TryGetValue("Inventory Manager", out var inventoryManager))
+        {
+            await ApplyInventoryRolePermissionsAsync(
+                inventoryManager.Id,
+                inventoryMenus,
+                allInventoryMenuIds,
+                allInventoryMenuIds,
+                allInventoryMenuIds,
+                allInventoryMenuIds,
+                ct);
+        }
+
+        if (roles.TryGetValue("Gudang Staff", out var warehouseStaff))
+        {
+            var editableMenuIds = allInventoryMenuIds.Except(reportMenuIds).ToHashSet();
+            await ApplyInventoryRolePermissionsAsync(
+                warehouseStaff.Id,
+                inventoryMenus,
+                allInventoryMenuIds,
+                editableMenuIds,
+                editableMenuIds,
+                new HashSet<int>(),
+                ct);
+        }
+
+        if (roles.TryGetValue("Finance Staff", out var financeStaff))
+        {
+            var reportReadMenus = ExpandWithAncestors(reportMenuIds);
+            await ApplyInventoryRolePermissionsAsync(
+                financeStaff.Id,
+                inventoryMenus,
+                reportReadMenus,
+                new HashSet<int>(),
+                new HashSet<int>(),
+                new HashSet<int>(),
+                ct);
+        }
+
+        if (roles.TryGetValue("HR Staff", out var hrStaff))
+        {
+            var goodsIssueReadMenus = ExpandWithAncestors(goodsIssueMenuIds);
+            await ApplyInventoryRolePermissionsAsync(
+                hrStaff.Id,
+                inventoryMenus,
+                goodsIssueReadMenus,
+                goodsIssueMenuIds,
+                goodsIssueMenuIds,
+                new HashSet<int>(),
+                ct);
+        }
+
+        if (roles.TryGetValue("Employee", out var employee))
+        {
+            await ApplyInventoryRolePermissionsAsync(
+                employee.Id,
+                inventoryMenus,
+                new HashSet<int>(),
+                new HashSet<int>(),
+                new HashSet<int>(),
+                new HashSet<int>(),
+                ct);
+        }
+    }
+
+    private async Task ApplyInventoryRolePermissionsAsync(
+        int roleId,
+        IReadOnlyCollection<CfgMenu> inventoryMenus,
+        ISet<int> canViewMenuIds,
+        ISet<int> canCreateMenuIds,
+        ISet<int> canEditMenuIds,
+        ISet<int> canDeleteMenuIds,
+        CancellationToken ct)
+    {
+        var menuIds = inventoryMenus.Select(x => x.Id).ToList();
+
+        var existingPermissions = await dbContext.CfgRoleMenuPermissions
+            .Where(x => x.RoleId == roleId && menuIds.Contains(x.MenuId))
+            .ToListAsync(ct);
+
+        var permissionByMenuId = existingPermissions.ToDictionary(x => x.MenuId);
+
+        foreach (var menu in inventoryMenus)
+        {
+            if (!permissionByMenuId.TryGetValue(menu.Id, out var permission))
+            {
+                permission = new CfgRoleMenuPermission
+                {
+                    RoleId = roleId,
+                    MenuId = menu.Id
+                };
+
+                dbContext.CfgRoleMenuPermissions.Add(permission);
+                permissionByMenuId[menu.Id] = permission;
+            }
+
+            permission.CanView = canViewMenuIds.Contains(menu.Id);
+            permission.CanCreate = canCreateMenuIds.Contains(menu.Id);
+            permission.CanEdit = canEditMenuIds.Contains(menu.Id);
+            permission.CanDelete = canDeleteMenuIds.Contains(menu.Id);
         }
 
         await dbContext.SaveChangesAsync(ct);
@@ -1749,6 +2985,27 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         return menu;
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

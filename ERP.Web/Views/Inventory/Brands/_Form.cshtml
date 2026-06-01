@@ -1,0 +1,20 @@
+@model ERP.Web.ViewModels.Inventory.InventoryBrandEditViewModel
+
+<div class="row g-3">
+    <div class="col-md-12">
+        <label asp-for="Name" class="form-label">@T["Name"]</label>
+        <input asp-for="Name" class="form-control" />
+        <span asp-validation-for="Name" class="text-danger small"></span>
+    </div>
+    <div class="col-md-12">
+        <label asp-for="Description" class="form-label">@T["Description"]</label>
+        <textarea asp-for="Description" rows="3" class="form-control"></textarea>
+        <span asp-validation-for="Description" class="text-danger small"></span>
+    </div>
+    <div class="col-md-4">
+        <div class="form-check mt-2">
+            <input asp-for="IsActive" class="form-check-input" />
+            <label asp-for="IsActive" class="form-check-label">@T["Active"]</label>
+        </div>
+    </div>
+</div>

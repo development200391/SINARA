@@ -1,0 +1,219 @@
+﻿@model ERP.Web.ViewModels.Inventory.InventoryItemEditViewModel
+@using ERP.Domain.Enums.Inventory
+
+@{
+    string LocalizeItemType(ItemType type)
+    {
+        return type switch
+        {
+            ItemType.Product => T["Product"],
+            ItemType.RawMaterial => T["Raw Material"],
+            ItemType.Asset => T["Asset"],
+            ItemType.Consumable => T["Consumable"],
+            ItemType.Service => T["Service"],
+            _ => type.ToString()
+        };
+    }
+
+    string LocalizeItemStatus(ItemStatus status)
+    {
+        return status switch
+        {
+            ItemStatus.Active => T["Active"],
+            ItemStatus.Discontinued => T["Discontinued"],
+            ItemStatus.Draft => T["Draft"],
+            _ => status.ToString()
+        };
+    }
+
+    string LocalizeValuationMethod(ValuationMethod valuationMethod)
+    {
+        return valuationMethod switch
+        {
+            ValuationMethod.WeightedAverageCost => T["Weighted Average Cost"],
+            ValuationMethod.FIFO => T["FIFO"],
+            _ => valuationMethod.ToString()
+        };
+    }
+}
+
+<div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+<div class="row g-3">
+    <div class="col-md-4">
+        <label asp-for="ItemCode" class="form-label">@T["Item Code"]</label>
+        <input asp-for="ItemCode" class="form-control" placeholder="@T["Auto generate if empty"]" />
+        <span asp-validation-for="ItemCode" class="text-danger small"></span>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="Sku" class="form-label">@T["SKU"]</label>
+        <input asp-for="Sku" class="form-control" />
+        <span asp-validation-for="Sku" class="text-danger small"></span>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="Status" class="form-label">@T["Status"]</label>
+        <select asp-for="Status" class="form-select">
+            @foreach (var status in Enum.GetValues<ItemStatus>())
+            {
+                <option value="@status">@LocalizeItemStatus(status)</option>
+            }
+        </select>
+        <span asp-validation-for="Status" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-8">
+        <label asp-for="Name" class="form-label">@T["Name"]</label>
+        <input asp-for="Name" class="form-control" />
+        <span asp-validation-for="Name" class="text-danger small"></span>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="Type" class="form-label">@T["Type"]</label>
+        <select asp-for="Type" class="form-select">
+            @foreach (var itemType in Enum.GetValues<ItemType>())
+            {
+                <option value="@itemType">@LocalizeItemType(itemType)</option>
+            }
+        </select>
+        <span asp-validation-for="Type" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-4">
+        <label asp-for="CategoryId" class="form-label">@T["Category"]</label>
+        <select asp-for="CategoryId" class="form-select">
+            <option value="">@T["Select Category"]</option>
+            @foreach (var option in Model.CategoryOptions)
+            {
+                <option value="@option.Id">@option.Label</option>
+            }
+        </select>
+        <span asp-validation-for="CategoryId" class="text-danger small"></span>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="BrandId" class="form-label">@T["Brand"]</label>
+        <select asp-for="BrandId" class="form-select">
+            <option value="">@T["None"]</option>
+            @foreach (var option in Model.BrandOptions)
+            {
+                <option value="@option.Id">@option.Label</option>
+            }
+        </select>
+        <span asp-validation-for="BrandId" class="text-danger small"></span>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="ValuationMethod" class="form-label">@T["Valuation Method"]</label>
+        <select asp-for="ValuationMethod" class="form-select">
+            @foreach (var valuationMethod in Enum.GetValues<ValuationMethod>())
+            {
+                <option value="@valuationMethod">@LocalizeValuationMethod(valuationMethod)</option>
+            }
+        </select>
+        <span asp-validation-for="ValuationMethod" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-4">
+        <label asp-for="BaseUomId" class="form-label">@T["Base UOM"]</label>
+        <select asp-for="BaseUomId" class="form-select">
+            <option value="">@T["Select UOM"]</option>
+            @foreach (var option in Model.UomOptions)
+            {
+                <option value="@option.Id">@option.Label</option>
+            }
+        </select>
+        <span asp-validation-for="BaseUomId" class="text-danger small"></span>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="PurchaseUomId" class="form-label">@T["Purchase UOM"]</label>
+        <select asp-for="PurchaseUomId" class="form-select">
+            <option value="">@T["None"]</option>
+            @foreach (var option in Model.UomOptions)
+            {
+                <option value="@option.Id">@option.Label</option>
+            }
+        </select>
+        <span asp-validation-for="PurchaseUomId" class="text-danger small"></span>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="LeadTimeDays" class="form-label">@T["Lead Time (Days)"]</label>
+        <input asp-for="LeadTimeDays" class="form-control text-end sinara-text-number sinara-text-number-theme sinara-text-number-input" type="text" inputmode="numeric" data-text-number-decimals="0" autocomplete="off" />
+        <span asp-validation-for="LeadTimeDays" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-4">
+        <label asp-for="LastPurchasePrice" class="form-label">@T["Last Purchase Price"]</label>
+        <input asp-for="LastPurchasePrice" class="form-control text-end sinara-text-number sinara-text-number-theme sinara-text-number-input" type="text" inputmode="decimal" data-text-number-decimals="2" autocomplete="off" />
+        <span asp-validation-for="LastPurchasePrice" class="text-danger small"></span>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="AvgCost" class="form-label">@T["Average Cost"]</label>
+        <input asp-for="AvgCost" class="form-control text-end sinara-text-number sinara-text-number-theme sinara-text-number-input" type="text" inputmode="decimal" data-text-number-decimals="2" autocomplete="off" />
+        <span asp-validation-for="AvgCost" class="text-danger small"></span>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="MinStock" class="form-label">@T["Min Stock"]</label>
+        <input asp-for="MinStock" class="form-control text-end sinara-text-number sinara-text-number-theme sinara-text-number-input" type="text" inputmode="decimal" data-text-number-decimals="2" autocomplete="off" />
+        <span asp-validation-for="MinStock" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-4">
+        <label asp-for="MaxStock" class="form-label">@T["Max Stock"]</label>
+        <input asp-for="MaxStock" class="form-control text-end sinara-text-number sinara-text-number-theme sinara-text-number-input" type="text" inputmode="decimal" data-text-number-decimals="2" autocomplete="off" />
+        <span asp-validation-for="MaxStock" class="text-danger small"></span>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="ReorderPoint" class="form-label">@T["Reorder Point"]</label>
+        <input asp-for="ReorderPoint" class="form-control text-end sinara-text-number sinara-text-number-theme sinara-text-number-input" type="text" inputmode="decimal" data-text-number-decimals="2" autocomplete="off" />
+        <span asp-validation-for="ReorderPoint" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-4">
+        <label asp-for="InventoryAccountId" class="form-label">@T["Inventory Account"]</label>
+        <select asp-for="InventoryAccountId" class="form-select">
+            <option value="">@T["None"]</option>
+            @foreach (var option in Model.AccountOptions)
+            {
+                <option value="@option.Id">@option.Label</option>
+            }
+        </select>
+        <span asp-validation-for="InventoryAccountId" class="text-danger small"></span>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="CogsAccountId" class="form-label">@T["COGS Account"]</label>
+        <select asp-for="CogsAccountId" class="form-select">
+            <option value="">@T["None"]</option>
+            @foreach (var option in Model.AccountOptions)
+            {
+                <option value="@option.Id">@option.Label</option>
+            }
+        </select>
+        <span asp-validation-for="CogsAccountId" class="text-danger small"></span>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="AdjustmentAccountId" class="form-label">@T["Adjustment Account"]</label>
+        <select asp-for="AdjustmentAccountId" class="form-select">
+            <option value="">@T["None"]</option>
+            @foreach (var option in Model.AccountOptions)
+            {
+                <option value="@option.Id">@option.Label</option>
+            }
+        </select>
+        <span asp-validation-for="AdjustmentAccountId" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-12">
+        <label asp-for="Description" class="form-label">@T["Description"]</label>
+        <textarea asp-for="Description" class="form-control" rows="2"></textarea>
+        <span asp-validation-for="Description" class="text-danger small"></span>
+    </div>
+    <div class="col-md-12">
+        <label asp-for="Notes" class="form-label">@T["Notes"]</label>
+        <textarea asp-for="Notes" class="form-control" rows="3"></textarea>
+        <span asp-validation-for="Notes" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-4">
+        <div class="form-check mt-2">
+            <input asp-for="IsActive" class="form-check-input" />
+            <label asp-for="IsActive" class="form-check-label">@T["Active"]</label>
+        </div>
+    </div>
+</div>

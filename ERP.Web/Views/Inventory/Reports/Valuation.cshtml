@@ -1,0 +1,116 @@
+@model ERP.Web.ViewModels.Inventory.InventoryValuationReportViewModel
+@using ERP.Web.ViewModels.Shared
+@using System.Globalization
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">@T["Inventory Valuation"]</h1>
+
+        @{
+            var selectedWarehouse = Model.WarehouseIdFilter?.ToString(CultureInfo.InvariantCulture);
+            var selectedCategory = Model.CategoryIdFilter?.ToString(CultureInfo.InvariantCulture);
+            var selectedItem = Model.ItemIdFilter?.ToString(CultureInfo.InvariantCulture);
+
+            var warehouseOptions = Model.WarehouseOptions
+                .Select(x => new PagedGridFilterOptionViewModel { Value = x.Id.ToString(CultureInfo.InvariantCulture), Label = x.Label })
+                .ToList();
+            var categoryOptions = Model.CategoryOptions
+                .Select(x => new PagedGridFilterOptionViewModel { Value = x.Id.ToString(CultureInfo.InvariantCulture), Label = x.Label })
+                .ToList();
+            var itemOptions = Model.ItemOptions
+                .Select(x => new PagedGridFilterOptionViewModel { Value = x.Id.ToString(CultureInfo.InvariantCulture), Label = x.Label })
+                .ToList();
+
+            var rows = new List<PagedGridRowViewModel>();
+            foreach (var item in Model.Items.Items)
+            {
+                var qtyOnHandHtml = await Component.InvokeAsync("TextNumber", new { value = item.QtyOnHand, decimals = 2, cssClass = "sinara-text-number-theme" });
+                var avgCostHtml = await Component.InvokeAsync("TextNumber", new { value = item.AvgCost, decimals = 2, cssClass = "sinara-text-number-theme" });
+                var totalValueHtml = await Component.InvokeAsync("TextNumber", new { value = item.TotalValue, decimals = 2, cssClass = "sinara-text-number-theme" });
+
+                rows.Add(new PagedGridRowViewModel
+                {
+                    Cells =
+                    [
+                        new PagedGridCellViewModel { Text = item.ItemCode },
+                        new PagedGridCellViewModel { Text = item.ItemName },
+                        new PagedGridCellViewModel { Text = item.WarehouseCode },
+                        new PagedGridCellViewModel { Html = qtyOnHandHtml, CellClass = "text-end" },
+                        new PagedGridCellViewModel { Html = avgCostHtml, CellClass = "text-end" },
+                        new PagedGridCellViewModel { Html = totalValueHtml, CellClass = "text-end" }
+                    ]
+                });
+            }
+
+            var gridModel = new PagedGridViewModel
+            {
+                Columns =
+                [
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "itemcode",
+                        Title = T["Item Code"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "itemId",
+                            Value = selectedItem,
+                            EmptyOptionLabel = T["All"],
+                            Options = itemOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel { Key = "itemname", Title = T["Item Name"], Sortable = false },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "category",
+                        Title = T["Category"],
+                        Sortable = false,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "categoryId",
+                            Value = selectedCategory,
+                            EmptyOptionLabel = T["All"],
+                            Options = categoryOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "warehousecode",
+                        Title = T["Warehouse"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "warehouseId",
+                            Value = selectedWarehouse,
+                            EmptyOptionLabel = T["All"],
+                            Options = warehouseOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel { Key = "qtyonhand", Title = T["Qty On Hand"], Sortable = true, CellClass = "text-end" },
+                    new PagedGridColumnViewModel { Key = "avgcost", Title = T["Average Cost"], Sortable = true, CellClass = "text-end" },
+                    new PagedGridColumnViewModel { Key = "totalvalue", Title = T["Total Value"], Sortable = true, CellClass = "text-end" }
+                ],
+                Rows = rows,
+                EmptyMessage = T["msg.no_data"],
+                Page = Model.Items.Page,
+                TotalPages = Model.Items.TotalPages,
+                PageSize = Model.PageSize,
+                SortBy = Model.SortBy,
+                SortDirection = Model.SortDirection,
+                EnableSearch = true,
+                SearchValue = Model.Search,
+                SearchPlaceholder = T["Search"] + " " + T["Inventory Valuation"],
+                SearchButtonText = T["common.search"],
+                Actions = new PagedGridActionConfigViewModel
+                {
+                    ActionColumnTitle = T["Action"]
+                }
+            };
+        }
+
+        @await Component.InvokeAsync("PagedGrid", gridModel)
+    </div>
+</div>
