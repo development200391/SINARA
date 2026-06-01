@@ -1,11 +1,15 @@
-﻿using ERP.Application.Services;
+using ERP.Application.Services;
 using ERP.Domain.Entities.Config;
 using ERP.Domain.Entities.HR;
 using ERP.Domain.Entities.Finance;
 using ERP.Domain.Entities.Inventory;
+using ERP.Domain.Entities.Purchasing;
+using ERP.Domain.Entities.FixedAssets;
 using ERP.Domain.Entities.System;
 using ERP.Domain.Enums;
 using ERP.Domain.Enums.Inventory;
+using ERP.Domain.Enums.Purchasing;
+using ERP.Domain.Enums.FixedAssets;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -24,6 +28,8 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         await SeedAttendanceSettingAsync(now, ct);
         await SeedFinanceMasterDataAsync(now, ct);
         await SeedInventoryMasterDataAsync(now, ct);
+        await SeedPurchasingMasterDataAsync(now, ct);
+        await SeedFixedAssetsMasterDataAsync(now, ct);
         await SeedAdminUserAsync(now, ct);
         await SeedMenusAsync(now, ct);
         await SeedSuperAdminPermissionsAsync(ct);
@@ -36,6 +42,8 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         await EnsureModuleAsync("System Configuration", "CFG", "bi-gear", 2, now, ct);
         await EnsureModuleAsync("Finance", "FIN", "bi-cash-coin", 3, now, ct);
         await EnsureModuleAsync("Inventory", "INV", "bi-box-seam", 4, now, ct);
+        await EnsureModuleAsync("Purchasing", "PUR", "bi-cart-check", 5, now, ct);
+        await EnsureModuleAsync("Fixed Assets", "FA", "bi-building-gear", 6, now, ct);
     }
 
     private async Task SeedRolesAsync(DateTimeOffset now, CancellationToken ct)
@@ -499,6 +507,1007 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
             ct);
     }
 
+    private async Task SeedPurchasingMasterDataAsync(DateTimeOffset now, CancellationToken ct)
+    {
+        var activeEmployees = await dbContext.HrEmployees
+            .AsNoTracking()
+            .Where(x => x.EmploymentStatus == EmploymentStatus.Active)
+            .OrderBy(x => x.EmployeeCode)
+            .Select(x => x.Id)
+            .ToListAsync(ct);
+
+        if (activeEmployees.Count == 0)
+        {
+            return;
+        }
+
+        var approverLevel1Id = activeEmployees[0];
+        var approverLevel2Id = activeEmployees.Count > 1 ? activeEmployees[1] : activeEmployees[0];
+
+        var categoryManufacturing = await EnsurePurVendorCategoryAsync(
+            "RAWMAT",
+            "Raw Material Supplier",
+            "Vendors for raw and production materials",
+            true,
+            now,
+            ct);
+
+        var categoryService = await EnsurePurVendorCategoryAsync(
+            "SERVICE",
+            "Service Provider",
+            "Vendors for professional and operational services",
+            true,
+            now,
+            ct);
+
+        var categoryLogistics = await EnsurePurVendorCategoryAsync(
+            "LOGISTIC",
+            "Logistics",
+            "Vendors for shipping and transportation",
+            true,
+            now,
+            ct);
+
+        var itemCategoryMap = await dbContext.InvItemCategories
+            .AsNoTracking()
+            .Where(x => x.IsActive)
+            .ToDictionaryAsync(x => x.Code.ToUpper(), x => x.Id, ct);
+
+        List<int> BuildCategoryIds(params string[] codes)
+        {
+            var result = new List<int>();
+            foreach (var code in codes)
+            {
+                if (itemCategoryMap.TryGetValue(code.ToUpperInvariant(), out var id))
+                {
+                    result.Add(id);
+                }
+            }
+
+            return result.Distinct().ToList();
+        }
+
+        var buyerGroupGeneral = await EnsurePurBuyerGroupAsync(
+            code: "BG-GEN",
+            name: "General Purchasing",
+            buyerEmployeeId: approverLevel1Id,
+            description: "General purchasing buyer group",
+            isActive: true,
+            itemCategoryIds: BuildCategoryIds("ATK", "CONS", "TOOLS", "SP"),
+            now,
+            ct);
+
+        var buyerGroupProduction = await EnsurePurBuyerGroupAsync(
+            code: "BG-PROD",
+            name: "Production Purchasing",
+            buyerEmployeeId: approverLevel2Id,
+            description: "Production and raw material buyer group",
+            isActive: true,
+            itemCategoryIds: BuildCategoryIds("RAW", "BAHAN", "ELEC", "FG"),
+            now,
+            ct);
+
+        await EnsurePurApprovalConfigAsync(
+            PurchasingDocumentType.PurchaseRequisition,
+            1,
+            0m,
+            50000000m,
+            approverLevel1Id,
+            true,
+            "PR approval level 1",
+            now,
+            ct);
+
+        await EnsurePurApprovalConfigAsync(
+            PurchasingDocumentType.PurchaseRequisition,
+            2,
+            50000000.01m,
+            null,
+            approverLevel2Id,
+            true,
+            "PR approval level 2",
+            now,
+            ct);
+
+        await EnsurePurApprovalConfigAsync(
+            PurchasingDocumentType.PurchaseOrder,
+            1,
+            0m,
+            100000000m,
+            approverLevel1Id,
+            true,
+            "PO approval level 1",
+            now,
+            ct);
+
+        await EnsurePurApprovalConfigAsync(
+            PurchasingDocumentType.PurchaseOrder,
+            2,
+            100000000.01m,
+            null,
+            approverLevel2Id,
+            true,
+            "PO approval level 2",
+            now,
+            ct);
+
+        var vendors = await dbContext.FinVendors
+            .IgnoreQueryFilters()
+            .OrderBy(x => x.Code)
+            .ToListAsync(ct);
+
+        if (vendors.Count == 0)
+        {
+            dbContext.FinVendors.AddRange(
+                new FinVendor
+                {
+                    Code = "VEND-001",
+                    Name = "PT Maju Jaya Industri",
+                    PaymentTermsDays = 30,
+                    IsActive = true,
+                    CreatedBy = "system",
+                    CreatedAt = now
+                },
+                new FinVendor
+                {
+                    Code = "VEND-002",
+                    Name = "PT Sinar Teknologi Nusantara",
+                    PaymentTermsDays = 14,
+                    IsActive = true,
+                    CreatedBy = "system",
+                    CreatedAt = now
+                },
+                new FinVendor
+                {
+                    Code = "VEND-003",
+                    Name = "CV Logistik Cepat",
+                    PaymentTermsDays = 21,
+                    IsActive = true,
+                    CreatedBy = "system",
+                    CreatedAt = now
+                });
+
+            await dbContext.SaveChangesAsync(ct);
+
+            vendors = await dbContext.FinVendors
+                .IgnoreQueryFilters()
+                .OrderBy(x => x.Code)
+                .ToListAsync(ct);
+        }
+        var validVendorCategoryIds = await dbContext.PurVendorCategories
+            .AsNoTracking()
+            .Where(x => !x.IsDeleted)
+            .Select(x => x.Id)
+            .ToListAsync(ct);
+
+        var validVendorCategoryIdSet = validVendorCategoryIds
+            .Where(x => x > 0)
+            .ToHashSet();
+
+        var vendorCategoryCycle = new[] { categoryManufacturing.Id, categoryService.Id, categoryLogistics.Id }
+            .Where(x => x > 0 && validVendorCategoryIdSet.Contains(x))
+            .Distinct()
+            .ToList();
+
+        if (vendorCategoryCycle.Count == 0)
+        {
+            vendorCategoryCycle = validVendorCategoryIds
+                .Where(x => x > 0)
+                .Distinct()
+                .ToList();
+        }
+
+        var validBuyerGroupIds = await dbContext.PurBuyerGroups
+            .AsNoTracking()
+            .Where(x => !x.IsDeleted)
+            .Select(x => x.Id)
+            .ToListAsync(ct);
+
+        var validBuyerGroupIdSet = validBuyerGroupIds
+            .Where(x => x > 0)
+            .ToHashSet();
+
+        var buyerGroupCycle = new[] { buyerGroupGeneral.Id, buyerGroupProduction.Id }
+            .Where(x => x > 0 && validBuyerGroupIdSet.Contains(x))
+            .Distinct()
+            .ToList();
+
+        if (buyerGroupCycle.Count == 0)
+        {
+            buyerGroupCycle = validBuyerGroupIds
+                .Where(x => x > 0)
+                .Distinct()
+                .ToList();
+        }
+
+        for (var index = 0; index < vendors.Count; index++)
+        {
+            var vendor = vendors[index];
+
+            vendor.IsDeleted = false;
+            vendor.DeletedAt = null;
+            vendor.VendorCategoryId = vendorCategoryCycle.Count == 0
+                ? null
+                : vendorCategoryCycle[index % vendorCategoryCycle.Count];
+            vendor.BuyerGroupId = buyerGroupCycle.Count == 0
+                ? null
+                : buyerGroupCycle[index % buyerGroupCycle.Count];
+            vendor.IsApprovedVendor = true;
+            vendor.ApprovedDate ??= DateOnly.FromDateTime(DateTime.UtcNow.Date);
+            vendor.LeadTimeDays ??= 7 + (index % 5);
+            vendor.PerformanceScore ??= 80 + (index % 11);
+
+            if (vendor.PaymentTermsDays <= 0)
+            {
+                vendor.PaymentTermsDays = 30;
+            }
+
+            vendor.UpdatedBy = "system";
+            vendor.UpdatedAt = now;
+        }
+
+        await dbContext.SaveChangesAsync(ct);
+    }
+
+    private async Task SeedFixedAssetsMasterDataAsync(DateTimeOffset now, CancellationToken ct)
+    {
+        var activeDepartmentId = await dbContext.HrDepartments
+            .AsNoTracking()
+            .Where(x => x.IsActive)
+            .OrderBy(x => x.Code)
+            .Select(x => (int?)x.Id)
+            .FirstOrDefaultAsync(ct);
+
+        var activeManagerId = await dbContext.HrEmployees
+            .AsNoTracking()
+            .Where(x => x.EmploymentStatus == EmploymentStatus.Active)
+            .OrderBy(x => x.EmployeeCode)
+            .Select(x => (int?)x.Id)
+            .FirstOrDefaultAsync(ct);
+
+        var assetAccountId = await dbContext.FinAccounts
+            .AsNoTracking()
+            .Where(x => x.Code == "1201" && x.IsActive)
+            .Select(x => (int?)x.Id)
+            .FirstOrDefaultAsync(ct);
+
+        var accumulatedDepreciationAccountId = await dbContext.FinAccounts
+            .AsNoTracking()
+            .Where(x => x.Code == "1202" && x.IsActive)
+            .Select(x => (int?)x.Id)
+            .FirstOrDefaultAsync(ct);
+
+        var depreciationExpenseAccountId = await dbContext.FinAccounts
+            .AsNoTracking()
+            .Where(x => x.Code == "5105" && x.IsActive)
+            .Select(x => (int?)x.Id)
+            .FirstOrDefaultAsync(ct);
+
+        async Task<FaAssetCategory> EnsureCategoryAsync(
+            string code,
+            string name,
+            DepreciationMethod method,
+            int usefulLifeMonths,
+            decimal? depreciationRate,
+            bool isActive)
+        {
+            var normalizedCode = code.Trim().ToUpperInvariant();
+            var normalizedName = name.Trim();
+
+            var existing = await dbContext.FaAssetCategories
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(x => x.Code == normalizedCode, ct);
+
+            if (existing is null)
+            {
+                existing = new FaAssetCategory
+                {
+                    Code = normalizedCode,
+                    Name = normalizedName,
+                    DepreciationMethod = method,
+                    UsefulLifeMonths = usefulLifeMonths,
+                    DepreciationRate = depreciationRate,
+                    AssetAccountId = assetAccountId,
+                    AccumulatedDepreciationAccountId = accumulatedDepreciationAccountId,
+                    DepreciationExpenseAccountId = depreciationExpenseAccountId,
+                    IsActive = isActive,
+                    CreatedBy = "system",
+                    CreatedAt = now
+                };
+
+                dbContext.FaAssetCategories.Add(existing);
+            }
+            else
+            {
+                existing.Name = normalizedName;
+                existing.DepreciationMethod = method;
+                existing.UsefulLifeMonths = usefulLifeMonths;
+                existing.DepreciationRate = depreciationRate;
+                existing.AssetAccountId = assetAccountId;
+                existing.AccumulatedDepreciationAccountId = accumulatedDepreciationAccountId;
+                existing.DepreciationExpenseAccountId = depreciationExpenseAccountId;
+                existing.IsActive = isActive;
+                existing.IsDeleted = false;
+                existing.DeletedAt = null;
+                existing.UpdatedBy = "system";
+                existing.UpdatedAt = now;
+            }
+
+            await dbContext.SaveChangesAsync(ct);
+            return existing;
+        }
+
+        async Task<FaLocation> EnsureLocationAsync(
+            string code,
+            string name,
+            string? address,
+            int? departmentId,
+            int? managerId,
+            bool isActive)
+        {
+            var normalizedCode = code.Trim().ToUpperInvariant();
+            var normalizedName = name.Trim();
+
+            var existing = await dbContext.FaLocations
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(x => x.Code == normalizedCode, ct);
+
+            if (existing is null)
+            {
+                existing = new FaLocation
+                {
+                    Code = normalizedCode,
+                    Name = normalizedName,
+                    Address = string.IsNullOrWhiteSpace(address) ? null : address.Trim(),
+                    DepartmentId = departmentId,
+                    ManagerId = managerId,
+                    IsActive = isActive,
+                    CreatedBy = "system",
+                    CreatedAt = now
+                };
+
+                dbContext.FaLocations.Add(existing);
+            }
+            else
+            {
+                existing.Name = normalizedName;
+                existing.Address = string.IsNullOrWhiteSpace(address) ? null : address.Trim();
+                existing.DepartmentId = departmentId;
+                existing.ManagerId = managerId;
+                existing.IsActive = isActive;
+                existing.IsDeleted = false;
+                existing.DeletedAt = null;
+                existing.UpdatedBy = "system";
+                existing.UpdatedAt = now;
+            }
+
+            await dbContext.SaveChangesAsync(ct);
+            return existing;
+        }
+
+        async Task<FaDepreciationConfig> EnsureDepreciationConfigAsync(
+            string name,
+            short fiscalYear,
+            DateOnly startDate,
+            DateOnly endDate,
+            byte runDay,
+            bool isAutoPostJournal,
+            bool isActive)
+        {
+            var normalizedName = name.Trim();
+
+            var existing = await dbContext.FaDepreciationConfigs
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(x => x.Name == normalizedName && x.FiscalYear == fiscalYear, ct);
+
+            if (existing is null)
+            {
+                existing = new FaDepreciationConfig
+                {
+                    Name = normalizedName,
+                    FiscalYear = fiscalYear,
+                    StartDate = startDate,
+                    EndDate = endDate,
+                    RunDay = runDay,
+                    IsAutoPostJournal = isAutoPostJournal,
+                    IsActive = isActive,
+                    CreatedBy = "system",
+                    CreatedAt = now
+                };
+
+                dbContext.FaDepreciationConfigs.Add(existing);
+            }
+            else
+            {
+                existing.StartDate = startDate;
+                existing.EndDate = endDate;
+                existing.RunDay = runDay;
+                existing.IsAutoPostJournal = isAutoPostJournal;
+                existing.IsActive = isActive;
+                existing.IsDeleted = false;
+                existing.DeletedAt = null;
+                existing.UpdatedBy = "system";
+                existing.UpdatedAt = now;
+            }
+
+            await dbContext.SaveChangesAsync(ct);
+            return existing;
+        }
+
+        async Task<FaAsset> EnsureAssetAsync(
+            string assetCode,
+            string name,
+            int categoryId,
+            int locationId,
+            int? departmentId,
+            DateOnly acquisitionDate,
+            DateOnly inServiceDate,
+            decimal acquisitionCost,
+            decimal salvageValue,
+            int usefulLifeMonths,
+            DepreciationMethod depreciationMethod,
+            decimal? depreciationRate,
+            string? serialNumber,
+            string? vendorName,
+            string? description,
+            AssetStatus status,
+            bool isActive)
+        {
+            var normalizedCode = assetCode.Trim().ToUpperInvariant();
+            var normalizedName = name.Trim();
+            var normalizedSerial = string.IsNullOrWhiteSpace(serialNumber) ? null : serialNumber.Trim();
+            var normalizedVendor = string.IsNullOrWhiteSpace(vendorName) ? null : vendorName.Trim();
+            var normalizedDescription = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
+
+            var existing = await dbContext.FaAssets
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(x => x.AssetCode == normalizedCode, ct);
+
+            var bookValue = Math.Max(acquisitionCost - salvageValue, 0m) + salvageValue;
+
+            if (existing is null)
+            {
+                existing = new FaAsset
+                {
+                    AssetCode = normalizedCode,
+                    Name = normalizedName,
+                    CategoryId = categoryId,
+                    LocationId = locationId,
+                    DepartmentId = departmentId,
+                    AcquisitionDate = acquisitionDate,
+                    InServiceDate = inServiceDate,
+                    AcquisitionCost = acquisitionCost,
+                    SalvageValue = salvageValue,
+                    UsefulLifeMonths = usefulLifeMonths,
+                    DepreciationMethod = depreciationMethod,
+                    DepreciationRate = depreciationRate,
+                    AccumulatedDepreciation = 0m,
+                    BookValue = bookValue,
+                    SerialNumber = normalizedSerial,
+                    VendorName = normalizedVendor,
+                    Description = normalizedDescription,
+                    Status = status,
+                    IsActive = isActive,
+                    CreatedBy = "system",
+                    CreatedAt = now
+                };
+
+                dbContext.FaAssets.Add(existing);
+            }
+            else
+            {
+                existing.Name = normalizedName;
+                existing.CategoryId = categoryId;
+                existing.LocationId = locationId;
+                existing.DepartmentId = departmentId;
+                existing.AcquisitionDate = acquisitionDate;
+                existing.InServiceDate = inServiceDate;
+                existing.AcquisitionCost = acquisitionCost;
+                existing.SalvageValue = salvageValue;
+                existing.UsefulLifeMonths = usefulLifeMonths;
+                existing.DepreciationMethod = depreciationMethod;
+                existing.DepreciationRate = depreciationRate;
+                existing.SerialNumber = normalizedSerial;
+                existing.VendorName = normalizedVendor;
+                existing.Description = normalizedDescription;
+                existing.Status = status;
+                existing.IsActive = isActive;
+                existing.IsDeleted = false;
+                existing.DeletedAt = null;
+                existing.UpdatedBy = "system";
+                existing.UpdatedAt = now;
+
+                if (existing.AccumulatedDepreciation < 0)
+                {
+                    existing.AccumulatedDepreciation = 0m;
+                }
+
+                if (existing.BookValue <= 0)
+                {
+                    existing.BookValue = bookValue;
+                }
+            }
+
+            await dbContext.SaveChangesAsync(ct);
+            return existing;
+        }
+
+        async Task EnsureAssetHistoryAsync(
+            int assetId,
+            DateOnly eventDate,
+            AssetHistoryType eventType,
+            string? referenceNo,
+            string? description,
+            decimal? amountChange = null)
+        {
+            var normalizedReference = string.IsNullOrWhiteSpace(referenceNo) ? null : referenceNo.Trim().ToUpperInvariant();
+            var normalizedDescription = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
+
+            var exists = await dbContext.FaAssetHistories
+                .IgnoreQueryFilters()
+                .AnyAsync(x =>
+                    x.AssetId == assetId &&
+                    x.EventType == eventType &&
+                    x.EventDate == eventDate &&
+                    x.ReferenceNo == normalizedReference,
+                    ct);
+
+            if (exists)
+            {
+                return;
+            }
+
+            dbContext.FaAssetHistories.Add(new FaAssetHistory
+            {
+                AssetId = assetId,
+                EventDate = eventDate,
+                EventType = eventType,
+                ReferenceNo = normalizedReference,
+                Description = normalizedDescription,
+                AmountChange = amountChange,
+                CreatedBy = "system",
+                CreatedAt = now
+            });
+
+            await dbContext.SaveChangesAsync(ct);
+        }
+
+        async Task EnsureDepreciationSchedulesAsync(FaAsset asset)
+        {
+            var hasSchedule = await dbContext.FaDepreciationSchedules
+                .IgnoreQueryFilters()
+                .AnyAsync(x => x.AssetId == asset.Id, ct);
+
+            if (hasSchedule)
+            {
+                return;
+            }
+
+            var depreciableBase = Math.Max(asset.AcquisitionCost - asset.SalvageValue, 0m);
+            if (depreciableBase <= 0 || asset.UsefulLifeMonths <= 0)
+            {
+                return;
+            }
+
+            decimal accumulated = 0m;
+            decimal openingBookValue = asset.AcquisitionCost;
+
+            for (var monthIndex = 0; monthIndex < asset.UsefulLifeMonths; monthIndex++)
+            {
+                var depreciationDate = asset.InServiceDate.AddMonths(monthIndex);
+                decimal depreciationAmount;
+
+                if (asset.DepreciationMethod == DepreciationMethod.StraightLine)
+                {
+                    depreciationAmount = decimal.Round(depreciableBase / asset.UsefulLifeMonths, 2, MidpointRounding.AwayFromZero);
+
+                    if (monthIndex == asset.UsefulLifeMonths - 1)
+                    {
+                        depreciationAmount = depreciableBase - accumulated;
+                    }
+                }
+                else
+                {
+                    var rate = asset.DepreciationRate ?? 20m;
+                    depreciationAmount = decimal.Round((openingBookValue * rate / 100m) / 12m, 2, MidpointRounding.AwayFromZero);
+
+                    var maxAllowed = Math.Max(openingBookValue - asset.SalvageValue, 0m);
+                    if (depreciationAmount > maxAllowed)
+                    {
+                        depreciationAmount = maxAllowed;
+                    }
+
+                    if (monthIndex == asset.UsefulLifeMonths - 1 && depreciationAmount < maxAllowed)
+                    {
+                        depreciationAmount = maxAllowed;
+                    }
+                }
+
+                if (depreciationAmount < 0)
+                {
+                    depreciationAmount = 0m;
+                }
+
+                accumulated += depreciationAmount;
+
+                var bookValue = asset.AcquisitionCost - accumulated;
+                if (bookValue < asset.SalvageValue)
+                {
+                    bookValue = asset.SalvageValue;
+                }
+
+                openingBookValue = bookValue;
+
+                dbContext.FaDepreciationSchedules.Add(new FaDepreciationSchedule
+                {
+                    AssetId = asset.Id,
+                    PeriodYear = (short)depreciationDate.Year,
+                    PeriodMonth = (byte)depreciationDate.Month,
+                    DepreciationDate = depreciationDate,
+                    DepreciationAmount = depreciationAmount,
+                    AccumulatedDepreciation = accumulated,
+                    BookValue = bookValue,
+                    Status = DepreciationScheduleStatus.Pending,
+                    CreatedBy = "system",
+                    CreatedAt = now
+                });
+            }
+
+            await dbContext.SaveChangesAsync(ct);
+        }
+
+        async Task EnsureDepreciationRunAsync(short periodYear, byte periodMonth)
+        {
+            if (periodMonth is < 1 or > 12)
+            {
+                return;
+            }
+
+            var runNo = $"FADR-{periodYear}{periodMonth:00}";
+
+            var run = await dbContext.FaDepreciationRuns
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(x => x.RunNo == runNo, ct);
+
+            if (run is null)
+            {
+                run = new FaDepreciationRun
+                {
+                    RunNo = runNo,
+                    PeriodYear = periodYear,
+                    PeriodMonth = periodMonth,
+                    RunDate = new DateOnly(periodYear, periodMonth, DateTime.DaysInMonth(periodYear, periodMonth)),
+                    TotalAssetCount = 0,
+                    TotalDepreciationAmount = 0m,
+                    Status = DepreciationRunStatus.Processed,
+                    CreatedBy = "system",
+                    CreatedAt = now
+                };
+
+                dbContext.FaDepreciationRuns.Add(run);
+                await dbContext.SaveChangesAsync(ct);
+            }
+
+            var pendingSchedules = await dbContext.FaDepreciationSchedules
+                .Where(x =>
+                    x.PeriodYear == periodYear &&
+                    x.PeriodMonth == periodMonth &&
+                    x.Status == DepreciationScheduleStatus.Pending)
+                .OrderBy(x => x.AssetId)
+                .ThenBy(x => x.DepreciationDate)
+                .ToListAsync(ct);
+
+            if (pendingSchedules.Count == 0)
+            {
+                return;
+            }
+
+            run.TotalAssetCount = pendingSchedules
+                .Select(x => x.AssetId)
+                .Distinct()
+                .Count();
+            run.TotalDepreciationAmount = pendingSchedules.Sum(x => x.DepreciationAmount);
+            run.Status = DepreciationRunStatus.Processed;
+            run.IsDeleted = false;
+            run.DeletedAt = null;
+            run.UpdatedBy = "system";
+            run.UpdatedAt = now;
+
+            foreach (var schedule in pendingSchedules)
+            {
+                schedule.RunId = run.Id;
+                schedule.Status = DepreciationScheduleStatus.Processed;
+                schedule.UpdatedBy = "system";
+                schedule.UpdatedAt = now;
+            }
+
+            var assetIds = pendingSchedules
+                .Select(x => x.AssetId)
+                .Distinct()
+                .ToList();
+
+            var assets = await dbContext.FaAssets
+                .Where(x => assetIds.Contains(x.Id))
+                .ToListAsync(ct);
+
+            foreach (var asset in assets)
+            {
+                var latestSchedule = pendingSchedules
+                    .Where(x => x.AssetId == asset.Id)
+                    .OrderByDescending(x => x.DepreciationDate)
+                    .FirstOrDefault();
+
+                if (latestSchedule is null)
+                {
+                    continue;
+                }
+
+                asset.AccumulatedDepreciation = latestSchedule.AccumulatedDepreciation;
+                asset.BookValue = latestSchedule.BookValue;
+
+                if (asset.BookValue <= asset.SalvageValue)
+                {
+                    asset.Status = AssetStatus.FullyDepreciated;
+                }
+
+                asset.UpdatedBy = "system";
+                asset.UpdatedAt = now;
+            }
+
+            await dbContext.SaveChangesAsync(ct);
+
+            foreach (var assetId in assetIds)
+            {
+                await EnsureAssetHistoryAsync(
+                    assetId,
+                    new DateOnly(periodYear, periodMonth, 1),
+                    AssetHistoryType.Depreciation,
+                    runNo,
+                    $"Depreciation run {periodYear}-{periodMonth:00}",
+                    pendingSchedules
+                        .Where(x => x.AssetId == assetId)
+                        .Sum(x => x.DepreciationAmount));
+            }
+        }
+
+        var categoryVehicle = await EnsureCategoryAsync("KEND", "Vehicles", DepreciationMethod.StraightLine, 96, 12.5m, true);
+        var categoryComputer = await EnsureCategoryAsync("KOMP", "Computers", DepreciationMethod.StraightLine, 36, 33.33m, true);
+        var categoryMachine = await EnsureCategoryAsync("MESI", "Machinery", DepreciationMethod.DecliningBalance, 120, 20m, true);
+
+        var locationHeadOffice = await EnsureLocationAsync("HO", "Head Office", "Jl. Kantor Pusat No. 1", activeDepartmentId, activeManagerId, true);
+        var locationPlant = await EnsureLocationAsync("PLANT", "Main Plant", "Kawasan Industri Blok A2", activeDepartmentId, activeManagerId, true);
+
+        var currentYear = (short)DateTime.UtcNow.Year;
+        await EnsureDepreciationConfigAsync(
+            name: $"FA Depreciation {currentYear}",
+            fiscalYear: currentYear,
+            startDate: new DateOnly(currentYear, 1, 1),
+            endDate: new DateOnly(currentYear, 12, 31),
+            runDay: 28,
+            isAutoPostJournal: true,
+            isActive: true);
+
+        var assetLaptop = await EnsureAssetAsync(
+            assetCode: "FA-KOMP-00001",
+            name: "Laptop Dell Latitude",
+            categoryId: categoryComputer.Id,
+            locationId: locationHeadOffice.Id,
+            departmentId: activeDepartmentId,
+            acquisitionDate: new DateOnly(currentYear - 1, 1, 12),
+            inServiceDate: new DateOnly(currentYear - 1, 2, 1),
+            acquisitionCost: 18000000m,
+            salvageValue: 1000000m,
+            usefulLifeMonths: 36,
+            depreciationMethod: DepreciationMethod.StraightLine,
+            depreciationRate: categoryComputer.DepreciationRate,
+            serialNumber: "DL-FA-0001",
+            vendorName: "PT Teknologi Nusantara",
+            description: "Device for finance team",
+            status: AssetStatus.Active,
+            isActive: true);
+
+        var assetForklift = await EnsureAssetAsync(
+            assetCode: "FA-MESI-00001",
+            name: "Forklift 3 Ton",
+            categoryId: categoryMachine.Id,
+            locationId: locationPlant.Id,
+            departmentId: activeDepartmentId,
+            acquisitionDate: new DateOnly(currentYear - 2, 5, 9),
+            inServiceDate: new DateOnly(currentYear - 2, 6, 1),
+            acquisitionCost: 250000000m,
+            salvageValue: 25000000m,
+            usefulLifeMonths: 120,
+            depreciationMethod: DepreciationMethod.DecliningBalance,
+            depreciationRate: categoryMachine.DepreciationRate,
+            serialNumber: "FL-FA-0001",
+            vendorName: "PT Material Handling Indonesia",
+            description: "Used for warehouse loading",
+            status: AssetStatus.Active,
+            isActive: true);
+
+        var assetVehicle = await EnsureAssetAsync(
+            assetCode: "FA-KEND-00001",
+            name: "Toyota Kijang Operasional",
+            categoryId: categoryVehicle.Id,
+            locationId: locationHeadOffice.Id,
+            departmentId: activeDepartmentId,
+            acquisitionDate: new DateOnly(currentYear - 3, 3, 18),
+            inServiceDate: new DateOnly(currentYear - 3, 4, 1),
+            acquisitionCost: 320000000m,
+            salvageValue: 40000000m,
+            usefulLifeMonths: 96,
+            depreciationMethod: DepreciationMethod.StraightLine,
+            depreciationRate: categoryVehicle.DepreciationRate,
+            serialNumber: "VH-FA-0001",
+            vendorName: "PT Astra Internasional",
+            description: "Operational vehicle for field visits",
+            status: AssetStatus.Active,
+            isActive: true);
+
+        await EnsureAssetHistoryAsync(assetLaptop.Id, assetLaptop.InServiceDate, AssetHistoryType.Registration, "REG-FA-KOMP-00001", "Initial asset registration", assetLaptop.AcquisitionCost);
+        await EnsureAssetHistoryAsync(assetForklift.Id, assetForklift.InServiceDate, AssetHistoryType.Registration, "REG-FA-MESI-00001", "Initial asset registration", assetForklift.AcquisitionCost);
+        await EnsureAssetHistoryAsync(assetVehicle.Id, assetVehicle.InServiceDate, AssetHistoryType.Registration, "REG-FA-KEND-00001", "Initial asset registration", assetVehicle.AcquisitionCost);
+
+        await EnsureDepreciationSchedulesAsync(assetLaptop);
+        await EnsureDepreciationSchedulesAsync(assetForklift);
+        await EnsureDepreciationSchedulesAsync(assetVehicle);
+
+        var runYear = (short)DateTime.UtcNow.Year;
+        var runMonth = (byte)DateTime.UtcNow.Month;
+        await EnsureDepreciationRunAsync(runYear, runMonth);
+
+        var transferNo = $"FATR-{currentYear}-0001";
+        var hasTransfer = await dbContext.FaAssetTransfers
+            .IgnoreQueryFilters()
+            .AnyAsync(x => x.TransferNo == transferNo, ct);
+
+        if (!hasTransfer && locationHeadOffice.Id != locationPlant.Id)
+        {
+            dbContext.FaAssetTransfers.Add(new FaAssetTransfer
+            {
+                TransferNo = transferNo,
+                AssetId = assetLaptop.Id,
+                TransferDate = new DateOnly(currentYear, 1, 15),
+                FromLocationId = locationHeadOffice.Id,
+                ToLocationId = locationPlant.Id,
+                FromDepartmentId = activeDepartmentId,
+                ToDepartmentId = activeDepartmentId,
+                Reason = "Asset relocation for plant support",
+                Status = AssetTransferStatus.Approved,
+                ApprovedBy = activeManagerId,
+                ApprovedAt = now,
+                CreatedBy = "system",
+                CreatedAt = now
+            });
+
+            assetLaptop.LocationId = locationPlant.Id;
+            assetLaptop.UpdatedBy = "system";
+            assetLaptop.UpdatedAt = now;
+
+            await dbContext.SaveChangesAsync(ct);
+
+            await EnsureAssetHistoryAsync(
+                assetLaptop.Id,
+                new DateOnly(currentYear, 1, 15),
+                AssetHistoryType.Transfer,
+                transferNo,
+                "Transfer from Head Office to Main Plant");
+        }
+
+        var maintenanceNo = $"FAMO-{currentYear}-0001";
+        var hasMaintenance = await dbContext.FaMaintenanceOrders
+            .IgnoreQueryFilters()
+            .AnyAsync(x => x.WorkOrderNo == maintenanceNo, ct);
+
+        if (!hasMaintenance)
+        {
+            dbContext.FaMaintenanceOrders.Add(new FaMaintenanceOrder
+            {
+                WorkOrderNo = maintenanceNo,
+                AssetId = assetForklift.Id,
+                OrderDate = new DateOnly(currentYear, 2, 10),
+                MaintenanceType = MaintenanceType.Preventive,
+                VendorName = "PT Maintenance Teknik",
+                Cost = 8500000m,
+                IsCapitalized = false,
+                Status = MaintenanceStatus.Completed,
+                Notes = "Quarterly preventive service",
+                CreatedBy = "system",
+                CreatedAt = now
+            });
+
+            await dbContext.SaveChangesAsync(ct);
+
+            await EnsureAssetHistoryAsync(
+                assetForklift.Id,
+                new DateOnly(currentYear, 2, 10),
+                AssetHistoryType.Maintenance,
+                maintenanceNo,
+                "Preventive maintenance completed",
+                -8500000m);
+        }
+
+        var revaluationNo = $"FARV-{currentYear}-0001";
+        var hasRevaluation = await dbContext.FaRevaluations
+            .IgnoreQueryFilters()
+            .AnyAsync(x => x.RevaluationNo == revaluationNo, ct);
+
+        if (!hasRevaluation)
+        {
+            var oldBookValue = assetForklift.BookValue;
+            var newBookValue = oldBookValue + 10000000m;
+
+            dbContext.FaRevaluations.Add(new FaRevaluation
+            {
+                RevaluationNo = revaluationNo,
+                AssetId = assetForklift.Id,
+                RevaluationDate = new DateOnly(currentYear, 3, 5),
+                OldBookValue = oldBookValue,
+                NewBookValue = newBookValue,
+                ImpairmentAmount = 0m,
+                Status = RevaluationStatus.Approved,
+                Notes = "Market value adjustment",
+                CreatedBy = "system",
+                CreatedAt = now
+            });
+
+            assetForklift.BookValue = newBookValue;
+            assetForklift.UpdatedBy = "system";
+            assetForklift.UpdatedAt = now;
+
+            await dbContext.SaveChangesAsync(ct);
+
+            await EnsureAssetHistoryAsync(
+                assetForklift.Id,
+                new DateOnly(currentYear, 3, 5),
+                AssetHistoryType.Revaluation,
+                revaluationNo,
+                "Asset revaluation approved",
+                newBookValue - oldBookValue);
+        }
+
+        var disposalNo = $"FADP-{currentYear}-0001";
+        var hasDisposal = await dbContext.FaDisposals
+            .IgnoreQueryFilters()
+            .AnyAsync(x => x.DisposalNo == disposalNo, ct);
+
+        if (!hasDisposal)
+        {
+            var saleAmount = 120000000m;
+            var disposalExpense = 2500000m;
+            var gainLossAmount = saleAmount - disposalExpense - assetVehicle.BookValue;
+
+            dbContext.FaDisposals.Add(new FaDisposal
+            {
+                DisposalNo = disposalNo,
+                AssetId = assetVehicle.Id,
+                DisposalDate = new DateOnly(currentYear, 4, 20),
+                DisposalType = DisposalType.Sale,
+                SaleAmount = saleAmount,
+                DisposalExpense = disposalExpense,
+                GainLossAmount = gainLossAmount,
+                Status = DisposalStatus.Posted,
+                Notes = "Asset sold to third party",
+                CreatedBy = "system",
+                CreatedAt = now
+            });
+
+            assetVehicle.Status = AssetStatus.Disposed;
+            assetVehicle.IsActive = false;
+            assetVehicle.UpdatedBy = "system";
+            assetVehicle.UpdatedAt = now;
+
+            await dbContext.SaveChangesAsync(ct);
+
+            await EnsureAssetHistoryAsync(
+                assetVehicle.Id,
+                new DateOnly(currentYear, 4, 20),
+                AssetHistoryType.Disposal,
+                disposalNo,
+                "Asset disposal via sale",
+                gainLossAmount);
+        }
+    }
     private async Task<InvItemCategory> EnsureInvItemCategoryAsync(
         string code,
         string name,
@@ -1395,6 +2404,13 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
             .IgnoreQueryFilters()
             .FirstAsync(x => x.Code == "INV", ct);
 
+        var purModule = await dbContext.CfgModules
+            .IgnoreQueryFilters()
+            .FirstAsync(x => x.Code == "PUR", ct);
+
+        var faModule = await dbContext.CfgModules
+            .IgnoreQueryFilters()
+            .FirstAsync(x => x.Code == "FA", ct);
         var hrEmployees = await EnsureMenuAsync(hrModule.Id, null, "Employees", null, "bi-people", 1, now, ct);
         await EnsureMenuAsync(hrModule.Id, hrEmployees.Id, "All Employees", "/hr/employees", "bi-list", 1, now, ct);
         await EnsureMenuAsync(hrModule.Id, hrEmployees.Id, "Add Employee", "/hr/employees/create", "bi-plus-circle", 2, now, ct);
@@ -1508,6 +2524,29 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         await EnsureMenuAsync(invModule.Id, invReports.Id, "Issue Summary", "/inventory/reports/issue-summary", "bi-journal-minus", 7, now, ct);
         await EnsureMenuAsync(invModule.Id, invReports.Id, "Transfer Summary", "/inventory/reports/transfer-summary", "bi-arrows-move", 8, now, ct);
         await EnsureMenuAsync(invModule.Id, invReports.Id, "Adjustment Summary", "/inventory/reports/adjustment-summary", "bi-journal-check", 9, now, ct);
+
+        await EnsureMenuAsync(purModule.Id, null, "Purchasing Dashboard", "/purchasing", "bi-speedometer2", 1, now, ct);
+
+        var purMaster = await EnsureMenuAsync(purModule.Id, null, "Purchasing Master", null, "bi-diagram-3", 2, now, ct);
+        await EnsureMenuAsync(purModule.Id, purMaster.Id, "Vendor Categories", "/purchasing/vendor-categories", "bi-tags", 1, now, ct);
+        await EnsureMenuAsync(purModule.Id, purMaster.Id, "Approval Configs", "/purchasing/approval-configs", "bi-shield-check", 2, now, ct);
+        await EnsureMenuAsync(purModule.Id, purMaster.Id, "Buyer Groups", "/purchasing/buyer-groups", "bi-people", 3, now, ct);
+        await EnsureMenuAsync(purModule.Id, purMaster.Id, "Vendors", "/purchasing/vendors", "bi-building", 4, now, ct);
+
+        await EnsureMenuAsync(faModule.Id, null, "Fixed Assets Dashboard", "/fixed-assets", "bi-speedometer2", 1, now, ct);
+
+        var faMaster = await EnsureMenuAsync(faModule.Id, null, "Fixed Assets Master", null, "bi-diagram-3", 2, now, ct);
+        await EnsureMenuAsync(faModule.Id, faMaster.Id, "Asset Categories", "/fixed-assets/asset-categories", "bi-tags", 1, now, ct);
+        await EnsureMenuAsync(faModule.Id, faMaster.Id, "Asset Locations", "/fixed-assets/locations", "bi-geo-alt", 2, now, ct);
+        await EnsureMenuAsync(faModule.Id, faMaster.Id, "Depreciation Configs", "/fixed-assets/depreciation-configs", "bi-sliders", 3, now, ct);
+        await EnsureMenuAsync(faModule.Id, faMaster.Id, "Assets", "/fixed-assets/assets", "bi-building", 4, now, ct);
+
+        var faOps = await EnsureMenuAsync(faModule.Id, null, "Fixed Assets Operations", null, "bi-arrow-left-right", 3, now, ct);
+        await EnsureMenuAsync(faModule.Id, faOps.Id, "Depreciation Runs", "/fixed-assets/depreciation-runs", "bi-calendar-check", 1, now, ct);
+        await EnsureMenuAsync(faModule.Id, faOps.Id, "Asset Transfers", "/fixed-assets/transfers", "bi-truck", 2, now, ct);
+        await EnsureMenuAsync(faModule.Id, faOps.Id, "Maintenance Orders", "/fixed-assets/maintenance-orders", "bi-tools", 3, now, ct);
+        await EnsureMenuAsync(faModule.Id, faOps.Id, "Disposals", "/fixed-assets/disposals", "bi-trash3", 4, now, ct);
+        await EnsureMenuAsync(faModule.Id, faOps.Id, "Revaluations", "/fixed-assets/revaluations", "bi-graph-up-arrow", 5, now, ct);
     }
 
     private async Task SeedSuperAdminPermissionsAsync(CancellationToken ct)
@@ -1727,6 +2766,191 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         await dbContext.SaveChangesAsync(ct);
     }
 
+    private async Task<PurVendorCategory> EnsurePurVendorCategoryAsync(
+        string code,
+        string name,
+        string? description,
+        bool isActive,
+        DateTimeOffset now,
+        CancellationToken ct)
+    {
+        var normalizedCode = code.Trim().ToUpperInvariant();
+        var normalizedName = name.Trim();
+
+        var existing = await dbContext.PurVendorCategories
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(x => x.Code == normalizedCode, ct);
+
+        if (existing is null)
+        {
+            existing = new PurVendorCategory
+            {
+                Code = normalizedCode,
+                Name = normalizedName,
+                Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim(),
+                IsActive = isActive,
+                CreatedBy = "system",
+                CreatedAt = now
+            };
+
+            dbContext.PurVendorCategories.Add(existing);
+        }
+        else
+        {
+            existing.Name = normalizedName;
+            existing.Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
+            existing.IsActive = isActive;
+            existing.IsDeleted = false;
+            existing.DeletedAt = null;
+            existing.UpdatedBy = "system";
+            existing.UpdatedAt = now;
+        }
+
+        await dbContext.SaveChangesAsync(ct);
+        return existing;
+    }
+
+    private async Task<PurBuyerGroup> EnsurePurBuyerGroupAsync(
+        string code,
+        string name,
+        int buyerEmployeeId,
+        string? description,
+        bool isActive,
+        IReadOnlyCollection<int> itemCategoryIds,
+        DateTimeOffset now,
+        CancellationToken ct)
+    {
+        var normalizedCode = code.Trim().ToUpperInvariant();
+        var normalizedName = name.Trim();
+        var normalizedCategoryIds = itemCategoryIds
+            .Where(x => x > 0)
+            .Distinct()
+            .ToList();
+
+        var existing = await dbContext.PurBuyerGroups
+            .IgnoreQueryFilters()
+            .Include(x => x.CategoryMappings)
+            .FirstOrDefaultAsync(x => x.Code == normalizedCode, ct);
+
+        if (existing is null)
+        {
+            existing = new PurBuyerGroup
+            {
+                Code = normalizedCode,
+                Name = normalizedName,
+                BuyerEmployeeId = buyerEmployeeId,
+                Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim(),
+                IsActive = isActive,
+                CreatedBy = "system",
+                CreatedAt = now
+            };
+
+            foreach (var itemCategoryId in normalizedCategoryIds)
+            {
+                existing.CategoryMappings.Add(new PurBuyerGroupCategory
+                {
+                    ItemCategoryId = itemCategoryId,
+                    CreatedBy = "system",
+                    CreatedAt = now
+                });
+            }
+
+            dbContext.PurBuyerGroups.Add(existing);
+        }
+        else
+        {
+            existing.Name = normalizedName;
+            existing.BuyerEmployeeId = buyerEmployeeId;
+            existing.Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
+            existing.IsActive = isActive;
+            existing.IsDeleted = false;
+            existing.DeletedAt = null;
+            existing.UpdatedBy = "system";
+            existing.UpdatedAt = now;
+
+            var existingMappingIds = existing.CategoryMappings
+                .Select(x => x.ItemCategoryId)
+                .ToHashSet();
+
+            var mappingsToRemove = existing.CategoryMappings
+                .Where(x => !normalizedCategoryIds.Contains(x.ItemCategoryId))
+                .ToList();
+
+            if (mappingsToRemove.Count > 0)
+            {
+                dbContext.PurBuyerGroupCategories.RemoveRange(mappingsToRemove);
+            }
+
+            foreach (var itemCategoryId in normalizedCategoryIds)
+            {
+                if (existingMappingIds.Contains(itemCategoryId))
+                {
+                    continue;
+                }
+
+                existing.CategoryMappings.Add(new PurBuyerGroupCategory
+                {
+                    ItemCategoryId = itemCategoryId,
+                    CreatedBy = "system",
+                    CreatedAt = now
+                });
+            }
+        }
+
+        await dbContext.SaveChangesAsync(ct);
+        return existing;
+    }
+
+    private async Task EnsurePurApprovalConfigAsync(
+        PurchasingDocumentType documentType,
+        int level,
+        decimal minAmount,
+        decimal? maxAmount,
+        int approverEmployeeId,
+        bool isActive,
+        string? notes,
+        DateTimeOffset now,
+        CancellationToken ct)
+    {
+        var existing = await dbContext.PurApprovalConfigs
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(x =>
+                x.DocumentType == documentType &&
+                x.Level == level &&
+                x.MinAmount == minAmount &&
+                x.MaxAmount == maxAmount,
+                ct);
+
+        if (existing is null)
+        {
+            existing = new PurApprovalConfig
+            {
+                DocumentType = documentType,
+                Level = level,
+                MinAmount = minAmount,
+                MaxAmount = maxAmount,
+                ApproverEmployeeId = approverEmployeeId,
+                IsActive = isActive,
+                Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim(),
+                CreatedBy = "system",
+                CreatedAt = now
+            };
+
+            dbContext.PurApprovalConfigs.Add(existing);
+        }
+        else
+        {
+            existing.ApproverEmployeeId = approverEmployeeId;
+            existing.IsActive = isActive;
+            existing.Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim();
+            existing.IsDeleted = false;
+            existing.DeletedAt = null;
+            existing.UpdatedBy = "system";
+            existing.UpdatedAt = now;
+        }
+
+        await dbContext.SaveChangesAsync(ct);
+    }
     private async Task EnsureModuleAsync(string name, string code, string icon, int sortOrder, DateTimeOffset now, CancellationToken ct)
     {
         var existing = await dbContext.CfgModules
@@ -2985,6 +4209,15 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         return menu;
     }
 }
+
+
+
+
+
+
+
+
+
 
 
 

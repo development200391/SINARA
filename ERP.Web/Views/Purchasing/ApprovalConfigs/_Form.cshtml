@@ -1,0 +1,60 @@
+@model ERP.Web.ViewModels.Purchasing.PurchasingApprovalConfigEditViewModel
+@using ERP.Domain.Enums.Purchasing
+
+<div class="row g-3">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <div class="col-md-4">
+        <label asp-for="DocumentType" class="form-label">@T["Document Type"]</label>
+        <select asp-for="DocumentType" class="form-select">
+            @foreach (var item in Enum.GetValues<PurchasingDocumentType>())
+            {
+                <option value="@((int)item)">@(item == PurchasingDocumentType.PurchaseOrder ? T["Purchase Order"] : T["Purchase Requisition"])</option>
+            }
+        </select>
+        <span asp-validation-for="DocumentType" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-2">
+        <label asp-for="Level" class="form-label">@T["Level"]</label>
+        <input asp-for="Level" class="form-control text-end" type="number" min="1" max="99" />
+        <span asp-validation-for="Level" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-3">
+        <label asp-for="MinAmount" class="form-label">@T["Minimum Amount"]</label>
+        <input asp-for="MinAmount" class="form-control text-end sinara-text-number sinara-text-number-theme sinara-text-number-input" type="text" inputmode="decimal" data-text-number-decimals="2" autocomplete="off" />
+        <span asp-validation-for="MinAmount" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-3">
+        <label asp-for="MaxAmount" class="form-label">@T["Maximum Amount"]</label>
+        <input asp-for="MaxAmount" class="form-control text-end sinara-text-number sinara-text-number-theme sinara-text-number-input" type="text" inputmode="decimal" data-text-number-decimals="2" autocomplete="off" />
+        <span asp-validation-for="MaxAmount" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-6">
+        <label asp-for="ApproverEmployeeId" class="form-label">@T["Approver"]</label>
+        <select asp-for="ApproverEmployeeId" class="form-select">
+            <option value="">@T["Select Employee"]</option>
+            @foreach (var option in Model.ApproverOptions)
+            {
+                <option value="@option.Id">@option.Name</option>
+            }
+        </select>
+        <span asp-validation-for="ApproverEmployeeId" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-12">
+        <label asp-for="Notes" class="form-label">@T["Notes"]</label>
+        <textarea asp-for="Notes" rows="3" class="form-control"></textarea>
+        <span asp-validation-for="Notes" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-4">
+        <div class="form-check mt-2">
+            <input asp-for="IsActive" class="form-check-input" />
+            <label asp-for="IsActive" class="form-check-label">@T["Active"]</label>
+        </div>
+    </div>
+</div>

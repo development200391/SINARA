@@ -1,0 +1,206 @@
+@model ERP.Web.ViewModels.FixedAssets.FixedAssetTransfersIndexViewModel
+@using ERP.Domain.Enums.FixedAssets
+@using ERP.Web.ViewModels.Shared
+@using Microsoft.AspNetCore.Html
+@using System.Globalization
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">@T["Asset Transfers"]</h1>
+
+        @{
+            var selectedAsset = Model.AssetIdFilter?.ToString(CultureInfo.InvariantCulture);
+            var selectedFromLocation = Model.FromLocationIdFilter?.ToString(CultureInfo.InvariantCulture);
+            var selectedToLocation = Model.ToLocationIdFilter?.ToString(CultureInfo.InvariantCulture);
+            var selectedStatus = Model.StatusFilter.HasValue
+                ? ((int)Model.StatusFilter.Value).ToString(CultureInfo.InvariantCulture)
+                : null;
+            var transferDateFrom = Model.TransferDateFromFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            var transferDateTo = Model.TransferDateToFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+            string LocalizeStatus(AssetTransferStatus status)
+            {
+                return status switch
+                {
+                    AssetTransferStatus.Draft => T["Draft"],
+                    AssetTransferStatus.Approved => T["Approved"],
+                    AssetTransferStatus.Rejected => T["Rejected"],
+                    _ => status.ToString()
+                };
+            }
+
+            string BuildStatusBadge(AssetTransferStatus status)
+            {
+                return status switch
+                {
+                    AssetTransferStatus.Draft => $"<span class=\"badge text-bg-secondary\">{LocalizeStatus(status)}</span>",
+                    AssetTransferStatus.Approved => $"<span class=\"badge text-bg-success\">{LocalizeStatus(status)}</span>",
+                    AssetTransferStatus.Rejected => $"<span class=\"badge text-bg-danger\">{LocalizeStatus(status)}</span>",
+                    _ => $"<span class=\"badge text-bg-secondary\">{status}</span>"
+                };
+            }
+
+            var assetOptions = Model.AssetOptions
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = x.Id.ToString(CultureInfo.InvariantCulture),
+                    Label = x.Label
+                })
+                .ToList();
+
+            var locationOptions = Model.LocationOptions
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = x.Id.ToString(CultureInfo.InvariantCulture),
+                    Label = x.Label
+                })
+                .ToList();
+
+            var statusOptions = Enum.GetValues<AssetTransferStatus>()
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = ((int)x).ToString(CultureInfo.InvariantCulture),
+                    Label = LocalizeStatus(x)
+                })
+                .ToList();
+
+            var rows = Model.Items.Items.Select(item =>
+            {
+                var isDraft = item.Status == AssetTransferStatus.Draft;
+
+                return new PagedGridRowViewModel
+                {
+                    Cells =
+                    [
+                        new PagedGridCellViewModel { Text = item.TransferNo },
+                        new PagedGridCellViewModel { Text = string.IsNullOrWhiteSpace(item.AssetCode) ? item.AssetName : $"{item.AssetCode} - {item.AssetName}" },
+                        new PagedGridCellViewModel { Text = item.TransferDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) },
+                        new PagedGridCellViewModel { Text = item.FromLocationName },
+                        new PagedGridCellViewModel { Text = item.ToLocationName },
+                        new PagedGridCellViewModel { Text = string.IsNullOrWhiteSpace(item.FromDepartmentName) ? "-" : item.FromDepartmentName },
+                        new PagedGridCellViewModel { Text = string.IsNullOrWhiteSpace(item.ToDepartmentName) ? "-" : item.ToDepartmentName },
+                        new PagedGridCellViewModel { Html = new HtmlString(BuildStatusBadge(item.Status)) }
+                    ],
+                    Actions = new PagedGridRowActionViewModel
+                    {
+                        EditUrl = isDraft ? Url.Action("EditTransfer", "FixedAssets", new { id = item.Id }) : null,
+                        ApproveUrl = isDraft ? Url.Action("ApproveTransfer", "FixedAssets", new { id = item.Id }) : null,
+                        RejectUrl = isDraft ? Url.Action("RejectTransfer", "FixedAssets", new { id = item.Id }) : null,
+                        DeleteUrl = isDraft ? Url.Action("DeleteTransfer", "FixedAssets", new { id = item.Id }) : null,
+                        ApproveConfirmMessage = T["Approve this data?"],
+                        RejectConfirmMessage = T["Reject this data?"],
+                        DeleteConfirmMessage = T["Delete this data?"]
+                    }
+                };
+            }).ToList();
+
+            var gridModel = new PagedGridViewModel
+            {
+                Columns =
+                [
+                    new PagedGridColumnViewModel { Key = "transferno", Title = T["Transfer No"], Sortable = true },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "assetcode",
+                        Title = T["Asset"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "assetId",
+                            Value = selectedAsset,
+                            EmptyOptionLabel = T["All"],
+                            Options = assetOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "transferdate",
+                        Title = T["Transfer Date"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.DateRange,
+                            QueryKey = "transferDateFrom",
+                            QueryKeyTo = "transferDateTo",
+                            Value = transferDateFrom,
+                            ValueTo = transferDateTo,
+                            Placeholder = T["From"],
+                            PlaceholderTo = T["To"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "fromlocationname",
+                        Title = T["From Location"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "fromLocationId",
+                            Value = selectedFromLocation,
+                            EmptyOptionLabel = T["All"],
+                            Options = locationOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "tolocationname",
+                        Title = T["To Location"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "toLocationId",
+                            Value = selectedToLocation,
+                            EmptyOptionLabel = T["All"],
+                            Options = locationOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel { Key = "fromdepartment", Title = T["From Department"], Sortable = false },
+                    new PagedGridColumnViewModel { Key = "todepartment", Title = T["To Department"], Sortable = false },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "status",
+                        Title = T["Status"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "status",
+                            Value = selectedStatus,
+                            EmptyOptionLabel = T["All Status"],
+                            Options = statusOptions
+                        }
+                    }
+                ],
+                Rows = rows,
+                EmptyMessage = T["msg.no_data"],
+                Page = Model.Items.Page,
+                TotalPages = Model.Items.TotalPages,
+                PageSize = Model.PageSize,
+                SortBy = Model.SortBy,
+                SortDirection = Model.SortDirection,
+                EnableSearch = true,
+                SearchValue = Model.Search,
+                SearchPlaceholder = T["Search"] + " " + T["Asset Transfers"],
+                SearchButtonText = T["common.search"],
+                Actions = new PagedGridActionConfigViewModel
+                {
+                    ActionColumnTitle = T["Action"],
+                    AddUrl = Url.Action("CreateTransfer", "FixedAssets"),
+                    AddButtonText = T["common.add_new"],
+                    EditButtonText = T["common.edit"],
+                    ApproveButtonText = T["Approve"],
+                    RejectButtonText = T["Reject"],
+                    DeleteButtonText = T["common.delete"],
+                    ApproveConfirmMessage = T["Approve this data?"],
+                    RejectConfirmMessage = T["Reject this data?"],
+                    DeleteConfirmMessage = T["Delete this data?"]
+                }
+            };
+        }
+
+        @await Component.InvokeAsync("PagedGrid", gridModel)
+    </div>
+</div>

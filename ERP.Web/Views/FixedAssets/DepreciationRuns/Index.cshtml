@@ -1,0 +1,202 @@
+@model ERP.Web.ViewModels.FixedAssets.FixedAssetDepreciationRunsIndexViewModel
+@using ERP.Domain.Enums.FixedAssets
+@using ERP.Web.ViewModels.Shared
+@using Microsoft.AspNetCore.Html
+@using System.Globalization
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">@T["Depreciation Runs"]</h1>
+
+        <div class="border rounded-3 p-3 bg-body-tertiary mb-3">
+            <h2 class="h6 mb-3">@T["Run Depreciation"]</h2>
+            <form asp-action="RunDepreciation" asp-controller="FixedAssets" method="post" class="row g-3 align-items-end" novalidate>
+                @Html.AntiForgeryToken()
+                <div class="col-md-3">
+                    <label asp-for="RunForm.PeriodYear" class="form-label">@T["Period"] @T["Year"]</label>
+                    <input asp-for="RunForm.PeriodYear" class="form-control text-end sinara-text-number sinara-text-number-theme sinara-text-number-input" type="text" inputmode="numeric" data-text-number-decimals="0" autocomplete="off" />
+                    <span asp-validation-for="RunForm.PeriodYear" class="text-danger small"></span>
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="RunForm.PeriodMonth" class="form-label">@T["Period"] @T["Month"]</label>
+                    <select asp-for="RunForm.PeriodMonth" class="form-select">
+                        @for (byte month = 1; month <= 12; month++)
+                        {
+                            <option value="@month">@month.ToString("00", CultureInfo.InvariantCulture)</option>
+                        }
+                    </select>
+                    <span asp-validation-for="RunForm.PeriodMonth" class="text-danger small"></span>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-check mb-2">
+                        <input asp-for="RunForm.ApproveImmediately" class="form-check-input" />
+                        <label asp-for="RunForm.ApproveImmediately" class="form-check-label">@T["Approve Immediately"]</label>
+                    </div>
+                </div>
+                <div class="col-md-3 d-flex justify-content-md-end">
+                    <button type="submit" class="btn btn-primary d-inline-flex align-items-center gap-1">
+                        <i class="bi bi-play-circle" aria-hidden="true"></i>
+                        <span>@T["Run"]</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        @{
+            var periodYearValue = Model.PeriodYearFilter?.ToString(CultureInfo.InvariantCulture);
+            var selectedPeriodMonth = Model.PeriodMonthFilter?.ToString(CultureInfo.InvariantCulture);
+            var selectedStatus = Model.StatusFilter.HasValue
+                ? ((int)Model.StatusFilter.Value).ToString(CultureInfo.InvariantCulture)
+                : null;
+
+            string LocalizeStatus(DepreciationRunStatus status)
+            {
+                return status switch
+                {
+                    DepreciationRunStatus.Draft => T["Draft"],
+                    DepreciationRunStatus.Processed => T["Processed"],
+                    DepreciationRunStatus.Approved => T["Approved"],
+                    _ => status.ToString()
+                };
+            }
+
+            string BuildStatusBadge(DepreciationRunStatus status)
+            {
+                return status switch
+                {
+                    DepreciationRunStatus.Draft => $"<span class=\"badge text-bg-secondary\">{LocalizeStatus(status)}</span>",
+                    DepreciationRunStatus.Processed => $"<span class=\"badge text-bg-warning text-dark\">{LocalizeStatus(status)}</span>",
+                    DepreciationRunStatus.Approved => $"<span class=\"badge text-bg-success\">{LocalizeStatus(status)}</span>",
+                    _ => $"<span class=\"badge text-bg-secondary\">{status}</span>"
+                };
+            }
+
+            var monthOptions = Enumerable.Range(1, 12)
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = x.ToString(CultureInfo.InvariantCulture),
+                    Label = x.ToString("00", CultureInfo.InvariantCulture)
+                })
+                .ToList();
+
+            var statusOptions = Enum.GetValues<DepreciationRunStatus>()
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = ((int)x).ToString(CultureInfo.InvariantCulture),
+                    Label = LocalizeStatus(x)
+                })
+                .ToList();
+
+            var rows = new List<PagedGridRowViewModel>();
+            foreach (var item in Model.Items.Items)
+            {
+                var periodYearHtml = await Component.InvokeAsync("TextNumber", new { value = (decimal)item.PeriodYear, decimals = 0, cssClass = "sinara-text-number-theme" });
+                var periodMonthHtml = await Component.InvokeAsync("TextNumber", new { value = (decimal)item.PeriodMonth, decimals = 0, cssClass = "sinara-text-number-theme" });
+                var totalAssetCountHtml = await Component.InvokeAsync("TextNumber", new { value = (decimal)item.TotalAssetCount, decimals = 0, cssClass = "sinara-text-number-theme" });
+                var totalDepreciationHtml = await Component.InvokeAsync("TextNumber", new { value = item.TotalDepreciationAmount, decimals = 2, cssClass = "sinara-text-number-theme" });
+
+                rows.Add(new PagedGridRowViewModel
+                {
+                    Cells =
+                    [
+                        new PagedGridCellViewModel { Text = item.RunNo },
+                        new PagedGridCellViewModel { Html = periodYearHtml, CellClass = "text-end" },
+                        new PagedGridCellViewModel { Html = periodMonthHtml, CellClass = "text-end" },
+                        new PagedGridCellViewModel { Text = item.RunDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) },
+                        new PagedGridCellViewModel { Html = totalAssetCountHtml, CellClass = "text-end" },
+                        new PagedGridCellViewModel { Html = totalDepreciationHtml, CellClass = "text-end" },
+                        new PagedGridCellViewModel { Html = new HtmlString(BuildStatusBadge(item.Status)) },
+                        new PagedGridCellViewModel { Text = string.IsNullOrWhiteSpace(item.ApprovedByName) ? "-" : item.ApprovedByName },
+                        new PagedGridCellViewModel { Text = item.ApprovedAt.HasValue ? item.ApprovedAt.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) : "-" }
+                    ],
+                    Actions = new PagedGridRowActionViewModel
+                    {
+                        ApproveUrl = item.Status == DepreciationRunStatus.Approved
+                            ? null
+                            : Url.Action("ApproveDepreciationRun", "FixedAssets", new { id = item.Id }),
+                        ApproveConfirmMessage = T["Approve this data?"]
+                    }
+                });
+            }
+
+            var gridModel = new PagedGridViewModel
+            {
+                Columns =
+                [
+                    new PagedGridColumnViewModel { Key = "runno", Title = T["Run No"], Sortable = true },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "periodyear",
+                        Title = T["Year"],
+                        Sortable = true,
+                        CellClass = "text-end",
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Text,
+                            QueryKey = "periodYear",
+                            Value = periodYearValue,
+                            Placeholder = T["Year"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "periodmonth",
+                        Title = T["Month"],
+                        Sortable = true,
+                        CellClass = "text-end",
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "periodMonth",
+                            Value = selectedPeriodMonth,
+                            EmptyOptionLabel = T["All"],
+                            Options = monthOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel { Key = "rundate", Title = T["Run Date"], Sortable = true },
+                    new PagedGridColumnViewModel { Key = "totalassetcount", Title = T["Total Asset Count"], Sortable = true, CellClass = "text-end" },
+                    new PagedGridColumnViewModel { Key = "totaldepreciationamount", Title = T["Total Depreciation Amount"], Sortable = true, CellClass = "text-end" },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "status",
+                        Title = T["Status"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "status",
+                            Value = selectedStatus,
+                            EmptyOptionLabel = T["All Status"],
+                            Options = statusOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel { Key = "approvedby", Title = T["Approved By"], Sortable = false },
+                    new PagedGridColumnViewModel { Key = "approvedat", Title = T["Approved At"], Sortable = false }
+                ],
+                Rows = rows,
+                EmptyMessage = T["msg.no_data"],
+                Page = Model.Items.Page,
+                TotalPages = Model.Items.TotalPages,
+                PageSize = Model.PageSize,
+                SortBy = Model.SortBy,
+                SortDirection = Model.SortDirection,
+                EnableSearch = true,
+                SearchValue = Model.Search,
+                SearchPlaceholder = T["Search"] + " " + T["Depreciation Runs"],
+                SearchButtonText = T["common.search"],
+                Actions = new PagedGridActionConfigViewModel
+                {
+                    ActionColumnTitle = T["Action"],
+                    ApproveButtonText = T["Approve"],
+                    ApproveConfirmMessage = T["Approve this data?"]
+                }
+            };
+        }
+
+        @await Component.InvokeAsync("PagedGrid", gridModel)
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

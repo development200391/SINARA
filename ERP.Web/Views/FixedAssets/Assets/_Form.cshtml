@@ -1,0 +1,124 @@
+@model ERP.Web.ViewModels.FixedAssets.FixedAssetEditViewModel
+@using ERP.Domain.Enums.FixedAssets
+
+<div class="row g-3">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <div class="col-md-3">
+        <label asp-for="AssetCode" class="form-label">@T["Asset Code"]</label>
+        <input asp-for="AssetCode" class="form-control" placeholder="@T["Auto generate if empty"]" />
+        <span asp-validation-for="AssetCode" class="text-danger small"></span>
+    </div>
+    <div class="col-md-5">
+        <label asp-for="Name" class="form-label">@T["Name"]</label>
+        <input asp-for="Name" class="form-control" />
+        <span asp-validation-for="Name" class="text-danger small"></span>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="Status" class="form-label">@T["Status"]</label>
+        <select asp-for="Status" class="form-select">
+            <option value="@AssetStatus.Draft">@T["Draft"]</option>
+            <option value="@AssetStatus.Active">@T["Active"]</option>
+            <option value="@AssetStatus.InMaintenance">@T["In Maintenance"]</option>
+            <option value="@AssetStatus.FullyDepreciated">@T["Fully Depreciated"]</option>
+            <option value="@AssetStatus.Disposed">@T["Disposed"]</option>
+        </select>
+        <span asp-validation-for="Status" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-4">
+        <label asp-for="CategoryId" class="form-label">@T["Category"]</label>
+        <select asp-for="CategoryId" class="form-select">
+            <option value="">@T["Select Category"]</option>
+            @foreach (var option in Model.CategoryOptions)
+            {
+                <option value="@option.Id">@option.Label</option>
+            }
+        </select>
+        <span asp-validation-for="CategoryId" class="text-danger small"></span>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="LocationId" class="form-label">@T["Location"]</label>
+        <select asp-for="LocationId" class="form-select">
+            <option value="">@T["Select Location"]</option>
+            @foreach (var option in Model.LocationOptions)
+            {
+                <option value="@option.Id">@option.Label</option>
+            }
+        </select>
+        <span asp-validation-for="LocationId" class="text-danger small"></span>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="DepartmentId" class="form-label">@T["Department"]</label>
+        <select asp-for="DepartmentId" class="form-select">
+            <option value="">@T["All Department"]</option>
+            @foreach (var option in Model.DepartmentOptions)
+            {
+                <option value="@option.Id">@option.Label</option>
+            }
+        </select>
+        <span asp-validation-for="DepartmentId" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-3">
+        <label asp-for="AcquisitionDate" class="form-label">@T["Acquisition Date"]</label>
+        <input asp-for="AcquisitionDate" type="date" class="form-control" />
+        <span asp-validation-for="AcquisitionDate" class="text-danger small"></span>
+    </div>
+    <div class="col-md-3">
+        <label asp-for="InServiceDate" class="form-label">@T["In Service Date"]</label>
+        <input asp-for="InServiceDate" type="date" class="form-control" />
+        <span asp-validation-for="InServiceDate" class="text-danger small"></span>
+    </div>
+    <div class="col-md-3">
+        <label asp-for="UsefulLifeMonths" class="form-label">@T["Useful Life (Months)"]</label>
+        <input asp-for="UsefulLifeMonths" class="form-control text-end sinara-text-number sinara-text-number-theme sinara-text-number-input" type="text" inputmode="numeric" data-text-number-decimals="0" autocomplete="off" />
+        <span asp-validation-for="UsefulLifeMonths" class="text-danger small"></span>
+    </div>
+    <div class="col-md-3">
+        <label asp-for="DepreciationMethod" class="form-label">@T["Depreciation Method"]</label>
+        <select asp-for="DepreciationMethod" class="form-select">
+            <option value="@DepreciationMethod.StraightLine">@T["Straight Line"]</option>
+            <option value="@DepreciationMethod.DecliningBalance">@T["Declining Balance"]</option>
+        </select>
+        <span asp-validation-for="DepreciationMethod" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-3">
+        <label asp-for="AcquisitionCost" class="form-label">@T["Acquisition Cost"]</label>
+        <input asp-for="AcquisitionCost" class="form-control text-end sinara-text-number sinara-text-number-theme sinara-text-number-input" type="text" inputmode="decimal" data-text-number-decimals="2" autocomplete="off" />
+        <span asp-validation-for="AcquisitionCost" class="text-danger small"></span>
+    </div>
+    <div class="col-md-3">
+        <label asp-for="SalvageValue" class="form-label">@T["Salvage Value"]</label>
+        <input asp-for="SalvageValue" class="form-control text-end sinara-text-number sinara-text-number-theme sinara-text-number-input" type="text" inputmode="decimal" data-text-number-decimals="2" autocomplete="off" />
+        <span asp-validation-for="SalvageValue" class="text-danger small"></span>
+    </div>
+    <div class="col-md-3">
+        <label asp-for="DepreciationRate" class="form-label">@T["Depreciation Rate"] (%)</label>
+        <input asp-for="DepreciationRate" class="form-control text-end sinara-text-number sinara-text-number-theme sinara-text-number-input" type="text" inputmode="decimal" data-text-number-decimals="4" autocomplete="off" />
+        <span asp-validation-for="DepreciationRate" class="text-danger small"></span>
+    </div>
+    <div class="col-md-3">
+        <div class="form-check mt-4 pt-2">
+            <input asp-for="IsActive" class="form-check-input" />
+            <label asp-for="IsActive" class="form-check-label">@T["Active"]</label>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <label asp-for="SerialNumber" class="form-label">@T["Serial Number"]</label>
+        <input asp-for="SerialNumber" class="form-control" />
+        <span asp-validation-for="SerialNumber" class="text-danger small"></span>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="VendorName" class="form-label">@T["Vendor Name"]</label>
+        <input asp-for="VendorName" class="form-control" />
+        <span asp-validation-for="VendorName" class="text-danger small"></span>
+    </div>
+    <div class="col-md-12">
+        <label asp-for="Description" class="form-label">@T["Description"]</label>
+        <textarea asp-for="Description" class="form-control" rows="2"></textarea>
+        <span asp-validation-for="Description" class="text-danger small"></span>
+    </div>
+</div>

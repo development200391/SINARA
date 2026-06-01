@@ -1,0 +1,54 @@
+@model ERP.Web.ViewModels.Purchasing.PurchasingBuyerGroupEditViewModel
+
+<div class="row g-3">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <div class="col-md-4">
+        <label asp-for="Code" class="form-label">@T["Code"]</label>
+        <input asp-for="Code" class="form-control" />
+        <span asp-validation-for="Code" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-8">
+        <label asp-for="Name" class="form-label">@T["Name"]</label>
+        <input asp-for="Name" class="form-control" />
+        <span asp-validation-for="Name" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-6">
+        <label asp-for="BuyerEmployeeId" class="form-label">@T["Buyer"]</label>
+        <select asp-for="BuyerEmployeeId" class="form-select">
+            <option value="">@T["Select Employee"]</option>
+            @foreach (var option in Model.BuyerOptions)
+            {
+                <option value="@option.Id">@option.Name</option>
+            }
+        </select>
+        <span asp-validation-for="BuyerEmployeeId" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-6">
+        <label asp-for="ItemCategoryIds" class="form-label">@T["Categories"]</label>
+        <select asp-for="ItemCategoryIds" class="form-select" multiple size="7">
+            @foreach (var option in Model.ItemCategoryOptions)
+            {
+                <option value="@option.Id">@option.Label</option>
+            }
+        </select>
+        <div class="form-text">@T["Hold Ctrl or Cmd to select multiple categories"]</div>
+        <span asp-validation-for="ItemCategoryIds" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-12">
+        <label asp-for="Description" class="form-label">@T["Description"]</label>
+        <textarea asp-for="Description" rows="3" class="form-control"></textarea>
+        <span asp-validation-for="Description" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-4">
+        <div class="form-check mt-2">
+            <input asp-for="IsActive" class="form-check-input" />
+            <label asp-for="IsActive" class="form-check-label">@T["Active"]</label>
+        </div>
+    </div>
+</div>

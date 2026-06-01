@@ -1,0 +1,144 @@
+@model ERP.Web.ViewModels.FixedAssets.FixedAssetDepreciationConfigsIndexViewModel
+@using ERP.Web.ViewModels.Shared
+@using Microsoft.AspNetCore.Html
+@using System.Globalization
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">@T["Depreciation Configs"]</h1>
+
+        @{
+            var selectedAutoPost = Model.IsAutoPostJournalFilter.HasValue ? (Model.IsAutoPostJournalFilter.Value ? "true" : "false") : null;
+            var selectedIsActive = Model.IsActiveFilter.HasValue ? (Model.IsActiveFilter.Value ? "true" : "false") : null;
+            var fiscalYearValue = Model.FiscalYearFilter?.ToString(CultureInfo.InvariantCulture);
+
+            string BuildStatusBadge(bool isActive)
+            {
+                return isActive
+                    ? $"<span class=\"badge text-bg-success\">{T["Active"]}</span>"
+                    : $"<span class=\"badge text-bg-secondary\">{T["Inactive"]}</span>";
+            }
+
+            string BuildAutoPostBadge(bool value)
+            {
+                return value
+                    ? $"<span class=\"badge text-bg-primary\">{T["Yes"]}</span>"
+                    : $"<span class=\"badge text-bg-light text-dark\">{T["No"]}</span>";
+            }
+
+            var yesNoOptions = new List<PagedGridFilterOptionViewModel>
+            {
+                new() { Value = "true", Label = T["Yes"] },
+                new() { Value = "false", Label = T["No"] }
+            };
+
+            var statusOptions = new List<PagedGridFilterOptionViewModel>
+            {
+                new() { Value = "true", Label = T["Active"] },
+                new() { Value = "false", Label = T["Inactive"] }
+            };
+
+            var rows = new List<PagedGridRowViewModel>();
+            foreach (var item in Model.Items.Items)
+            {
+                var fiscalYearHtml = await Component.InvokeAsync("TextNumber", new { value = (decimal)item.FiscalYear, decimals = 0, cssClass = "sinara-text-number-theme" });
+                var runDayHtml = await Component.InvokeAsync("TextNumber", new { value = (decimal)item.RunDay, decimals = 0, cssClass = "sinara-text-number-theme" });
+
+                rows.Add(new PagedGridRowViewModel
+                {
+                    Cells =
+                    [
+                        new PagedGridCellViewModel { Text = item.Name },
+                        new PagedGridCellViewModel { Html = fiscalYearHtml, CellClass = "text-end" },
+                        new PagedGridCellViewModel { Text = item.StartDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) },
+                        new PagedGridCellViewModel { Text = item.EndDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) },
+                        new PagedGridCellViewModel { Html = runDayHtml, CellClass = "text-end" },
+                        new PagedGridCellViewModel { Html = new HtmlString(BuildAutoPostBadge(item.IsAutoPostJournal)) },
+                        new PagedGridCellViewModel { Html = new HtmlString(BuildStatusBadge(item.IsActive)) }
+                    ],
+                    Actions = new PagedGridRowActionViewModel
+                    {
+                        EditUrl = Url.Action("EditDepreciationConfig", "FixedAssets", new { id = item.Id }),
+                        DeleteUrl = Url.Action("DeleteDepreciationConfig", "FixedAssets", new { id = item.Id }),
+                        DeleteConfirmMessage = T["Delete this data?"]
+                    }
+                });
+            }
+
+            var gridModel = new PagedGridViewModel
+            {
+                Columns =
+                [
+                    new PagedGridColumnViewModel { Key = "name", Title = T["Name"], Sortable = true },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "fiscalyear",
+                        Title = T["Fiscal Year"],
+                        Sortable = true,
+                        CellClass = "text-end",
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Text,
+                            QueryKey = "fiscalYear",
+                            Value = fiscalYearValue,
+                            Placeholder = T["Fiscal Year"]
+                        }
+                    },
+                    new PagedGridColumnViewModel { Key = "startdate", Title = T["Start Date"], Sortable = true },
+                    new PagedGridColumnViewModel { Key = "enddate", Title = T["End Date"], Sortable = true },
+                    new PagedGridColumnViewModel { Key = "runday", Title = T["Run Day"], Sortable = true, CellClass = "text-end" },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "isautopostjournal",
+                        Title = T["Auto Post Journal"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "isAutoPostJournal",
+                            Value = selectedAutoPost,
+                            EmptyOptionLabel = T["All"],
+                            Options = yesNoOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "isactive",
+                        Title = T["Status"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "isActive",
+                            Value = selectedIsActive,
+                            EmptyOptionLabel = T["All Status"],
+                            Options = statusOptions
+                        }
+                    }
+                ],
+                Rows = rows,
+                EmptyMessage = T["msg.no_data"],
+                Page = Model.Items.Page,
+                TotalPages = Model.Items.TotalPages,
+                PageSize = Model.PageSize,
+                SortBy = Model.SortBy,
+                SortDirection = Model.SortDirection,
+                EnableSearch = true,
+                SearchValue = Model.Search,
+                SearchPlaceholder = T["Search"] + " " + T["Depreciation Configs"],
+                SearchButtonText = T["common.search"],
+                Actions = new PagedGridActionConfigViewModel
+                {
+                    ActionColumnTitle = T["Action"],
+                    AddUrl = Url.Action("CreateDepreciationConfig", "FixedAssets"),
+                    AddButtonText = T["common.add_new"],
+                    EditButtonText = T["common.edit"],
+                    DeleteButtonText = T["common.delete"],
+                    DeleteConfirmMessage = T["Delete this data?"]
+                }
+            };
+        }
+
+        @await Component.InvokeAsync("PagedGrid", gridModel)
+    </div>
+</div>

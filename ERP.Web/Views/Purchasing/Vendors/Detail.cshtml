@@ -1,0 +1,185 @@
+@model ERP.Web.ViewModels.Purchasing.PurchasingVendorDetailViewModel
+@using ERP.Web.ViewModels.Shared
+
+@{
+    var vendor = Model.Vendor;
+    var paymentTermsHtml = await Component.InvokeAsync("TextNumber", new { value = (decimal)vendor.PaymentTermsDays, decimals = 0, cssClass = "sinara-text-number-theme" });
+    var leadTimeHtml = vendor.LeadTimeDays.HasValue
+        ? await Component.InvokeAsync("TextNumber", new { value = (decimal)vendor.LeadTimeDays.Value, decimals = 0, cssClass = "sinara-text-number-theme" })
+        : await Component.InvokeAsync("TextNumber", new { text = "-", cssClass = "sinara-text-number-null" });
+    var performanceHtml = vendor.PerformanceScore.HasValue
+        ? await Component.InvokeAsync("TextNumber", new { value = vendor.PerformanceScore.Value, decimals = 2, cssClass = "sinara-text-number-theme" })
+        : await Component.InvokeAsync("TextNumber", new { text = "-", cssClass = "sinara-text-number-null" });
+    var poCountHtml = await Component.InvokeAsync("TextNumber", new { value = (decimal)vendor.PoHistoryCount, decimals = 0, cssClass = "sinara-text-number-theme" });
+    var poAmountHtml = await Component.InvokeAsync("TextNumber", new { value = vendor.PoHistoryAmount, decimals = 2, cssClass = "sinara-text-number-theme" });
+    var returnCountHtml = await Component.InvokeAsync("TextNumber", new { value = (decimal)vendor.ReturnCount, decimals = 0, cssClass = "sinara-text-number-theme" });
+
+    string BuildStatusBadge(bool isActive)
+    {
+        return isActive
+            ? $"<span class=\"badge text-bg-success\">{T["Active"]}</span>"
+            : $"<span class=\"badge text-bg-secondary\">{T["Inactive"]}</span>";
+    }
+
+    string BuildApprovedBadge(bool isApproved)
+    {
+        return isApproved
+            ? $"<span class=\"badge text-bg-success\">{T["Approved"]}</span>"
+            : $"<span class=\"badge text-bg-warning text-dark\">{T["Pending"]}</span>";
+    }
+
+    var tabsModel = new TabsViewModel
+    {
+        AriaLabel = T["Vendor Detail Tabs"],
+        Items =
+        [
+            new TabItemViewModel
+            {
+                Key = "info",
+                Title = T["Info"],
+                IconClass = "bi-card-text",
+                TabPaneId = "vendor-tab-info",
+                IsActive = true
+            },
+            new TabItemViewModel
+            {
+                Key = "history",
+                Title = T["PO History"],
+                IconClass = "bi-clock-history",
+                TabPaneId = "vendor-tab-history"
+            },
+            new TabItemViewModel
+            {
+                Key = "performance",
+                Title = T["Performance"],
+                IconClass = "bi-graph-up-arrow",
+                TabPaneId = "vendor-tab-performance"
+            },
+            new TabItemViewModel
+            {
+                Key = "contacts",
+                Title = T["Contacts"],
+                IconClass = "bi-person-lines-fill",
+                TabPaneId = "vendor-tab-contacts"
+            }
+        ]
+    };
+}
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h1 class="h5 mb-0">@T["Vendor Detail"]</h1>
+            <a asp-action="Vendors" asp-controller="Purchasing" class="btn btn-sm btn-outline-secondary">@T["Back"]</a>
+        </div>
+
+        <div class="border rounded-3 p-3 mb-3 bg-body-tertiary">
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                <span class="fw-semibold">@vendor.Code</span>
+                <span>-</span>
+                <span class="fw-semibold">@vendor.Name</span>
+                @Html.Raw(BuildApprovedBadge(vendor.IsApprovedVendor))
+                @Html.Raw(BuildStatusBadge(vendor.IsActive))
+            </div>
+            <div class="small text-muted">@T["Vendor"] @T["Category"]: @(string.IsNullOrWhiteSpace(vendor.VendorCategoryName) ? "-" : vendor.VendorCategoryName)</div>
+        </div>
+
+        @await Component.InvokeAsync("Tabs", tabsModel)
+
+        <div class="tab-content border rounded-3 p-3 bg-body-tertiary">
+            <div class="tab-pane fade show active" id="vendor-tab-info" role="tabpanel" aria-labelledby="vendor-tab-info-tab">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <div class="small text-muted">@T["Code"]</div>
+                        <div class="fw-semibold">@vendor.Code</div>
+                    </div>
+                    <div class="col-md-5">
+                        <div class="small text-muted">@T["Name"]</div>
+                        <div class="fw-semibold">@vendor.Name</div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="small text-muted">@T["Buyer Group"]</div>
+                        <div>@(string.IsNullOrWhiteSpace(vendor.BuyerGroupName) ? "-" : vendor.BuyerGroupName)</div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="small text-muted">@T["Payment Terms (Days)"]</div>
+                        <div>@paymentTermsHtml</div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="small text-muted">@T["Lead Time (Days)"]</div>
+                        <div>@leadTimeHtml</div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="small text-muted">@T["Approved Date"]</div>
+                        <div>@(vendor.ApprovedDate.HasValue ? vendor.ApprovedDate.Value.ToString("yyyy-MM-dd") : "-")</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="vendor-tab-history" role="tabpanel" aria-labelledby="vendor-tab-history-tab">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="border rounded-3 p-3 h-100 bg-white">
+                            <div class="small text-muted mb-1">@T["PO Count"]</div>
+                            <div class="h5 mb-0">@poCountHtml</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="border rounded-3 p-3 h-100 bg-white">
+                            <div class="small text-muted mb-1">@T["PO Amount"]</div>
+                            <div class="h5 mb-0">@poAmountHtml</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="border rounded-3 p-3 h-100 bg-white">
+                            <div class="small text-muted mb-1">@T["Return Count"]</div>
+                            <div class="h5 mb-0">@returnCountHtml</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="vendor-tab-performance" role="tabpanel" aria-labelledby="vendor-tab-performance-tab">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="border rounded-3 p-3 h-100 bg-white">
+                            <div class="small text-muted mb-1">@T["Performance Score"]</div>
+                            <div class="h5 mb-0">@performanceHtml</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="border rounded-3 p-3 h-100 bg-white">
+                            <div class="small text-muted mb-1">@T["Lead Time (Days)"]</div>
+                            <div class="h5 mb-0">@leadTimeHtml</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="vendor-tab-contacts" role="tabpanel" aria-labelledby="vendor-tab-contacts-tab">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="small text-muted">@T["Contact Person"]</div>
+                        <div>@(string.IsNullOrWhiteSpace(vendor.ContactPerson) ? "-" : vendor.ContactPerson)</div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="small text-muted">@T["Phone"]</div>
+                        <div>@(string.IsNullOrWhiteSpace(vendor.Phone) ? "-" : vendor.Phone)</div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="small text-muted">@T["Email"]</div>
+                        <div>@(string.IsNullOrWhiteSpace(vendor.Email) ? "-" : vendor.Email)</div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="small text-muted">@T["Tax ID"]</div>
+                        <div>@(string.IsNullOrWhiteSpace(vendor.TaxId) ? "-" : vendor.TaxId)</div>
+                    </div>
+                    <div class="col-12">
+                        <div class="small text-muted">@T["Address"]</div>
+                        <div>@(string.IsNullOrWhiteSpace(vendor.Address) ? "-" : vendor.Address)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

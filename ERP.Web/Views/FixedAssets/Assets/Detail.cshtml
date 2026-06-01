@@ -1,0 +1,658 @@
+
+@model ERP.Web.ViewModels.FixedAssets.FixedAssetDetailViewModel
+@using ERP.Domain.Enums.FixedAssets
+@using ERP.Web.ViewModels.Shared
+@using Microsoft.AspNetCore.Html
+@using System.Globalization
+
+@{
+    var asset = Model.Data.Asset;
+    var acquisitionCostHtml = await Component.InvokeAsync("TextNumber", new { value = asset.AcquisitionCost, decimals = 2, cssClass = "sinara-text-number-theme" });
+    var salvageValueHtml = await Component.InvokeAsync("TextNumber", new { value = asset.SalvageValue, decimals = 2, cssClass = "sinara-text-number-theme" });
+    var usefulLifeHtml = await Component.InvokeAsync("TextNumber", new { value = (decimal)asset.UsefulLifeMonths, decimals = 0, cssClass = "sinara-text-number-theme" });
+    var depreciationRateHtml = asset.DepreciationRate.HasValue
+        ? await Component.InvokeAsync("TextNumber", new { value = asset.DepreciationRate.Value, decimals = 4, cssClass = "sinara-text-number-theme" })
+        : await Component.InvokeAsync("TextNumber", new { text = "-", cssClass = "sinara-text-number-null" });
+    var accumulatedDepreciationHtml = await Component.InvokeAsync("TextNumber", new { value = asset.AccumulatedDepreciation, decimals = 2, cssClass = "sinara-text-number-theme" });
+    var bookValueHtml = await Component.InvokeAsync("TextNumber", new { value = asset.BookValue, decimals = 2, cssClass = "sinara-text-number-theme" });
+    var documentCountHtml = await Component.InvokeAsync("TextNumber", new { value = (decimal)asset.DocumentCount, decimals = 0, cssClass = "sinara-text-number-theme" });
+
+    string LocalizeAssetStatus(AssetStatus status)
+    {
+        return status switch
+        {
+            AssetStatus.Draft => T["Draft"],
+            AssetStatus.Active => T["Active"],
+            AssetStatus.InMaintenance => T["In Maintenance"],
+            AssetStatus.FullyDepreciated => T["Fully Depreciated"],
+            AssetStatus.Disposed => T["Disposed"],
+            _ => status.ToString()
+        };
+    }
+
+    string LocalizeDepreciationMethod(DepreciationMethod method)
+    {
+        return method switch
+        {
+            DepreciationMethod.StraightLine => T["Straight Line"],
+            DepreciationMethod.DecliningBalance => T["Declining Balance"],
+            _ => method.ToString()
+        };
+    }
+
+    string LocalizeScheduleStatus(DepreciationScheduleStatus status)
+    {
+        return status switch
+        {
+            DepreciationScheduleStatus.Pending => T["Pending"],
+            DepreciationScheduleStatus.Processed => T["Processed"],
+            _ => status.ToString()
+        };
+    }
+
+    string LocalizeTransferStatus(AssetTransferStatus status)
+    {
+        return status switch
+        {
+            AssetTransferStatus.Draft => T["Draft"],
+            AssetTransferStatus.Approved => T["Approved"],
+            AssetTransferStatus.Rejected => T["Rejected"],
+            _ => status.ToString()
+        };
+    }
+
+    string LocalizeMaintenanceType(MaintenanceType type)
+    {
+        return type switch
+        {
+            MaintenanceType.Preventive => T["Preventive"],
+            MaintenanceType.Corrective => T["Corrective"],
+            _ => type.ToString()
+        };
+    }
+
+    string LocalizeMaintenanceStatus(MaintenanceStatus status)
+    {
+        return status switch
+        {
+            MaintenanceStatus.Open => T["Open"],
+            MaintenanceStatus.InProgress => T["In Progress"],
+            MaintenanceStatus.Completed => T["Completed"],
+            MaintenanceStatus.Cancelled => T["Cancelled"],
+            _ => status.ToString()
+        };
+    }
+
+    string LocalizeDisposalType(DisposalType type)
+    {
+        return type switch
+        {
+            DisposalType.Sale => T["Sale"],
+            DisposalType.WriteOff => T["Write Off"],
+            DisposalType.Scrap => T["Scrap"],
+            _ => type.ToString()
+        };
+    }
+
+    string LocalizeDisposalStatus(DisposalStatus status)
+    {
+        return status switch
+        {
+            DisposalStatus.Draft => T["Draft"],
+            DisposalStatus.Approved => T["Approved"],
+            DisposalStatus.Posted => T["Posted"],
+            DisposalStatus.Cancelled => T["Cancelled"],
+            _ => status.ToString()
+        };
+    }
+
+    string LocalizeRevaluationStatus(RevaluationStatus status)
+    {
+        return status switch
+        {
+            RevaluationStatus.Draft => T["Draft"],
+            RevaluationStatus.Approved => T["Approved"],
+            RevaluationStatus.Posted => T["Posted"],
+            _ => status.ToString()
+        };
+    }
+
+    string LocalizeHistoryType(AssetHistoryType type)
+    {
+        return type switch
+        {
+            AssetHistoryType.Registration => T["Registration"],
+            AssetHistoryType.Depreciation => T["Depreciation"],
+            AssetHistoryType.Transfer => T["Transfer"],
+            AssetHistoryType.Maintenance => T["Maintenance"],
+            AssetHistoryType.Revaluation => T["Revaluation"],
+            AssetHistoryType.Disposal => T["Disposal"],
+            AssetHistoryType.StatusChange => T["Status Change"],
+            _ => type.ToString()
+        };
+    }
+
+    string BuildAssetStatusBadge(AssetStatus status)
+    {
+        return status switch
+        {
+            AssetStatus.Draft => $"<span class=\"badge text-bg-secondary\">{LocalizeAssetStatus(status)}</span>",
+            AssetStatus.Active => $"<span class=\"badge text-bg-success\">{LocalizeAssetStatus(status)}</span>",
+            AssetStatus.InMaintenance => $"<span class=\"badge text-bg-warning text-dark\">{LocalizeAssetStatus(status)}</span>",
+            AssetStatus.FullyDepreciated => $"<span class=\"badge text-bg-info\">{LocalizeAssetStatus(status)}</span>",
+            AssetStatus.Disposed => $"<span class=\"badge text-bg-dark\">{LocalizeAssetStatus(status)}</span>",
+            _ => $"<span class=\"badge text-bg-secondary\">{status}</span>"
+        };
+    }
+
+    string BuildSimpleBadge(bool isActive)
+    {
+        return isActive
+            ? $"<span class=\"badge text-bg-success\">{T["Active"]}</span>"
+            : $"<span class=\"badge text-bg-secondary\">{T["Inactive"]}</span>";
+    }
+
+    string BuildScheduleBadge(DepreciationScheduleStatus status)
+    {
+        return status switch
+        {
+            DepreciationScheduleStatus.Pending => $"<span class=\"badge text-bg-warning text-dark\">{LocalizeScheduleStatus(status)}</span>",
+            DepreciationScheduleStatus.Processed => $"<span class=\"badge text-bg-success\">{LocalizeScheduleStatus(status)}</span>",
+            _ => $"<span class=\"badge text-bg-secondary\">{status}</span>"
+        };
+    }
+
+    string BuildTransferBadge(AssetTransferStatus status)
+    {
+        return status switch
+        {
+            AssetTransferStatus.Draft => $"<span class=\"badge text-bg-secondary\">{LocalizeTransferStatus(status)}</span>",
+            AssetTransferStatus.Approved => $"<span class=\"badge text-bg-success\">{LocalizeTransferStatus(status)}</span>",
+            AssetTransferStatus.Rejected => $"<span class=\"badge text-bg-danger\">{LocalizeTransferStatus(status)}</span>",
+            _ => $"<span class=\"badge text-bg-secondary\">{status}</span>"
+        };
+    }
+
+    string BuildMaintenanceBadge(MaintenanceStatus status)
+    {
+        return status switch
+        {
+            MaintenanceStatus.Open => $"<span class=\"badge text-bg-secondary\">{LocalizeMaintenanceStatus(status)}</span>",
+            MaintenanceStatus.InProgress => $"<span class=\"badge text-bg-warning text-dark\">{LocalizeMaintenanceStatus(status)}</span>",
+            MaintenanceStatus.Completed => $"<span class=\"badge text-bg-success\">{LocalizeMaintenanceStatus(status)}</span>",
+            MaintenanceStatus.Cancelled => $"<span class=\"badge text-bg-danger\">{LocalizeMaintenanceStatus(status)}</span>",
+            _ => $"<span class=\"badge text-bg-secondary\">{status}</span>"
+        };
+    }
+
+    string BuildDisposalBadge(DisposalStatus status)
+    {
+        return status switch
+        {
+            DisposalStatus.Draft => $"<span class=\"badge text-bg-secondary\">{LocalizeDisposalStatus(status)}</span>",
+            DisposalStatus.Approved => $"<span class=\"badge text-bg-info\">{LocalizeDisposalStatus(status)}</span>",
+            DisposalStatus.Posted => $"<span class=\"badge text-bg-success\">{LocalizeDisposalStatus(status)}</span>",
+            DisposalStatus.Cancelled => $"<span class=\"badge text-bg-danger\">{LocalizeDisposalStatus(status)}</span>",
+            _ => $"<span class=\"badge text-bg-secondary\">{status}</span>"
+        };
+    }
+
+    string BuildRevaluationBadge(RevaluationStatus status)
+    {
+        return status switch
+        {
+            RevaluationStatus.Draft => $"<span class=\"badge text-bg-secondary\">{LocalizeRevaluationStatus(status)}</span>",
+            RevaluationStatus.Approved => $"<span class=\"badge text-bg-info\">{LocalizeRevaluationStatus(status)}</span>",
+            RevaluationStatus.Posted => $"<span class=\"badge text-bg-success\">{LocalizeRevaluationStatus(status)}</span>",
+            _ => $"<span class=\"badge text-bg-secondary\">{status}</span>"
+        };
+    }
+
+    var tabsModel = new TabsViewModel
+    {
+        AriaLabel = T["Asset Detail Tabs"],
+        Items =
+        [
+            new TabItemViewModel
+            {
+                Key = "info",
+                Title = T["Info"],
+                IconClass = "bi-card-text",
+                TabPaneId = "asset-tab-info",
+                IsActive = true
+            },
+            new TabItemViewModel
+            {
+                Key = "schedules",
+                Title = T["Depreciation Schedules"],
+                IconClass = "bi-calendar3",
+                TabPaneId = "asset-tab-schedules",
+                BadgeText = Model.Data.DepreciationSchedules.Count.ToString(CultureInfo.InvariantCulture)
+            },
+            new TabItemViewModel
+            {
+                Key = "transfers",
+                Title = T["Transfers"],
+                IconClass = "bi-arrow-left-right",
+                TabPaneId = "asset-tab-transfers",
+                BadgeText = Model.Data.Transfers.Count.ToString(CultureInfo.InvariantCulture)
+            },
+            new TabItemViewModel
+            {
+                Key = "maintenance",
+                Title = T["Maintenance Orders"],
+                IconClass = "bi-tools",
+                TabPaneId = "asset-tab-maintenance",
+                BadgeText = Model.Data.MaintenanceOrders.Count.ToString(CultureInfo.InvariantCulture)
+            },
+            new TabItemViewModel
+            {
+                Key = "disposals",
+                Title = T["Disposals"],
+                IconClass = "bi-archive",
+                TabPaneId = "asset-tab-disposals",
+                BadgeText = Model.Data.Disposals.Count.ToString(CultureInfo.InvariantCulture)
+            },
+            new TabItemViewModel
+            {
+                Key = "revaluations",
+                Title = T["Revaluations"],
+                IconClass = "bi-graph-up-arrow",
+                TabPaneId = "asset-tab-revaluations",
+                BadgeText = Model.Data.Revaluations.Count.ToString(CultureInfo.InvariantCulture)
+            },
+            new TabItemViewModel
+            {
+                Key = "history",
+                Title = T["History"],
+                IconClass = "bi-clock-history",
+                TabPaneId = "asset-tab-history",
+                BadgeText = Model.Data.Histories.Count.ToString(CultureInfo.InvariantCulture)
+            }
+        ]
+    };
+}
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h1 class="h5 mb-0">@T["Asset Detail"]</h1>
+            <div class="d-flex gap-2">
+                <a asp-action="EditAsset" asp-controller="FixedAssets" asp-route-id="@asset.Id" class="btn btn-sm btn-outline-primary">@T["common.edit"]</a>
+                <a asp-action="Assets" asp-controller="FixedAssets" class="btn btn-sm btn-outline-secondary">@T["Back"]</a>
+            </div>
+        </div>
+
+        <div class="border rounded-3 p-3 mb-3 bg-body-tertiary">
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                <span class="fw-semibold">@asset.AssetCode</span>
+                <span>-</span>
+                <span class="fw-semibold">@asset.Name</span>
+                @Html.Raw(BuildAssetStatusBadge(asset.Status))
+                @Html.Raw(BuildSimpleBadge(asset.IsActive))
+            </div>
+            <div class="small text-muted">@T["Category"]: @(string.IsNullOrWhiteSpace(asset.CategoryName) ? "-" : asset.CategoryName) | @T["Location"]: @(string.IsNullOrWhiteSpace(asset.LocationName) ? "-" : asset.LocationName)</div>
+        </div>
+
+        @await Component.InvokeAsync("Tabs", tabsModel)
+
+        <div class="tab-content border rounded-3 p-3 bg-body-tertiary">
+            <div class="tab-pane fade show active" id="asset-tab-info" role="tabpanel" aria-labelledby="asset-tab-info-tab">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <div class="small text-muted">@T["Asset Code"]</div>
+                        <div class="fw-semibold">@asset.AssetCode</div>
+                    </div>
+                    <div class="col-md-5">
+                        <div class="small text-muted">@T["Name"]</div>
+                        <div class="fw-semibold">@asset.Name</div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="small text-muted">@T["Status"]</div>
+                        <div>@Html.Raw(BuildAssetStatusBadge(asset.Status))</div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="small text-muted">@T["Category"]</div>
+                        <div>@(string.IsNullOrWhiteSpace(asset.CategoryName) ? "-" : asset.CategoryName)</div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="small text-muted">@T["Location"]</div>
+                        <div>@(string.IsNullOrWhiteSpace(asset.LocationName) ? "-" : asset.LocationName)</div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="small text-muted">@T["Department"]</div>
+                        <div>@(string.IsNullOrWhiteSpace(asset.DepartmentName) ? "-" : asset.DepartmentName)</div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <div class="small text-muted">@T["Acquisition Date"]</div>
+                        <div>@asset.AcquisitionDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)</div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="small text-muted">@T["In Service Date"]</div>
+                        <div>@asset.InServiceDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)</div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="small text-muted">@T["Depreciation Method"]</div>
+                        <div>@LocalizeDepreciationMethod(asset.DepreciationMethod)</div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="small text-muted">@T["Useful Life (Months)"]</div>
+                        <div>@usefulLifeHtml</div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <div class="small text-muted">@T["Acquisition Cost"]</div>
+                        <div>@acquisitionCostHtml</div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="small text-muted">@T["Salvage Value"]</div>
+                        <div>@salvageValueHtml</div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="small text-muted">@T["Accumulated Depreciation"]</div>
+                        <div>@accumulatedDepreciationHtml</div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="small text-muted">@T["Book Value"]</div>
+                        <div>@bookValueHtml</div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <div class="small text-muted">@T["Depreciation Rate"] (%)</div>
+                        <div>@depreciationRateHtml</div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="small text-muted">@T["Document Count"]</div>
+                        <div>@documentCountHtml</div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="small text-muted">@T["Serial Number"]</div>
+                        <div>@(string.IsNullOrWhiteSpace(asset.SerialNumber) ? "-" : asset.SerialNumber)</div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="small text-muted">@T["Vendor Name"]</div>
+                        <div>@(string.IsNullOrWhiteSpace(asset.VendorName) ? "-" : asset.VendorName)</div>
+                    </div>
+
+                    <div class="col-12">
+                        <div class="small text-muted">@T["Description"]</div>
+                        <div>@(string.IsNullOrWhiteSpace(asset.Description) ? "-" : asset.Description)</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="asset-tab-schedules" role="tabpanel" aria-labelledby="asset-tab-schedules-tab">
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>@T["Year"]</th>
+                                <th>@T["Month"]</th>
+                                <th>@T["Date"]</th>
+                                <th class="text-end">@T["Depreciation Amount"]</th>
+                                <th class="text-end">@T["Accumulated Depreciation"]</th>
+                                <th class="text-end">@T["Book Value"]</th>
+                                <th>@T["Status"]</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @if (Model.Data.DepreciationSchedules.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="7" class="text-center text-muted">@T["msg.no_data"]</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            foreach (var item in Model.Data.DepreciationSchedules)
+                            {
+                                var periodYearHtml = await Component.InvokeAsync("TextNumber", new { value = (decimal)item.PeriodYear, decimals = 0, cssClass = "sinara-text-number-theme" });
+                                var periodMonthHtml = await Component.InvokeAsync("TextNumber", new { value = (decimal)item.PeriodMonth, decimals = 0, cssClass = "sinara-text-number-theme" });
+                                var depreciationAmountHtml = await Component.InvokeAsync("TextNumber", new { value = item.DepreciationAmount, decimals = 2, cssClass = "sinara-text-number-theme" });
+                                var accumulatedHtml = await Component.InvokeAsync("TextNumber", new { value = item.AccumulatedDepreciation, decimals = 2, cssClass = "sinara-text-number-theme" });
+                                var bookValueScheduleHtml = await Component.InvokeAsync("TextNumber", new { value = item.BookValue, decimals = 2, cssClass = "sinara-text-number-theme" });
+
+                                <tr>
+                                    <td class="text-end">@periodYearHtml</td>
+                                    <td class="text-end">@periodMonthHtml</td>
+                                    <td>@item.DepreciationDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)</td>
+                                    <td class="text-end">@depreciationAmountHtml</td>
+                                    <td class="text-end">@accumulatedHtml</td>
+                                    <td class="text-end">@bookValueScheduleHtml</td>
+                                    <td>@Html.Raw(BuildScheduleBadge(item.Status))</td>
+                                </tr>
+                            }
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="asset-tab-transfers" role="tabpanel" aria-labelledby="asset-tab-transfers-tab">
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>@T["Transfer No"]</th>
+                                <th>@T["Transfer Date"]</th>
+                                <th>@T["From Location"]</th>
+                                <th>@T["To Location"]</th>
+                                <th>@T["From Department"]</th>
+                                <th>@T["To Department"]</th>
+                                <th>@T["Status"]</th>
+                                <th>@T["Reason"]</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @if (Model.Data.Transfers.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="8" class="text-center text-muted">@T["msg.no_data"]</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            foreach (var item in Model.Data.Transfers)
+                            {
+                                <tr>
+                                    <td>@item.TransferNo</td>
+                                    <td>@item.TransferDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)</td>
+                                    <td>@item.FromLocationName</td>
+                                    <td>@item.ToLocationName</td>
+                                    <td>@(string.IsNullOrWhiteSpace(item.FromDepartmentName) ? "-" : item.FromDepartmentName)</td>
+                                    <td>@(string.IsNullOrWhiteSpace(item.ToDepartmentName) ? "-" : item.ToDepartmentName)</td>
+                                    <td>@Html.Raw(BuildTransferBadge(item.Status))</td>
+                                    <td>@(string.IsNullOrWhiteSpace(item.Reason) ? "-" : item.Reason)</td>
+                                </tr>
+                            }
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="asset-tab-maintenance" role="tabpanel" aria-labelledby="asset-tab-maintenance-tab">
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>@T["Work Order No"]</th>
+                                <th>@T["Order Date"]</th>
+                                <th>@T["Maintenance Type"]</th>
+                                <th>@T["Vendor"]</th>
+                                <th class="text-end">@T["Cost"]</th>
+                                <th>@T["Capitalized"]</th>
+                                <th>@T["Status"]</th>
+                                <th>@T["Notes"]</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @if (Model.Data.MaintenanceOrders.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="8" class="text-center text-muted">@T["msg.no_data"]</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            foreach (var item in Model.Data.MaintenanceOrders)
+                            {
+                                var costHtml = await Component.InvokeAsync("TextNumber", new { value = item.Cost, decimals = 2, cssClass = "sinara-text-number-theme" });
+
+                                <tr>
+                                    <td>@item.WorkOrderNo</td>
+                                    <td>@item.OrderDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)</td>
+                                    <td>@LocalizeMaintenanceType(item.MaintenanceType)</td>
+                                    <td>@(string.IsNullOrWhiteSpace(item.VendorName) ? "-" : item.VendorName)</td>
+                                    <td class="text-end">@costHtml</td>
+                                    <td>@(item.IsCapitalized ? T["Yes"] : T["No"])</td>
+                                    <td>@Html.Raw(BuildMaintenanceBadge(item.Status))</td>
+                                    <td>@(string.IsNullOrWhiteSpace(item.Notes) ? "-" : item.Notes)</td>
+                                </tr>
+                            }
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="asset-tab-disposals" role="tabpanel" aria-labelledby="asset-tab-disposals-tab">
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>@T["Disposal No"]</th>
+                                <th>@T["Disposal Date"]</th>
+                                <th>@T["Disposal Type"]</th>
+                                <th class="text-end">@T["Sale Amount"]</th>
+                                <th class="text-end">@T["Disposal Expense"]</th>
+                                <th class="text-end">@T["Gain/Loss"]</th>
+                                <th>@T["Status"]</th>
+                                <th>@T["Notes"]</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @if (Model.Data.Disposals.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="8" class="text-center text-muted">@T["msg.no_data"]</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            foreach (var item in Model.Data.Disposals)
+                            {
+                                var saleAmountHtml = item.SaleAmount.HasValue
+                                    ? await Component.InvokeAsync("TextNumber", new { value = item.SaleAmount.Value, decimals = 2, cssClass = "sinara-text-number-theme" })
+                                    : await Component.InvokeAsync("TextNumber", new { text = "-", cssClass = "sinara-text-number-null" });
+                                var disposalExpenseHtml = await Component.InvokeAsync("TextNumber", new { value = item.DisposalExpense, decimals = 2, cssClass = "sinara-text-number-theme" });
+                                var gainLossHtml = item.GainLossAmount.HasValue
+                                    ? await Component.InvokeAsync("TextNumber", new { value = item.GainLossAmount.Value, decimals = 2, cssClass = "sinara-text-number-theme" })
+                                    : await Component.InvokeAsync("TextNumber", new { text = "-", cssClass = "sinara-text-number-null" });
+
+                                <tr>
+                                    <td>@item.DisposalNo</td>
+                                    <td>@item.DisposalDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)</td>
+                                    <td>@LocalizeDisposalType(item.DisposalType)</td>
+                                    <td class="text-end">@saleAmountHtml</td>
+                                    <td class="text-end">@disposalExpenseHtml</td>
+                                    <td class="text-end">@gainLossHtml</td>
+                                    <td>@Html.Raw(BuildDisposalBadge(item.Status))</td>
+                                    <td>@(string.IsNullOrWhiteSpace(item.Notes) ? "-" : item.Notes)</td>
+                                </tr>
+                            }
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="asset-tab-revaluations" role="tabpanel" aria-labelledby="asset-tab-revaluations-tab">
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>@T["Revaluation No"]</th>
+                                <th>@T["Revaluation Date"]</th>
+                                <th class="text-end">@T["Old Book Value"]</th>
+                                <th class="text-end">@T["New Book Value"]</th>
+                                <th class="text-end">@T["Impairment Amount"]</th>
+                                <th>@T["Status"]</th>
+                                <th>@T["Notes"]</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @if (Model.Data.Revaluations.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="7" class="text-center text-muted">@T["msg.no_data"]</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            foreach (var item in Model.Data.Revaluations)
+                            {
+                                var oldBookHtml = await Component.InvokeAsync("TextNumber", new { value = item.OldBookValue, decimals = 2, cssClass = "sinara-text-number-theme" });
+                                var newBookHtml = await Component.InvokeAsync("TextNumber", new { value = item.NewBookValue, decimals = 2, cssClass = "sinara-text-number-theme" });
+                                var impairmentHtml = await Component.InvokeAsync("TextNumber", new { value = item.ImpairmentAmount, decimals = 2, cssClass = "sinara-text-number-theme" });
+
+                                <tr>
+                                    <td>@item.RevaluationNo</td>
+                                    <td>@item.RevaluationDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)</td>
+                                    <td class="text-end">@oldBookHtml</td>
+                                    <td class="text-end">@newBookHtml</td>
+                                    <td class="text-end">@impairmentHtml</td>
+                                    <td>@Html.Raw(BuildRevaluationBadge(item.Status))</td>
+                                    <td>@(string.IsNullOrWhiteSpace(item.Notes) ? "-" : item.Notes)</td>
+                                </tr>
+                            }
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="asset-tab-history" role="tabpanel" aria-labelledby="asset-tab-history-tab">
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>@T["Date"]</th>
+                                <th>@T["Event Type"]</th>
+                                <th>@T["Reference No"]</th>
+                                <th>@T["Description"]</th>
+                                <th class="text-end">@T["Amount Change"]</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @if (Model.Data.Histories.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="5" class="text-center text-muted">@T["msg.no_data"]</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            foreach (var item in Model.Data.Histories)
+                            {
+                                var amountChangeHtml = item.AmountChange.HasValue
+                                    ? await Component.InvokeAsync("TextNumber", new { value = item.AmountChange.Value, decimals = 2, cssClass = "sinara-text-number-theme" })
+                                    : await Component.InvokeAsync("TextNumber", new { text = "-", cssClass = "sinara-text-number-null" });
+
+                                <tr>
+                                    <td>@item.EventDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)</td>
+                                    <td>@LocalizeHistoryType(item.EventType)</td>
+                                    <td>@(string.IsNullOrWhiteSpace(item.ReferenceNo) ? "-" : item.ReferenceNo)</td>
+                                    <td>@(string.IsNullOrWhiteSpace(item.Description) ? "-" : item.Description)</td>
+                                    <td class="text-end">@amountChangeHtml</td>
+                                </tr>
+                            }
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

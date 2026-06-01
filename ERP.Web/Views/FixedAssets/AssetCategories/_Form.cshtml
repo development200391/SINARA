@@ -1,0 +1,76 @@
+@model ERP.Web.ViewModels.FixedAssets.FixedAssetCategoryEditViewModel
+@using ERP.Domain.Enums.FixedAssets
+
+<div class="row g-3">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <div class="col-md-3">
+        <label asp-for="Code" class="form-label">@T["Code"]</label>
+        <input asp-for="Code" class="form-control" />
+        <span asp-validation-for="Code" class="text-danger small"></span>
+    </div>
+    <div class="col-md-5">
+        <label asp-for="Name" class="form-label">@T["Name"]</label>
+        <input asp-for="Name" class="form-control" />
+        <span asp-validation-for="Name" class="text-danger small"></span>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="DepreciationMethod" class="form-label">@T["Depreciation Method"]</label>
+        <select asp-for="DepreciationMethod" class="form-select">
+            <option value="@DepreciationMethod.StraightLine">@T["Straight Line"]</option>
+            <option value="@DepreciationMethod.DecliningBalance">@T["Declining Balance"]</option>
+        </select>
+        <span asp-validation-for="DepreciationMethod" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-3">
+        <label asp-for="UsefulLifeMonths" class="form-label">@T["Useful Life (Months)"]</label>
+        <input asp-for="UsefulLifeMonths" class="form-control text-end sinara-text-number sinara-text-number-theme sinara-text-number-input" type="text" inputmode="numeric" data-text-number-decimals="0" autocomplete="off" />
+        <span asp-validation-for="UsefulLifeMonths" class="text-danger small"></span>
+    </div>
+    <div class="col-md-3">
+        <label asp-for="DepreciationRate" class="form-label">@T["Depreciation Rate"] (%)</label>
+        <input asp-for="DepreciationRate" class="form-control text-end sinara-text-number sinara-text-number-theme sinara-text-number-input" type="text" inputmode="decimal" data-text-number-decimals="4" autocomplete="off" />
+        <span asp-validation-for="DepreciationRate" class="text-danger small"></span>
+    </div>
+    <div class="col-md-6">
+        <label asp-for="AssetAccountId" class="form-label">@T["Asset"] @T["Account"]</label>
+        <select asp-for="AssetAccountId" class="form-select">
+            <option value="">@T["None"]</option>
+            @foreach (var option in Model.AccountOptions)
+            {
+                <option value="@option.Id">@option.Label</option>
+            }
+        </select>
+        <span asp-validation-for="AssetAccountId" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-6">
+        <label asp-for="AccumulatedDepreciationAccountId" class="form-label">@T["Accumulated Depreciation"] @T["Account"]</label>
+        <select asp-for="AccumulatedDepreciationAccountId" class="form-select">
+            <option value="">@T["None"]</option>
+            @foreach (var option in Model.AccountOptions)
+            {
+                <option value="@option.Id">@option.Label</option>
+            }
+        </select>
+        <span asp-validation-for="AccumulatedDepreciationAccountId" class="text-danger small"></span>
+    </div>
+    <div class="col-md-6">
+        <label asp-for="DepreciationExpenseAccountId" class="form-label">@T["Depreciation Expense"] @T["Account"]</label>
+        <select asp-for="DepreciationExpenseAccountId" class="form-select">
+            <option value="">@T["None"]</option>
+            @foreach (var option in Model.AccountOptions)
+            {
+                <option value="@option.Id">@option.Label</option>
+            }
+        </select>
+        <span asp-validation-for="DepreciationExpenseAccountId" class="text-danger small"></span>
+    </div>
+    <div class="col-md-3">
+        <div class="form-check mt-4 pt-2">
+            <input asp-for="IsActive" class="form-check-input" />
+            <label asp-for="IsActive" class="form-check-label">@T["Active"]</label>
+        </div>
+    </div>
+</div>

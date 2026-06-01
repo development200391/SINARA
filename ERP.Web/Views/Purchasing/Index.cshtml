@@ -1,0 +1,62 @@
+@model ERP.Web.ViewModels.Purchasing.PurchasingDashboardViewModel
+
+@{
+    var pendingPrHtml = await Component.InvokeAsync("TextNumber", new { value = (decimal)Model.Data.PendingPrApprovalCount, decimals = 0, cssClass = "sinara-text-number-theme" });
+    var overduePoHtml = await Component.InvokeAsync("TextNumber", new { value = (decimal)Model.Data.OverduePoCount, decimals = 0, cssClass = "sinara-text-number-theme" });
+    var monthPoAmountHtml = await Component.InvokeAsync("TextNumber", new { value = Model.Data.CurrentMonthPoAmount, decimals = 2, cssClass = "sinara-text-number-theme" });
+    var approvedVendorsHtml = await Component.InvokeAsync("TextNumber", new { value = (decimal)Model.Data.ApprovedVendorCount, decimals = 0, cssClass = "sinara-text-number-theme" });
+}
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">@T["Purchasing Dashboard"]</h1>
+
+        <div class="row g-3 mb-4">
+            <div class="col-12 col-md-6 col-xl-3">
+                <div class="border rounded-3 p-3 h-100 bg-body-tertiary">
+                    <div class="small text-muted mb-1">@T["Pending PR Approval"]</div>
+                    <div class="h4 mb-0">@pendingPrHtml</div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6 col-xl-3">
+                <div class="border rounded-3 p-3 h-100 bg-body-tertiary">
+                    <div class="small text-muted mb-1">@T["Overdue PO"]</div>
+                    <div class="h4 mb-0">@overduePoHtml</div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6 col-xl-3">
+                <div class="border rounded-3 p-3 h-100 bg-body-tertiary">
+                    <div class="small text-muted mb-1">@T["Current Month PO Amount"]</div>
+                    <div class="h4 mb-0">@monthPoAmountHtml</div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6 col-xl-3">
+                <div class="border rounded-3 p-3 h-100 bg-body-tertiary">
+                    <div class="small text-muted mb-1">@T["Approved Vendors"]</div>
+                    <div class="h4 mb-0">@approvedVendorsHtml</div>
+                </div>
+            </div>
+        </div>
+
+        <h2 class="h6 mb-3">@T["Master Data"]</h2>
+
+        <div class="list-group">
+            <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" asp-action="VendorCategories" asp-controller="Purchasing">
+                <span>@T["Vendor Categories"]</span>
+                <i class="bi bi-chevron-right" aria-hidden="true"></i>
+            </a>
+            <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" asp-action="ApprovalConfigs" asp-controller="Purchasing">
+                <span>@T["Approval Configs"]</span>
+                <i class="bi bi-chevron-right" aria-hidden="true"></i>
+            </a>
+            <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" asp-action="BuyerGroups" asp-controller="Purchasing">
+                <span>@T["Buyer Groups"]</span>
+                <i class="bi bi-chevron-right" aria-hidden="true"></i>
+            </a>
+            <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" asp-action="Vendors" asp-controller="Purchasing">
+                <span>@T["Vendors"]</span>
+                <i class="bi bi-chevron-right" aria-hidden="true"></i>
+            </a>
+        </div>
+    </div>
+</div>

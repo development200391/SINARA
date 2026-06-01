@@ -1,0 +1,219 @@
+@model ERP.Web.ViewModels.FixedAssets.FixedAssetDisposalsIndexViewModel
+@using ERP.Domain.Enums.FixedAssets
+@using ERP.Web.ViewModels.Shared
+@using Microsoft.AspNetCore.Html
+@using System.Globalization
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">@T["Disposals"]</h1>
+
+        @{
+            var selectedAsset = Model.AssetIdFilter?.ToString(CultureInfo.InvariantCulture);
+            var selectedType = Model.DisposalTypeFilter.HasValue
+                ? ((int)Model.DisposalTypeFilter.Value).ToString(CultureInfo.InvariantCulture)
+                : null;
+            var selectedStatus = Model.StatusFilter.HasValue
+                ? ((int)Model.StatusFilter.Value).ToString(CultureInfo.InvariantCulture)
+                : null;
+            var disposalDateFrom = Model.DisposalDateFromFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            var disposalDateTo = Model.DisposalDateToFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+            string LocalizeType(DisposalType type)
+            {
+                return type switch
+                {
+                    DisposalType.Sale => T["Sale"],
+                    DisposalType.WriteOff => T["Write Off"],
+                    DisposalType.Scrap => T["Scrap"],
+                    _ => type.ToString()
+                };
+            }
+
+            string LocalizeStatus(DisposalStatus status)
+            {
+                return status switch
+                {
+                    DisposalStatus.Draft => T["Draft"],
+                    DisposalStatus.Approved => T["Approved"],
+                    DisposalStatus.Posted => T["Posted"],
+                    DisposalStatus.Cancelled => T["Cancelled"],
+                    _ => status.ToString()
+                };
+            }
+
+            string BuildStatusBadge(DisposalStatus status)
+            {
+                return status switch
+                {
+                    DisposalStatus.Draft => $"<span class=\"badge text-bg-secondary\">{LocalizeStatus(status)}</span>",
+                    DisposalStatus.Approved => $"<span class=\"badge text-bg-info\">{LocalizeStatus(status)}</span>",
+                    DisposalStatus.Posted => $"<span class=\"badge text-bg-success\">{LocalizeStatus(status)}</span>",
+                    DisposalStatus.Cancelled => $"<span class=\"badge text-bg-danger\">{LocalizeStatus(status)}</span>",
+                    _ => $"<span class=\"badge text-bg-secondary\">{status}</span>"
+                };
+            }
+
+            var assetOptions = Model.AssetOptions
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = x.Id.ToString(CultureInfo.InvariantCulture),
+                    Label = x.Label
+                })
+                .ToList();
+
+            var typeOptions = Enum.GetValues<DisposalType>()
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = ((int)x).ToString(CultureInfo.InvariantCulture),
+                    Label = LocalizeType(x)
+                })
+                .ToList();
+
+            var statusOptions = Enum.GetValues<DisposalStatus>()
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = ((int)x).ToString(CultureInfo.InvariantCulture),
+                    Label = LocalizeStatus(x)
+                })
+                .ToList();
+
+            var rows = new List<PagedGridRowViewModel>();
+            foreach (var item in Model.Items.Items)
+            {
+                var saleAmountHtml = item.SaleAmount.HasValue
+                    ? await Component.InvokeAsync("TextNumber", new { value = item.SaleAmount.Value, decimals = 2, cssClass = "sinara-text-number-theme" })
+                    : await Component.InvokeAsync("TextNumber", new { text = "-", cssClass = "sinara-text-number-null" });
+                var disposalExpenseHtml = await Component.InvokeAsync("TextNumber", new { value = item.DisposalExpense, decimals = 2, cssClass = "sinara-text-number-theme" });
+                var gainLossHtml = item.GainLossAmount.HasValue
+                    ? await Component.InvokeAsync("TextNumber", new { value = item.GainLossAmount.Value, decimals = 2, cssClass = "sinara-text-number-theme" })
+                    : await Component.InvokeAsync("TextNumber", new { text = "-", cssClass = "sinara-text-number-null" });
+
+                var canEdit = item.Status == DisposalStatus.Draft;
+                var canDelete = item.Status == DisposalStatus.Draft;
+                var canProcess = item.Status is DisposalStatus.Draft or DisposalStatus.Approved;
+                var canCancel = item.Status is DisposalStatus.Draft or DisposalStatus.Approved;
+
+                rows.Add(new PagedGridRowViewModel
+                {
+                    Cells =
+                    [
+                        new PagedGridCellViewModel { Text = item.DisposalNo },
+                        new PagedGridCellViewModel { Text = string.IsNullOrWhiteSpace(item.AssetCode) ? item.AssetName : $"{item.AssetCode} - {item.AssetName}" },
+                        new PagedGridCellViewModel { Text = item.DisposalDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) },
+                        new PagedGridCellViewModel { Text = LocalizeType(item.DisposalType) },
+                        new PagedGridCellViewModel { Html = saleAmountHtml, CellClass = "text-end" },
+                        new PagedGridCellViewModel { Html = disposalExpenseHtml, CellClass = "text-end" },
+                        new PagedGridCellViewModel { Html = gainLossHtml, CellClass = "text-end" },
+                        new PagedGridCellViewModel { Html = new HtmlString(BuildStatusBadge(item.Status)) }
+                    ],
+                    Actions = new PagedGridRowActionViewModel
+                    {
+                        EditUrl = canEdit ? Url.Action("EditDisposal", "FixedAssets", new { id = item.Id }) : null,
+                        ApproveUrl = canProcess ? Url.Action("ProcessDisposal", "FixedAssets", new { id = item.Id }) : null,
+                        RejectUrl = canCancel ? Url.Action("CancelDisposal", "FixedAssets", new { id = item.Id }) : null,
+                        DeleteUrl = canDelete ? Url.Action("DeleteDisposal", "FixedAssets", new { id = item.Id }) : null,
+                        ApproveConfirmMessage = T["Process this data?"],
+                        RejectConfirmMessage = T["Cancel this data?"],
+                        DeleteConfirmMessage = T["Delete this data?"]
+                    }
+                });
+            }
+
+            var gridModel = new PagedGridViewModel
+            {
+                Columns =
+                [
+                    new PagedGridColumnViewModel { Key = "disposalno", Title = T["Disposal No"], Sortable = true },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "assetcode",
+                        Title = T["Asset"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "assetId",
+                            Value = selectedAsset,
+                            EmptyOptionLabel = T["All"],
+                            Options = assetOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "disposaldate",
+                        Title = T["Disposal Date"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.DateRange,
+                            QueryKey = "disposalDateFrom",
+                            QueryKeyTo = "disposalDateTo",
+                            Value = disposalDateFrom,
+                            ValueTo = disposalDateTo,
+                            Placeholder = T["From"],
+                            PlaceholderTo = T["To"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "disposaltype",
+                        Title = T["Disposal Type"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "disposalType",
+                            Value = selectedType,
+                            EmptyOptionLabel = T["All Type"],
+                            Options = typeOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel { Key = "saleamount", Title = T["Sale Amount"], Sortable = true, CellClass = "text-end" },
+                    new PagedGridColumnViewModel { Key = "disposalexpense", Title = T["Disposal Expense"], Sortable = false, CellClass = "text-end" },
+                    new PagedGridColumnViewModel { Key = "gainlossamount", Title = T["Gain/Loss"], Sortable = true, CellClass = "text-end" },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "status",
+                        Title = T["Status"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "status",
+                            Value = selectedStatus,
+                            EmptyOptionLabel = T["All Status"],
+                            Options = statusOptions
+                        }
+                    }
+                ],
+                Rows = rows,
+                EmptyMessage = T["msg.no_data"],
+                Page = Model.Items.Page,
+                TotalPages = Model.Items.TotalPages,
+                PageSize = Model.PageSize,
+                SortBy = Model.SortBy,
+                SortDirection = Model.SortDirection,
+                EnableSearch = true,
+                SearchValue = Model.Search,
+                SearchPlaceholder = T["Search"] + " " + T["Disposals"],
+                SearchButtonText = T["common.search"],
+                Actions = new PagedGridActionConfigViewModel
+                {
+                    ActionColumnTitle = T["Action"],
+                    AddUrl = Url.Action("CreateDisposal", "FixedAssets"),
+                    AddButtonText = T["common.add_new"],
+                    EditButtonText = T["common.edit"],
+                    ApproveButtonText = T["Process"],
+                    RejectButtonText = T["Cancel"],
+                    DeleteButtonText = T["common.delete"],
+                    ApproveConfirmMessage = T["Process this data?"],
+                    RejectConfirmMessage = T["Cancel this data?"],
+                    DeleteConfirmMessage = T["Delete this data?"]
+                }
+            };
+        }
+
+        @await Component.InvokeAsync("PagedGrid", gridModel)
+    </div>
+</div>

@@ -1,0 +1,74 @@
+@model ERP.Web.ViewModels.FixedAssets.FixedAssetTransferEditViewModel
+
+<div class="row g-3">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <div class="col-md-6">
+        <label asp-for="AssetId" class="form-label">@T["Asset"]</label>
+        <select asp-for="AssetId" class="form-select">
+            <option value="">@T["Select Asset"]</option>
+            @foreach (var option in Model.AssetOptions)
+            {
+                <option value="@option.Id">@option.Label</option>
+            }
+        </select>
+        <span asp-validation-for="AssetId" class="text-danger small"></span>
+    </div>
+    <div class="col-md-3">
+        <label asp-for="TransferDate" class="form-label">@T["Transfer Date"]</label>
+        <input asp-for="TransferDate" type="date" class="form-control" />
+        <span asp-validation-for="TransferDate" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-6">
+        <label asp-for="FromLocationId" class="form-label">@T["From Location"]</label>
+        <select asp-for="FromLocationId" class="form-select">
+            <option value="">@T["Select Location"]</option>
+            @foreach (var option in Model.LocationOptions)
+            {
+                <option value="@option.Id">@option.Label</option>
+            }
+        </select>
+        <span asp-validation-for="FromLocationId" class="text-danger small"></span>
+    </div>
+    <div class="col-md-6">
+        <label asp-for="ToLocationId" class="form-label">@T["To Location"]</label>
+        <select asp-for="ToLocationId" class="form-select">
+            <option value="">@T["Select Location"]</option>
+            @foreach (var option in Model.LocationOptions)
+            {
+                <option value="@option.Id">@option.Label</option>
+            }
+        </select>
+        <span asp-validation-for="ToLocationId" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-6">
+        <label asp-for="FromDepartmentId" class="form-label">@T["From Department"]</label>
+        <select asp-for="FromDepartmentId" class="form-select">
+            <option value="">@T["All Department"]</option>
+            @foreach (var option in Model.DepartmentOptions)
+            {
+                <option value="@option.Id">@option.Label</option>
+            }
+        </select>
+        <span asp-validation-for="FromDepartmentId" class="text-danger small"></span>
+    </div>
+    <div class="col-md-6">
+        <label asp-for="ToDepartmentId" class="form-label">@T["To Department"]</label>
+        <select asp-for="ToDepartmentId" class="form-select">
+            <option value="">@T["All Department"]</option>
+            @foreach (var option in Model.DepartmentOptions)
+            {
+                <option value="@option.Id">@option.Label</option>
+            }
+        </select>
+        <span asp-validation-for="ToDepartmentId" class="text-danger small"></span>
+    </div>
+
+    <div class="col-12">
+        <label asp-for="Reason" class="form-label">@T["Reason"]</label>
+        <textarea asp-for="Reason" class="form-control" rows="2"></textarea>
+        <span asp-validation-for="Reason" class="text-danger small"></span>
+    </div>
+</div>

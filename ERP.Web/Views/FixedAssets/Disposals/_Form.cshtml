@@ -1,0 +1,49 @@
+@model ERP.Web.ViewModels.FixedAssets.FixedAssetDisposalEditViewModel
+@using ERP.Domain.Enums.FixedAssets
+
+<div class="row g-3">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <div class="col-md-6">
+        <label asp-for="AssetId" class="form-label">@T["Asset"]</label>
+        <select asp-for="AssetId" class="form-select">
+            <option value="">@T["Select Asset"]</option>
+            @foreach (var option in Model.AssetOptions)
+            {
+                <option value="@option.Id">@option.Label</option>
+            }
+        </select>
+        <span asp-validation-for="AssetId" class="text-danger small"></span>
+    </div>
+    <div class="col-md-3">
+        <label asp-for="DisposalDate" class="form-label">@T["Disposal Date"]</label>
+        <input asp-for="DisposalDate" type="date" class="form-control" />
+        <span asp-validation-for="DisposalDate" class="text-danger small"></span>
+    </div>
+    <div class="col-md-3">
+        <label asp-for="DisposalType" class="form-label">@T["Disposal Type"]</label>
+        <select asp-for="DisposalType" class="form-select">
+            <option value="@DisposalType.Sale">@T["Sale"]</option>
+            <option value="@DisposalType.WriteOff">@T["Write Off"]</option>
+            <option value="@DisposalType.Scrap">@T["Scrap"]</option>
+        </select>
+        <span asp-validation-for="DisposalType" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-3">
+        <label asp-for="SaleAmount" class="form-label">@T["Sale Amount"]</label>
+        <input asp-for="SaleAmount" class="form-control text-end sinara-text-number sinara-text-number-theme sinara-text-number-input" type="text" inputmode="decimal" data-text-number-decimals="2" autocomplete="off" />
+        <span asp-validation-for="SaleAmount" class="text-danger small"></span>
+    </div>
+    <div class="col-md-3">
+        <label asp-for="DisposalExpense" class="form-label">@T["Disposal Expense"]</label>
+        <input asp-for="DisposalExpense" class="form-control text-end sinara-text-number sinara-text-number-theme sinara-text-number-input" type="text" inputmode="decimal" data-text-number-decimals="2" autocomplete="off" />
+        <span asp-validation-for="DisposalExpense" class="text-danger small"></span>
+    </div>
+
+    <div class="col-12">
+        <label asp-for="Notes" class="form-label">@T["Notes"]</label>
+        <textarea asp-for="Notes" class="form-control" rows="2"></textarea>
+        <span asp-validation-for="Notes" class="text-danger small"></span>
+    </div>
+</div>

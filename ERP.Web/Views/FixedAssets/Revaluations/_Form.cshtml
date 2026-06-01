@@ -1,0 +1,44 @@
+@model ERP.Web.ViewModels.FixedAssets.FixedAssetRevaluationEditViewModel
+
+<div class="row g-3">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <div class="col-md-6">
+        <label asp-for="AssetId" class="form-label">@T["Asset"]</label>
+        <select asp-for="AssetId" class="form-select">
+            <option value="">@T["Select Asset"]</option>
+            @foreach (var option in Model.AssetOptions)
+            {
+                <option value="@option.Id">@option.Label</option>
+            }
+        </select>
+        <span asp-validation-for="AssetId" class="text-danger small"></span>
+    </div>
+    <div class="col-md-3">
+        <label asp-for="RevaluationDate" class="form-label">@T["Revaluation Date"]</label>
+        <input asp-for="RevaluationDate" type="date" class="form-control" />
+        <span asp-validation-for="RevaluationDate" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-4">
+        <label asp-for="OldBookValue" class="form-label">@T["Old Book Value"]</label>
+        <input asp-for="OldBookValue" class="form-control text-end sinara-text-number sinara-text-number-theme sinara-text-number-input" type="text" inputmode="decimal" data-text-number-decimals="2" autocomplete="off" />
+        <span asp-validation-for="OldBookValue" class="text-danger small"></span>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="NewBookValue" class="form-label">@T["New Book Value"]</label>
+        <input asp-for="NewBookValue" class="form-control text-end sinara-text-number sinara-text-number-theme sinara-text-number-input" type="text" inputmode="decimal" data-text-number-decimals="2" autocomplete="off" />
+        <span asp-validation-for="NewBookValue" class="text-danger small"></span>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="ImpairmentAmount" class="form-label">@T["Impairment Amount"]</label>
+        <input asp-for="ImpairmentAmount" class="form-control text-end sinara-text-number sinara-text-number-theme sinara-text-number-input" type="text" inputmode="decimal" data-text-number-decimals="2" autocomplete="off" />
+        <span asp-validation-for="ImpairmentAmount" class="text-danger small"></span>
+    </div>
+
+    <div class="col-12">
+        <label asp-for="Notes" class="form-label">@T["Notes"]</label>
+        <textarea asp-for="Notes" class="form-control" rows="2"></textarea>
+        <span asp-validation-for="Notes" class="text-danger small"></span>
+    </div>
+</div>

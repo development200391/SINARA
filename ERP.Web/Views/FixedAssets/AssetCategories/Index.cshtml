@@ -1,0 +1,164 @@
+@model ERP.Web.ViewModels.FixedAssets.FixedAssetCategoriesIndexViewModel
+@using ERP.Domain.Enums.FixedAssets
+@using ERP.Web.ViewModels.Shared
+@using Microsoft.AspNetCore.Html
+@using System.Globalization
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">@T["Asset Categories"]</h1>
+
+        @{
+            var selectedMethod = Model.DepreciationMethodFilter.HasValue
+                ? ((int)Model.DepreciationMethodFilter.Value).ToString(CultureInfo.InvariantCulture)
+                : null;
+            var selectedIsActive = Model.IsActiveFilter.HasValue
+                ? (Model.IsActiveFilter.Value ? "true" : "false")
+                : null;
+
+            string LocalizeMethod(DepreciationMethod method)
+            {
+                return method switch
+                {
+                    DepreciationMethod.StraightLine => T["Straight Line"],
+                    DepreciationMethod.DecliningBalance => T["Declining Balance"],
+                    _ => method.ToString()
+                };
+            }
+
+            string BuildStatusBadge(bool isActive)
+            {
+                return isActive
+                    ? $"<span class=\"badge text-bg-success\">{T["Active"]}</span>"
+                    : $"<span class=\"badge text-bg-secondary\">{T["Inactive"]}</span>";
+            }
+
+            var methodOptions = Enum.GetValues<DepreciationMethod>()
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = ((int)x).ToString(CultureInfo.InvariantCulture),
+                    Label = LocalizeMethod(x)
+                })
+                .ToList();
+
+            var statusOptions = new List<PagedGridFilterOptionViewModel>
+            {
+                new() { Value = "true", Label = T["Active"] },
+                new() { Value = "false", Label = T["Inactive"] }
+            };
+
+            var rows = new List<PagedGridRowViewModel>();
+            foreach (var item in Model.Items.Items)
+            {
+                var usefulLifeHtml = await Component.InvokeAsync("TextNumber", new { value = (decimal)item.UsefulLifeMonths, decimals = 0, cssClass = "sinara-text-number-theme" });
+                var rateHtml = item.DepreciationRate.HasValue
+                    ? await Component.InvokeAsync("TextNumber", new { value = item.DepreciationRate.Value, decimals = 4, cssClass = "sinara-text-number-theme" })
+                    : await Component.InvokeAsync("TextNumber", new { text = "-", cssClass = "sinara-text-number-null" });
+
+                rows.Add(new PagedGridRowViewModel
+                {
+                    Cells =
+                    [
+                        new PagedGridCellViewModel { Text = item.Code },
+                        new PagedGridCellViewModel { Text = item.Name },
+                        new PagedGridCellViewModel { Text = LocalizeMethod(item.DepreciationMethod) },
+                        new PagedGridCellViewModel { Html = usefulLifeHtml, CellClass = "text-end" },
+                        new PagedGridCellViewModel { Html = rateHtml, CellClass = "text-end" },
+                        new PagedGridCellViewModel { Html = new HtmlString(BuildStatusBadge(item.IsActive)) }
+                    ],
+                    Actions = new PagedGridRowActionViewModel
+                    {
+                        EditUrl = Url.Action("EditAssetCategory", "FixedAssets", new { id = item.Id }),
+                        DeleteUrl = Url.Action("DeleteAssetCategory", "FixedAssets", new { id = item.Id }),
+                        DeleteConfirmMessage = T["Delete this data?"]
+                    }
+                });
+            }
+
+            var gridModel = new PagedGridViewModel
+            {
+                Columns =
+                [
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "code",
+                        Title = T["Code"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Text,
+                            QueryKey = "code",
+                            Value = Model.CodeFilter,
+                            Placeholder = T["Filter code"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "name",
+                        Title = T["Name"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Text,
+                            QueryKey = "name",
+                            Value = Model.NameFilter,
+                            Placeholder = T["Filter name"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "depreciationmethod",
+                        Title = T["Depreciation Method"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "depreciationMethod",
+                            Value = selectedMethod,
+                            EmptyOptionLabel = T["All"],
+                            Options = methodOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel { Key = "usefullifemonths", Title = T["Useful Life (Months)"], Sortable = true, CellClass = "text-end" },
+                    new PagedGridColumnViewModel { Key = "depreciationrate", Title = T["Depreciation Rate"], Sortable = false, CellClass = "text-end" },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "isactive",
+                        Title = T["Status"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "isActive",
+                            Value = selectedIsActive,
+                            EmptyOptionLabel = T["All Status"],
+                            Options = statusOptions
+                        }
+                    }
+                ],
+                Rows = rows,
+                EmptyMessage = T["msg.no_data"],
+                Page = Model.Items.Page,
+                TotalPages = Model.Items.TotalPages,
+                PageSize = Model.PageSize,
+                SortBy = Model.SortBy,
+                SortDirection = Model.SortDirection,
+                EnableSearch = true,
+                SearchValue = Model.Search,
+                SearchPlaceholder = T["Search"] + " " + T["Asset Categories"],
+                SearchButtonText = T["common.search"],
+                Actions = new PagedGridActionConfigViewModel
+                {
+                    ActionColumnTitle = T["Action"],
+                    AddUrl = Url.Action("CreateAssetCategory", "FixedAssets"),
+                    AddButtonText = T["common.add_new"],
+                    EditButtonText = T["common.edit"],
+                    DeleteButtonText = T["common.delete"],
+                    DeleteConfirmMessage = T["Delete this data?"]
+                }
+            };
+        }
+
+        @await Component.InvokeAsync("PagedGrid", gridModel)
+    </div>
+</div>

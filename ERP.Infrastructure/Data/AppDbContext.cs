@@ -5,9 +5,13 @@ using ERP.Domain.Entities.HR;
 using ERP.Domain.Entities.Finance;
 using ERP.Domain.Entities.System;
 using ERP.Domain.Entities.Inventory;
+using ERP.Domain.Entities.Purchasing;
+using ERP.Domain.Entities.FixedAssets;
 using ERP.Domain.Interfaces;
 using ERP.Domain.Enums;
 using ERP.Domain.Enums.Inventory;
+using ERP.Domain.Enums.Purchasing;
+using ERP.Domain.Enums.FixedAssets;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Npgsql.EntityFrameworkCore.PostgreSQL;
@@ -90,6 +94,24 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<InvStockOpnameLine> InvStockOpnameLines => Set<InvStockOpnameLine>();
     public DbSet<InvStockMovement> InvStockMovements => Set<InvStockMovement>();
 
+    public DbSet<PurVendorCategory> PurVendorCategories => Set<PurVendorCategory>();
+    public DbSet<PurApprovalConfig> PurApprovalConfigs => Set<PurApprovalConfig>();
+    public DbSet<PurBuyerGroup> PurBuyerGroups => Set<PurBuyerGroup>();
+    public DbSet<PurBuyerGroupCategory> PurBuyerGroupCategories => Set<PurBuyerGroupCategory>();
+
+    public DbSet<FaAssetCategory> FaAssetCategories => Set<FaAssetCategory>();
+    public DbSet<FaLocation> FaLocations => Set<FaLocation>();
+    public DbSet<FaDepreciationConfig> FaDepreciationConfigs => Set<FaDepreciationConfig>();
+    public DbSet<FaAsset> FaAssets => Set<FaAsset>();
+    public DbSet<FaAssetDocument> FaAssetDocuments => Set<FaAssetDocument>();
+    public DbSet<FaDepreciationRun> FaDepreciationRuns => Set<FaDepreciationRun>();
+    public DbSet<FaDepreciationSchedule> FaDepreciationSchedules => Set<FaDepreciationSchedule>();
+    public DbSet<FaAssetTransfer> FaAssetTransfers => Set<FaAssetTransfer>();
+    public DbSet<FaMaintenanceOrder> FaMaintenanceOrders => Set<FaMaintenanceOrder>();
+    public DbSet<FaDisposal> FaDisposals => Set<FaDisposal>();
+    public DbSet<FaRevaluation> FaRevaluations => Set<FaRevaluation>();
+    public DbSet<FaAssetHistory> FaAssetHistories => Set<FaAssetHistory>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema("public");
@@ -169,6 +191,23 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         ConfigureInvStockOpnameLine(modelBuilder.Entity<InvStockOpnameLine>());
         ConfigureInvStockMovement(modelBuilder.Entity<InvStockMovement>());
 
+        ConfigurePurVendorCategory(modelBuilder.Entity<PurVendorCategory>());
+        ConfigurePurApprovalConfig(modelBuilder.Entity<PurApprovalConfig>());
+        ConfigurePurBuyerGroup(modelBuilder.Entity<PurBuyerGroup>());
+        ConfigurePurBuyerGroupCategory(modelBuilder.Entity<PurBuyerGroupCategory>());
+
+        ConfigureFaAssetCategory(modelBuilder.Entity<FaAssetCategory>());
+        ConfigureFaLocation(modelBuilder.Entity<FaLocation>());
+        ConfigureFaDepreciationConfig(modelBuilder.Entity<FaDepreciationConfig>());
+        ConfigureFaAsset(modelBuilder.Entity<FaAsset>());
+        ConfigureFaAssetDocument(modelBuilder.Entity<FaAssetDocument>());
+        ConfigureFaDepreciationRun(modelBuilder.Entity<FaDepreciationRun>());
+        ConfigureFaDepreciationSchedule(modelBuilder.Entity<FaDepreciationSchedule>());
+        ConfigureFaAssetTransfer(modelBuilder.Entity<FaAssetTransfer>());
+        ConfigureFaMaintenanceOrder(modelBuilder.Entity<FaMaintenanceOrder>());
+        ConfigureFaDisposal(modelBuilder.Entity<FaDisposal>());
+        ConfigureFaRevaluation(modelBuilder.Entity<FaRevaluation>());
+        ConfigureFaAssetHistory(modelBuilder.Entity<FaAssetHistory>());
         ApplySoftDeleteQueryFilters(modelBuilder);
 
         base.OnModelCreating(modelBuilder);
@@ -922,7 +961,11 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     
     private static void ConfigureFinVendor(EntityTypeBuilder<FinVendor> builder)
     {
-        builder.ToTable("fin_vendors");
+        builder.ToTable("fin_vendors", t =>
+        {
+            t.HasCheckConstraint("ck_fin_vendors_lead_time_days_non_negative", "lead_time_days IS NULL OR lead_time_days >= 0");
+            t.HasCheckConstraint("ck_fin_vendors_performance_score_range", "performance_score IS NULL OR (performance_score >= 0 AND performance_score <= 100)");
+        });
         ConfigureAuditEntity(builder);
 
         builder.Property(x => x.Code).HasMaxLength(20).IsRequired();
@@ -935,6 +978,10 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         builder.Property(x => x.PaymentTermsDays).HasDefaultValue(30).IsRequired();
         builder.Property(x => x.BankName).HasMaxLength(100);
         builder.Property(x => x.BankAccountNo).HasMaxLength(50);
+        builder.Property(x => x.IsApprovedVendor).HasDefaultValue(false).IsRequired();
+        builder.Property(x => x.ApprovedDate).HasColumnType("date");
+        builder.Property(x => x.LeadTimeDays);
+        builder.Property(x => x.PerformanceScore).HasColumnType("numeric(5,2)");
         builder.Property(x => x.IsActive).HasDefaultValue(true).IsRequired();
 
         builder.HasOne(x => x.DefaultAccount)
@@ -947,11 +994,492 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             .HasForeignKey(x => x.DefaultTaxCodeId)
             .OnDelete(DeleteBehavior.SetNull);
 
+        builder.HasOne(x => x.VendorCategory)
+            .WithMany(x => x.Vendors)
+            .HasForeignKey(x => x.VendorCategoryId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.BuyerGroup)
+            .WithMany(x => x.Vendors)
+            .HasForeignKey(x => x.BuyerGroupId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         builder.HasIndex(x => x.Code).IsUnique();
         builder.HasIndex(x => x.Name);
         builder.HasIndex(x => x.IsActive);
         builder.HasIndex(x => x.DefaultAccountId);
         builder.HasIndex(x => x.DefaultTaxCodeId);
+        builder.HasIndex(x => x.VendorCategoryId);
+        builder.HasIndex(x => x.BuyerGroupId);
+        builder.HasIndex(x => x.IsApprovedVendor);
+        builder.HasIndex(x => x.PerformanceScore);
+    }
+
+    private static void ConfigurePurVendorCategory(EntityTypeBuilder<PurVendorCategory> builder)
+    {
+        builder.ToTable("pur_vendor_categories");
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.Code).HasMaxLength(20).IsRequired();
+        builder.Property(x => x.Name).HasMaxLength(100).IsRequired();
+        builder.Property(x => x.Description).HasColumnType("text");
+        builder.Property(x => x.IsActive).HasDefaultValue(true).IsRequired();
+
+        builder.HasIndex(x => x.Code).IsUnique();
+        builder.HasIndex(x => x.Name);
+        builder.HasIndex(x => x.IsActive);
+    }
+
+    private static void ConfigurePurApprovalConfig(EntityTypeBuilder<PurApprovalConfig> builder)
+    {
+        builder.ToTable("pur_approval_configs", t =>
+        {
+            t.HasCheckConstraint("ck_pur_approval_configs_level_positive", "level > 0");
+            t.HasCheckConstraint("ck_pur_approval_configs_min_amount_non_negative", "min_amount >= 0");
+            t.HasCheckConstraint("ck_pur_approval_configs_max_amount_non_negative", "max_amount IS NULL OR max_amount >= 0");
+            t.HasCheckConstraint("ck_pur_approval_configs_amount_range", "max_amount IS NULL OR max_amount >= min_amount");
+        });
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.DocumentType).HasConversion<int>().IsRequired();
+        builder.Property(x => x.Level).IsRequired();
+        builder.Property(x => x.MinAmount).HasColumnType("numeric(18,4)").HasDefaultValue(0m).IsRequired();
+        builder.Property(x => x.MaxAmount).HasColumnType("numeric(18,4)");
+        builder.Property(x => x.Notes).HasColumnType("text");
+        builder.Property(x => x.IsActive).HasDefaultValue(true).IsRequired();
+
+        builder.HasOne(x => x.ApproverEmployee)
+            .WithMany()
+            .HasForeignKey(x => x.ApproverEmployeeId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(x => x.DocumentType);
+        builder.HasIndex(x => x.Level);
+        builder.HasIndex(x => x.ApproverEmployeeId);
+        builder.HasIndex(x => x.IsActive);
+        builder.HasIndex(x => new { x.DocumentType, x.Level, x.MinAmount, x.MaxAmount }).IsUnique();
+    }
+
+    private static void ConfigurePurBuyerGroup(EntityTypeBuilder<PurBuyerGroup> builder)
+    {
+        builder.ToTable("pur_buyer_groups");
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.Code).HasMaxLength(20).IsRequired();
+        builder.Property(x => x.Name).HasMaxLength(100).IsRequired();
+        builder.Property(x => x.Description).HasColumnType("text");
+        builder.Property(x => x.IsActive).HasDefaultValue(true).IsRequired();
+
+        builder.HasOne(x => x.BuyerEmployee)
+            .WithMany()
+            .HasForeignKey(x => x.BuyerEmployeeId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(x => x.Code).IsUnique();
+        builder.HasIndex(x => x.Name);
+        builder.HasIndex(x => x.BuyerEmployeeId);
+        builder.HasIndex(x => x.IsActive);
+    }
+
+    private static void ConfigurePurBuyerGroupCategory(EntityTypeBuilder<PurBuyerGroupCategory> builder)
+    {
+        builder.ToTable("pur_buyer_group_categories");
+        ConfigureAuditEntity(builder);
+
+        builder.HasOne(x => x.BuyerGroup)
+            .WithMany(x => x.CategoryMappings)
+            .HasForeignKey(x => x.BuyerGroupId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(x => x.ItemCategory)
+            .WithMany()
+            .HasForeignKey(x => x.ItemCategoryId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(x => x.BuyerGroupId);
+        builder.HasIndex(x => x.ItemCategoryId);
+        builder.HasIndex(x => new { x.BuyerGroupId, x.ItemCategoryId }).IsUnique();
+    }
+
+    private static void ConfigureFaAssetCategory(EntityTypeBuilder<FaAssetCategory> builder)
+    {
+        builder.ToTable("fa_asset_categories", t =>
+        {
+            t.HasCheckConstraint("ck_fa_asset_categories_useful_life_positive", "useful_life_months > 0");
+            t.HasCheckConstraint("ck_fa_asset_categories_depreciation_rate_range", "depreciation_rate IS NULL OR (depreciation_rate > 0 AND depreciation_rate <= 100)");
+        });
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.Code).HasMaxLength(20).IsRequired();
+        builder.Property(x => x.Name).HasMaxLength(100).IsRequired();
+        builder.Property(x => x.DepreciationMethod).HasConversion<int>().IsRequired();
+        builder.Property(x => x.UsefulLifeMonths).IsRequired();
+        builder.Property(x => x.DepreciationRate).HasColumnType("numeric(7,4)");
+        builder.Property(x => x.IsActive).HasDefaultValue(true).IsRequired();
+
+        builder.HasOne(x => x.AssetAccount)
+            .WithMany()
+            .HasForeignKey(x => x.AssetAccountId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.AccumulatedDepreciationAccount)
+            .WithMany()
+            .HasForeignKey(x => x.AccumulatedDepreciationAccountId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.DepreciationExpenseAccount)
+            .WithMany()
+            .HasForeignKey(x => x.DepreciationExpenseAccountId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasIndex(x => x.Code).IsUnique();
+        builder.HasIndex(x => x.Name);
+        builder.HasIndex(x => x.DepreciationMethod);
+        builder.HasIndex(x => x.IsActive);
+    }
+
+    private static void ConfigureFaLocation(EntityTypeBuilder<FaLocation> builder)
+    {
+        builder.ToTable("fa_locations");
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.Code).HasMaxLength(20).IsRequired();
+        builder.Property(x => x.Name).HasMaxLength(100).IsRequired();
+        builder.Property(x => x.Address).HasMaxLength(500);
+        builder.Property(x => x.IsActive).HasDefaultValue(true).IsRequired();
+
+        builder.HasOne(x => x.Department)
+            .WithMany()
+            .HasForeignKey(x => x.DepartmentId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.Manager)
+            .WithMany()
+            .HasForeignKey(x => x.ManagerId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasIndex(x => x.Code).IsUnique();
+        builder.HasIndex(x => x.Name);
+        builder.HasIndex(x => x.DepartmentId);
+        builder.HasIndex(x => x.IsActive);
+    }
+
+    private static void ConfigureFaDepreciationConfig(EntityTypeBuilder<FaDepreciationConfig> builder)
+    {
+        builder.ToTable("fa_depreciation_configs", t =>
+        {
+            t.HasCheckConstraint("ck_fa_depreciation_configs_period", "start_date <= end_date");
+            t.HasCheckConstraint("ck_fa_depreciation_configs_run_day_range", "run_day >= 1 AND run_day <= 31");
+        });
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.Name).HasMaxLength(100).IsRequired();
+        builder.Property(x => x.FiscalYear).IsRequired();
+        builder.Property(x => x.StartDate).HasColumnType("date").IsRequired();
+        builder.Property(x => x.EndDate).HasColumnType("date").IsRequired();
+        builder.Property(x => x.RunDay).HasDefaultValue((byte)28).IsRequired();
+        builder.Property(x => x.IsAutoPostJournal).HasDefaultValue(false).IsRequired();
+        builder.Property(x => x.IsActive).HasDefaultValue(true).IsRequired();
+
+        builder.HasIndex(x => x.FiscalYear);
+        builder.HasIndex(x => x.IsActive);
+    }
+
+    private static void ConfigureFaAsset(EntityTypeBuilder<FaAsset> builder)
+    {
+        builder.ToTable("fa_assets", t =>
+        {
+            t.HasCheckConstraint("ck_fa_assets_acquisition_cost_non_negative", "acquisition_cost >= 0");
+            t.HasCheckConstraint("ck_fa_assets_salvage_value_non_negative", "salvage_value >= 0");
+            t.HasCheckConstraint("ck_fa_assets_salvage_not_exceed_cost", "salvage_value <= acquisition_cost");
+            t.HasCheckConstraint("ck_fa_assets_useful_life_positive", "useful_life_months > 0");
+            t.HasCheckConstraint("ck_fa_assets_depreciation_rate_range", "depreciation_rate IS NULL OR (depreciation_rate > 0 AND depreciation_rate <= 100)");
+            t.HasCheckConstraint("ck_fa_assets_accumulated_depreciation_non_negative", "accumulated_depreciation >= 0");
+            t.HasCheckConstraint("ck_fa_assets_book_value_non_negative", "book_value >= 0");
+        });
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.AssetCode).HasMaxLength(30).IsRequired();
+        builder.Property(x => x.Name).HasMaxLength(150).IsRequired();
+        builder.Property(x => x.AcquisitionDate).HasColumnType("date").IsRequired();
+        builder.Property(x => x.InServiceDate).HasColumnType("date").IsRequired();
+        builder.Property(x => x.AcquisitionCost).HasColumnType("numeric(18,2)").IsRequired();
+        builder.Property(x => x.SalvageValue).HasColumnType("numeric(18,2)").HasDefaultValue(0m).IsRequired();
+        builder.Property(x => x.UsefulLifeMonths).IsRequired();
+        builder.Property(x => x.DepreciationMethod).HasConversion<int>().IsRequired();
+        builder.Property(x => x.DepreciationRate).HasColumnType("numeric(7,4)");
+        builder.Property(x => x.AccumulatedDepreciation).HasColumnType("numeric(18,2)").HasDefaultValue(0m).IsRequired();
+        builder.Property(x => x.BookValue).HasColumnType("numeric(18,2)").IsRequired();
+        builder.Property(x => x.Status).HasConversion<int>().IsRequired();
+        builder.Property(x => x.SerialNumber).HasMaxLength(100);
+        builder.Property(x => x.VendorName).HasMaxLength(200);
+        builder.Property(x => x.Description).HasColumnType("text");
+        builder.Property(x => x.IsActive).HasDefaultValue(true).IsRequired();
+
+        builder.HasOne(x => x.Category)
+            .WithMany(x => x.Assets)
+            .HasForeignKey(x => x.CategoryId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.Location)
+            .WithMany(x => x.Assets)
+            .HasForeignKey(x => x.LocationId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.Department)
+            .WithMany()
+            .HasForeignKey(x => x.DepartmentId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasIndex(x => x.AssetCode).IsUnique();
+        builder.HasIndex(x => x.Name);
+        builder.HasIndex(x => x.CategoryId);
+        builder.HasIndex(x => x.LocationId);
+        builder.HasIndex(x => x.DepartmentId);
+        builder.HasIndex(x => x.Status);
+        builder.HasIndex(x => x.IsActive);
+        builder.HasIndex(x => x.AcquisitionDate);
+        builder.HasIndex(x => x.InServiceDate);
+    }
+
+    private static void ConfigureFaAssetDocument(EntityTypeBuilder<FaAssetDocument> builder)
+    {
+        builder.ToTable("fa_asset_documents");
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.DocumentType).HasMaxLength(50).IsRequired();
+        builder.Property(x => x.FileName).HasMaxLength(255).IsRequired();
+        builder.Property(x => x.FilePath).HasMaxLength(500).IsRequired();
+        builder.Property(x => x.Notes).HasColumnType("text");
+
+        builder.HasOne(x => x.Asset)
+            .WithMany(x => x.Documents)
+            .HasForeignKey(x => x.AssetId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasIndex(x => x.AssetId);
+        builder.HasIndex(x => x.DocumentType);
+    }
+
+    private static void ConfigureFaDepreciationRun(EntityTypeBuilder<FaDepreciationRun> builder)
+    {
+        builder.ToTable("fa_depreciation_runs", t =>
+        {
+            t.HasCheckConstraint("ck_fa_depreciation_runs_period_month", "period_month >= 1 AND period_month <= 12");
+            t.HasCheckConstraint("ck_fa_depreciation_runs_total_asset_count", "total_asset_count >= 0");
+            t.HasCheckConstraint("ck_fa_depreciation_runs_total_depreciation_non_negative", "total_depreciation_amount >= 0");
+        });
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.RunNo).HasMaxLength(30).IsRequired();
+        builder.Property(x => x.PeriodYear).IsRequired();
+        builder.Property(x => x.PeriodMonth).IsRequired();
+        builder.Property(x => x.RunDate).HasColumnType("date").IsRequired();
+        builder.Property(x => x.TotalAssetCount).IsRequired();
+        builder.Property(x => x.TotalDepreciationAmount).HasColumnType("numeric(18,2)").IsRequired();
+        builder.Property(x => x.Status).HasConversion<int>().IsRequired();
+
+        builder.HasOne(x => x.ApprovedByUser)
+            .WithMany()
+            .HasForeignKey(x => x.ApprovedBy)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.JournalEntry)
+            .WithMany()
+            .HasForeignKey(x => x.JournalEntryId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasIndex(x => x.RunNo).IsUnique();
+        builder.HasIndex(x => new { x.PeriodYear, x.PeriodMonth });
+        builder.HasIndex(x => x.Status);
+    }
+
+    private static void ConfigureFaDepreciationSchedule(EntityTypeBuilder<FaDepreciationSchedule> builder)
+    {
+        builder.ToTable("fa_depreciation_schedules", t =>
+        {
+            t.HasCheckConstraint("ck_fa_depreciation_schedules_period_month", "period_month >= 1 AND period_month <= 12");
+            t.HasCheckConstraint("ck_fa_depreciation_schedules_amount_non_negative", "depreciation_amount >= 0");
+            t.HasCheckConstraint("ck_fa_depreciation_schedules_accumulated_non_negative", "accumulated_depreciation >= 0");
+            t.HasCheckConstraint("ck_fa_depreciation_schedules_book_value_non_negative", "book_value >= 0");
+        });
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.PeriodYear).IsRequired();
+        builder.Property(x => x.PeriodMonth).IsRequired();
+        builder.Property(x => x.DepreciationDate).HasColumnType("date").IsRequired();
+        builder.Property(x => x.DepreciationAmount).HasColumnType("numeric(18,2)").IsRequired();
+        builder.Property(x => x.AccumulatedDepreciation).HasColumnType("numeric(18,2)").IsRequired();
+        builder.Property(x => x.BookValue).HasColumnType("numeric(18,2)").IsRequired();
+        builder.Property(x => x.Status).HasConversion<int>().IsRequired();
+
+        builder.HasOne(x => x.Asset)
+            .WithMany(x => x.DepreciationSchedules)
+            .HasForeignKey(x => x.AssetId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(x => x.Run)
+            .WithMany(x => x.Schedules)
+            .HasForeignKey(x => x.RunId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasIndex(x => new { x.AssetId, x.PeriodYear, x.PeriodMonth }).IsUnique();
+        builder.HasIndex(x => x.RunId);
+        builder.HasIndex(x => x.Status);
+        builder.HasIndex(x => x.DepreciationDate);
+    }
+
+    private static void ConfigureFaAssetTransfer(EntityTypeBuilder<FaAssetTransfer> builder)
+    {
+        builder.ToTable("fa_asset_transfers", t =>
+        {
+            t.HasCheckConstraint("ck_fa_asset_transfers_locations_not_same", "from_location_id <> to_location_id");
+        });
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.TransferNo).HasMaxLength(30).IsRequired();
+        builder.Property(x => x.TransferDate).HasColumnType("date").IsRequired();
+        builder.Property(x => x.Reason).HasColumnType("text");
+        builder.Property(x => x.Status).HasConversion<int>().IsRequired();
+
+        builder.HasOne(x => x.Asset)
+            .WithMany(x => x.Transfers)
+            .HasForeignKey(x => x.AssetId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.FromLocation)
+            .WithMany()
+            .HasForeignKey(x => x.FromLocationId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.ToLocation)
+            .WithMany()
+            .HasForeignKey(x => x.ToLocationId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.FromDepartment)
+            .WithMany()
+            .HasForeignKey(x => x.FromDepartmentId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.ToDepartment)
+            .WithMany()
+            .HasForeignKey(x => x.ToDepartmentId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.ApprovedByEmployee)
+            .WithMany()
+            .HasForeignKey(x => x.ApprovedBy)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasIndex(x => x.TransferNo).IsUnique();
+        builder.HasIndex(x => x.AssetId);
+        builder.HasIndex(x => x.TransferDate);
+        builder.HasIndex(x => x.Status);
+    }
+
+    private static void ConfigureFaMaintenanceOrder(EntityTypeBuilder<FaMaintenanceOrder> builder)
+    {
+        builder.ToTable("fa_maintenance_orders", t =>
+        {
+            t.HasCheckConstraint("ck_fa_maintenance_orders_cost_non_negative", "cost >= 0");
+        });
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.WorkOrderNo).HasMaxLength(30).IsRequired();
+        builder.Property(x => x.OrderDate).HasColumnType("date").IsRequired();
+        builder.Property(x => x.MaintenanceType).HasConversion<int>().IsRequired();
+        builder.Property(x => x.VendorName).HasMaxLength(200);
+        builder.Property(x => x.Cost).HasColumnType("numeric(18,2)").IsRequired();
+        builder.Property(x => x.Status).HasConversion<int>().IsRequired();
+        builder.Property(x => x.Notes).HasColumnType("text");
+
+        builder.HasOne(x => x.Asset)
+            .WithMany(x => x.MaintenanceOrders)
+            .HasForeignKey(x => x.AssetId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(x => x.WorkOrderNo).IsUnique();
+        builder.HasIndex(x => x.AssetId);
+        builder.HasIndex(x => x.OrderDate);
+        builder.HasIndex(x => x.Status);
+    }
+
+    private static void ConfigureFaDisposal(EntityTypeBuilder<FaDisposal> builder)
+    {
+        builder.ToTable("fa_disposals", t =>
+        {
+            t.HasCheckConstraint("ck_fa_disposals_sale_amount_non_negative", "sale_amount IS NULL OR sale_amount >= 0");
+            t.HasCheckConstraint("ck_fa_disposals_expense_non_negative", "disposal_expense >= 0");
+        });
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.DisposalNo).HasMaxLength(30).IsRequired();
+        builder.Property(x => x.DisposalDate).HasColumnType("date").IsRequired();
+        builder.Property(x => x.DisposalType).HasConversion<int>().IsRequired();
+        builder.Property(x => x.SaleAmount).HasColumnType("numeric(18,2)");
+        builder.Property(x => x.DisposalExpense).HasColumnType("numeric(18,2)").HasDefaultValue(0m).IsRequired();
+        builder.Property(x => x.GainLossAmount).HasColumnType("numeric(18,2)");
+        builder.Property(x => x.Status).HasConversion<int>().IsRequired();
+        builder.Property(x => x.Notes).HasColumnType("text");
+
+        builder.HasOne(x => x.Asset)
+            .WithMany(x => x.Disposals)
+            .HasForeignKey(x => x.AssetId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(x => x.DisposalNo).IsUnique();
+        builder.HasIndex(x => x.AssetId);
+        builder.HasIndex(x => x.DisposalDate);
+        builder.HasIndex(x => x.Status);
+    }
+
+    private static void ConfigureFaRevaluation(EntityTypeBuilder<FaRevaluation> builder)
+    {
+        builder.ToTable("fa_revaluations", t =>
+        {
+            t.HasCheckConstraint("ck_fa_revaluations_values_non_negative", "old_book_value >= 0 AND new_book_value >= 0 AND impairment_amount >= 0");
+        });
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.RevaluationNo).HasMaxLength(30).IsRequired();
+        builder.Property(x => x.RevaluationDate).HasColumnType("date").IsRequired();
+        builder.Property(x => x.OldBookValue).HasColumnType("numeric(18,2)").IsRequired();
+        builder.Property(x => x.NewBookValue).HasColumnType("numeric(18,2)").IsRequired();
+        builder.Property(x => x.ImpairmentAmount).HasColumnType("numeric(18,2)").HasDefaultValue(0m).IsRequired();
+        builder.Property(x => x.Status).HasConversion<int>().IsRequired();
+        builder.Property(x => x.Notes).HasColumnType("text");
+
+        builder.HasOne(x => x.Asset)
+            .WithMany(x => x.Revaluations)
+            .HasForeignKey(x => x.AssetId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(x => x.RevaluationNo).IsUnique();
+        builder.HasIndex(x => x.AssetId);
+        builder.HasIndex(x => x.RevaluationDate);
+        builder.HasIndex(x => x.Status);
+    }
+
+    private static void ConfigureFaAssetHistory(EntityTypeBuilder<FaAssetHistory> builder)
+    {
+        builder.ToTable("fa_asset_histories");
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.EventDate).HasColumnType("date").IsRequired();
+        builder.Property(x => x.EventType).HasConversion<int>().IsRequired();
+        builder.Property(x => x.ReferenceNo).HasMaxLength(50);
+        builder.Property(x => x.Description).HasColumnType("text");
+        builder.Property(x => x.AmountChange).HasColumnType("numeric(18,2)");
+
+        builder.HasOne(x => x.Asset)
+            .WithMany(x => x.Histories)
+            .HasForeignKey(x => x.AssetId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasIndex(x => x.AssetId);
+        builder.HasIndex(x => x.EventDate);
+        builder.HasIndex(x => x.EventType);
     }
 
     private static void ConfigureFinApInvoice(EntityTypeBuilder<FinApInvoice> builder)
@@ -2197,30 +2725,3 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         }
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

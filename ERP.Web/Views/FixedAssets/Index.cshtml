@@ -1,0 +1,99 @@
+@model ERP.Web.ViewModels.FixedAssets.FixedAssetsDashboardViewModel
+
+@{
+    var activeAssetsHtml = await Component.InvokeAsync("TextNumber", new { value = (decimal)Model.Data.ActiveAssetCount, decimals = 0, cssClass = "sinara-text-number-theme" });
+    var acquisitionCostHtml = await Component.InvokeAsync("TextNumber", new { value = Model.Data.TotalAcquisitionCost, decimals = 2, cssClass = "sinara-text-number-theme" });
+    var bookValueHtml = await Component.InvokeAsync("TextNumber", new { value = Model.Data.TotalBookValue, decimals = 2, cssClass = "sinara-text-number-theme" });
+    var monthDepHtml = await Component.InvokeAsync("TextNumber", new { value = Model.Data.MonthlyDepreciationAmount, decimals = 2, cssClass = "sinara-text-number-theme" });
+    var maintenanceHtml = await Component.InvokeAsync("TextNumber", new { value = (decimal)Model.Data.AssetsInMaintenance, decimals = 0, cssClass = "sinara-text-number-theme" });
+    var disposedHtml = await Component.InvokeAsync("TextNumber", new { value = (decimal)Model.Data.DisposedAssetCount, decimals = 0, cssClass = "sinara-text-number-theme" });
+}
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">@T["Fixed Assets Dashboard"]</h1>
+
+        <div class="row g-3 mb-4">
+            <div class="col-12 col-md-6 col-xl-4">
+                <div class="border rounded-3 p-3 h-100 bg-body-tertiary">
+                    <div class="small text-muted mb-1">@T["Active Assets"]</div>
+                    <div class="h4 mb-0">@activeAssetsHtml</div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6 col-xl-4">
+                <div class="border rounded-3 p-3 h-100 bg-body-tertiary">
+                    <div class="small text-muted mb-1">@T["Total Acquisition Cost"]</div>
+                    <div class="h4 mb-0">@acquisitionCostHtml</div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6 col-xl-4">
+                <div class="border rounded-3 p-3 h-100 bg-body-tertiary">
+                    <div class="small text-muted mb-1">@T["Total Book Value"]</div>
+                    <div class="h4 mb-0">@bookValueHtml</div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6 col-xl-4">
+                <div class="border rounded-3 p-3 h-100 bg-body-tertiary">
+                    <div class="small text-muted mb-1">@T["Monthly Depreciation"]</div>
+                    <div class="h4 mb-0">@monthDepHtml</div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6 col-xl-4">
+                <div class="border rounded-3 p-3 h-100 bg-body-tertiary">
+                    <div class="small text-muted mb-1">@T["Assets In Maintenance"]</div>
+                    <div class="h4 mb-0">@maintenanceHtml</div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6 col-xl-4">
+                <div class="border rounded-3 p-3 h-100 bg-body-tertiary">
+                    <div class="small text-muted mb-1">@T["Disposed Assets"]</div>
+                    <div class="h4 mb-0">@disposedHtml</div>
+                </div>
+            </div>
+        </div>
+
+        <h2 class="h6 mb-3">@T["Master Data"]</h2>
+        <div class="list-group mb-4">
+            <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" asp-action="AssetCategories" asp-controller="FixedAssets">
+                <span>@T["Asset Categories"]</span>
+                <i class="bi bi-chevron-right" aria-hidden="true"></i>
+            </a>
+            <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" asp-action="Locations" asp-controller="FixedAssets">
+                <span>@T["Asset Locations"]</span>
+                <i class="bi bi-chevron-right" aria-hidden="true"></i>
+            </a>
+            <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" asp-action="DepreciationConfigs" asp-controller="FixedAssets">
+                <span>@T["Depreciation Configs"]</span>
+                <i class="bi bi-chevron-right" aria-hidden="true"></i>
+            </a>
+            <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" asp-action="Assets" asp-controller="FixedAssets">
+                <span>@T["Assets"]</span>
+                <i class="bi bi-chevron-right" aria-hidden="true"></i>
+            </a>
+        </div>
+
+        <h2 class="h6 mb-3">@T["Transactions"]</h2>
+        <div class="list-group">
+            <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" asp-action="DepreciationRuns" asp-controller="FixedAssets">
+                <span>@T["Depreciation Runs"]</span>
+                <i class="bi bi-chevron-right" aria-hidden="true"></i>
+            </a>
+            <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" asp-action="Transfers" asp-controller="FixedAssets">
+                <span>@T["Asset Transfers"]</span>
+                <i class="bi bi-chevron-right" aria-hidden="true"></i>
+            </a>
+            <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" asp-action="MaintenanceOrders" asp-controller="FixedAssets">
+                <span>@T["Maintenance Orders"]</span>
+                <i class="bi bi-chevron-right" aria-hidden="true"></i>
+            </a>
+            <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" asp-action="Disposals" asp-controller="FixedAssets">
+                <span>@T["Disposals"]</span>
+                <i class="bi bi-chevron-right" aria-hidden="true"></i>
+            </a>
+            <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" asp-action="Revaluations" asp-controller="FixedAssets">
+                <span>@T["Revaluations"]</span>
+                <i class="bi bi-chevron-right" aria-hidden="true"></i>
+            </a>
+        </div>
+    </div>
+</div>
