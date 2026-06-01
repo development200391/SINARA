@@ -19,6 +19,7 @@
                     OpnameStatus.Draft => T["Draft"],
                     OpnameStatus.InProgress => T["In Progress"],
                     OpnameStatus.Completed => T["Completed"],
+                    OpnameStatus.Approved => T["Approved"],
                     OpnameStatus.Cancelled => T["Cancelled"],
                     _ => value.ToString()
                 };
@@ -28,7 +29,8 @@
             {
                 return value switch
                 {
-                    OpnameStatus.Completed => $"<span class=\"badge text-bg-success\">{T["Completed"]}</span>",
+                    OpnameStatus.Approved => $"<span class=\"badge text-bg-success\">{T["Approved"]}</span>",
+                    OpnameStatus.Completed => $"<span class=\"badge text-bg-primary\">{T["Completed"]}</span>",
                     OpnameStatus.Cancelled => $"<span class=\"badge text-bg-secondary\">{T["Cancelled"]}</span>",
                     OpnameStatus.InProgress => $"<span class=\"badge text-bg-info\">{T["In Progress"]}</span>",
                     _ => $"<span class=\"badge text-bg-warning\">{T["Draft"]}</span>"
@@ -194,3 +196,4 @@
         @await Component.InvokeAsync("PagedGrid", gridModel)
     </div>
 </div>
+

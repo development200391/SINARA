@@ -456,6 +456,7 @@ public sealed class OpnamesController(AppDbContext dbContext) : InventoryControl
             entity.AdjustmentId = adjustment.Id;
         }
 
+        entity.Status = OpnameStatus.Approved;
         entity.ApprovedBy = GetCurrentUserId();
         entity.ApprovedAt = DateTimeOffset.UtcNow;
         entity.UpdatedBy = GetCurrentUserId()?.ToString() ?? "system";
@@ -605,3 +606,4 @@ public sealed class OpnamesController(AppDbContext dbContext) : InventoryControl
         };
     }
 }
+
