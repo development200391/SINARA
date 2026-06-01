@@ -6,5 +6,6 @@ public enum FinanceJournalSource
     Payroll = 1,
     Ap = 2,
     Ar = 3,
-    Closing = 4
+    Closing = 4,
+    Inventory = 5
 }
