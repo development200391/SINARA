@@ -27,6 +27,7 @@ Document Management — arsip dokumen perusahaan
 
 
 Fokus ke sini
+Finance
 Inventory — kalau ada barang/aset yang dikelola
 Purchasing — procurement barang & jasa
 Fixed Assets — inventaris aset perusahaan
@@ -34,16 +35,3 @@ Fixed Assets — inventaris aset perusahaan
 
 
 
-Finance / Accounting
-
-
-
-UNTUK INVOICE PANDUAN DETAIL TAMBAHIN INI
-Oke, sudah saya baca seluruh dokumen Finance yang dikerjakan. Sekarang saya tahu persis apa yang sudah ada. Yang perlu ditambahkan/direvisi:
-
-Koneksi ke Inventory — tambah di ringkasan & tabel koneksi
-CoA Seed — tambah 4 akun baru untuk Inventory (1150, 5201, 5202, 6001)
-JournalSource enum — tambah nilai 5=Inventory
-Integrasi INV→Finance — tambah langkah baru
-Smoke test — tambah checklist jurnal dari Inventory
-Endpoint — tambah /api/v1/finance/integration/inventory/{transactionId}
