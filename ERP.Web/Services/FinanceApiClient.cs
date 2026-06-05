@@ -1,6 +1,3 @@
-using System.Net;
-using System.Net.Http.Headers;
-using System.Net.Http.Json;
 using System.Globalization;
 using ERP.Application.DTOs.Common;
 using ERP.Application.DTOs.Finance;
@@ -8,7 +5,7 @@ using ERP.Domain.Enums;
 
 namespace ERP.Web.Services;
 
-public sealed class FinanceApiClient(HttpClient httpClient, ILogger<FinanceApiClient> logger) : IFinanceApiClient
+public sealed class FinanceApiClient(HttpClient httpClient, ILogger<FinanceApiClient> logger) : ApiClientBase(httpClient, logger, "Finance"), IFinanceApiClient
 {
     public Task<PagedResult<AccountGroupDto>?> GetAccountGroupsAsync(string accessToken, AccountGroupPagedRequest request, CancellationToken ct = default)
     {
@@ -1310,56 +1307,5 @@ public sealed class FinanceApiClient(HttpClient httpClient, ILogger<FinanceApiCl
             parameters.Add($"section={Uri.EscapeDataString(section.Trim())}");
         }
     }
-
-    private async Task<T?> SendAsync<T>(HttpMethod method, string uri, string accessToken, object? body, CancellationToken ct)
-    {
-        var response = await SendRawAsync(method, uri, accessToken, body, ct);
-        if (response is null || !response.IsSuccessStatusCode)
-        {
-            return default;
-        }
-
-        try
-        {
-            return await response.Content.ReadFromJsonAsync<T>(cancellationToken: ct);
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Failed to deserialize Finance API response from {Uri}", uri);
-            return default;
-        }
-    }
-
-    private async Task<HttpResponseMessage?> SendRawAsync(HttpMethod method, string uri, string accessToken, object? body, CancellationToken ct)
-    {
-        try
-        {
-            using var request = new HttpRequestMessage(method, uri);
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-
-            if (body is not null)
-            {
-                request.Content = JsonContent.Create(body);
-            }
-
-            var response = await httpClient.SendAsync(request, ct);
-            if (response.StatusCode == HttpStatusCode.Unauthorized)
-            {
-                throw new ApiUnauthorizedException(uri);
-            }
-
-            return response;
-        }
-        catch (HttpRequestException ex)
-        {
-            logger.LogWarning(ex, "Failed to call Finance API endpoint {Uri}", uri);
-            return null;
-        }
-    }
 }
-
-
-
-
-
 

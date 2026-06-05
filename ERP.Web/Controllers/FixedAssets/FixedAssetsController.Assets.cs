@@ -346,9 +346,16 @@ public sealed partial class FixedAssetsController
             ApproveImmediately = model.ApproveImmediately
         }, ct);
 
-        TempData[result is not null ? "SuccessMessage" : "ErrorMessage"] = result is not null
-            ? "Depreciation run processed."
-            : "Failed to process depreciation run.";
+        if (result.IsSuccess && result.Data is not null)
+        {
+            TempData["SuccessMessage"] = "Depreciation run processed.";
+        }
+        else
+        {
+            TempData["ErrorMessage"] = string.IsNullOrWhiteSpace(result.ErrorMessage)
+                ? "Failed to process depreciation run."
+                : result.ErrorMessage;
+        }
 
         return RedirectToAction(nameof(DepreciationRuns), new
         {
@@ -375,3 +382,4 @@ public sealed partial class FixedAssetsController
         return RedirectToAction(nameof(DepreciationRuns));
     }
 }
+

@@ -1,12 +1,9 @@
-using System.Net;
-using System.Net.Http.Headers;
-using System.Net.Http.Json;
 using ERP.Application.DTOs.Common;
 using ERP.Application.DTOs.FixedAssets;
 
 namespace ERP.Web.Services;
 
-public sealed class FixedAssetsApiClient(HttpClient httpClient, ILogger<FixedAssetsApiClient> logger) : IFixedAssetsApiClient
+public sealed class FixedAssetsApiClient(HttpClient httpClient, ILogger<FixedAssetsApiClient> logger) : ApiClientBase(httpClient, logger, "Fixed Assets"), IFixedAssetsApiClient
 {
     public Task<FixedAssetDashboardDto?> GetDashboardAsync(string accessToken, CancellationToken ct = default)
         => SendAsync<FixedAssetDashboardDto>(HttpMethod.Get, "api/v1/fixed-assets/dashboard", accessToken, null, ct);
@@ -148,8 +145,8 @@ public sealed class FixedAssetsApiClient(HttpClient httpClient, ILogger<FixedAss
     public Task<FixedAssetDepreciationRunDto?> GetDepreciationRunByIdAsync(string accessToken, int id, CancellationToken ct = default)
         => SendAsync<FixedAssetDepreciationRunDto>(HttpMethod.Get, $"api/v1/fixed-assets/depreciation-runs/{id}", accessToken, null, ct);
 
-    public Task<FixedAssetDepreciationRunDto?> RunDepreciationAsync(string accessToken, RunDepreciationRequest request, CancellationToken ct = default)
-        => SendAsync<FixedAssetDepreciationRunDto>(HttpMethod.Post, "api/v1/fixed-assets/depreciation-runs/run", accessToken, request, ct);
+    public Task<ApiCallResult<FixedAssetDepreciationRunDto>> RunDepreciationAsync(string accessToken, RunDepreciationRequest request, CancellationToken ct = default)
+        => SendWithResultAsync<FixedAssetDepreciationRunDto>(HttpMethod.Post, "api/v1/fixed-assets/depreciation-runs/run", accessToken, request, ct);
 
     public async Task<bool> ApproveDepreciationRunAsync(string accessToken, int id, CancellationToken ct = default)
     {
@@ -402,50 +399,5 @@ public sealed class FixedAssetsApiClient(HttpClient httpClient, ILogger<FixedAss
             parameters.Add($"{key}={Convert.ToInt32(value.Value)}");
         }
     }
-
-    private async Task<T?> SendAsync<T>(HttpMethod method, string uri, string accessToken, object? body, CancellationToken ct)
-    {
-        var response = await SendRawAsync(method, uri, accessToken, body, ct);
-        if (response is null || !response.IsSuccessStatusCode)
-        {
-            return default;
-        }
-
-        try
-        {
-            return await response.Content.ReadFromJsonAsync<T>(cancellationToken: ct);
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Failed to deserialize Fixed Assets API response from {Uri}", uri);
-            return default;
-        }
-    }
-
-    private async Task<HttpResponseMessage?> SendRawAsync(HttpMethod method, string uri, string accessToken, object? body, CancellationToken ct)
-    {
-        try
-        {
-            using var request = new HttpRequestMessage(method, uri);
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-
-            if (body is not null)
-            {
-                request.Content = JsonContent.Create(body);
-            }
-
-            var response = await httpClient.SendAsync(request, ct);
-            if (response.StatusCode == HttpStatusCode.Unauthorized)
-            {
-                throw new ApiUnauthorizedException(uri);
-            }
-
-            return response;
-        }
-        catch (HttpRequestException ex)
-        {
-            logger.LogWarning(ex, "Failed to call Fixed Assets API endpoint {Uri}", uri);
-            return null;
-        }
-    }
 }
+

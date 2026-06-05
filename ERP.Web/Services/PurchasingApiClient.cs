@@ -1,12 +1,9 @@
-﻿using System.Net;
-using System.Net.Http.Headers;
-using System.Net.Http.Json;
 using ERP.Application.DTOs.Common;
 using ERP.Application.DTOs.Purchasing;
 
 namespace ERP.Web.Services;
 
-public sealed class PurchasingApiClient(HttpClient httpClient, ILogger<PurchasingApiClient> logger) : IPurchasingApiClient
+public sealed class PurchasingApiClient(HttpClient httpClient, ILogger<PurchasingApiClient> logger) : ApiClientBase(httpClient, logger, "Purchasing"), IPurchasingApiClient
 {
     public Task<PurchasingDashboardDto?> GetDashboardAsync(string accessToken, CancellationToken ct = default)
         => SendAsync<PurchasingDashboardDto>(HttpMethod.Get, "api/v1/purchasing/dashboard", accessToken, null, ct);
@@ -247,55 +244,10 @@ public sealed class PurchasingApiClient(HttpClient httpClient, ILogger<Purchasin
         parameters.Add($"sortDirection={Uri.EscapeDataString(request.SortDirection ?? string.Empty)}");
     }
 
-    private async Task<T?> SendAsync<T>(HttpMethod method, string uri, string accessToken, object? body, CancellationToken ct)
-    {
-        var response = await SendRawAsync(method, uri, accessToken, body, ct);
-        if (response is null || !response.IsSuccessStatusCode)
-        {
-            return default;
-        }
-
-        try
-        {
-            return await response.Content.ReadFromJsonAsync<T>(cancellationToken: ct);
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Failed to deserialize Purchasing API response from {Uri}", uri);
-            return default;
-        }
-    }
-
-    private async Task<HttpResponseMessage?> SendRawAsync(HttpMethod method, string uri, string accessToken, object? body, CancellationToken ct)
-    {
-        try
-        {
-            using var request = new HttpRequestMessage(method, uri);
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-
-            if (body is not null)
-            {
-                request.Content = JsonContent.Create(body);
-            }
-
-            var response = await httpClient.SendAsync(request, ct);
-            if (response.StatusCode == HttpStatusCode.Unauthorized)
-            {
-                throw new ApiUnauthorizedException(uri);
-            }
-
-            return response;
-        }
-        catch (HttpRequestException ex)
-        {
-            logger.LogWarning(ex, "Failed to call Purchasing API endpoint {Uri}", uri);
-            return null;
-        }
-    }
-
     private sealed class SetApprovedVendorRequest
     {
         public bool IsApproved { get; set; }
         public DateOnly? ApprovedDate { get; set; }
     }
 }
+

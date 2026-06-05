@@ -1,12 +1,9 @@
-using System.Net;
-using System.Net.Http.Headers;
-using System.Net.Http.Json;
 using ERP.Application.DTOs.Common;
 using ERP.Application.DTOs.Inventory;
 
 namespace ERP.Web.Services;
 
-public sealed class InventoryApiClient(HttpClient httpClient, ILogger<InventoryApiClient> logger) : IInventoryApiClient
+public sealed class InventoryApiClient(HttpClient httpClient, ILogger<InventoryApiClient> logger) : ApiClientBase(httpClient, logger, "Inventory"), IInventoryApiClient
 {
     public Task<PagedResult<ItemCategoryDto>?> GetCategoriesAsync(string accessToken, ItemCategoryPagedRequest request, CancellationToken ct = default)
     {
@@ -841,54 +838,5 @@ public sealed class InventoryApiClient(HttpClient httpClient, ILogger<InventoryA
         parameters.Add($"sortBy={Uri.EscapeDataString(request.SortBy ?? string.Empty)}");
         parameters.Add($"sortDirection={Uri.EscapeDataString(request.SortDirection ?? string.Empty)}");
     }
-
-    private async Task<T?> SendAsync<T>(HttpMethod method, string uri, string accessToken, object? body, CancellationToken ct)
-    {
-        var response = await SendRawAsync(method, uri, accessToken, body, ct);
-        if (response is null || !response.IsSuccessStatusCode)
-        {
-            return default;
-        }
-
-        try
-        {
-            return await response.Content.ReadFromJsonAsync<T>(cancellationToken: ct);
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Failed to deserialize Inventory API response from {Uri}", uri);
-            return default;
-        }
-    }
-
-    private async Task<HttpResponseMessage?> SendRawAsync(HttpMethod method, string uri, string accessToken, object? body, CancellationToken ct)
-    {
-        try
-        {
-            using var request = new HttpRequestMessage(method, uri);
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-
-            if (body is not null)
-            {
-                request.Content = JsonContent.Create(body);
-            }
-
-            var response = await httpClient.SendAsync(request, ct);
-            if (response.StatusCode == HttpStatusCode.Unauthorized)
-            {
-                throw new ApiUnauthorizedException(uri);
-            }
-
-            return response;
-        }
-        catch (HttpRequestException ex)
-        {
-            logger.LogWarning(ex, "Failed to call Inventory API endpoint {Uri}", uri);
-            return null;
-        }
-    }
 }
-
-
-
 

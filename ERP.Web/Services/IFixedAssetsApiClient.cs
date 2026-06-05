@@ -36,7 +36,7 @@ public interface IFixedAssetsApiClient
 
     Task<PagedResult<FixedAssetDepreciationRunDto>?> GetDepreciationRunsAsync(string accessToken, FixedAssetDepreciationRunPagedRequest request, CancellationToken ct = default);
     Task<FixedAssetDepreciationRunDto?> GetDepreciationRunByIdAsync(string accessToken, int id, CancellationToken ct = default);
-    Task<FixedAssetDepreciationRunDto?> RunDepreciationAsync(string accessToken, RunDepreciationRequest request, CancellationToken ct = default);
+    Task<ApiCallResult<FixedAssetDepreciationRunDto>> RunDepreciationAsync(string accessToken, RunDepreciationRequest request, CancellationToken ct = default);
     Task<bool> ApproveDepreciationRunAsync(string accessToken, int id, CancellationToken ct = default);
 
     Task<PagedResult<FixedAssetTransferDto>?> GetTransfersAsync(string accessToken, FixedAssetTransferPagedRequest request, CancellationToken ct = default);
@@ -73,3 +73,4 @@ public interface IFixedAssetsApiClient
     Task<bool> ApproveRevaluationAsync(string accessToken, int id, CancellationToken ct = default);
     Task<bool> PostRevaluationAsync(string accessToken, int id, CancellationToken ct = default);
 }
+

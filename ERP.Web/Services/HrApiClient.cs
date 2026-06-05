@@ -1,12 +1,9 @@
-using System.Net;
-using System.Net.Http.Headers;
-using System.Net.Http.Json;
 using ERP.Application.DTOs.Common;
 using ERP.Application.DTOs.HR;
 
 namespace ERP.Web.Services;
 
-public sealed class HrApiClient(HttpClient httpClient, ILogger<HrApiClient> logger) : IHrApiClient
+public sealed class HrApiClient(HttpClient httpClient, ILogger<HrApiClient> logger) : ApiClientBase(httpClient, logger, "HR"), IHrApiClient
 {
     public Task<PagedResult<EmployeeListDto>?> GetEmployeesAsync(string accessToken, EmployeePagedRequest request, CancellationToken ct = default)
     {
@@ -560,52 +557,5 @@ public sealed class HrApiClient(HttpClient httpClient, ILogger<HrApiClient> logg
         parameters.Add($"sortBy={Uri.EscapeDataString(request.SortBy ?? string.Empty)}");
         parameters.Add($"sortDirection={Uri.EscapeDataString(request.SortDirection ?? string.Empty)}");
     }
-
-    private async Task<T?> SendAsync<T>(HttpMethod method, string uri, string accessToken, object? body, CancellationToken ct)
-    {
-        var response = await SendRawAsync(method, uri, accessToken, body, ct);
-        if (response is null || !response.IsSuccessStatusCode)
-        {
-            return default;
-        }
-
-        try
-        {
-            return await response.Content.ReadFromJsonAsync<T>(cancellationToken: ct);
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Failed to deserialize HR API response from {Uri}", uri);
-            return default;
-        }
-    }
-
-    private async Task<HttpResponseMessage?> SendRawAsync(HttpMethod method, string uri, string accessToken, object? body, CancellationToken ct)
-    {
-        try
-        {
-            using var request = new HttpRequestMessage(method, uri);
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-
-            if (body is not null)
-            {
-                request.Content = JsonContent.Create(body);
-            }
-
-            var response = await httpClient.SendAsync(request, ct);
-            if (response.StatusCode == HttpStatusCode.Unauthorized)
-            {
-                throw new ApiUnauthorizedException(uri);
-            }
-
-            return response;
-        }
-        catch (HttpRequestException ex)
-        {
-            logger.LogWarning(ex, "Failed to call HR API endpoint {Uri}", uri);
-            return null;
-        }
-    }
 }
-
 

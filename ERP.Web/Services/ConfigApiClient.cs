@@ -1,12 +1,9 @@
-using System.Net;
-using System.Net.Http.Headers;
-using System.Net.Http.Json;
 using ERP.Application.DTOs.Common;
 using ERP.Application.DTOs.Config;
 
 namespace ERP.Web.Services;
 
-public sealed class ConfigApiClient(HttpClient httpClient, ILogger<ConfigApiClient> logger) : IConfigApiClient
+public sealed class ConfigApiClient(HttpClient httpClient, ILogger<ConfigApiClient> logger) : ApiClientBase(httpClient, logger, "Config"), IConfigApiClient
 {
     public async Task<IReadOnlyList<NavigationModuleDto>> GetNavigationAsync(string accessToken, CancellationToken ct = default)
     {
@@ -173,52 +170,6 @@ public sealed class ConfigApiClient(HttpClient httpClient, ILogger<ConfigApiClie
     public async Task<IReadOnlyList<LanguageDto>> GetLanguagesAsync(string accessToken, CancellationToken ct = default)
     {
         return await SendAsync<IReadOnlyList<LanguageDto>>(HttpMethod.Get, "api/v1/config/languages", accessToken, null, ct) ?? [];
-    }
-
-    private async Task<T?> SendAsync<T>(HttpMethod method, string uri, string accessToken, object? body, CancellationToken ct)
-    {
-        var response = await SendRawAsync(method, uri, accessToken, body, ct);
-        if (response is null || !response.IsSuccessStatusCode)
-        {
-            return default;
-        }
-
-        try
-        {
-            return await response.Content.ReadFromJsonAsync<T>(cancellationToken: ct);
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Failed to deserialize response from {Uri}", uri);
-            return default;
-        }
-    }
-
-    private async Task<HttpResponseMessage?> SendRawAsync(HttpMethod method, string uri, string accessToken, object? body, CancellationToken ct)
-    {
-        try
-        {
-            using var request = new HttpRequestMessage(method, uri);
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-
-            if (body is not null)
-            {
-                request.Content = JsonContent.Create(body);
-            }
-
-            var response = await httpClient.SendAsync(request, ct);
-            if (response.StatusCode == HttpStatusCode.Unauthorized)
-            {
-                throw new ApiUnauthorizedException(uri);
-            }
-
-            return response;
-        }
-        catch (HttpRequestException ex)
-        {
-            logger.LogWarning(ex, "Failed to call config API endpoint {Uri}", uri);
-            return null;
-        }
     }
 }
 
