@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using ERP.Application.DTOs.Finance;
 using ERP.Application.DTOs.Inventory;
 using ERP.Web.Services;
@@ -58,6 +58,13 @@ public sealed partial class InventoryController(
         return (from, to);
     }
 
+    private static string ResolveApiErrorMessage<T>(ApiCallResult<T> result, string fallbackMessage)
+        => string.IsNullOrWhiteSpace(result.ErrorMessage)
+            ? fallbackMessage
+            : result.ErrorMessage;
+
+    private void AddApiModelError<T>(ApiCallResult<T> result, string fallbackMessage)
+        => ModelState.AddModelError(string.Empty, ResolveApiErrorMessage(result, fallbackMessage));
     private async Task PopulateItemFormOptionsAsync(string accessToken, InventoryItemEditViewModel model, CancellationToken ct)
     {
         var categoryTask = inventoryApiClient.GetCategoryOptionsAsync(accessToken, ct);
@@ -203,3 +210,4 @@ public sealed partial class InventoryController(
         };
     }
 }
+

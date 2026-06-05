@@ -108,9 +108,9 @@ public sealed class HrLeaveTypesController(IHrApiClient hrApiClient) : Controlle
             IsActive = model.IsActive
         }, ct);
 
-        if (created is null)
+        if (!created.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to create leave type.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(created.ErrorMessage) ? "Failed to create leave type." : created.ErrorMessage);
             ViewData["Title"] = "Create Leave Type";
             ViewData["Breadcrumb"] = "HR / Leave / Types / Create";
             return View(model);
@@ -176,9 +176,9 @@ public sealed class HrLeaveTypesController(IHrApiClient hrApiClient) : Controlle
             IsActive = model.IsActive
         }, ct);
 
-        if (updated is null)
+        if (!updated.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to update leave type.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(updated.ErrorMessage) ? "Failed to update leave type." : updated.ErrorMessage);
             ViewData["Title"] = "Edit Leave Type";
             ViewData["Breadcrumb"] = "HR / Leave / Types / Edit";
             return View(model);
@@ -199,7 +199,7 @@ public sealed class HrLeaveTypesController(IHrApiClient hrApiClient) : Controlle
         }
 
         var ok = await hrApiClient.DeleteLeaveTypeAsync(accessToken, id, ct);
-        TempData[ok ? "SuccessMessage" : "ErrorMessage"] = ok ? "Leave type deleted." : "Failed to delete leave type.";
+        TempData[ok.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = ok.IsSuccess ? "Leave type deleted." : (string.IsNullOrWhiteSpace(ok.ErrorMessage) ? "Failed to delete leave type." : ok.ErrorMessage);
 
         return RedirectToAction(nameof(Index));
     }

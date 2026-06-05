@@ -138,10 +138,10 @@ public sealed partial class InventoryController
             return View("Items/Create", model);
         }
 
-        var created = await inventoryApiClient.CreateItemAsync(accessToken, MapItemDto(model), ct);
-        if (created is null)
+        var createResult = await inventoryApiClient.CreateItemAsync(accessToken, MapItemDto(model), ct);
+        if (!createResult.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to create item.");
+            AddApiModelError(createResult, "Failed to create item.");
             ViewData["Title"] = "Create Item";
             ViewData["Breadcrumb"] = "Inventory / Items / Create";
             return View("Items/Create", model);
@@ -221,10 +221,10 @@ public sealed partial class InventoryController
             return View("Items/Edit", model);
         }
 
-        var updated = await inventoryApiClient.UpdateItemAsync(accessToken, id, MapItemDto(model), ct);
-        if (updated is null)
+        var updateResult = await inventoryApiClient.UpdateItemAsync(accessToken, id, MapItemDto(model), ct);
+        if (!updateResult.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to update item.");
+            AddApiModelError(updateResult, "Failed to update item.");
             ViewData["Title"] = "Edit Item";
             ViewData["Breadcrumb"] = "Inventory / Items / Edit";
             return View("Items/Edit", model);
@@ -244,8 +244,11 @@ public sealed partial class InventoryController
             return unauthorized;
         }
 
-        var deleted = await inventoryApiClient.DeleteItemAsync(accessToken, id, ct);
-        TempData[deleted ? "SuccessMessage" : "ErrorMessage"] = deleted ? "Item deleted." : "Failed to delete item.";
+        var deleteResult = await inventoryApiClient.DeleteItemAsync(accessToken, id, ct);
+        TempData[deleteResult.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = deleteResult.IsSuccess
+            ? "Item deleted."
+            : ResolveApiErrorMessage(deleteResult, "Failed to delete item.");
         return RedirectToAction(nameof(Items));
     }
 }
+

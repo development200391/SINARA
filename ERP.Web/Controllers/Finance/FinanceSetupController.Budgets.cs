@@ -147,9 +147,9 @@ public sealed partial class FinanceSetupController
         }
 
         var created = await financeApiClient.CreateBudgetAsync(accessToken, MapBudgetRequest(model), ct);
-        if (created is null)
+        if (!created.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to create budget.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(created.ErrorMessage) ? "Failed to create budget." : created.ErrorMessage);
             ViewData["Title"] = "Create Budget";
             ViewData["Breadcrumb"] = "Finance / Budget & Cost Control / Budgets / Create";
             return View("Budgets/Create", model);
@@ -231,9 +231,9 @@ public sealed partial class FinanceSetupController
         }
 
         var updated = await financeApiClient.UpdateBudgetAsync(accessToken, id, MapBudgetRequest(model), ct);
-        if (updated is null)
+        if (!updated.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to update budget.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(updated.ErrorMessage) ? "Failed to update budget." : updated.ErrorMessage);
             ViewData["Title"] = "Edit Budget";
             ViewData["Breadcrumb"] = "Finance / Budget & Cost Control / Budgets / Edit";
             return View("Budgets/Edit", model);
@@ -254,7 +254,7 @@ public sealed partial class FinanceSetupController
         }
 
         var ok = await financeApiClient.DeleteBudgetAsync(accessToken, id, ct);
-        TempData[ok ? "SuccessMessage" : "ErrorMessage"] = ok ? "Budget deleted." : "Failed to delete budget.";
+        TempData[ok.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = ok.IsSuccess ? "Budget deleted." : (string.IsNullOrWhiteSpace(ok.ErrorMessage) ? "Failed to delete budget." : ok.ErrorMessage);
         return RedirectToAction(nameof(Budgets));
     }
 

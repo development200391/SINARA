@@ -69,9 +69,9 @@ public sealed class ConfigRolesController(IConfigApiClient configApiClient) : Co
         model.Matrix.RoleId = id;
         var updated = await configApiClient.UpdateRolePermissionsAsync(accessToken, id, model.Matrix, ct);
 
-        if (!updated)
+        if (!updated.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to update permissions.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(updated.ErrorMessage) ? "Failed to update permissions." : updated.ErrorMessage);
         }
         else
         {

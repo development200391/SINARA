@@ -76,16 +76,22 @@ public sealed class HrPayrollController(IHrApiClient hrApiClient) : Controller
             Year = model.Year
         }, ct);
 
-        if (run is null)
+        if (!run.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to run payroll.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(run.ErrorMessage) ? "Failed to run payroll." : run.ErrorMessage);
             ViewData["Title"] = "Run Payroll";
             ViewData["Breadcrumb"] = "HR / Payroll / Run";
             return View(model);
         }
 
+        if (run.Data is null)
+        {
+            TempData["ErrorMessage"] = "Payroll completed, but run detail was not returned by API.";
+            return RedirectToAction(nameof(Index));
+        }
+
         TempData["SuccessMessage"] = "Payroll completed.";
-        return RedirectToAction(nameof(Details), new { runId = run.Id });
+        return RedirectToAction(nameof(Details), new { runId = run.Data.Id });
     }
 
     [HttpGet("{runId:int}/details")]

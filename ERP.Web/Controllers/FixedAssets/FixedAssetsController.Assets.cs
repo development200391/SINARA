@@ -132,9 +132,9 @@ public sealed partial class FixedAssetsController
         }
 
         var created = await fixedAssetsApiClient.CreateAssetAsync(accessToken, MapAssetDto(model), ct);
-        if (created is null)
+        if (!created.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to create asset.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(created.ErrorMessage) ? "Failed to create asset." : created.ErrorMessage);
             ViewData["Title"] = "Create Asset";
             ViewData["Breadcrumb"] = "Fixed Assets / Assets / Create";
             return View("Assets/Create", model);
@@ -212,9 +212,9 @@ public sealed partial class FixedAssetsController
         }
 
         var updated = await fixedAssetsApiClient.UpdateAssetAsync(accessToken, id, MapAssetDto(model), ct);
-        if (updated is null)
+        if (!updated.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to update asset.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(updated.ErrorMessage) ? "Failed to update asset." : updated.ErrorMessage);
             ViewData["Title"] = "Edit Asset";
             ViewData["Breadcrumb"] = "Fixed Assets / Assets / Edit";
             return View("Assets/Edit", model);
@@ -235,9 +235,7 @@ public sealed partial class FixedAssetsController
         }
 
         var deleted = await fixedAssetsApiClient.DeleteAssetAsync(accessToken, id, ct);
-        TempData[deleted ? "SuccessMessage" : "ErrorMessage"] = deleted
-            ? "Asset deleted."
-            : "Failed to delete asset.";
+        TempData[deleted.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = deleted.IsSuccess ? "Asset deleted." : (string.IsNullOrWhiteSpace(deleted.ErrorMessage) ? "Failed to delete asset." : deleted.ErrorMessage);
 
         return RedirectToAction(nameof(Assets));
     }
@@ -375,9 +373,7 @@ public sealed partial class FixedAssetsController
         }
 
         var ok = await fixedAssetsApiClient.ApproveDepreciationRunAsync(accessToken, id, ct);
-        TempData[ok ? "SuccessMessage" : "ErrorMessage"] = ok
-            ? "Depreciation run approved."
-            : "Failed to approve depreciation run.";
+        TempData[ok.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = ok.IsSuccess ? "Depreciation run approved." : (string.IsNullOrWhiteSpace(ok.ErrorMessage) ? "Failed to approve depreciation run." : ok.ErrorMessage);
 
         return RedirectToAction(nameof(DepreciationRuns));
     }

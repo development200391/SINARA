@@ -116,7 +116,7 @@ public sealed partial class InventoryController
             return View("Warehouses/CreateLocation", model);
         }
 
-        var created = await inventoryApiClient.CreateWarehouseLocationAsync(accessToken, warehouseId, new WarehouseLocationDto
+        var createResult = await inventoryApiClient.CreateWarehouseLocationAsync(accessToken, warehouseId, new WarehouseLocationDto
         {
             WarehouseId = warehouseId,
             Code = model.Code,
@@ -126,9 +126,9 @@ public sealed partial class InventoryController
             IsActive = model.IsActive
         }, ct);
 
-        if (created is null)
+        if (!createResult.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to create warehouse location.");
+            AddApiModelError(createResult, "Failed to create warehouse location.");
             ViewData["Title"] = "Create Warehouse Location";
             ViewData["Breadcrumb"] = "Inventory / Warehouse Locations / Create";
             return View("Warehouses/CreateLocation", model);
@@ -190,7 +190,7 @@ public sealed partial class InventoryController
             return View("Warehouses/EditLocation", model);
         }
 
-        var updated = await inventoryApiClient.UpdateWarehouseLocationAsync(accessToken, warehouseId, id, new WarehouseLocationDto
+        var updateResult = await inventoryApiClient.UpdateWarehouseLocationAsync(accessToken, warehouseId, id, new WarehouseLocationDto
         {
             Id = id,
             WarehouseId = warehouseId,
@@ -201,9 +201,9 @@ public sealed partial class InventoryController
             IsActive = model.IsActive
         }, ct);
 
-        if (updated is null)
+        if (!updateResult.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to update warehouse location.");
+            AddApiModelError(updateResult, "Failed to update warehouse location.");
             ViewData["Title"] = "Edit Warehouse Location";
             ViewData["Breadcrumb"] = "Inventory / Warehouse Locations / Edit";
             return View("Warehouses/EditLocation", model);
@@ -223,8 +223,10 @@ public sealed partial class InventoryController
             return unauthorized;
         }
 
-        var deleted = await inventoryApiClient.DeleteWarehouseLocationAsync(accessToken, warehouseId, id, ct);
-        TempData[deleted ? "SuccessMessage" : "ErrorMessage"] = deleted ? "Warehouse location deleted." : "Failed to delete warehouse location.";
+        var deleteResult = await inventoryApiClient.DeleteWarehouseLocationAsync(accessToken, warehouseId, id, ct);
+        TempData[deleteResult.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = deleteResult.IsSuccess
+            ? "Warehouse location deleted."
+            : ResolveApiErrorMessage(deleteResult, "Failed to delete warehouse location.");
         return RedirectToAction(nameof(WarehouseLocations), new { warehouseId });
     }
 
@@ -300,4 +302,5 @@ public sealed partial class InventoryController
         });
     }
 }
+
 

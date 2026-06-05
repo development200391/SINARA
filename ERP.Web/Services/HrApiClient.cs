@@ -66,35 +66,31 @@ public sealed class HrApiClient(HttpClient httpClient, ILogger<HrApiClient> logg
         }
 
         var query = $"api/v1/hr/employees?{string.Join("&", parameters)}";
-        return SendAsync<PagedResult<EmployeeListDto>>(HttpMethod.Get, query, accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<EmployeeListDto>>(HttpMethod.Get, query, accessToken, null, ct).ToDataAsync();
     }
 
     public async Task<IReadOnlyList<LookupDto>> GetEmployeeOptionsAsync(string accessToken, CancellationToken ct = default)
     {
-        return await SendAsync<IReadOnlyList<LookupDto>>(HttpMethod.Get, "api/v1/hr/employees/options", accessToken, null, ct)
-            ?? [];
+        return await SendWithResultAsync<IReadOnlyList<LookupDto>>(HttpMethod.Get, "api/v1/hr/employees/options", accessToken, null, ct).ToDataAsync() ?? [];
     }
 
     public Task<EmployeeDetailDto?> GetEmployeeByIdAsync(string accessToken, int id, CancellationToken ct = default)
     {
-        return SendAsync<EmployeeDetailDto>(HttpMethod.Get, $"api/v1/hr/employees/{id}", accessToken, null, ct);
+        return SendWithResultAsync<EmployeeDetailDto>(HttpMethod.Get, $"api/v1/hr/employees/{id}", accessToken, null, ct).ToDataAsync();
     }
 
-    public Task<EmployeeDetailDto?> CreateEmployeeAsync(string accessToken, CreateEmployeeRequest request, CancellationToken ct = default)
+    public Task<ApiCallResult<EmployeeDetailDto>> CreateEmployeeAsync(string accessToken, CreateEmployeeRequest request, CancellationToken ct = default)
     {
-        return SendAsync<EmployeeDetailDto>(HttpMethod.Post, "api/v1/hr/employees", accessToken, request, ct);
+        return SendWithResultAsync<EmployeeDetailDto>(HttpMethod.Post, "api/v1/hr/employees", accessToken, request, ct);
     }
 
-    public Task<EmployeeDetailDto?> UpdateEmployeeAsync(string accessToken, int id, UpdateEmployeeRequest request, CancellationToken ct = default)
+    public Task<ApiCallResult<EmployeeDetailDto>> UpdateEmployeeAsync(string accessToken, int id, UpdateEmployeeRequest request, CancellationToken ct = default)
     {
-        return SendAsync<EmployeeDetailDto>(HttpMethod.Put, $"api/v1/hr/employees/{id}", accessToken, request, ct);
+        return SendWithResultAsync<EmployeeDetailDto>(HttpMethod.Put, $"api/v1/hr/employees/{id}", accessToken, request, ct);
     }
 
-    public async Task<bool> DeleteEmployeeAsync(string accessToken, int id, CancellationToken ct = default)
-    {
-        var response = await SendRawAsync(HttpMethod.Delete, $"api/v1/hr/employees/{id}", accessToken, null, ct);
-        return response?.IsSuccessStatusCode == true;
-    }
+    public Task<ApiCallResult<object?>> DeleteEmployeeAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendWithResultAsync<object?>(HttpMethod.Delete, $"api/v1/hr/employees/{id}", accessToken, null, ct);
 
     public Task<PagedResult<DepartmentDto>?> GetDepartmentsAsync(string accessToken, DepartmentPagedRequest request, CancellationToken ct = default)
     {
@@ -127,35 +123,31 @@ public sealed class HrApiClient(HttpClient httpClient, ILogger<HrApiClient> logg
         }
 
         var query = $"api/v1/hr/departments?{string.Join("&", parameters)}";
-        return SendAsync<PagedResult<DepartmentDto>>(HttpMethod.Get, query, accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<DepartmentDto>>(HttpMethod.Get, query, accessToken, null, ct).ToDataAsync();
     }
 
     public async Task<IReadOnlyList<DepartmentDto>> GetDepartmentOptionsAsync(string accessToken, CancellationToken ct = default)
     {
-        return await SendAsync<IReadOnlyList<DepartmentDto>>(HttpMethod.Get, "api/v1/hr/departments/all", accessToken, null, ct)
-            ?? [];
+        return await SendWithResultAsync<IReadOnlyList<DepartmentDto>>(HttpMethod.Get, "api/v1/hr/departments/all", accessToken, null, ct).ToDataAsync() ?? [];
     }
 
     public Task<DepartmentDto?> GetDepartmentByIdAsync(string accessToken, int id, CancellationToken ct = default)
     {
-        return SendAsync<DepartmentDto>(HttpMethod.Get, $"api/v1/hr/departments/{id}", accessToken, null, ct);
+        return SendWithResultAsync<DepartmentDto>(HttpMethod.Get, $"api/v1/hr/departments/{id}", accessToken, null, ct).ToDataAsync();
     }
 
-    public Task<DepartmentDto?> CreateDepartmentAsync(string accessToken, DepartmentDto request, CancellationToken ct = default)
+    public Task<ApiCallResult<DepartmentDto>> CreateDepartmentAsync(string accessToken, DepartmentDto request, CancellationToken ct = default)
     {
-        return SendAsync<DepartmentDto>(HttpMethod.Post, "api/v1/hr/departments", accessToken, request, ct);
+        return SendWithResultAsync<DepartmentDto>(HttpMethod.Post, "api/v1/hr/departments", accessToken, request, ct);
     }
 
-    public Task<DepartmentDto?> UpdateDepartmentAsync(string accessToken, int id, DepartmentDto request, CancellationToken ct = default)
+    public Task<ApiCallResult<DepartmentDto>> UpdateDepartmentAsync(string accessToken, int id, DepartmentDto request, CancellationToken ct = default)
     {
-        return SendAsync<DepartmentDto>(HttpMethod.Put, $"api/v1/hr/departments/{id}", accessToken, request, ct);
+        return SendWithResultAsync<DepartmentDto>(HttpMethod.Put, $"api/v1/hr/departments/{id}", accessToken, request, ct);
     }
 
-    public async Task<bool> DeleteDepartmentAsync(string accessToken, int id, CancellationToken ct = default)
-    {
-        var response = await SendRawAsync(HttpMethod.Delete, $"api/v1/hr/departments/{id}", accessToken, null, ct);
-        return response?.IsSuccessStatusCode == true;
-    }
+    public Task<ApiCallResult<object?>> DeleteDepartmentAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendWithResultAsync<object?>(HttpMethod.Delete, $"api/v1/hr/departments/{id}", accessToken, null, ct);
 
     public Task<PagedResult<PositionDto>?> GetPositionsAsync(string accessToken, PositionPagedRequest request, CancellationToken ct = default)
     {
@@ -193,13 +185,12 @@ public sealed class HrApiClient(HttpClient httpClient, ILogger<HrApiClient> logg
         }
 
         var query = $"api/v1/hr/positions?{string.Join("&", parameters)}";
-        return SendAsync<PagedResult<PositionDto>>(HttpMethod.Get, query, accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<PositionDto>>(HttpMethod.Get, query, accessToken, null, ct).ToDataAsync();
     }
 
     public async Task<IReadOnlyList<PositionDto>> GetPositionOptionsAsync(string accessToken, CancellationToken ct = default)
     {
-        return await SendAsync<IReadOnlyList<PositionDto>>(HttpMethod.Get, "api/v1/hr/positions/all", accessToken, null, ct)
-            ?? [];
+        return await SendWithResultAsync<IReadOnlyList<PositionDto>>(HttpMethod.Get, "api/v1/hr/positions/all", accessToken, null, ct).ToDataAsync() ?? [];
     }
 
     public async Task<IReadOnlyList<PositionDto>> GetPositionsByDepartmentAsync(string accessToken, int departmentId, CancellationToken ct = default)
@@ -209,30 +200,26 @@ public sealed class HrApiClient(HttpClient httpClient, ILogger<HrApiClient> logg
             return [];
         }
 
-        return await SendAsync<IReadOnlyList<PositionDto>>(HttpMethod.Get, $"api/v1/hr/positions/by-department/{departmentId}", accessToken, null, ct)
-            ?? [];
+        return await SendWithResultAsync<IReadOnlyList<PositionDto>>(HttpMethod.Get, $"api/v1/hr/positions/by-department/{departmentId}", accessToken, null, ct).ToDataAsync() ?? [];
     }
 
     public Task<PositionDto?> GetPositionByIdAsync(string accessToken, int id, CancellationToken ct = default)
     {
-        return SendAsync<PositionDto>(HttpMethod.Get, $"api/v1/hr/positions/{id}", accessToken, null, ct);
+        return SendWithResultAsync<PositionDto>(HttpMethod.Get, $"api/v1/hr/positions/{id}", accessToken, null, ct).ToDataAsync();
     }
 
-    public Task<PositionDto?> CreatePositionAsync(string accessToken, PositionDto request, CancellationToken ct = default)
+    public Task<ApiCallResult<PositionDto>> CreatePositionAsync(string accessToken, PositionDto request, CancellationToken ct = default)
     {
-        return SendAsync<PositionDto>(HttpMethod.Post, "api/v1/hr/positions", accessToken, request, ct);
+        return SendWithResultAsync<PositionDto>(HttpMethod.Post, "api/v1/hr/positions", accessToken, request, ct);
     }
 
-    public Task<PositionDto?> UpdatePositionAsync(string accessToken, int id, PositionDto request, CancellationToken ct = default)
+    public Task<ApiCallResult<PositionDto>> UpdatePositionAsync(string accessToken, int id, PositionDto request, CancellationToken ct = default)
     {
-        return SendAsync<PositionDto>(HttpMethod.Put, $"api/v1/hr/positions/{id}", accessToken, request, ct);
+        return SendWithResultAsync<PositionDto>(HttpMethod.Put, $"api/v1/hr/positions/{id}", accessToken, request, ct);
     }
 
-    public async Task<bool> DeletePositionAsync(string accessToken, int id, CancellationToken ct = default)
-    {
-        var response = await SendRawAsync(HttpMethod.Delete, $"api/v1/hr/positions/{id}", accessToken, null, ct);
-        return response?.IsSuccessStatusCode == true;
-    }
+    public Task<ApiCallResult<object?>> DeletePositionAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendWithResultAsync<object?>(HttpMethod.Delete, $"api/v1/hr/positions/{id}", accessToken, null, ct);
 
     public Task<PagedResult<AttendanceReportDto>?> GetAttendancesAsync(string accessToken, AttendanceReportRequest request, CancellationToken ct = default)
     {
@@ -300,12 +287,12 @@ public sealed class HrApiClient(HttpClient httpClient, ILogger<HrApiClient> logg
         }
 
         var query = $"api/v1/hr/attendance?{string.Join("&", parameters)}";
-        return SendAsync<PagedResult<AttendanceReportDto>>(HttpMethod.Get, query, accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<AttendanceReportDto>>(HttpMethod.Get, query, accessToken, null, ct).ToDataAsync();
     }
 
     public Task<AttendanceDto?> GetAttendanceByIdAsync(string accessToken, int id, CancellationToken ct = default)
     {
-        return SendAsync<AttendanceDto>(HttpMethod.Get, $"api/v1/hr/attendance/{id}", accessToken, null, ct);
+        return SendWithResultAsync<AttendanceDto>(HttpMethod.Get, $"api/v1/hr/attendance/{id}", accessToken, null, ct).ToDataAsync();
     }
 
     public async Task<IReadOnlyList<AttendanceDto>> GetAttendancesByEmployeeAsync(string accessToken, int employeeId, CancellationToken ct = default)
@@ -315,34 +302,30 @@ public sealed class HrApiClient(HttpClient httpClient, ILogger<HrApiClient> logg
             return [];
         }
 
-        return await SendAsync<IReadOnlyList<AttendanceDto>>(HttpMethod.Get, $"api/v1/hr/attendance/by-employee/{employeeId}", accessToken, null, ct)
-            ?? [];
+        return await SendWithResultAsync<IReadOnlyList<AttendanceDto>>(HttpMethod.Get, $"api/v1/hr/attendance/by-employee/{employeeId}", accessToken, null, ct).ToDataAsync() ?? [];
     }
 
-    public Task<AttendanceDto?> CreateAttendanceAsync(string accessToken, AttendanceRecordRequest request, CancellationToken ct = default)
+    public Task<ApiCallResult<AttendanceDto>> CreateAttendanceAsync(string accessToken, AttendanceRecordRequest request, CancellationToken ct = default)
     {
-        return SendAsync<AttendanceDto>(HttpMethod.Post, "api/v1/hr/attendance", accessToken, request, ct);
+        return SendWithResultAsync<AttendanceDto>(HttpMethod.Post, "api/v1/hr/attendance", accessToken, request, ct);
     }
 
-    public Task<AttendanceDto?> UpdateAttendanceAsync(string accessToken, int id, AttendanceRecordRequest request, CancellationToken ct = default)
+    public Task<ApiCallResult<AttendanceDto>> UpdateAttendanceAsync(string accessToken, int id, AttendanceRecordRequest request, CancellationToken ct = default)
     {
-        return SendAsync<AttendanceDto>(HttpMethod.Put, $"api/v1/hr/attendance/{id}", accessToken, request, ct);
+        return SendWithResultAsync<AttendanceDto>(HttpMethod.Put, $"api/v1/hr/attendance/{id}", accessToken, request, ct);
     }
 
-    public async Task<bool> DeleteAttendanceAsync(string accessToken, int id, CancellationToken ct = default)
-    {
-        var response = await SendRawAsync(HttpMethod.Delete, $"api/v1/hr/attendance/{id}", accessToken, null, ct);
-        return response?.IsSuccessStatusCode == true;
-    }
+    public Task<ApiCallResult<object?>> DeleteAttendanceAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendWithResultAsync<object?>(HttpMethod.Delete, $"api/v1/hr/attendance/{id}", accessToken, null, ct);
 
     public Task<AttendanceSettingDto?> GetAttendanceSettingAsync(string accessToken, CancellationToken ct = default)
     {
-        return SendAsync<AttendanceSettingDto>(HttpMethod.Get, "api/v1/hr/attendance/settings", accessToken, null, ct);
+        return SendWithResultAsync<AttendanceSettingDto>(HttpMethod.Get, "api/v1/hr/attendance/settings", accessToken, null, ct).ToDataAsync();
     }
 
-    public Task<AttendanceSettingDto?> UpdateAttendanceSettingAsync(string accessToken, AttendanceSettingDto request, CancellationToken ct = default)
+    public Task<ApiCallResult<AttendanceSettingDto>> UpdateAttendanceSettingAsync(string accessToken, AttendanceSettingDto request, CancellationToken ct = default)
     {
-        return SendAsync<AttendanceSettingDto>(HttpMethod.Put, "api/v1/hr/attendance/settings", accessToken, request, ct);
+        return SendWithResultAsync<AttendanceSettingDto>(HttpMethod.Put, "api/v1/hr/attendance/settings", accessToken, request, ct);
     }
 
     public Task<PagedResult<HolidayDto>?> GetHolidaysAsync(string accessToken, HolidayPagedRequest request, CancellationToken ct = default)
@@ -396,29 +379,26 @@ public sealed class HrApiClient(HttpClient httpClient, ILogger<HrApiClient> logg
         }
 
         var query = $"api/v1/hr/holidays?{string.Join("&", parameters)}";
-        return SendAsync<PagedResult<HolidayDto>>(HttpMethod.Get, query, accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<HolidayDto>>(HttpMethod.Get, query, accessToken, null, ct).ToDataAsync();
     }
 
     public Task<HolidayDto?> GetHolidayByIdAsync(string accessToken, int id, CancellationToken ct = default)
     {
-        return SendAsync<HolidayDto>(HttpMethod.Get, $"api/v1/hr/holidays/{id}", accessToken, null, ct);
+        return SendWithResultAsync<HolidayDto>(HttpMethod.Get, $"api/v1/hr/holidays/{id}", accessToken, null, ct).ToDataAsync();
     }
 
-    public Task<HolidayDto?> CreateHolidayAsync(string accessToken, HolidayDto request, CancellationToken ct = default)
+    public Task<ApiCallResult<HolidayDto>> CreateHolidayAsync(string accessToken, HolidayDto request, CancellationToken ct = default)
     {
-        return SendAsync<HolidayDto>(HttpMethod.Post, "api/v1/hr/holidays", accessToken, request, ct);
+        return SendWithResultAsync<HolidayDto>(HttpMethod.Post, "api/v1/hr/holidays", accessToken, request, ct);
     }
 
-    public Task<HolidayDto?> UpdateHolidayAsync(string accessToken, int id, HolidayDto request, CancellationToken ct = default)
+    public Task<ApiCallResult<HolidayDto>> UpdateHolidayAsync(string accessToken, int id, HolidayDto request, CancellationToken ct = default)
     {
-        return SendAsync<HolidayDto>(HttpMethod.Put, $"api/v1/hr/holidays/{id}", accessToken, request, ct);
+        return SendWithResultAsync<HolidayDto>(HttpMethod.Put, $"api/v1/hr/holidays/{id}", accessToken, request, ct);
     }
 
-    public async Task<bool> DeleteHolidayAsync(string accessToken, int id, CancellationToken ct = default)
-    {
-        var response = await SendRawAsync(HttpMethod.Delete, $"api/v1/hr/holidays/{id}", accessToken, null, ct);
-        return response?.IsSuccessStatusCode == true;
-    }
+    public Task<ApiCallResult<object?>> DeleteHolidayAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendWithResultAsync<object?>(HttpMethod.Delete, $"api/v1/hr/holidays/{id}", accessToken, null, ct);
 
     public Task<PagedResult<LeaveRequestDto>?> GetLeaveRequestsAsync(string accessToken, LeaveRequestPagedRequest request, CancellationToken ct = default)
     {
@@ -428,46 +408,37 @@ public sealed class HrApiClient(HttpClient httpClient, ILogger<HrApiClient> logg
             $"&status={(request.Status.HasValue ? ((int)request.Status.Value).ToString() : string.Empty)}" +
             $"&employeeId={(request.EmployeeId.HasValue ? request.EmployeeId.Value.ToString() : string.Empty)}";
 
-        return SendAsync<PagedResult<LeaveRequestDto>>(HttpMethod.Get, query, accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<LeaveRequestDto>>(HttpMethod.Get, query, accessToken, null, ct).ToDataAsync();
     }
 
     public Task<LeaveRequestDto?> GetLeaveRequestByIdAsync(string accessToken, int id, CancellationToken ct = default)
     {
-        return SendAsync<LeaveRequestDto>(HttpMethod.Get, $"api/v1/hr/leave-requests/{id}", accessToken, null, ct);
+        return SendWithResultAsync<LeaveRequestDto>(HttpMethod.Get, $"api/v1/hr/leave-requests/{id}", accessToken, null, ct).ToDataAsync();
     }
 
     public Task<LeaveRequestOptionsDto?> GetLeaveRequestOptionsAsync(string accessToken, CancellationToken ct = default)
     {
-        return SendAsync<LeaveRequestOptionsDto>(HttpMethod.Get, "api/v1/hr/leave-requests/options", accessToken, null, ct);
+        return SendWithResultAsync<LeaveRequestOptionsDto>(HttpMethod.Get, "api/v1/hr/leave-requests/options", accessToken, null, ct).ToDataAsync();
     }
 
-    public Task<LeaveRequestDto?> SubmitLeaveRequestAsync(string accessToken, SubmitLeaveRequest request, CancellationToken ct = default)
+    public Task<ApiCallResult<LeaveRequestDto>> SubmitLeaveRequestAsync(string accessToken, SubmitLeaveRequest request, CancellationToken ct = default)
     {
-        return SendAsync<LeaveRequestDto>(HttpMethod.Post, "api/v1/hr/leave-requests", accessToken, request, ct);
+        return SendWithResultAsync<LeaveRequestDto>(HttpMethod.Post, "api/v1/hr/leave-requests", accessToken, request, ct);
     }
 
-    public Task<LeaveRequestDto?> UpdateLeaveRequestAsync(string accessToken, int id, SubmitLeaveRequest request, CancellationToken ct = default)
+    public Task<ApiCallResult<LeaveRequestDto>> UpdateLeaveRequestAsync(string accessToken, int id, SubmitLeaveRequest request, CancellationToken ct = default)
     {
-        return SendAsync<LeaveRequestDto>(HttpMethod.Put, $"api/v1/hr/leave-requests/{id}", accessToken, request, ct);
+        return SendWithResultAsync<LeaveRequestDto>(HttpMethod.Put, $"api/v1/hr/leave-requests/{id}", accessToken, request, ct);
     }
 
-    public async Task<bool> DeleteLeaveRequestAsync(string accessToken, int id, CancellationToken ct = default)
-    {
-        var response = await SendRawAsync(HttpMethod.Delete, $"api/v1/hr/leave-requests/{id}", accessToken, null, ct);
-        return response?.IsSuccessStatusCode == true;
-    }
+    public Task<ApiCallResult<object?>> DeleteLeaveRequestAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendWithResultAsync<object?>(HttpMethod.Delete, $"api/v1/hr/leave-requests/{id}", accessToken, null, ct);
 
-    public async Task<bool> ApproveLeaveRequestAsync(string accessToken, int id, CancellationToken ct = default)
-    {
-        var response = await SendRawAsync(HttpMethod.Put, $"api/v1/hr/leave-requests/{id}/approve", accessToken, null, ct);
-        return response?.IsSuccessStatusCode == true;
-    }
+    public Task<ApiCallResult<object?>> ApproveLeaveRequestAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendWithResultAsync<object?>(HttpMethod.Put, $"api/v1/hr/leave-requests/{id}/approve", accessToken, null, ct);
 
-    public async Task<bool> RejectLeaveRequestAsync(string accessToken, int id, CancellationToken ct = default)
-    {
-        var response = await SendRawAsync(HttpMethod.Put, $"api/v1/hr/leave-requests/{id}/reject", accessToken, null, ct);
-        return response?.IsSuccessStatusCode == true;
-    }
+    public Task<ApiCallResult<object?>> RejectLeaveRequestAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendWithResultAsync<object?>(HttpMethod.Put, $"api/v1/hr/leave-requests/{id}/reject", accessToken, null, ct);
 
     public Task<PagedResult<LeaveBalanceDto>?> GetLeaveBalancesAsync(string accessToken, LeaveBalanceRequest request, CancellationToken ct = default)
     {
@@ -480,7 +451,7 @@ public sealed class HrApiClient(HttpClient httpClient, ILogger<HrApiClient> logg
             $"&employeeId={(request.EmployeeId.HasValue ? request.EmployeeId.Value.ToString() : string.Empty)}" +
             $"&leaveTypeId={(request.LeaveTypeId.HasValue ? request.LeaveTypeId.Value.ToString() : string.Empty)}";
 
-        return SendAsync<PagedResult<LeaveBalanceDto>>(HttpMethod.Get, query, accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<LeaveBalanceDto>>(HttpMethod.Get, query, accessToken, null, ct).ToDataAsync();
     }
 
     public Task<PagedResult<LeaveTypeDto>?> GetLeaveTypesAsync(string accessToken, LeaveTypePagedRequest request, CancellationToken ct = default)
@@ -497,29 +468,26 @@ public sealed class HrApiClient(HttpClient httpClient, ILogger<HrApiClient> logg
             $"&isCarryOver={(request.IsCarryOver.HasValue ? (request.IsCarryOver.Value ? "true" : "false") : string.Empty)}" +
             $"&isActive={(request.IsActive.HasValue ? (request.IsActive.Value ? "true" : "false") : string.Empty)}";
 
-        return SendAsync<PagedResult<LeaveTypeDto>>(HttpMethod.Get, query, accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<LeaveTypeDto>>(HttpMethod.Get, query, accessToken, null, ct).ToDataAsync();
     }
 
     public Task<LeaveTypeDto?> GetLeaveTypeByIdAsync(string accessToken, int id, CancellationToken ct = default)
     {
-        return SendAsync<LeaveTypeDto>(HttpMethod.Get, $"api/v1/hr/leave-types/{id}", accessToken, null, ct);
+        return SendWithResultAsync<LeaveTypeDto>(HttpMethod.Get, $"api/v1/hr/leave-types/{id}", accessToken, null, ct).ToDataAsync();
     }
 
-    public Task<LeaveTypeDto?> CreateLeaveTypeAsync(string accessToken, LeaveTypeDto request, CancellationToken ct = default)
+    public Task<ApiCallResult<LeaveTypeDto>> CreateLeaveTypeAsync(string accessToken, LeaveTypeDto request, CancellationToken ct = default)
     {
-        return SendAsync<LeaveTypeDto>(HttpMethod.Post, "api/v1/hr/leave-types", accessToken, request, ct);
+        return SendWithResultAsync<LeaveTypeDto>(HttpMethod.Post, "api/v1/hr/leave-types", accessToken, request, ct);
     }
 
-    public Task<LeaveTypeDto?> UpdateLeaveTypeAsync(string accessToken, int id, LeaveTypeDto request, CancellationToken ct = default)
+    public Task<ApiCallResult<LeaveTypeDto>> UpdateLeaveTypeAsync(string accessToken, int id, LeaveTypeDto request, CancellationToken ct = default)
     {
-        return SendAsync<LeaveTypeDto>(HttpMethod.Put, $"api/v1/hr/leave-types/{id}", accessToken, request, ct);
+        return SendWithResultAsync<LeaveTypeDto>(HttpMethod.Put, $"api/v1/hr/leave-types/{id}", accessToken, request, ct);
     }
 
-    public async Task<bool> DeleteLeaveTypeAsync(string accessToken, int id, CancellationToken ct = default)
-    {
-        var response = await SendRawAsync(HttpMethod.Delete, $"api/v1/hr/leave-types/{id}", accessToken, null, ct);
-        return response?.IsSuccessStatusCode == true;
-    }
+    public Task<ApiCallResult<object?>> DeleteLeaveTypeAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendWithResultAsync<object?>(HttpMethod.Delete, $"api/v1/hr/leave-types/{id}", accessToken, null, ct);
 
     public Task<PagedResult<PayrollRunDto>?> GetPayrollRunsAsync(string accessToken, PayrollRunPagedRequest request, CancellationToken ct = default)
     {
@@ -530,23 +498,22 @@ public sealed class HrApiClient(HttpClient httpClient, ILogger<HrApiClient> logg
             $"&year={(request.Year.HasValue ? request.Year.Value.ToString() : string.Empty)}" +
             $"&status={(request.Status.HasValue ? ((int)request.Status.Value).ToString() : string.Empty)}";
 
-        return SendAsync<PagedResult<PayrollRunDto>>(HttpMethod.Get, query, accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<PayrollRunDto>>(HttpMethod.Get, query, accessToken, null, ct).ToDataAsync();
     }
 
-    public Task<PayrollRunDto?> RunPayrollAsync(string accessToken, PayrollRunRequest request, CancellationToken ct = default)
+    public Task<ApiCallResult<PayrollRunDto>> RunPayrollAsync(string accessToken, PayrollRunRequest request, CancellationToken ct = default)
     {
-        return SendAsync<PayrollRunDto>(HttpMethod.Post, "api/v1/hr/payroll/run", accessToken, request, ct);
+        return SendWithResultAsync<PayrollRunDto>(HttpMethod.Post, "api/v1/hr/payroll/run", accessToken, request, ct);
     }
 
     public async Task<IReadOnlyList<PayrollRunDetailDto>> GetPayrollRunDetailsAsync(string accessToken, int runId, CancellationToken ct = default)
     {
-        return await SendAsync<IReadOnlyList<PayrollRunDetailDto>>(HttpMethod.Get, $"api/v1/hr/payroll/{runId}/details", accessToken, null, ct)
-            ?? [];
+        return await SendWithResultAsync<IReadOnlyList<PayrollRunDetailDto>>(HttpMethod.Get, $"api/v1/hr/payroll/{runId}/details", accessToken, null, ct).ToDataAsync() ?? [];
     }
 
     public Task<PayslipDto?> GetPayslipAsync(string accessToken, int runId, int employeeId, CancellationToken ct = default)
     {
-        return SendAsync<PayslipDto>(HttpMethod.Get, $"api/v1/hr/payroll/{runId}/payslip/{employeeId}", accessToken, null, ct);
+        return SendWithResultAsync<PayslipDto>(HttpMethod.Get, $"api/v1/hr/payroll/{runId}/payslip/{employeeId}", accessToken, null, ct).ToDataAsync();
     }
 
     private static void AddPagedParameters(List<string> parameters, PagedRequest request)
@@ -558,4 +525,5 @@ public sealed class HrApiClient(HttpClient httpClient, ILogger<HrApiClient> logg
         parameters.Add($"sortDirection={Uri.EscapeDataString(request.SortDirection ?? string.Empty)}");
     }
 }
+
 

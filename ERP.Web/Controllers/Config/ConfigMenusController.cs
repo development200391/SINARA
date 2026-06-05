@@ -57,8 +57,10 @@ public sealed class ConfigMenusController(IConfigApiClient configApiClient) : Co
         var ordered = orderedMenuIds.Where(x => x > 0).Distinct().ToList();
         if (ordered.Count > 0)
         {
-            await configApiClient.ReorderMenusAsync(accessToken, moduleId, ordered, ct);
-            TempData["SuccessMessage"] = "Menu order updated.";
+            var reordered = await configApiClient.ReorderMenusAsync(accessToken, moduleId, ordered, ct);
+            TempData[reordered.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = reordered.IsSuccess
+                ? "Menu order updated."
+                : (string.IsNullOrWhiteSpace(reordered.ErrorMessage) ? "Failed to update menu order." : reordered.ErrorMessage);
         }
 
         return RedirectToAction(nameof(Index), new { moduleId });
@@ -83,9 +85,7 @@ public sealed class ConfigMenusController(IConfigApiClient configApiClient) : Co
             IsActive = isActive
         }, ct);
 
-        TempData[updated is null ? "ErrorMessage" : "SuccessMessage"] = updated is null
-            ? "Failed to update module settings."
-            : "Module settings updated.";
+        TempData[updated.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = updated.IsSuccess ? "Module settings updated." : (string.IsNullOrWhiteSpace(updated.ErrorMessage) ? "Failed to update module settings." : updated.ErrorMessage);
 
         return RedirectToAction(nameof(Index), new { moduleId = id });
     }
@@ -138,9 +138,9 @@ public sealed class ConfigMenusController(IConfigApiClient configApiClient) : Co
         }
 
         var created = await configApiClient.CreateMenuAsync(accessToken, MapToDto(model), ct);
-        if (created is null)
+        if (!created.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to create menu.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(created.ErrorMessage) ? "Failed to create menu." : created.ErrorMessage);
             ViewData["Title"] = "Add Menu";
             ViewData["Breadcrumb"] = "Configuration / Menu Config / Add";
             return View(model);
@@ -205,9 +205,9 @@ public sealed class ConfigMenusController(IConfigApiClient configApiClient) : Co
         }
 
         var updated = await configApiClient.UpdateMenuAsync(accessToken, id, MapToDto(model), ct);
-        if (updated is null)
+        if (!updated.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to update menu.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(updated.ErrorMessage) ? "Failed to update menu." : updated.ErrorMessage);
             ViewData["Title"] = "Edit Menu";
             ViewData["Breadcrumb"] = "Configuration / Menu Config / Edit";
             return View(model);
@@ -228,9 +228,7 @@ public sealed class ConfigMenusController(IConfigApiClient configApiClient) : Co
         }
 
         var deleted = await configApiClient.DeleteMenuAsync(accessToken, id, ct);
-        TempData[deleted ? "SuccessMessage" : "ErrorMessage"] = deleted
-            ? "Menu deleted."
-            : "Menu gagal dihapus. Pastikan tidak punya child menu.";
+        TempData[deleted.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = deleted.IsSuccess ? "Menu deleted." : (string.IsNullOrWhiteSpace(deleted.ErrorMessage) ? "Menu gagal dihapus. Pastikan tidak punya child menu." : deleted.ErrorMessage);
 
         return RedirectToAction(nameof(Index), new { moduleId });
     }

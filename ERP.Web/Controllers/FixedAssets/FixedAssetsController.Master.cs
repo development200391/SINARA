@@ -121,9 +121,9 @@ public sealed partial class FixedAssetsController
         }
 
         var created = await fixedAssetsApiClient.CreateAssetCategoryAsync(accessToken, MapAssetCategoryDto(model), ct);
-        if (created is null)
+        if (!created.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to create asset category.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(created.ErrorMessage) ? "Failed to create asset category." : created.ErrorMessage);
             ViewData["Title"] = "Create Asset Category";
             ViewData["Breadcrumb"] = "Fixed Assets / Asset Categories / Create";
             return View("AssetCategories/Create", model);
@@ -192,9 +192,9 @@ public sealed partial class FixedAssetsController
         }
 
         var updated = await fixedAssetsApiClient.UpdateAssetCategoryAsync(accessToken, id, MapAssetCategoryDto(model), ct);
-        if (updated is null)
+        if (!updated.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to update asset category.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(updated.ErrorMessage) ? "Failed to update asset category." : updated.ErrorMessage);
             ViewData["Title"] = "Edit Asset Category";
             ViewData["Breadcrumb"] = "Fixed Assets / Asset Categories / Edit";
             return View("AssetCategories/Edit", model);
@@ -215,9 +215,7 @@ public sealed partial class FixedAssetsController
         }
 
         var deleted = await fixedAssetsApiClient.DeleteAssetCategoryAsync(accessToken, id, ct);
-        TempData[deleted ? "SuccessMessage" : "ErrorMessage"] = deleted
-            ? "Asset category deleted."
-            : "Failed to delete asset category.";
+        TempData[deleted.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = deleted.IsSuccess ? "Asset category deleted." : (string.IsNullOrWhiteSpace(deleted.ErrorMessage) ? "Failed to delete asset category." : deleted.ErrorMessage);
 
         return RedirectToAction(nameof(AssetCategories));
     }
@@ -318,9 +316,9 @@ public sealed partial class FixedAssetsController
         }
 
         var created = await fixedAssetsApiClient.CreateLocationAsync(accessToken, MapLocationDto(model), ct);
-        if (created is null)
+        if (!created.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to create asset location.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(created.ErrorMessage) ? "Failed to create asset location." : created.ErrorMessage);
             ViewData["Title"] = "Create Asset Location";
             ViewData["Breadcrumb"] = "Fixed Assets / Asset Locations / Create";
             return View("Locations/Create", model);
@@ -385,9 +383,9 @@ public sealed partial class FixedAssetsController
         }
 
         var updated = await fixedAssetsApiClient.UpdateLocationAsync(accessToken, id, MapLocationDto(model), ct);
-        if (updated is null)
+        if (!updated.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to update asset location.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(updated.ErrorMessage) ? "Failed to update asset location." : updated.ErrorMessage);
             ViewData["Title"] = "Edit Asset Location";
             ViewData["Breadcrumb"] = "Fixed Assets / Asset Locations / Edit";
             return View("Locations/Edit", model);
@@ -408,9 +406,7 @@ public sealed partial class FixedAssetsController
         }
 
         var deleted = await fixedAssetsApiClient.DeleteLocationAsync(accessToken, id, ct);
-        TempData[deleted ? "SuccessMessage" : "ErrorMessage"] = deleted
-            ? "Asset location deleted."
-            : "Failed to delete asset location.";
+        TempData[deleted.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = deleted.IsSuccess ? "Asset location deleted." : (string.IsNullOrWhiteSpace(deleted.ErrorMessage) ? "Failed to delete asset location." : deleted.ErrorMessage);
 
         return RedirectToAction(nameof(Locations));
     }
@@ -501,9 +497,9 @@ public sealed partial class FixedAssetsController
         }
 
         var created = await fixedAssetsApiClient.CreateDepreciationConfigAsync(accessToken, MapDepreciationConfigDto(model), ct);
-        if (created is null)
+        if (!created.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to create depreciation config.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(created.ErrorMessage) ? "Failed to create depreciation config." : created.ErrorMessage);
             ViewData["Title"] = "Create Depreciation Config";
             ViewData["Breadcrumb"] = "Fixed Assets / Depreciation Configs / Create";
             return View("DepreciationConfigs/Create", model);
@@ -567,9 +563,9 @@ public sealed partial class FixedAssetsController
         }
 
         var updated = await fixedAssetsApiClient.UpdateDepreciationConfigAsync(accessToken, id, MapDepreciationConfigDto(model), ct);
-        if (updated is null)
+        if (!updated.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to update depreciation config.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(updated.ErrorMessage) ? "Failed to update depreciation config." : updated.ErrorMessage);
             ViewData["Title"] = "Edit Depreciation Config";
             ViewData["Breadcrumb"] = "Fixed Assets / Depreciation Configs / Edit";
             return View("DepreciationConfigs/Edit", model);
@@ -590,9 +586,7 @@ public sealed partial class FixedAssetsController
         }
 
         var deleted = await fixedAssetsApiClient.DeleteDepreciationConfigAsync(accessToken, id, ct);
-        TempData[deleted ? "SuccessMessage" : "ErrorMessage"] = deleted
-            ? "Depreciation config deleted."
-            : "Failed to delete depreciation config.";
+        TempData[deleted.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = deleted.IsSuccess ? "Depreciation config deleted." : (string.IsNullOrWhiteSpace(deleted.ErrorMessage) ? "Failed to delete depreciation config." : deleted.ErrorMessage);
 
         return RedirectToAction(nameof(DepreciationConfigs));
     }

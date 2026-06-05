@@ -127,9 +127,9 @@ public sealed class PurchasingController(
         }
 
         var created = await purchasingApiClient.CreateVendorCategoryAsync(accessToken, MapVendorCategoryDto(model), ct);
-        if (created is null)
+        if (!created.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to create vendor category.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(created.ErrorMessage) ? "Failed to create vendor category." : created.ErrorMessage);
             ViewData["Title"] = "Create Vendor Category";
             ViewData["Breadcrumb"] = "Purchasing / Vendor Categories / Create";
             return View("VendorCategories/Create", model);
@@ -186,9 +186,9 @@ public sealed class PurchasingController(
         }
 
         var updated = await purchasingApiClient.UpdateVendorCategoryAsync(accessToken, id, MapVendorCategoryDto(model), ct);
-        if (updated is null)
+        if (!updated.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to update vendor category.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(updated.ErrorMessage) ? "Failed to update vendor category." : updated.ErrorMessage);
             ViewData["Title"] = "Edit Vendor Category";
             ViewData["Breadcrumb"] = "Purchasing / Vendor Categories / Edit";
             return View("VendorCategories/Edit", model);
@@ -209,9 +209,7 @@ public sealed class PurchasingController(
         }
 
         var deleted = await purchasingApiClient.DeleteVendorCategoryAsync(accessToken, id, ct);
-        TempData[deleted ? "SuccessMessage" : "ErrorMessage"] = deleted
-            ? "Vendor category deleted."
-            : "Failed to delete vendor category.";
+        TempData[deleted.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = deleted.IsSuccess ? "Vendor category deleted." : (string.IsNullOrWhiteSpace(deleted.ErrorMessage) ? "Failed to delete vendor category." : deleted.ErrorMessage);
 
         return RedirectToAction(nameof(VendorCategories));
     }
@@ -331,9 +329,9 @@ public sealed class PurchasingController(
         }
 
         var created = await purchasingApiClient.CreateApprovalConfigAsync(accessToken, MapApprovalConfigDto(model), ct);
-        if (created is null)
+        if (!created.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to create approval config.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(created.ErrorMessage) ? "Failed to create approval config." : created.ErrorMessage);
             ViewData["Title"] = "Create Approval Config";
             ViewData["Breadcrumb"] = "Purchasing / Approval Configs / Create";
             return View("ApprovalConfigs/Create", model);
@@ -403,9 +401,9 @@ public sealed class PurchasingController(
         }
 
         var updated = await purchasingApiClient.UpdateApprovalConfigAsync(accessToken, id, MapApprovalConfigDto(model), ct);
-        if (updated is null)
+        if (!updated.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to update approval config.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(updated.ErrorMessage) ? "Failed to update approval config." : updated.ErrorMessage);
             ViewData["Title"] = "Edit Approval Config";
             ViewData["Breadcrumb"] = "Purchasing / Approval Configs / Edit";
             return View("ApprovalConfigs/Edit", model);
@@ -426,9 +424,7 @@ public sealed class PurchasingController(
         }
 
         var deleted = await purchasingApiClient.DeleteApprovalConfigAsync(accessToken, id, ct);
-        TempData[deleted ? "SuccessMessage" : "ErrorMessage"] = deleted
-            ? "Approval config deleted."
-            : "Failed to delete approval config.";
+        TempData[deleted.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = deleted.IsSuccess ? "Approval config deleted." : (string.IsNullOrWhiteSpace(deleted.ErrorMessage) ? "Failed to delete approval config." : deleted.ErrorMessage);
 
         return RedirectToAction(nameof(ApprovalConfigs));
     }
@@ -541,9 +537,9 @@ public sealed class PurchasingController(
         }
 
         var created = await purchasingApiClient.CreateBuyerGroupAsync(accessToken, MapBuyerGroupDto(model), ct);
-        if (created is null)
+        if (!created.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to create buyer group.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(created.ErrorMessage) ? "Failed to create buyer group." : created.ErrorMessage);
             ViewData["Title"] = "Create Buyer Group";
             ViewData["Breadcrumb"] = "Purchasing / Buyer Groups / Create";
             return View("BuyerGroups/Create", model);
@@ -607,9 +603,9 @@ public sealed class PurchasingController(
         }
 
         var updated = await purchasingApiClient.UpdateBuyerGroupAsync(accessToken, id, MapBuyerGroupDto(model), ct);
-        if (updated is null)
+        if (!updated.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to update buyer group.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(updated.ErrorMessage) ? "Failed to update buyer group." : updated.ErrorMessage);
             ViewData["Title"] = "Edit Buyer Group";
             ViewData["Breadcrumb"] = "Purchasing / Buyer Groups / Edit";
             return View("BuyerGroups/Edit", model);
@@ -630,9 +626,7 @@ public sealed class PurchasingController(
         }
 
         var deleted = await purchasingApiClient.DeleteBuyerGroupAsync(accessToken, id, ct);
-        TempData[deleted ? "SuccessMessage" : "ErrorMessage"] = deleted
-            ? "Buyer group deleted."
-            : "Failed to delete buyer group.";
+        TempData[deleted.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = deleted.IsSuccess ? "Buyer group deleted." : (string.IsNullOrWhiteSpace(deleted.ErrorMessage) ? "Failed to delete buyer group." : deleted.ErrorMessage);
 
         return RedirectToAction(nameof(BuyerGroups));
     }
@@ -752,9 +746,7 @@ public sealed class PurchasingController(
         }
 
         var updated = await purchasingApiClient.SetApprovedVendorAsync(accessToken, id, true, DateOnly.FromDateTime(DateTime.UtcNow), ct: ct);
-        TempData[updated is not null ? "SuccessMessage" : "ErrorMessage"] = updated is not null
-            ? "Vendor approved."
-            : "Failed to approve vendor.";
+        TempData[updated.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = updated.IsSuccess ? "Vendor approved." : (string.IsNullOrWhiteSpace(updated.ErrorMessage) ? "Failed to approve vendor." : updated.ErrorMessage);
 
         return RedirectToAction(nameof(Vendors));
     }
@@ -770,9 +762,7 @@ public sealed class PurchasingController(
         }
 
         var updated = await purchasingApiClient.SetApprovedVendorAsync(accessToken, id, false, null, ct);
-        TempData[updated is not null ? "SuccessMessage" : "ErrorMessage"] = updated is not null
-            ? "Vendor approval removed."
-            : "Failed to update vendor approval.";
+        TempData[updated.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = updated.IsSuccess ? "Vendor approval removed." : (string.IsNullOrWhiteSpace(updated.ErrorMessage) ? "Failed to update vendor approval." : updated.ErrorMessage);
 
         return RedirectToAction(nameof(Vendors));
     }

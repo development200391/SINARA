@@ -111,9 +111,9 @@ public sealed partial class InventoryController
         }
 
         var created = await inventoryApiClient.CreateAdjustmentAsync(accessToken, MapAdjustmentDto(model), ct);
-        if (created is null)
+        if (!created.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to create adjustment.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(created.ErrorMessage) ? "Failed to create adjustment." : created.ErrorMessage);
             ViewData["Title"] = "Create Adjustment";
             ViewData["Breadcrumb"] = "Inventory / Stock Adjustments / Create";
             return View("Adjustments/Create", model);
@@ -185,9 +185,9 @@ public sealed partial class InventoryController
         }
 
         var updated = await inventoryApiClient.UpdateAdjustmentAsync(accessToken, id, MapAdjustmentDto(model), ct);
-        if (updated is null)
+        if (!updated.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to update adjustment.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(updated.ErrorMessage) ? "Failed to update adjustment." : updated.ErrorMessage);
             ViewData["Title"] = "Edit Adjustment";
             ViewData["Breadcrumb"] = "Inventory / Stock Adjustments / Edit";
             return View("Adjustments/Edit", model);
@@ -208,7 +208,7 @@ public sealed partial class InventoryController
         }
 
         var deleted = await inventoryApiClient.DeleteAdjustmentAsync(accessToken, id, ct);
-        TempData[deleted ? "SuccessMessage" : "ErrorMessage"] = deleted ? "Adjustment deleted." : "Failed to delete adjustment.";
+        TempData[deleted.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = deleted.IsSuccess ? "Adjustment deleted." : (string.IsNullOrWhiteSpace(deleted.ErrorMessage) ? "Failed to delete adjustment." : deleted.ErrorMessage);
         return RedirectToAction(nameof(Adjustments));
     }
 
@@ -223,7 +223,7 @@ public sealed partial class InventoryController
         }
 
         var ok = await inventoryApiClient.ApproveAdjustmentAsync(accessToken, id, ct);
-        TempData[ok ? "SuccessMessage" : "ErrorMessage"] = ok ? "Adjustment approved." : "Failed to approve adjustment.";
+        TempData[ok.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = ok.IsSuccess ? "Adjustment approved." : (string.IsNullOrWhiteSpace(ok.ErrorMessage) ? "Failed to approve adjustment." : ok.ErrorMessage);
         return RedirectToAction(nameof(Adjustments));
     }
 
@@ -238,7 +238,7 @@ public sealed partial class InventoryController
         }
 
         var ok = await inventoryApiClient.ConfirmAdjustmentAsync(accessToken, id, ct);
-        TempData[ok ? "SuccessMessage" : "ErrorMessage"] = ok ? "Adjustment confirmed." : "Failed to confirm adjustment.";
+        TempData[ok.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = ok.IsSuccess ? "Adjustment confirmed." : (string.IsNullOrWhiteSpace(ok.ErrorMessage) ? "Failed to confirm adjustment." : ok.ErrorMessage);
         return RedirectToAction(nameof(Adjustments));
     }
 
@@ -253,7 +253,7 @@ public sealed partial class InventoryController
         }
 
         var ok = await inventoryApiClient.CancelAdjustmentAsync(accessToken, id, ct);
-        TempData[ok ? "SuccessMessage" : "ErrorMessage"] = ok ? "Adjustment cancelled." : "Failed to cancel adjustment.";
+        TempData[ok.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = ok.IsSuccess ? "Adjustment cancelled." : (string.IsNullOrWhiteSpace(ok.ErrorMessage) ? "Failed to cancel adjustment." : ok.ErrorMessage);
         return RedirectToAction(nameof(Adjustments));
     }
 

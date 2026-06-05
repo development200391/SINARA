@@ -7,8 +7,7 @@ public sealed class ConfigApiClient(HttpClient httpClient, ILogger<ConfigApiClie
 {
     public async Task<IReadOnlyList<NavigationModuleDto>> GetNavigationAsync(string accessToken, CancellationToken ct = default)
     {
-        return await SendAsync<IReadOnlyList<NavigationModuleDto>>(HttpMethod.Get, "api/v1/config/navigation", accessToken, null, ct)
-            ?? [];
+        return await SendWithResultAsync<IReadOnlyList<NavigationModuleDto>>(HttpMethod.Get, "api/v1/config/navigation", accessToken, null, ct).ToDataAsync() ?? [];
     }
 
     public Task<PagedResult<UserDto>?> GetUsersAsync(string accessToken, UserPagedRequest request, CancellationToken ct = default)
@@ -38,87 +37,78 @@ public sealed class ConfigApiClient(HttpClient httpClient, ILogger<ConfigApiClie
         }
 
         var query = $"api/v1/config/users?{string.Join("&", parameters)}";
-        return SendAsync<PagedResult<UserDto>>(HttpMethod.Get, query, accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<UserDto>>(HttpMethod.Get, query, accessToken, null, ct).ToDataAsync();
     }
 
     public Task<UserDto?> GetUserByIdAsync(string accessToken, int id, CancellationToken ct = default)
     {
-        return SendAsync<UserDto>(HttpMethod.Get, $"api/v1/config/users/{id}", accessToken, null, ct);
+        return SendWithResultAsync<UserDto>(HttpMethod.Get, $"api/v1/config/users/{id}", accessToken, null, ct).ToDataAsync();
     }
 
-    public Task<UserDto?> CreateUserAsync(string accessToken, UserDto request, CancellationToken ct = default)
+    public Task<ApiCallResult<UserDto>> CreateUserAsync(string accessToken, UserDto request, CancellationToken ct = default)
     {
-        return SendAsync<UserDto>(HttpMethod.Post, "api/v1/config/users", accessToken, request, ct);
+        return SendWithResultAsync<UserDto>(HttpMethod.Post, "api/v1/config/users", accessToken, request, ct);
     }
 
-    public Task<UserDto?> UpdateUserAsync(string accessToken, int id, UserDto request, CancellationToken ct = default)
+    public Task<ApiCallResult<UserDto>> UpdateUserAsync(string accessToken, int id, UserDto request, CancellationToken ct = default)
     {
-        return SendAsync<UserDto>(HttpMethod.Put, $"api/v1/config/users/{id}", accessToken, request, ct);
+        return SendWithResultAsync<UserDto>(HttpMethod.Put, $"api/v1/config/users/{id}", accessToken, request, ct);
     }
 
-    public async Task<bool> DeleteUserAsync(string accessToken, int id, CancellationToken ct = default)
-    {
-        var response = await SendRawAsync(HttpMethod.Delete, $"api/v1/config/users/{id}", accessToken, null, ct);
-        return response?.IsSuccessStatusCode == true;
-    }
+    public Task<ApiCallResult<object?>> DeleteUserAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendWithResultAsync<object?>(HttpMethod.Delete, $"api/v1/config/users/{id}", accessToken, null, ct);
 
     public async Task<IReadOnlyList<RoleDto>> GetRolesAsync(string accessToken, CancellationToken ct = default)
     {
-        return await SendAsync<IReadOnlyList<RoleDto>>(HttpMethod.Get, "api/v1/config/roles", accessToken, null, ct) ?? [];
+        return await SendWithResultAsync<IReadOnlyList<RoleDto>>(HttpMethod.Get, "api/v1/config/roles", accessToken, null, ct).ToDataAsync() ?? [];
     }
 
     public Task<PermissionMatrixDto?> GetRolePermissionsAsync(string accessToken, int roleId, CancellationToken ct = default)
     {
-        return SendAsync<PermissionMatrixDto>(HttpMethod.Get, $"api/v1/config/roles/{roleId}/permissions", accessToken, null, ct);
+        return SendWithResultAsync<PermissionMatrixDto>(HttpMethod.Get, $"api/v1/config/roles/{roleId}/permissions", accessToken, null, ct).ToDataAsync();
     }
 
-    public async Task<bool> UpdateRolePermissionsAsync(string accessToken, int roleId, PermissionMatrixDto request, CancellationToken ct = default)
-    {
-        var response = await SendRawAsync(HttpMethod.Put, $"api/v1/config/roles/{roleId}/permissions", accessToken, request, ct);
-        return response?.IsSuccessStatusCode == true;
-    }
+    public Task<ApiCallResult<object?>> UpdateRolePermissionsAsync(string accessToken, int roleId, PermissionMatrixDto request, CancellationToken ct = default)
+        => SendWithResultAsync<object?>(HttpMethod.Put, $"api/v1/config/roles/{roleId}/permissions", accessToken, request, ct);
 
     public async Task<IReadOnlyList<ModuleDto>> GetModulesAsync(string accessToken, CancellationToken ct = default)
     {
-        return await SendAsync<IReadOnlyList<ModuleDto>>(HttpMethod.Get, "api/v1/config/modules", accessToken, null, ct) ?? [];
+        return await SendWithResultAsync<IReadOnlyList<ModuleDto>>(HttpMethod.Get, "api/v1/config/modules", accessToken, null, ct).ToDataAsync() ?? [];
     }
 
-    public Task<ModuleDto?> UpdateModuleAsync(string accessToken, int id, ModuleDto request, CancellationToken ct = default)
+    public Task<ApiCallResult<ModuleDto>> UpdateModuleAsync(string accessToken, int id, ModuleDto request, CancellationToken ct = default)
     {
-        return SendAsync<ModuleDto>(HttpMethod.Put, $"api/v1/config/modules/{id}", accessToken, request, ct);
+        return SendWithResultAsync<ModuleDto>(HttpMethod.Put, $"api/v1/config/modules/{id}", accessToken, request, ct);
     }
 
     public async Task<IReadOnlyList<MenuDto>> GetMenusByModuleAsync(string accessToken, int moduleId, CancellationToken ct = default)
     {
-        return await SendAsync<IReadOnlyList<MenuDto>>(HttpMethod.Get, $"api/v1/config/menus?moduleId={moduleId}", accessToken, null, ct) ?? [];
+        return await SendWithResultAsync<IReadOnlyList<MenuDto>>(HttpMethod.Get, $"api/v1/config/menus?moduleId={moduleId}", accessToken, null, ct).ToDataAsync() ?? [];
     }
 
     public Task<MenuDto?> GetMenuByIdAsync(string accessToken, int id, CancellationToken ct = default)
     {
-        return SendAsync<MenuDto>(HttpMethod.Get, $"api/v1/config/menus/{id}", accessToken, null, ct);
+        return SendWithResultAsync<MenuDto>(HttpMethod.Get, $"api/v1/config/menus/{id}", accessToken, null, ct).ToDataAsync();
     }
 
-    public Task<MenuDto?> CreateMenuAsync(string accessToken, MenuDto request, CancellationToken ct = default)
+    public Task<ApiCallResult<MenuDto>> CreateMenuAsync(string accessToken, MenuDto request, CancellationToken ct = default)
     {
-        return SendAsync<MenuDto>(HttpMethod.Post, "api/v1/config/menus", accessToken, request, ct);
+        return SendWithResultAsync<MenuDto>(HttpMethod.Post, "api/v1/config/menus", accessToken, request, ct);
     }
 
-    public Task<MenuDto?> UpdateMenuAsync(string accessToken, int id, MenuDto request, CancellationToken ct = default)
+    public Task<ApiCallResult<MenuDto>> UpdateMenuAsync(string accessToken, int id, MenuDto request, CancellationToken ct = default)
     {
-        return SendAsync<MenuDto>(HttpMethod.Put, $"api/v1/config/menus/{id}", accessToken, request, ct);
+        return SendWithResultAsync<MenuDto>(HttpMethod.Put, $"api/v1/config/menus/{id}", accessToken, request, ct);
     }
 
-    public async Task<bool> DeleteMenuAsync(string accessToken, int id, CancellationToken ct = default)
-    {
-        var response = await SendRawAsync(HttpMethod.Delete, $"api/v1/config/menus/{id}", accessToken, null, ct);
-        return response?.IsSuccessStatusCode == true;
-    }
+    public Task<ApiCallResult<object?>> DeleteMenuAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendWithResultAsync<object?>(HttpMethod.Delete, $"api/v1/config/menus/{id}", accessToken, null, ct);
 
-    public async Task<bool> ReorderMenusAsync(string accessToken, int moduleId, IReadOnlyList<int> orderedMenuIds, CancellationToken ct = default)
+    public async Task<ApiCallResult<object?>> ReorderMenusAsync(string accessToken, int moduleId, IReadOnlyList<int> orderedMenuIds, CancellationToken ct = default)
     {
         var payload = new { moduleId, orderedMenuIds };
-        var response = await SendRawAsync(HttpMethod.Put, "api/v1/config/menus/reorder", accessToken, payload, ct);
-        return response?.IsSuccessStatusCode == true;
+        var result = await SendWithResultAsync<object?>(HttpMethod.Put, "api/v1/config/menus/reorder", accessToken, payload, ct);
+        return result;
     }
 
     public Task<PagedResult<AuditLogDto>?> GetAuditLogsAsync(string accessToken, AuditLogPagedRequest request, CancellationToken ct = default)
@@ -154,22 +144,23 @@ public sealed class ConfigApiClient(HttpClient httpClient, ILogger<ConfigApiClie
         }
 
         var query = $"api/v1/config/audit-logs?{string.Join("&", parameters)}";
-        return SendAsync<PagedResult<AuditLogDto>>(HttpMethod.Get, query, accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<AuditLogDto>>(HttpMethod.Get, query, accessToken, null, ct).ToDataAsync();
     }
 
     public Task<AppSettingsDto?> GetSettingsAsync(string accessToken, CancellationToken ct = default)
     {
-        return SendAsync<AppSettingsDto>(HttpMethod.Get, "api/v1/config/settings", accessToken, null, ct);
+        return SendWithResultAsync<AppSettingsDto>(HttpMethod.Get, "api/v1/config/settings", accessToken, null, ct).ToDataAsync();
     }
 
-    public Task<AppSettingsDto?> UpdateSettingsAsync(string accessToken, AppSettingsDto request, CancellationToken ct = default)
+    public Task<ApiCallResult<AppSettingsDto>> UpdateSettingsAsync(string accessToken, AppSettingsDto request, CancellationToken ct = default)
     {
-        return SendAsync<AppSettingsDto>(HttpMethod.Put, "api/v1/config/settings", accessToken, request, ct);
+        return SendWithResultAsync<AppSettingsDto>(HttpMethod.Put, "api/v1/config/settings", accessToken, request, ct);
     }
 
     public async Task<IReadOnlyList<LanguageDto>> GetLanguagesAsync(string accessToken, CancellationToken ct = default)
     {
-        return await SendAsync<IReadOnlyList<LanguageDto>>(HttpMethod.Get, "api/v1/config/languages", accessToken, null, ct) ?? [];
+        return await SendWithResultAsync<IReadOnlyList<LanguageDto>>(HttpMethod.Get, "api/v1/config/languages", accessToken, null, ct).ToDataAsync() ?? [];
     }
 }
+
 

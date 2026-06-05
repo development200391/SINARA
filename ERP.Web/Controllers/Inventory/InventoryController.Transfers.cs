@@ -111,9 +111,9 @@ public sealed partial class InventoryController
         }
 
         var created = await inventoryApiClient.CreateTransferAsync(accessToken, MapTransferDto(model), ct);
-        if (created is null)
+        if (!created.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to create transfer.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(created.ErrorMessage) ? "Failed to create transfer." : created.ErrorMessage);
             ViewData["Title"] = "Create Transfer";
             ViewData["Breadcrumb"] = "Inventory / Stock Transfers / Create";
             return View("Transfers/Create", model);
@@ -187,9 +187,9 @@ public sealed partial class InventoryController
         }
 
         var updated = await inventoryApiClient.UpdateTransferAsync(accessToken, id, MapTransferDto(model), ct);
-        if (updated is null)
+        if (!updated.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to update transfer.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(updated.ErrorMessage) ? "Failed to update transfer." : updated.ErrorMessage);
             ViewData["Title"] = "Edit Transfer";
             ViewData["Breadcrumb"] = "Inventory / Stock Transfers / Edit";
             return View("Transfers/Edit", model);
@@ -210,7 +210,7 @@ public sealed partial class InventoryController
         }
 
         var deleted = await inventoryApiClient.DeleteTransferAsync(accessToken, id, ct);
-        TempData[deleted ? "SuccessMessage" : "ErrorMessage"] = deleted ? "Transfer deleted." : "Failed to delete transfer.";
+        TempData[deleted.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = deleted.IsSuccess ? "Transfer deleted." : (string.IsNullOrWhiteSpace(deleted.ErrorMessage) ? "Failed to delete transfer." : deleted.ErrorMessage);
         return RedirectToAction(nameof(Transfers));
     }
 
@@ -225,7 +225,7 @@ public sealed partial class InventoryController
         }
 
         var ok = await inventoryApiClient.ConfirmTransferAsync(accessToken, id, ct);
-        TempData[ok ? "SuccessMessage" : "ErrorMessage"] = ok ? "Transfer confirmed." : "Failed to confirm transfer.";
+        TempData[ok.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = ok.IsSuccess ? "Transfer confirmed." : (string.IsNullOrWhiteSpace(ok.ErrorMessage) ? "Failed to confirm transfer." : ok.ErrorMessage);
         return RedirectToAction(nameof(Transfers));
     }
 
@@ -240,7 +240,7 @@ public sealed partial class InventoryController
         }
 
         var ok = await inventoryApiClient.CancelTransferAsync(accessToken, id, ct);
-        TempData[ok ? "SuccessMessage" : "ErrorMessage"] = ok ? "Transfer cancelled." : "Failed to cancel transfer.";
+        TempData[ok.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = ok.IsSuccess ? "Transfer cancelled." : (string.IsNullOrWhiteSpace(ok.ErrorMessage) ? "Failed to cancel transfer." : ok.ErrorMessage);
         return RedirectToAction(nameof(Transfers));
     }
 

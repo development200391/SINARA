@@ -152,9 +152,9 @@ public sealed class HrDepartmentsController(IHrApiClient hrApiClient) : Controll
             IsActive = model.IsActive
         }, ct);
 
-        if (created is null)
+        if (!created.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to create department.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(created.ErrorMessage) ? "Failed to create department." : created.ErrorMessage);
             ViewData["Title"] = "Create Department";
             ViewData["Breadcrumb"] = "HR / Departments / Create";
             return View(model);
@@ -232,9 +232,9 @@ public sealed class HrDepartmentsController(IHrApiClient hrApiClient) : Controll
             IsActive = model.IsActive
         }, ct);
 
-        if (updated is null)
+        if (!updated.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to update department.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(updated.ErrorMessage) ? "Failed to update department." : updated.ErrorMessage);
             ViewData["Title"] = "Edit Department";
             ViewData["Breadcrumb"] = "HR / Departments / Edit";
             return View(model);
@@ -255,9 +255,7 @@ public sealed class HrDepartmentsController(IHrApiClient hrApiClient) : Controll
         }
 
         var deleted = await hrApiClient.DeleteDepartmentAsync(accessToken, id, ct);
-        TempData[deleted ? "SuccessMessage" : "ErrorMessage"] = deleted
-            ? "Department deleted."
-            : "Failed to delete department.";
+        TempData[deleted.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = deleted.IsSuccess ? "Department deleted." : (string.IsNullOrWhiteSpace(deleted.ErrorMessage) ? "Failed to delete department." : deleted.ErrorMessage);
 
         return RedirectToAction(nameof(Index));
     }

@@ -112,7 +112,7 @@ public sealed partial class InventoryController
             return View("ItemConversions/Create", model);
         }
 
-        var created = await inventoryApiClient.CreateItemConversionAsync(accessToken, new ItemUnitConversionDto
+        var createResult = await inventoryApiClient.CreateItemConversionAsync(accessToken, new ItemUnitConversionDto
         {
             ItemId = model.ItemId,
             FromUomId = model.FromUomId,
@@ -121,9 +121,9 @@ public sealed partial class InventoryController
             IsActive = model.IsActive
         }, ct);
 
-        if (created is null)
+        if (!createResult.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to create item conversion.");
+            AddApiModelError(createResult, "Failed to create item conversion.");
             ViewData["Title"] = "Create Item Conversion";
             ViewData["Breadcrumb"] = "Inventory / Item Conversions / Create";
             return View("ItemConversions/Create", model);
@@ -186,7 +186,7 @@ public sealed partial class InventoryController
             return View("ItemConversions/Edit", model);
         }
 
-        var updated = await inventoryApiClient.UpdateItemConversionAsync(accessToken, id, new ItemUnitConversionDto
+        var updateResult = await inventoryApiClient.UpdateItemConversionAsync(accessToken, id, new ItemUnitConversionDto
         {
             Id = id,
             ItemId = model.ItemId,
@@ -196,9 +196,9 @@ public sealed partial class InventoryController
             IsActive = model.IsActive
         }, ct);
 
-        if (updated is null)
+        if (!updateResult.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to update item conversion.");
+            AddApiModelError(updateResult, "Failed to update item conversion.");
             ViewData["Title"] = "Edit Item Conversion";
             ViewData["Breadcrumb"] = "Inventory / Item Conversions / Edit";
             return View("ItemConversions/Edit", model);
@@ -218,8 +218,11 @@ public sealed partial class InventoryController
             return unauthorized;
         }
 
-        var deleted = await inventoryApiClient.DeleteItemConversionAsync(accessToken, id, ct);
-        TempData[deleted ? "SuccessMessage" : "ErrorMessage"] = deleted ? "Item conversion deleted." : "Failed to delete item conversion.";
+        var deleteResult = await inventoryApiClient.DeleteItemConversionAsync(accessToken, id, ct);
+        TempData[deleteResult.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = deleteResult.IsSuccess
+            ? "Item conversion deleted."
+            : ResolveApiErrorMessage(deleteResult, "Failed to delete item conversion.");
         return RedirectToAction(nameof(ItemConversions));
     }
 }
+

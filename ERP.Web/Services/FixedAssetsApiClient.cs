@@ -6,7 +6,7 @@ namespace ERP.Web.Services;
 public sealed class FixedAssetsApiClient(HttpClient httpClient, ILogger<FixedAssetsApiClient> logger) : ApiClientBase(httpClient, logger, "Fixed Assets"), IFixedAssetsApiClient
 {
     public Task<FixedAssetDashboardDto?> GetDashboardAsync(string accessToken, CancellationToken ct = default)
-        => SendAsync<FixedAssetDashboardDto>(HttpMethod.Get, "api/v1/fixed-assets/dashboard", accessToken, null, ct);
+        => SendWithResultAsync<FixedAssetDashboardDto>(HttpMethod.Get, "api/v1/fixed-assets/dashboard", accessToken, null, ct).ToDataAsync();
 
     public Task<PagedResult<FixedAssetCategoryDto>?> GetAssetCategoriesAsync(string accessToken, FixedAssetCategoryPagedRequest request, CancellationToken ct = default)
     {
@@ -17,26 +17,23 @@ public sealed class FixedAssetsApiClient(HttpClient httpClient, ILogger<FixedAss
         AddEnumParameter(parameters, "depreciationMethod", request.DepreciationMethod);
         AddBooleanParameter(parameters, "isActive", request.IsActive);
 
-        return SendAsync<PagedResult<FixedAssetCategoryDto>>(HttpMethod.Get, $"api/v1/fixed-assets/asset-categories?{string.Join("&", parameters)}", accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<FixedAssetCategoryDto>>(HttpMethod.Get, $"api/v1/fixed-assets/asset-categories?{string.Join("&", parameters)}", accessToken, null, ct).ToDataAsync();
     }
 
     public async Task<IReadOnlyList<FixedAssetOptionDto>> GetAssetCategoryOptionsAsync(string accessToken, CancellationToken ct = default)
-        => await SendAsync<IReadOnlyList<FixedAssetOptionDto>>(HttpMethod.Get, "api/v1/fixed-assets/asset-categories/options", accessToken, null, ct) ?? [];
+        => await SendWithResultAsync<IReadOnlyList<FixedAssetOptionDto>>(HttpMethod.Get, "api/v1/fixed-assets/asset-categories/options", accessToken, null, ct).ToDataAsync() ?? [];
 
     public Task<FixedAssetCategoryDto?> GetAssetCategoryByIdAsync(string accessToken, int id, CancellationToken ct = default)
-        => SendAsync<FixedAssetCategoryDto>(HttpMethod.Get, $"api/v1/fixed-assets/asset-categories/{id}", accessToken, null, ct);
+        => SendWithResultAsync<FixedAssetCategoryDto>(HttpMethod.Get, $"api/v1/fixed-assets/asset-categories/{id}", accessToken, null, ct).ToDataAsync();
 
-    public Task<FixedAssetCategoryDto?> CreateAssetCategoryAsync(string accessToken, FixedAssetCategoryDto request, CancellationToken ct = default)
-        => SendAsync<FixedAssetCategoryDto>(HttpMethod.Post, "api/v1/fixed-assets/asset-categories", accessToken, request, ct);
+    public Task<ApiCallResult<FixedAssetCategoryDto>> CreateAssetCategoryAsync(string accessToken, FixedAssetCategoryDto request, CancellationToken ct = default)
+        => SendWithResultAsync<FixedAssetCategoryDto>(HttpMethod.Post, "api/v1/fixed-assets/asset-categories", accessToken, request, ct);
 
-    public Task<FixedAssetCategoryDto?> UpdateAssetCategoryAsync(string accessToken, int id, FixedAssetCategoryDto request, CancellationToken ct = default)
-        => SendAsync<FixedAssetCategoryDto>(HttpMethod.Put, $"api/v1/fixed-assets/asset-categories/{id}", accessToken, request, ct);
+    public Task<ApiCallResult<FixedAssetCategoryDto>> UpdateAssetCategoryAsync(string accessToken, int id, FixedAssetCategoryDto request, CancellationToken ct = default)
+        => SendWithResultAsync<FixedAssetCategoryDto>(HttpMethod.Put, $"api/v1/fixed-assets/asset-categories/{id}", accessToken, request, ct);
 
-    public async Task<bool> DeleteAssetCategoryAsync(string accessToken, int id, CancellationToken ct = default)
-    {
-        var response = await SendRawAsync(HttpMethod.Delete, $"api/v1/fixed-assets/asset-categories/{id}", accessToken, null, ct);
-        return response?.IsSuccessStatusCode == true;
-    }
+    public Task<ApiCallResult<object?>> DeleteAssetCategoryAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendWithResultAsync<object?>(HttpMethod.Delete, $"api/v1/fixed-assets/asset-categories/{id}", accessToken, null, ct);
 
     public Task<PagedResult<FixedAssetLocationDto>?> GetLocationsAsync(string accessToken, FixedAssetLocationPagedRequest request, CancellationToken ct = default)
     {
@@ -47,26 +44,23 @@ public sealed class FixedAssetsApiClient(HttpClient httpClient, ILogger<FixedAss
         AddIntParameter(parameters, "departmentId", request.DepartmentId);
         AddBooleanParameter(parameters, "isActive", request.IsActive);
 
-        return SendAsync<PagedResult<FixedAssetLocationDto>>(HttpMethod.Get, $"api/v1/fixed-assets/locations?{string.Join("&", parameters)}", accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<FixedAssetLocationDto>>(HttpMethod.Get, $"api/v1/fixed-assets/locations?{string.Join("&", parameters)}", accessToken, null, ct).ToDataAsync();
     }
 
     public async Task<IReadOnlyList<FixedAssetOptionDto>> GetLocationOptionsAsync(string accessToken, CancellationToken ct = default)
-        => await SendAsync<IReadOnlyList<FixedAssetOptionDto>>(HttpMethod.Get, "api/v1/fixed-assets/locations/options", accessToken, null, ct) ?? [];
+        => await SendWithResultAsync<IReadOnlyList<FixedAssetOptionDto>>(HttpMethod.Get, "api/v1/fixed-assets/locations/options", accessToken, null, ct).ToDataAsync() ?? [];
 
     public Task<FixedAssetLocationDto?> GetLocationByIdAsync(string accessToken, int id, CancellationToken ct = default)
-        => SendAsync<FixedAssetLocationDto>(HttpMethod.Get, $"api/v1/fixed-assets/locations/{id}", accessToken, null, ct);
+        => SendWithResultAsync<FixedAssetLocationDto>(HttpMethod.Get, $"api/v1/fixed-assets/locations/{id}", accessToken, null, ct).ToDataAsync();
 
-    public Task<FixedAssetLocationDto?> CreateLocationAsync(string accessToken, FixedAssetLocationDto request, CancellationToken ct = default)
-        => SendAsync<FixedAssetLocationDto>(HttpMethod.Post, "api/v1/fixed-assets/locations", accessToken, request, ct);
+    public Task<ApiCallResult<FixedAssetLocationDto>> CreateLocationAsync(string accessToken, FixedAssetLocationDto request, CancellationToken ct = default)
+        => SendWithResultAsync<FixedAssetLocationDto>(HttpMethod.Post, "api/v1/fixed-assets/locations", accessToken, request, ct);
 
-    public Task<FixedAssetLocationDto?> UpdateLocationAsync(string accessToken, int id, FixedAssetLocationDto request, CancellationToken ct = default)
-        => SendAsync<FixedAssetLocationDto>(HttpMethod.Put, $"api/v1/fixed-assets/locations/{id}", accessToken, request, ct);
+    public Task<ApiCallResult<FixedAssetLocationDto>> UpdateLocationAsync(string accessToken, int id, FixedAssetLocationDto request, CancellationToken ct = default)
+        => SendWithResultAsync<FixedAssetLocationDto>(HttpMethod.Put, $"api/v1/fixed-assets/locations/{id}", accessToken, request, ct);
 
-    public async Task<bool> DeleteLocationAsync(string accessToken, int id, CancellationToken ct = default)
-    {
-        var response = await SendRawAsync(HttpMethod.Delete, $"api/v1/fixed-assets/locations/{id}", accessToken, null, ct);
-        return response?.IsSuccessStatusCode == true;
-    }
+    public Task<ApiCallResult<object?>> DeleteLocationAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendWithResultAsync<object?>(HttpMethod.Delete, $"api/v1/fixed-assets/locations/{id}", accessToken, null, ct);
 
     public Task<PagedResult<FixedAssetDepreciationConfigDto>?> GetDepreciationConfigsAsync(string accessToken, FixedAssetDepreciationConfigPagedRequest request, CancellationToken ct = default)
     {
@@ -76,23 +70,20 @@ public sealed class FixedAssetsApiClient(HttpClient httpClient, ILogger<FixedAss
         AddBooleanParameter(parameters, "isAutoPostJournal", request.IsAutoPostJournal);
         AddBooleanParameter(parameters, "isActive", request.IsActive);
 
-        return SendAsync<PagedResult<FixedAssetDepreciationConfigDto>>(HttpMethod.Get, $"api/v1/fixed-assets/depreciation-configs?{string.Join("&", parameters)}", accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<FixedAssetDepreciationConfigDto>>(HttpMethod.Get, $"api/v1/fixed-assets/depreciation-configs?{string.Join("&", parameters)}", accessToken, null, ct).ToDataAsync();
     }
 
     public Task<FixedAssetDepreciationConfigDto?> GetDepreciationConfigByIdAsync(string accessToken, int id, CancellationToken ct = default)
-        => SendAsync<FixedAssetDepreciationConfigDto>(HttpMethod.Get, $"api/v1/fixed-assets/depreciation-configs/{id}", accessToken, null, ct);
+        => SendWithResultAsync<FixedAssetDepreciationConfigDto>(HttpMethod.Get, $"api/v1/fixed-assets/depreciation-configs/{id}", accessToken, null, ct).ToDataAsync();
 
-    public Task<FixedAssetDepreciationConfigDto?> CreateDepreciationConfigAsync(string accessToken, FixedAssetDepreciationConfigDto request, CancellationToken ct = default)
-        => SendAsync<FixedAssetDepreciationConfigDto>(HttpMethod.Post, "api/v1/fixed-assets/depreciation-configs", accessToken, request, ct);
+    public Task<ApiCallResult<FixedAssetDepreciationConfigDto>> CreateDepreciationConfigAsync(string accessToken, FixedAssetDepreciationConfigDto request, CancellationToken ct = default)
+        => SendWithResultAsync<FixedAssetDepreciationConfigDto>(HttpMethod.Post, "api/v1/fixed-assets/depreciation-configs", accessToken, request, ct);
 
-    public Task<FixedAssetDepreciationConfigDto?> UpdateDepreciationConfigAsync(string accessToken, int id, FixedAssetDepreciationConfigDto request, CancellationToken ct = default)
-        => SendAsync<FixedAssetDepreciationConfigDto>(HttpMethod.Put, $"api/v1/fixed-assets/depreciation-configs/{id}", accessToken, request, ct);
+    public Task<ApiCallResult<FixedAssetDepreciationConfigDto>> UpdateDepreciationConfigAsync(string accessToken, int id, FixedAssetDepreciationConfigDto request, CancellationToken ct = default)
+        => SendWithResultAsync<FixedAssetDepreciationConfigDto>(HttpMethod.Put, $"api/v1/fixed-assets/depreciation-configs/{id}", accessToken, request, ct);
 
-    public async Task<bool> DeleteDepreciationConfigAsync(string accessToken, int id, CancellationToken ct = default)
-    {
-        var response = await SendRawAsync(HttpMethod.Delete, $"api/v1/fixed-assets/depreciation-configs/{id}", accessToken, null, ct);
-        return response?.IsSuccessStatusCode == true;
-    }
+    public Task<ApiCallResult<object?>> DeleteDepreciationConfigAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendWithResultAsync<object?>(HttpMethod.Delete, $"api/v1/fixed-assets/depreciation-configs/{id}", accessToken, null, ct);
 
     public Task<PagedResult<FixedAssetDto>?> GetAssetsAsync(string accessToken, FixedAssetPagedRequest request, CancellationToken ct = default)
     {
@@ -110,26 +101,23 @@ public sealed class FixedAssetsApiClient(HttpClient httpClient, ILogger<FixedAss
         AddDateParameter(parameters, "acquisitionDateTo", request.AcquisitionDateTo);
         AddBooleanParameter(parameters, "isActive", request.IsActive);
 
-        return SendAsync<PagedResult<FixedAssetDto>>(HttpMethod.Get, $"api/v1/fixed-assets/assets?{string.Join("&", parameters)}", accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<FixedAssetDto>>(HttpMethod.Get, $"api/v1/fixed-assets/assets?{string.Join("&", parameters)}", accessToken, null, ct).ToDataAsync();
     }
 
     public async Task<IReadOnlyList<FixedAssetOptionDto>> GetAssetOptionsAsync(string accessToken, CancellationToken ct = default)
-        => await SendAsync<IReadOnlyList<FixedAssetOptionDto>>(HttpMethod.Get, "api/v1/fixed-assets/assets/options", accessToken, null, ct) ?? [];
+        => await SendWithResultAsync<IReadOnlyList<FixedAssetOptionDto>>(HttpMethod.Get, "api/v1/fixed-assets/assets/options", accessToken, null, ct).ToDataAsync() ?? [];
 
     public Task<FixedAssetDetailDto?> GetAssetByIdAsync(string accessToken, int id, CancellationToken ct = default)
-        => SendAsync<FixedAssetDetailDto>(HttpMethod.Get, $"api/v1/fixed-assets/assets/{id}", accessToken, null, ct);
+        => SendWithResultAsync<FixedAssetDetailDto>(HttpMethod.Get, $"api/v1/fixed-assets/assets/{id}", accessToken, null, ct).ToDataAsync();
 
-    public Task<FixedAssetDto?> CreateAssetAsync(string accessToken, FixedAssetDto request, CancellationToken ct = default)
-        => SendAsync<FixedAssetDto>(HttpMethod.Post, "api/v1/fixed-assets/assets", accessToken, request, ct);
+    public Task<ApiCallResult<FixedAssetDto>> CreateAssetAsync(string accessToken, FixedAssetDto request, CancellationToken ct = default)
+        => SendWithResultAsync<FixedAssetDto>(HttpMethod.Post, "api/v1/fixed-assets/assets", accessToken, request, ct);
 
-    public Task<FixedAssetDto?> UpdateAssetAsync(string accessToken, int id, FixedAssetDto request, CancellationToken ct = default)
-        => SendAsync<FixedAssetDto>(HttpMethod.Put, $"api/v1/fixed-assets/assets/{id}", accessToken, request, ct);
+    public Task<ApiCallResult<FixedAssetDto>> UpdateAssetAsync(string accessToken, int id, FixedAssetDto request, CancellationToken ct = default)
+        => SendWithResultAsync<FixedAssetDto>(HttpMethod.Put, $"api/v1/fixed-assets/assets/{id}", accessToken, request, ct);
 
-    public async Task<bool> DeleteAssetAsync(string accessToken, int id, CancellationToken ct = default)
-    {
-        var response = await SendRawAsync(HttpMethod.Delete, $"api/v1/fixed-assets/assets/{id}", accessToken, null, ct);
-        return response?.IsSuccessStatusCode == true;
-    }
+    public Task<ApiCallResult<object?>> DeleteAssetAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendWithResultAsync<object?>(HttpMethod.Delete, $"api/v1/fixed-assets/assets/{id}", accessToken, null, ct);
 
     public Task<PagedResult<FixedAssetDepreciationRunDto>?> GetDepreciationRunsAsync(string accessToken, FixedAssetDepreciationRunPagedRequest request, CancellationToken ct = default)
     {
@@ -139,20 +127,17 @@ public sealed class FixedAssetsApiClient(HttpClient httpClient, ILogger<FixedAss
         AddByteParameter(parameters, "periodMonth", request.PeriodMonth);
         AddEnumParameter(parameters, "status", request.Status);
 
-        return SendAsync<PagedResult<FixedAssetDepreciationRunDto>>(HttpMethod.Get, $"api/v1/fixed-assets/depreciation-runs?{string.Join("&", parameters)}", accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<FixedAssetDepreciationRunDto>>(HttpMethod.Get, $"api/v1/fixed-assets/depreciation-runs?{string.Join("&", parameters)}", accessToken, null, ct).ToDataAsync();
     }
 
     public Task<FixedAssetDepreciationRunDto?> GetDepreciationRunByIdAsync(string accessToken, int id, CancellationToken ct = default)
-        => SendAsync<FixedAssetDepreciationRunDto>(HttpMethod.Get, $"api/v1/fixed-assets/depreciation-runs/{id}", accessToken, null, ct);
+        => SendWithResultAsync<FixedAssetDepreciationRunDto>(HttpMethod.Get, $"api/v1/fixed-assets/depreciation-runs/{id}", accessToken, null, ct).ToDataAsync();
 
     public Task<ApiCallResult<FixedAssetDepreciationRunDto>> RunDepreciationAsync(string accessToken, RunDepreciationRequest request, CancellationToken ct = default)
         => SendWithResultAsync<FixedAssetDepreciationRunDto>(HttpMethod.Post, "api/v1/fixed-assets/depreciation-runs/run", accessToken, request, ct);
 
-    public async Task<bool> ApproveDepreciationRunAsync(string accessToken, int id, CancellationToken ct = default)
-    {
-        var response = await SendRawAsync(HttpMethod.Put, $"api/v1/fixed-assets/depreciation-runs/{id}/approve", accessToken, null, ct);
-        return response?.IsSuccessStatusCode == true;
-    }
+    public Task<ApiCallResult<object?>> ApproveDepreciationRunAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendWithResultAsync<object?>(HttpMethod.Put, $"api/v1/fixed-assets/depreciation-runs/{id}/approve", accessToken, null, ct);
 
     public Task<PagedResult<FixedAssetTransferDto>?> GetTransfersAsync(string accessToken, FixedAssetTransferPagedRequest request, CancellationToken ct = default)
     {
@@ -165,35 +150,26 @@ public sealed class FixedAssetsApiClient(HttpClient httpClient, ILogger<FixedAss
         AddDateParameter(parameters, "transferDateFrom", request.TransferDateFrom);
         AddDateParameter(parameters, "transferDateTo", request.TransferDateTo);
 
-        return SendAsync<PagedResult<FixedAssetTransferDto>>(HttpMethod.Get, $"api/v1/fixed-assets/transfers?{string.Join("&", parameters)}", accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<FixedAssetTransferDto>>(HttpMethod.Get, $"api/v1/fixed-assets/transfers?{string.Join("&", parameters)}", accessToken, null, ct).ToDataAsync();
     }
 
     public Task<FixedAssetTransferDto?> GetTransferByIdAsync(string accessToken, int id, CancellationToken ct = default)
-        => SendAsync<FixedAssetTransferDto>(HttpMethod.Get, $"api/v1/fixed-assets/transfers/{id}", accessToken, null, ct);
+        => SendWithResultAsync<FixedAssetTransferDto>(HttpMethod.Get, $"api/v1/fixed-assets/transfers/{id}", accessToken, null, ct).ToDataAsync();
 
-    public Task<FixedAssetTransferDto?> CreateTransferAsync(string accessToken, FixedAssetTransferDto request, CancellationToken ct = default)
-        => SendAsync<FixedAssetTransferDto>(HttpMethod.Post, "api/v1/fixed-assets/transfers", accessToken, request, ct);
+    public Task<ApiCallResult<FixedAssetTransferDto>> CreateTransferAsync(string accessToken, FixedAssetTransferDto request, CancellationToken ct = default)
+        => SendWithResultAsync<FixedAssetTransferDto>(HttpMethod.Post, "api/v1/fixed-assets/transfers", accessToken, request, ct);
 
-    public Task<FixedAssetTransferDto?> UpdateTransferAsync(string accessToken, int id, FixedAssetTransferDto request, CancellationToken ct = default)
-        => SendAsync<FixedAssetTransferDto>(HttpMethod.Put, $"api/v1/fixed-assets/transfers/{id}", accessToken, request, ct);
+    public Task<ApiCallResult<FixedAssetTransferDto>> UpdateTransferAsync(string accessToken, int id, FixedAssetTransferDto request, CancellationToken ct = default)
+        => SendWithResultAsync<FixedAssetTransferDto>(HttpMethod.Put, $"api/v1/fixed-assets/transfers/{id}", accessToken, request, ct);
 
-    public async Task<bool> DeleteTransferAsync(string accessToken, int id, CancellationToken ct = default)
-    {
-        var response = await SendRawAsync(HttpMethod.Delete, $"api/v1/fixed-assets/transfers/{id}", accessToken, null, ct);
-        return response?.IsSuccessStatusCode == true;
-    }
+    public Task<ApiCallResult<object?>> DeleteTransferAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendWithResultAsync<object?>(HttpMethod.Delete, $"api/v1/fixed-assets/transfers/{id}", accessToken, null, ct);
 
-    public async Task<bool> ApproveTransferAsync(string accessToken, int id, CancellationToken ct = default)
-    {
-        var response = await SendRawAsync(HttpMethod.Put, $"api/v1/fixed-assets/transfers/{id}/approve", accessToken, null, ct);
-        return response?.IsSuccessStatusCode == true;
-    }
+    public Task<ApiCallResult<object?>> ApproveTransferAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendWithResultAsync<object?>(HttpMethod.Put, $"api/v1/fixed-assets/transfers/{id}/approve", accessToken, null, ct);
 
-    public async Task<bool> RejectTransferAsync(string accessToken, int id, CancellationToken ct = default)
-    {
-        var response = await SendRawAsync(HttpMethod.Put, $"api/v1/fixed-assets/transfers/{id}/reject", accessToken, null, ct);
-        return response?.IsSuccessStatusCode == true;
-    }
+    public Task<ApiCallResult<object?>> RejectTransferAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendWithResultAsync<object?>(HttpMethod.Put, $"api/v1/fixed-assets/transfers/{id}/reject", accessToken, null, ct);
 
     public Task<PagedResult<FixedAssetMaintenanceOrderDto>?> GetMaintenanceOrdersAsync(string accessToken, FixedAssetMaintenanceOrderPagedRequest request, CancellationToken ct = default)
     {
@@ -205,41 +181,29 @@ public sealed class FixedAssetsApiClient(HttpClient httpClient, ILogger<FixedAss
         AddDateParameter(parameters, "orderDateFrom", request.OrderDateFrom);
         AddDateParameter(parameters, "orderDateTo", request.OrderDateTo);
 
-        return SendAsync<PagedResult<FixedAssetMaintenanceOrderDto>>(HttpMethod.Get, $"api/v1/fixed-assets/maintenance-orders?{string.Join("&", parameters)}", accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<FixedAssetMaintenanceOrderDto>>(HttpMethod.Get, $"api/v1/fixed-assets/maintenance-orders?{string.Join("&", parameters)}", accessToken, null, ct).ToDataAsync();
     }
 
     public Task<FixedAssetMaintenanceOrderDto?> GetMaintenanceOrderByIdAsync(string accessToken, int id, CancellationToken ct = default)
-        => SendAsync<FixedAssetMaintenanceOrderDto>(HttpMethod.Get, $"api/v1/fixed-assets/maintenance-orders/{id}", accessToken, null, ct);
+        => SendWithResultAsync<FixedAssetMaintenanceOrderDto>(HttpMethod.Get, $"api/v1/fixed-assets/maintenance-orders/{id}", accessToken, null, ct).ToDataAsync();
 
-    public Task<FixedAssetMaintenanceOrderDto?> CreateMaintenanceOrderAsync(string accessToken, FixedAssetMaintenanceOrderDto request, CancellationToken ct = default)
-        => SendAsync<FixedAssetMaintenanceOrderDto>(HttpMethod.Post, "api/v1/fixed-assets/maintenance-orders", accessToken, request, ct);
+    public Task<ApiCallResult<FixedAssetMaintenanceOrderDto>> CreateMaintenanceOrderAsync(string accessToken, FixedAssetMaintenanceOrderDto request, CancellationToken ct = default)
+        => SendWithResultAsync<FixedAssetMaintenanceOrderDto>(HttpMethod.Post, "api/v1/fixed-assets/maintenance-orders", accessToken, request, ct);
 
-    public Task<FixedAssetMaintenanceOrderDto?> UpdateMaintenanceOrderAsync(string accessToken, int id, FixedAssetMaintenanceOrderDto request, CancellationToken ct = default)
-        => SendAsync<FixedAssetMaintenanceOrderDto>(HttpMethod.Put, $"api/v1/fixed-assets/maintenance-orders/{id}", accessToken, request, ct);
+    public Task<ApiCallResult<FixedAssetMaintenanceOrderDto>> UpdateMaintenanceOrderAsync(string accessToken, int id, FixedAssetMaintenanceOrderDto request, CancellationToken ct = default)
+        => SendWithResultAsync<FixedAssetMaintenanceOrderDto>(HttpMethod.Put, $"api/v1/fixed-assets/maintenance-orders/{id}", accessToken, request, ct);
 
-    public async Task<bool> DeleteMaintenanceOrderAsync(string accessToken, int id, CancellationToken ct = default)
-    {
-        var response = await SendRawAsync(HttpMethod.Delete, $"api/v1/fixed-assets/maintenance-orders/{id}", accessToken, null, ct);
-        return response?.IsSuccessStatusCode == true;
-    }
+    public Task<ApiCallResult<object?>> DeleteMaintenanceOrderAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendWithResultAsync<object?>(HttpMethod.Delete, $"api/v1/fixed-assets/maintenance-orders/{id}", accessToken, null, ct);
 
-    public async Task<bool> StartMaintenanceOrderAsync(string accessToken, int id, CancellationToken ct = default)
-    {
-        var response = await SendRawAsync(HttpMethod.Put, $"api/v1/fixed-assets/maintenance-orders/{id}/start", accessToken, null, ct);
-        return response?.IsSuccessStatusCode == true;
-    }
+    public Task<ApiCallResult<object?>> StartMaintenanceOrderAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendWithResultAsync<object?>(HttpMethod.Put, $"api/v1/fixed-assets/maintenance-orders/{id}/start", accessToken, null, ct);
 
-    public async Task<bool> CompleteMaintenanceOrderAsync(string accessToken, int id, CancellationToken ct = default)
-    {
-        var response = await SendRawAsync(HttpMethod.Put, $"api/v1/fixed-assets/maintenance-orders/{id}/complete", accessToken, null, ct);
-        return response?.IsSuccessStatusCode == true;
-    }
+    public Task<ApiCallResult<object?>> CompleteMaintenanceOrderAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendWithResultAsync<object?>(HttpMethod.Put, $"api/v1/fixed-assets/maintenance-orders/{id}/complete", accessToken, null, ct);
 
-    public async Task<bool> CancelMaintenanceOrderAsync(string accessToken, int id, CancellationToken ct = default)
-    {
-        var response = await SendRawAsync(HttpMethod.Put, $"api/v1/fixed-assets/maintenance-orders/{id}/cancel", accessToken, null, ct);
-        return response?.IsSuccessStatusCode == true;
-    }
+    public Task<ApiCallResult<object?>> CancelMaintenanceOrderAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendWithResultAsync<object?>(HttpMethod.Put, $"api/v1/fixed-assets/maintenance-orders/{id}/cancel", accessToken, null, ct);
 
     public Task<PagedResult<FixedAssetDisposalDto>?> GetDisposalsAsync(string accessToken, FixedAssetDisposalPagedRequest request, CancellationToken ct = default)
     {
@@ -251,41 +215,29 @@ public sealed class FixedAssetsApiClient(HttpClient httpClient, ILogger<FixedAss
         AddDateParameter(parameters, "disposalDateFrom", request.DisposalDateFrom);
         AddDateParameter(parameters, "disposalDateTo", request.DisposalDateTo);
 
-        return SendAsync<PagedResult<FixedAssetDisposalDto>>(HttpMethod.Get, $"api/v1/fixed-assets/disposals?{string.Join("&", parameters)}", accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<FixedAssetDisposalDto>>(HttpMethod.Get, $"api/v1/fixed-assets/disposals?{string.Join("&", parameters)}", accessToken, null, ct).ToDataAsync();
     }
 
     public Task<FixedAssetDisposalDto?> GetDisposalByIdAsync(string accessToken, int id, CancellationToken ct = default)
-        => SendAsync<FixedAssetDisposalDto>(HttpMethod.Get, $"api/v1/fixed-assets/disposals/{id}", accessToken, null, ct);
+        => SendWithResultAsync<FixedAssetDisposalDto>(HttpMethod.Get, $"api/v1/fixed-assets/disposals/{id}", accessToken, null, ct).ToDataAsync();
 
-    public Task<FixedAssetDisposalDto?> CreateDisposalAsync(string accessToken, FixedAssetDisposalDto request, CancellationToken ct = default)
-        => SendAsync<FixedAssetDisposalDto>(HttpMethod.Post, "api/v1/fixed-assets/disposals", accessToken, request, ct);
+    public Task<ApiCallResult<FixedAssetDisposalDto>> CreateDisposalAsync(string accessToken, FixedAssetDisposalDto request, CancellationToken ct = default)
+        => SendWithResultAsync<FixedAssetDisposalDto>(HttpMethod.Post, "api/v1/fixed-assets/disposals", accessToken, request, ct);
 
-    public Task<FixedAssetDisposalDto?> UpdateDisposalAsync(string accessToken, int id, FixedAssetDisposalDto request, CancellationToken ct = default)
-        => SendAsync<FixedAssetDisposalDto>(HttpMethod.Put, $"api/v1/fixed-assets/disposals/{id}", accessToken, request, ct);
+    public Task<ApiCallResult<FixedAssetDisposalDto>> UpdateDisposalAsync(string accessToken, int id, FixedAssetDisposalDto request, CancellationToken ct = default)
+        => SendWithResultAsync<FixedAssetDisposalDto>(HttpMethod.Put, $"api/v1/fixed-assets/disposals/{id}", accessToken, request, ct);
 
-    public async Task<bool> DeleteDisposalAsync(string accessToken, int id, CancellationToken ct = default)
-    {
-        var response = await SendRawAsync(HttpMethod.Delete, $"api/v1/fixed-assets/disposals/{id}", accessToken, null, ct);
-        return response?.IsSuccessStatusCode == true;
-    }
+    public Task<ApiCallResult<object?>> DeleteDisposalAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendWithResultAsync<object?>(HttpMethod.Delete, $"api/v1/fixed-assets/disposals/{id}", accessToken, null, ct);
 
-    public async Task<bool> ApproveDisposalAsync(string accessToken, int id, CancellationToken ct = default)
-    {
-        var response = await SendRawAsync(HttpMethod.Put, $"api/v1/fixed-assets/disposals/{id}/approve", accessToken, null, ct);
-        return response?.IsSuccessStatusCode == true;
-    }
+    public Task<ApiCallResult<object?>> ApproveDisposalAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendWithResultAsync<object?>(HttpMethod.Put, $"api/v1/fixed-assets/disposals/{id}/approve", accessToken, null, ct);
 
-    public async Task<bool> PostDisposalAsync(string accessToken, int id, CancellationToken ct = default)
-    {
-        var response = await SendRawAsync(HttpMethod.Put, $"api/v1/fixed-assets/disposals/{id}/post", accessToken, null, ct);
-        return response?.IsSuccessStatusCode == true;
-    }
+    public Task<ApiCallResult<object?>> PostDisposalAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendWithResultAsync<object?>(HttpMethod.Put, $"api/v1/fixed-assets/disposals/{id}/post", accessToken, null, ct);
 
-    public async Task<bool> CancelDisposalAsync(string accessToken, int id, CancellationToken ct = default)
-    {
-        var response = await SendRawAsync(HttpMethod.Put, $"api/v1/fixed-assets/disposals/{id}/cancel", accessToken, null, ct);
-        return response?.IsSuccessStatusCode == true;
-    }
+    public Task<ApiCallResult<object?>> CancelDisposalAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendWithResultAsync<object?>(HttpMethod.Put, $"api/v1/fixed-assets/disposals/{id}/cancel", accessToken, null, ct);
 
     public Task<PagedResult<FixedAssetRevaluationDto>?> GetRevaluationsAsync(string accessToken, FixedAssetRevaluationPagedRequest request, CancellationToken ct = default)
     {
@@ -296,35 +248,26 @@ public sealed class FixedAssetsApiClient(HttpClient httpClient, ILogger<FixedAss
         AddDateParameter(parameters, "revaluationDateFrom", request.RevaluationDateFrom);
         AddDateParameter(parameters, "revaluationDateTo", request.RevaluationDateTo);
 
-        return SendAsync<PagedResult<FixedAssetRevaluationDto>>(HttpMethod.Get, $"api/v1/fixed-assets/revaluations?{string.Join("&", parameters)}", accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<FixedAssetRevaluationDto>>(HttpMethod.Get, $"api/v1/fixed-assets/revaluations?{string.Join("&", parameters)}", accessToken, null, ct).ToDataAsync();
     }
 
     public Task<FixedAssetRevaluationDto?> GetRevaluationByIdAsync(string accessToken, int id, CancellationToken ct = default)
-        => SendAsync<FixedAssetRevaluationDto>(HttpMethod.Get, $"api/v1/fixed-assets/revaluations/{id}", accessToken, null, ct);
+        => SendWithResultAsync<FixedAssetRevaluationDto>(HttpMethod.Get, $"api/v1/fixed-assets/revaluations/{id}", accessToken, null, ct).ToDataAsync();
 
-    public Task<FixedAssetRevaluationDto?> CreateRevaluationAsync(string accessToken, FixedAssetRevaluationDto request, CancellationToken ct = default)
-        => SendAsync<FixedAssetRevaluationDto>(HttpMethod.Post, "api/v1/fixed-assets/revaluations", accessToken, request, ct);
+    public Task<ApiCallResult<FixedAssetRevaluationDto>> CreateRevaluationAsync(string accessToken, FixedAssetRevaluationDto request, CancellationToken ct = default)
+        => SendWithResultAsync<FixedAssetRevaluationDto>(HttpMethod.Post, "api/v1/fixed-assets/revaluations", accessToken, request, ct);
 
-    public Task<FixedAssetRevaluationDto?> UpdateRevaluationAsync(string accessToken, int id, FixedAssetRevaluationDto request, CancellationToken ct = default)
-        => SendAsync<FixedAssetRevaluationDto>(HttpMethod.Put, $"api/v1/fixed-assets/revaluations/{id}", accessToken, request, ct);
+    public Task<ApiCallResult<FixedAssetRevaluationDto>> UpdateRevaluationAsync(string accessToken, int id, FixedAssetRevaluationDto request, CancellationToken ct = default)
+        => SendWithResultAsync<FixedAssetRevaluationDto>(HttpMethod.Put, $"api/v1/fixed-assets/revaluations/{id}", accessToken, request, ct);
 
-    public async Task<bool> DeleteRevaluationAsync(string accessToken, int id, CancellationToken ct = default)
-    {
-        var response = await SendRawAsync(HttpMethod.Delete, $"api/v1/fixed-assets/revaluations/{id}", accessToken, null, ct);
-        return response?.IsSuccessStatusCode == true;
-    }
+    public Task<ApiCallResult<object?>> DeleteRevaluationAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendWithResultAsync<object?>(HttpMethod.Delete, $"api/v1/fixed-assets/revaluations/{id}", accessToken, null, ct);
 
-    public async Task<bool> ApproveRevaluationAsync(string accessToken, int id, CancellationToken ct = default)
-    {
-        var response = await SendRawAsync(HttpMethod.Put, $"api/v1/fixed-assets/revaluations/{id}/approve", accessToken, null, ct);
-        return response?.IsSuccessStatusCode == true;
-    }
+    public Task<ApiCallResult<object?>> ApproveRevaluationAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendWithResultAsync<object?>(HttpMethod.Put, $"api/v1/fixed-assets/revaluations/{id}/approve", accessToken, null, ct);
 
-    public async Task<bool> PostRevaluationAsync(string accessToken, int id, CancellationToken ct = default)
-    {
-        var response = await SendRawAsync(HttpMethod.Put, $"api/v1/fixed-assets/revaluations/{id}/post", accessToken, null, ct);
-        return response?.IsSuccessStatusCode == true;
-    }
+    public Task<ApiCallResult<object?>> PostRevaluationAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendWithResultAsync<object?>(HttpMethod.Put, $"api/v1/fixed-assets/revaluations/{id}/post", accessToken, null, ct);
 
     private static void AddPagedParameters(List<string> parameters, PagedRequest request)
     {
@@ -400,4 +343,5 @@ public sealed class FixedAssetsApiClient(HttpClient httpClient, ILogger<FixedAss
         }
     }
 }
+
 

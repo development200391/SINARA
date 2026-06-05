@@ -1,4 +1,4 @@
-﻿using ERP.Application.DTOs.Common;
+using ERP.Application.DTOs.Common;
 using ERP.Application.DTOs.Inventory;
 using ERP.Domain.Enums.Inventory;
 using ERP.Web.ViewModels.Inventory;
@@ -114,9 +114,9 @@ public sealed partial class InventoryController
         }
 
         var created = await inventoryApiClient.CreateGoodsReceiptAsync(accessToken, MapGoodsReceiptDto(model), ct);
-        if (created is null)
+        if (!created.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to create goods receipt.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(created.ErrorMessage) ? "Failed to create goods receipt." : created.ErrorMessage);
             ViewData["Title"] = "Create Goods Receipt";
             ViewData["Breadcrumb"] = "Inventory / Goods Receipts / Create";
             return View("GoodsReceipts/Create", model);
@@ -190,9 +190,9 @@ public sealed partial class InventoryController
         }
 
         var updated = await inventoryApiClient.UpdateGoodsReceiptAsync(accessToken, id, MapGoodsReceiptDto(model), ct);
-        if (updated is null)
+        if (!updated.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to update goods receipt.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(updated.ErrorMessage) ? "Failed to update goods receipt." : updated.ErrorMessage);
             ViewData["Title"] = "Edit Goods Receipt";
             ViewData["Breadcrumb"] = "Inventory / Goods Receipts / Edit";
             return View("GoodsReceipts/Edit", model);
@@ -213,7 +213,7 @@ public sealed partial class InventoryController
         }
 
         var deleted = await inventoryApiClient.DeleteGoodsReceiptAsync(accessToken, id, ct);
-        TempData[deleted ? "SuccessMessage" : "ErrorMessage"] = deleted ? "Goods receipt deleted." : "Failed to delete goods receipt.";
+        TempData[deleted.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = deleted.IsSuccess ? "Goods receipt deleted." : (string.IsNullOrWhiteSpace(deleted.ErrorMessage) ? "Failed to delete goods receipt." : deleted.ErrorMessage);
         return RedirectToAction(nameof(GoodsReceipts));
     }
 
@@ -228,7 +228,7 @@ public sealed partial class InventoryController
         }
 
         var ok = await inventoryApiClient.ConfirmGoodsReceiptAsync(accessToken, id, ct);
-        TempData[ok ? "SuccessMessage" : "ErrorMessage"] = ok ? "Goods receipt confirmed." : "Failed to confirm goods receipt.";
+        TempData[ok.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = ok.IsSuccess ? "Goods receipt confirmed." : (string.IsNullOrWhiteSpace(ok.ErrorMessage) ? "Failed to confirm goods receipt." : ok.ErrorMessage);
         return RedirectToAction(nameof(GoodsReceipts));
     }
 
@@ -243,7 +243,7 @@ public sealed partial class InventoryController
         }
 
         var ok = await inventoryApiClient.CancelGoodsReceiptAsync(accessToken, id, ct);
-        TempData[ok ? "SuccessMessage" : "ErrorMessage"] = ok ? "Goods receipt cancelled." : "Failed to cancel goods receipt.";
+        TempData[ok.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = ok.IsSuccess ? "Goods receipt cancelled." : (string.IsNullOrWhiteSpace(ok.ErrorMessage) ? "Failed to cancel goods receipt." : ok.ErrorMessage);
         return RedirectToAction(nameof(GoodsReceipts));
     }
 

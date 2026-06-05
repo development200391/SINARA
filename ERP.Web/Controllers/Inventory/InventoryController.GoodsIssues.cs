@@ -116,9 +116,9 @@ public sealed partial class InventoryController
         }
 
         var created = await inventoryApiClient.CreateGoodsIssueAsync(accessToken, MapGoodsIssueDto(model), ct);
-        if (created is null)
+        if (!created.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to create goods issue.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(created.ErrorMessage) ? "Failed to create goods issue." : created.ErrorMessage);
             ViewData["Title"] = "Create Goods Issue";
             ViewData["Breadcrumb"] = "Inventory / Goods Issues / Create";
             return View("GoodsIssues/Create", model);
@@ -194,9 +194,9 @@ public sealed partial class InventoryController
         }
 
         var updated = await inventoryApiClient.UpdateGoodsIssueAsync(accessToken, id, MapGoodsIssueDto(model), ct);
-        if (updated is null)
+        if (!updated.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to update goods issue.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(updated.ErrorMessage) ? "Failed to update goods issue." : updated.ErrorMessage);
             ViewData["Title"] = "Edit Goods Issue";
             ViewData["Breadcrumb"] = "Inventory / Goods Issues / Edit";
             return View("GoodsIssues/Edit", model);
@@ -217,7 +217,7 @@ public sealed partial class InventoryController
         }
 
         var deleted = await inventoryApiClient.DeleteGoodsIssueAsync(accessToken, id, ct);
-        TempData[deleted ? "SuccessMessage" : "ErrorMessage"] = deleted ? "Goods issue deleted." : "Failed to delete goods issue.";
+        TempData[deleted.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = deleted.IsSuccess ? "Goods issue deleted." : (string.IsNullOrWhiteSpace(deleted.ErrorMessage) ? "Failed to delete goods issue." : deleted.ErrorMessage);
         return RedirectToAction(nameof(GoodsIssues));
     }
 
@@ -232,7 +232,7 @@ public sealed partial class InventoryController
         }
 
         var ok = await inventoryApiClient.ConfirmGoodsIssueAsync(accessToken, id, ct);
-        TempData[ok ? "SuccessMessage" : "ErrorMessage"] = ok ? "Goods issue confirmed." : "Failed to confirm goods issue.";
+        TempData[ok.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = ok.IsSuccess ? "Goods issue confirmed." : (string.IsNullOrWhiteSpace(ok.ErrorMessage) ? "Failed to confirm goods issue." : ok.ErrorMessage);
         return RedirectToAction(nameof(GoodsIssues));
     }
 
@@ -247,7 +247,7 @@ public sealed partial class InventoryController
         }
 
         var ok = await inventoryApiClient.CancelGoodsIssueAsync(accessToken, id, ct);
-        TempData[ok ? "SuccessMessage" : "ErrorMessage"] = ok ? "Goods issue cancelled." : "Failed to cancel goods issue.";
+        TempData[ok.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = ok.IsSuccess ? "Goods issue cancelled." : (string.IsNullOrWhiteSpace(ok.ErrorMessage) ? "Failed to cancel goods issue." : ok.ErrorMessage);
         return RedirectToAction(nameof(GoodsIssues));
     }
 

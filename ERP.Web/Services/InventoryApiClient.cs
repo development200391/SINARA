@@ -31,26 +31,23 @@ public sealed class InventoryApiClient(HttpClient httpClient, ILogger<InventoryA
         }
 
         var query = $"api/v1/inventory/categories?{string.Join("&", parameters)}";
-        return SendAsync<PagedResult<ItemCategoryDto>>(HttpMethod.Get, query, accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<ItemCategoryDto>>(HttpMethod.Get, query, accessToken, null, ct).ToDataAsync();
     }
 
     public async Task<IReadOnlyList<InventoryOptionDto>> GetCategoryOptionsAsync(string accessToken, CancellationToken ct = default)
-        => await SendAsync<IReadOnlyList<InventoryOptionDto>>(HttpMethod.Get, "api/v1/inventory/categories/options", accessToken, null, ct) ?? [];
+        => await SendWithResultAsync<IReadOnlyList<InventoryOptionDto>>(HttpMethod.Get, "api/v1/inventory/categories/options", accessToken, null, ct).ToDataAsync() ?? [];
 
     public Task<ItemCategoryDto?> GetCategoryByIdAsync(string accessToken, int id, CancellationToken ct = default)
-        => SendAsync<ItemCategoryDto>(HttpMethod.Get, $"api/v1/inventory/categories/{id}", accessToken, null, ct);
+        => SendWithResultAsync<ItemCategoryDto>(HttpMethod.Get, $"api/v1/inventory/categories/{id}", accessToken, null, ct).ToDataAsync();
 
-    public Task<ItemCategoryDto?> CreateCategoryAsync(string accessToken, ItemCategoryDto request, CancellationToken ct = default)
-        => SendAsync<ItemCategoryDto>(HttpMethod.Post, "api/v1/inventory/categories", accessToken, request, ct);
+    public Task<ApiCallResult<ItemCategoryDto>> CreateCategoryAsync(string accessToken, ItemCategoryDto request, CancellationToken ct = default)
+        => SendWithResultAsync<ItemCategoryDto>(HttpMethod.Post, "api/v1/inventory/categories", accessToken, request, ct);
 
-    public Task<ItemCategoryDto?> UpdateCategoryAsync(string accessToken, int id, ItemCategoryDto request, CancellationToken ct = default)
-        => SendAsync<ItemCategoryDto>(HttpMethod.Put, $"api/v1/inventory/categories/{id}", accessToken, request, ct);
+    public Task<ApiCallResult<ItemCategoryDto>> UpdateCategoryAsync(string accessToken, int id, ItemCategoryDto request, CancellationToken ct = default)
+        => SendWithResultAsync<ItemCategoryDto>(HttpMethod.Put, $"api/v1/inventory/categories/{id}", accessToken, request, ct);
 
-    public async Task<bool> DeleteCategoryAsync(string accessToken, int id, CancellationToken ct = default)
-    {
-        var response = await SendRawAsync(HttpMethod.Delete, $"api/v1/inventory/categories/{id}", accessToken, null, ct);
-        return response?.IsSuccessStatusCode == true;
-    }
+    public Task<ApiCallResult<object?>> DeleteCategoryAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendWithResultAsync<object?>(HttpMethod.Delete, $"api/v1/inventory/categories/{id}", accessToken, null, ct);
 
     public Task<PagedResult<UnitOfMeasureDto>?> GetUnitsAsync(string accessToken, UnitOfMeasurePagedRequest request, CancellationToken ct = default)
     {
@@ -73,26 +70,23 @@ public sealed class InventoryApiClient(HttpClient httpClient, ILogger<InventoryA
         }
 
         var query = $"api/v1/inventory/units?{string.Join("&", parameters)}";
-        return SendAsync<PagedResult<UnitOfMeasureDto>>(HttpMethod.Get, query, accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<UnitOfMeasureDto>>(HttpMethod.Get, query, accessToken, null, ct).ToDataAsync();
     }
 
     public async Task<IReadOnlyList<InventoryOptionDto>> GetUnitOptionsAsync(string accessToken, CancellationToken ct = default)
-        => await SendAsync<IReadOnlyList<InventoryOptionDto>>(HttpMethod.Get, "api/v1/inventory/units/options", accessToken, null, ct) ?? [];
+        => await SendWithResultAsync<IReadOnlyList<InventoryOptionDto>>(HttpMethod.Get, "api/v1/inventory/units/options", accessToken, null, ct).ToDataAsync() ?? [];
 
     public Task<UnitOfMeasureDto?> GetUnitByIdAsync(string accessToken, int id, CancellationToken ct = default)
-        => SendAsync<UnitOfMeasureDto>(HttpMethod.Get, $"api/v1/inventory/units/{id}", accessToken, null, ct);
+        => SendWithResultAsync<UnitOfMeasureDto>(HttpMethod.Get, $"api/v1/inventory/units/{id}", accessToken, null, ct).ToDataAsync();
 
-    public Task<UnitOfMeasureDto?> CreateUnitAsync(string accessToken, UnitOfMeasureDto request, CancellationToken ct = default)
-        => SendAsync<UnitOfMeasureDto>(HttpMethod.Post, "api/v1/inventory/units", accessToken, request, ct);
+    public Task<ApiCallResult<UnitOfMeasureDto>> CreateUnitAsync(string accessToken, UnitOfMeasureDto request, CancellationToken ct = default)
+        => SendWithResultAsync<UnitOfMeasureDto>(HttpMethod.Post, "api/v1/inventory/units", accessToken, request, ct);
 
-    public Task<UnitOfMeasureDto?> UpdateUnitAsync(string accessToken, int id, UnitOfMeasureDto request, CancellationToken ct = default)
-        => SendAsync<UnitOfMeasureDto>(HttpMethod.Put, $"api/v1/inventory/units/{id}", accessToken, request, ct);
+    public Task<ApiCallResult<UnitOfMeasureDto>> UpdateUnitAsync(string accessToken, int id, UnitOfMeasureDto request, CancellationToken ct = default)
+        => SendWithResultAsync<UnitOfMeasureDto>(HttpMethod.Put, $"api/v1/inventory/units/{id}", accessToken, request, ct);
 
-    public async Task<bool> DeleteUnitAsync(string accessToken, int id, CancellationToken ct = default)
-    {
-        var response = await SendRawAsync(HttpMethod.Delete, $"api/v1/inventory/units/{id}", accessToken, null, ct);
-        return response?.IsSuccessStatusCode == true;
-    }
+    public Task<ApiCallResult<object?>> DeleteUnitAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendWithResultAsync<object?>(HttpMethod.Delete, $"api/v1/inventory/units/{id}", accessToken, null, ct);
 
     public Task<PagedResult<BrandDto>?> GetBrandsAsync(string accessToken, BrandPagedRequest request, CancellationToken ct = default)
     {
@@ -110,26 +104,23 @@ public sealed class InventoryApiClient(HttpClient httpClient, ILogger<InventoryA
         }
 
         var query = $"api/v1/inventory/brands?{string.Join("&", parameters)}";
-        return SendAsync<PagedResult<BrandDto>>(HttpMethod.Get, query, accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<BrandDto>>(HttpMethod.Get, query, accessToken, null, ct).ToDataAsync();
     }
 
     public async Task<IReadOnlyList<InventoryOptionDto>> GetBrandOptionsAsync(string accessToken, CancellationToken ct = default)
-        => await SendAsync<IReadOnlyList<InventoryOptionDto>>(HttpMethod.Get, "api/v1/inventory/brands/options", accessToken, null, ct) ?? [];
+        => await SendWithResultAsync<IReadOnlyList<InventoryOptionDto>>(HttpMethod.Get, "api/v1/inventory/brands/options", accessToken, null, ct).ToDataAsync() ?? [];
 
     public Task<BrandDto?> GetBrandByIdAsync(string accessToken, int id, CancellationToken ct = default)
-        => SendAsync<BrandDto>(HttpMethod.Get, $"api/v1/inventory/brands/{id}", accessToken, null, ct);
+        => SendWithResultAsync<BrandDto>(HttpMethod.Get, $"api/v1/inventory/brands/{id}", accessToken, null, ct).ToDataAsync();
 
-    public Task<BrandDto?> CreateBrandAsync(string accessToken, BrandDto request, CancellationToken ct = default)
-        => SendAsync<BrandDto>(HttpMethod.Post, "api/v1/inventory/brands", accessToken, request, ct);
+    public Task<ApiCallResult<BrandDto>> CreateBrandAsync(string accessToken, BrandDto request, CancellationToken ct = default)
+        => SendWithResultAsync<BrandDto>(HttpMethod.Post, "api/v1/inventory/brands", accessToken, request, ct);
 
-    public Task<BrandDto?> UpdateBrandAsync(string accessToken, int id, BrandDto request, CancellationToken ct = default)
-        => SendAsync<BrandDto>(HttpMethod.Put, $"api/v1/inventory/brands/{id}", accessToken, request, ct);
+    public Task<ApiCallResult<BrandDto>> UpdateBrandAsync(string accessToken, int id, BrandDto request, CancellationToken ct = default)
+        => SendWithResultAsync<BrandDto>(HttpMethod.Put, $"api/v1/inventory/brands/{id}", accessToken, request, ct);
 
-    public async Task<bool> DeleteBrandAsync(string accessToken, int id, CancellationToken ct = default)
-    {
-        var response = await SendRawAsync(HttpMethod.Delete, $"api/v1/inventory/brands/{id}", accessToken, null, ct);
-        return response?.IsSuccessStatusCode == true;
-    }
+    public Task<ApiCallResult<object?>> DeleteBrandAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendWithResultAsync<object?>(HttpMethod.Delete, $"api/v1/inventory/brands/{id}", accessToken, null, ct);
 
     public Task<PagedResult<ItemDto>?> GetItemsAsync(string accessToken, ItemPagedRequest request, CancellationToken ct = default)
         => GetItemsCoreAsync(accessToken, request, "api/v1/inventory/items", ct);
@@ -138,22 +129,19 @@ public sealed class InventoryApiClient(HttpClient httpClient, ILogger<InventoryA
         => GetItemsCoreAsync(accessToken, request, "api/v1/inventory/items/low-stock", ct);
 
     public async Task<IReadOnlyList<InventoryOptionDto>> GetItemOptionsAsync(string accessToken, CancellationToken ct = default)
-        => await SendAsync<IReadOnlyList<InventoryOptionDto>>(HttpMethod.Get, "api/v1/inventory/items/options", accessToken, null, ct) ?? [];
+        => await SendWithResultAsync<IReadOnlyList<InventoryOptionDto>>(HttpMethod.Get, "api/v1/inventory/items/options", accessToken, null, ct).ToDataAsync() ?? [];
 
     public Task<ItemDto?> GetItemByIdAsync(string accessToken, int id, CancellationToken ct = default)
-        => SendAsync<ItemDto>(HttpMethod.Get, $"api/v1/inventory/items/{id}", accessToken, null, ct);
+        => SendWithResultAsync<ItemDto>(HttpMethod.Get, $"api/v1/inventory/items/{id}", accessToken, null, ct).ToDataAsync();
 
-    public Task<ItemDto?> CreateItemAsync(string accessToken, ItemDto request, CancellationToken ct = default)
-        => SendAsync<ItemDto>(HttpMethod.Post, "api/v1/inventory/items", accessToken, request, ct);
+    public Task<ApiCallResult<ItemDto>> CreateItemAsync(string accessToken, ItemDto request, CancellationToken ct = default)
+        => SendWithResultAsync<ItemDto>(HttpMethod.Post, "api/v1/inventory/items", accessToken, request, ct);
 
-    public Task<ItemDto?> UpdateItemAsync(string accessToken, int id, ItemDto request, CancellationToken ct = default)
-        => SendAsync<ItemDto>(HttpMethod.Put, $"api/v1/inventory/items/{id}", accessToken, request, ct);
+    public Task<ApiCallResult<ItemDto>> UpdateItemAsync(string accessToken, int id, ItemDto request, CancellationToken ct = default)
+        => SendWithResultAsync<ItemDto>(HttpMethod.Put, $"api/v1/inventory/items/{id}", accessToken, request, ct);
 
-    public async Task<bool> DeleteItemAsync(string accessToken, int id, CancellationToken ct = default)
-    {
-        var response = await SendRawAsync(HttpMethod.Delete, $"api/v1/inventory/items/{id}", accessToken, null, ct);
-        return response?.IsSuccessStatusCode == true;
-    }
+    public Task<ApiCallResult<object?>> DeleteItemAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendWithResultAsync<object?>(HttpMethod.Delete, $"api/v1/inventory/items/{id}", accessToken, null, ct);
 
     public Task<PagedResult<ItemUnitConversionDto>?> GetItemConversionsAsync(string accessToken, ItemUnitConversionPagedRequest request, CancellationToken ct = default)
     {
@@ -191,23 +179,20 @@ public sealed class InventoryApiClient(HttpClient httpClient, ILogger<InventoryA
         }
 
         var query = $"api/v1/inventory/item-conversions?{string.Join("&", parameters)}";
-        return SendAsync<PagedResult<ItemUnitConversionDto>>(HttpMethod.Get, query, accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<ItemUnitConversionDto>>(HttpMethod.Get, query, accessToken, null, ct).ToDataAsync();
     }
 
     public Task<ItemUnitConversionDto?> GetItemConversionByIdAsync(string accessToken, int id, CancellationToken ct = default)
-        => SendAsync<ItemUnitConversionDto>(HttpMethod.Get, $"api/v1/inventory/item-conversions/{id}", accessToken, null, ct);
+        => SendWithResultAsync<ItemUnitConversionDto>(HttpMethod.Get, $"api/v1/inventory/item-conversions/{id}", accessToken, null, ct).ToDataAsync();
 
-    public Task<ItemUnitConversionDto?> CreateItemConversionAsync(string accessToken, ItemUnitConversionDto request, CancellationToken ct = default)
-        => SendAsync<ItemUnitConversionDto>(HttpMethod.Post, "api/v1/inventory/item-conversions", accessToken, request, ct);
+    public Task<ApiCallResult<ItemUnitConversionDto>> CreateItemConversionAsync(string accessToken, ItemUnitConversionDto request, CancellationToken ct = default)
+        => SendWithResultAsync<ItemUnitConversionDto>(HttpMethod.Post, "api/v1/inventory/item-conversions", accessToken, request, ct);
 
-    public Task<ItemUnitConversionDto?> UpdateItemConversionAsync(string accessToken, int id, ItemUnitConversionDto request, CancellationToken ct = default)
-        => SendAsync<ItemUnitConversionDto>(HttpMethod.Put, $"api/v1/inventory/item-conversions/{id}", accessToken, request, ct);
+    public Task<ApiCallResult<ItemUnitConversionDto>> UpdateItemConversionAsync(string accessToken, int id, ItemUnitConversionDto request, CancellationToken ct = default)
+        => SendWithResultAsync<ItemUnitConversionDto>(HttpMethod.Put, $"api/v1/inventory/item-conversions/{id}", accessToken, request, ct);
 
-    public async Task<bool> DeleteItemConversionAsync(string accessToken, int id, CancellationToken ct = default)
-    {
-        var response = await SendRawAsync(HttpMethod.Delete, $"api/v1/inventory/item-conversions/{id}", accessToken, null, ct);
-        return response?.IsSuccessStatusCode == true;
-    }
+    public Task<ApiCallResult<object?>> DeleteItemConversionAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendWithResultAsync<object?>(HttpMethod.Delete, $"api/v1/inventory/item-conversions/{id}", accessToken, null, ct);
 
     public Task<PagedResult<WarehouseDto>?> GetWarehousesAsync(string accessToken, WarehousePagedRequest request, CancellationToken ct = default)
     {
@@ -245,26 +230,23 @@ public sealed class InventoryApiClient(HttpClient httpClient, ILogger<InventoryA
         }
 
         var query = $"api/v1/inventory/warehouses?{string.Join("&", parameters)}";
-        return SendAsync<PagedResult<WarehouseDto>>(HttpMethod.Get, query, accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<WarehouseDto>>(HttpMethod.Get, query, accessToken, null, ct).ToDataAsync();
     }
 
     public async Task<IReadOnlyList<InventoryOptionDto>> GetWarehouseOptionsAsync(string accessToken, CancellationToken ct = default)
-        => await SendAsync<IReadOnlyList<InventoryOptionDto>>(HttpMethod.Get, "api/v1/inventory/warehouses/options", accessToken, null, ct) ?? [];
+        => await SendWithResultAsync<IReadOnlyList<InventoryOptionDto>>(HttpMethod.Get, "api/v1/inventory/warehouses/options", accessToken, null, ct).ToDataAsync() ?? [];
 
     public Task<WarehouseDto?> GetWarehouseByIdAsync(string accessToken, int id, CancellationToken ct = default)
-        => SendAsync<WarehouseDto>(HttpMethod.Get, $"api/v1/inventory/warehouses/{id}", accessToken, null, ct);
+        => SendWithResultAsync<WarehouseDto>(HttpMethod.Get, $"api/v1/inventory/warehouses/{id}", accessToken, null, ct).ToDataAsync();
 
-    public Task<WarehouseDto?> CreateWarehouseAsync(string accessToken, WarehouseDto request, CancellationToken ct = default)
-        => SendAsync<WarehouseDto>(HttpMethod.Post, "api/v1/inventory/warehouses", accessToken, request, ct);
+    public Task<ApiCallResult<WarehouseDto>> CreateWarehouseAsync(string accessToken, WarehouseDto request, CancellationToken ct = default)
+        => SendWithResultAsync<WarehouseDto>(HttpMethod.Post, "api/v1/inventory/warehouses", accessToken, request, ct);
 
-    public Task<WarehouseDto?> UpdateWarehouseAsync(string accessToken, int id, WarehouseDto request, CancellationToken ct = default)
-        => SendAsync<WarehouseDto>(HttpMethod.Put, $"api/v1/inventory/warehouses/{id}", accessToken, request, ct);
+    public Task<ApiCallResult<WarehouseDto>> UpdateWarehouseAsync(string accessToken, int id, WarehouseDto request, CancellationToken ct = default)
+        => SendWithResultAsync<WarehouseDto>(HttpMethod.Put, $"api/v1/inventory/warehouses/{id}", accessToken, request, ct);
 
-    public async Task<bool> DeleteWarehouseAsync(string accessToken, int id, CancellationToken ct = default)
-    {
-        var response = await SendRawAsync(HttpMethod.Delete, $"api/v1/inventory/warehouses/{id}", accessToken, null, ct);
-        return response?.IsSuccessStatusCode == true;
-    }
+    public Task<ApiCallResult<object?>> DeleteWarehouseAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendWithResultAsync<object?>(HttpMethod.Delete, $"api/v1/inventory/warehouses/{id}", accessToken, null, ct);
 
     public Task<PagedResult<WarehouseLocationDto>?> GetWarehouseLocationsAsync(string accessToken, int warehouseId, WarehouseLocationPagedRequest request, CancellationToken ct = default)
     {
@@ -292,26 +274,23 @@ public sealed class InventoryApiClient(HttpClient httpClient, ILogger<InventoryA
         }
 
         var query = $"api/v1/inventory/warehouses/{warehouseId}/locations?{string.Join("&", parameters)}";
-        return SendAsync<PagedResult<WarehouseLocationDto>>(HttpMethod.Get, query, accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<WarehouseLocationDto>>(HttpMethod.Get, query, accessToken, null, ct).ToDataAsync();
     }
 
     public async Task<IReadOnlyList<InventoryOptionDto>> GetWarehouseLocationOptionsAsync(string accessToken, int warehouseId, CancellationToken ct = default)
-        => await SendAsync<IReadOnlyList<InventoryOptionDto>>(HttpMethod.Get, $"api/v1/inventory/warehouses/{warehouseId}/locations/options", accessToken, null, ct) ?? [];
+        => await SendWithResultAsync<IReadOnlyList<InventoryOptionDto>>(HttpMethod.Get, $"api/v1/inventory/warehouses/{warehouseId}/locations/options", accessToken, null, ct).ToDataAsync() ?? [];
 
     public Task<WarehouseLocationDto?> GetWarehouseLocationByIdAsync(string accessToken, int warehouseId, int id, CancellationToken ct = default)
-        => SendAsync<WarehouseLocationDto>(HttpMethod.Get, $"api/v1/inventory/warehouses/{warehouseId}/locations/{id}", accessToken, null, ct);
+        => SendWithResultAsync<WarehouseLocationDto>(HttpMethod.Get, $"api/v1/inventory/warehouses/{warehouseId}/locations/{id}", accessToken, null, ct).ToDataAsync();
 
-    public Task<WarehouseLocationDto?> CreateWarehouseLocationAsync(string accessToken, int warehouseId, WarehouseLocationDto request, CancellationToken ct = default)
-        => SendAsync<WarehouseLocationDto>(HttpMethod.Post, $"api/v1/inventory/warehouses/{warehouseId}/locations", accessToken, request, ct);
+    public Task<ApiCallResult<WarehouseLocationDto>> CreateWarehouseLocationAsync(string accessToken, int warehouseId, WarehouseLocationDto request, CancellationToken ct = default)
+        => SendWithResultAsync<WarehouseLocationDto>(HttpMethod.Post, $"api/v1/inventory/warehouses/{warehouseId}/locations", accessToken, request, ct);
 
-    public Task<WarehouseLocationDto?> UpdateWarehouseLocationAsync(string accessToken, int warehouseId, int id, WarehouseLocationDto request, CancellationToken ct = default)
-        => SendAsync<WarehouseLocationDto>(HttpMethod.Put, $"api/v1/inventory/warehouses/{warehouseId}/locations/{id}", accessToken, request, ct);
+    public Task<ApiCallResult<WarehouseLocationDto>> UpdateWarehouseLocationAsync(string accessToken, int warehouseId, int id, WarehouseLocationDto request, CancellationToken ct = default)
+        => SendWithResultAsync<WarehouseLocationDto>(HttpMethod.Put, $"api/v1/inventory/warehouses/{warehouseId}/locations/{id}", accessToken, request, ct);
 
-    public async Task<bool> DeleteWarehouseLocationAsync(string accessToken, int warehouseId, int id, CancellationToken ct = default)
-    {
-        var response = await SendRawAsync(HttpMethod.Delete, $"api/v1/inventory/warehouses/{warehouseId}/locations/{id}", accessToken, null, ct);
-        return response?.IsSuccessStatusCode == true;
-    }
+    public Task<ApiCallResult<object?>> DeleteWarehouseLocationAsync(string accessToken, int warehouseId, int id, CancellationToken ct = default)
+        => SendWithResultAsync<object?>(HttpMethod.Delete, $"api/v1/inventory/warehouses/{warehouseId}/locations/{id}", accessToken, null, ct);
 
     public Task<PagedResult<StockBalanceDto>?> GetWarehouseStockAsync(string accessToken, int warehouseId, StockBalancePagedRequest request, CancellationToken ct = default)
         => GetStockCoreAsync(accessToken, request, $"api/v1/inventory/warehouses/{warehouseId}/stock", ct);
@@ -351,26 +330,26 @@ public sealed class InventoryApiClient(HttpClient httpClient, ILogger<InventoryA
             parameters.Add($"supplierName={Uri.EscapeDataString(request.SupplierName.Trim())}");
         }
 
-        return SendAsync<PagedResult<GoodsReceiptDto>>(HttpMethod.Get, BuildQuery("api/v1/inventory/goods-receipts", parameters), accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<GoodsReceiptDto>>(HttpMethod.Get, BuildQuery("api/v1/inventory/goods-receipts", parameters), accessToken, null, ct).ToDataAsync();
     }
 
     public Task<GoodsReceiptDto?> GetGoodsReceiptByIdAsync(string accessToken, int id, CancellationToken ct = default)
-        => SendAsync<GoodsReceiptDto>(HttpMethod.Get, $"api/v1/inventory/goods-receipts/{id}", accessToken, null, ct);
+        => SendWithResultAsync<GoodsReceiptDto>(HttpMethod.Get, $"api/v1/inventory/goods-receipts/{id}", accessToken, null, ct).ToDataAsync();
 
-    public Task<GoodsReceiptDto?> CreateGoodsReceiptAsync(string accessToken, GoodsReceiptDto request, CancellationToken ct = default)
-        => SendAsync<GoodsReceiptDto>(HttpMethod.Post, "api/v1/inventory/goods-receipts", accessToken, request, ct);
+    public Task<ApiCallResult<GoodsReceiptDto>> CreateGoodsReceiptAsync(string accessToken, GoodsReceiptDto request, CancellationToken ct = default)
+        => SendWithResultAsync<GoodsReceiptDto>(HttpMethod.Post, "api/v1/inventory/goods-receipts", accessToken, request, ct);
 
-    public Task<GoodsReceiptDto?> UpdateGoodsReceiptAsync(string accessToken, int id, GoodsReceiptDto request, CancellationToken ct = default)
-        => SendAsync<GoodsReceiptDto>(HttpMethod.Put, $"api/v1/inventory/goods-receipts/{id}", accessToken, request, ct);
+    public Task<ApiCallResult<GoodsReceiptDto>> UpdateGoodsReceiptAsync(string accessToken, int id, GoodsReceiptDto request, CancellationToken ct = default)
+        => SendWithResultAsync<GoodsReceiptDto>(HttpMethod.Put, $"api/v1/inventory/goods-receipts/{id}", accessToken, request, ct);
 
-    public async Task<bool> DeleteGoodsReceiptAsync(string accessToken, int id, CancellationToken ct = default)
-        => await SendActionAsync(HttpMethod.Delete, $"api/v1/inventory/goods-receipts/{id}", accessToken, null, ct);
+    public Task<ApiCallResult<object?>> DeleteGoodsReceiptAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendActionAsync(HttpMethod.Delete, $"api/v1/inventory/goods-receipts/{id}", accessToken, null, ct);
 
-    public async Task<bool> ConfirmGoodsReceiptAsync(string accessToken, int id, CancellationToken ct = default)
-        => await SendActionAsync(HttpMethod.Put, $"api/v1/inventory/goods-receipts/{id}/confirm", accessToken, null, ct);
+    public Task<ApiCallResult<object?>> ConfirmGoodsReceiptAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendActionAsync(HttpMethod.Put, $"api/v1/inventory/goods-receipts/{id}/confirm", accessToken, null, ct);
 
-    public async Task<bool> CancelGoodsReceiptAsync(string accessToken, int id, CancellationToken ct = default)
-        => await SendActionAsync(HttpMethod.Put, $"api/v1/inventory/goods-receipts/{id}/cancel", accessToken, null, ct);
+    public Task<ApiCallResult<object?>> CancelGoodsReceiptAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendActionAsync(HttpMethod.Put, $"api/v1/inventory/goods-receipts/{id}/cancel", accessToken, null, ct);
 
     public Task<PagedResult<GoodsIssueDto>?> GetGoodsIssuesAsync(string accessToken, GoodsIssuePagedRequest request, CancellationToken ct = default)
     {
@@ -405,26 +384,26 @@ public sealed class InventoryApiClient(HttpClient httpClient, ILogger<InventoryA
             parameters.Add($"status={(int)request.Status.Value}");
         }
 
-        return SendAsync<PagedResult<GoodsIssueDto>>(HttpMethod.Get, BuildQuery("api/v1/inventory/goods-issues", parameters), accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<GoodsIssueDto>>(HttpMethod.Get, BuildQuery("api/v1/inventory/goods-issues", parameters), accessToken, null, ct).ToDataAsync();
     }
 
     public Task<GoodsIssueDto?> GetGoodsIssueByIdAsync(string accessToken, int id, CancellationToken ct = default)
-        => SendAsync<GoodsIssueDto>(HttpMethod.Get, $"api/v1/inventory/goods-issues/{id}", accessToken, null, ct);
+        => SendWithResultAsync<GoodsIssueDto>(HttpMethod.Get, $"api/v1/inventory/goods-issues/{id}", accessToken, null, ct).ToDataAsync();
 
-    public Task<GoodsIssueDto?> CreateGoodsIssueAsync(string accessToken, GoodsIssueDto request, CancellationToken ct = default)
-        => SendAsync<GoodsIssueDto>(HttpMethod.Post, "api/v1/inventory/goods-issues", accessToken, request, ct);
+    public Task<ApiCallResult<GoodsIssueDto>> CreateGoodsIssueAsync(string accessToken, GoodsIssueDto request, CancellationToken ct = default)
+        => SendWithResultAsync<GoodsIssueDto>(HttpMethod.Post, "api/v1/inventory/goods-issues", accessToken, request, ct);
 
-    public Task<GoodsIssueDto?> UpdateGoodsIssueAsync(string accessToken, int id, GoodsIssueDto request, CancellationToken ct = default)
-        => SendAsync<GoodsIssueDto>(HttpMethod.Put, $"api/v1/inventory/goods-issues/{id}", accessToken, request, ct);
+    public Task<ApiCallResult<GoodsIssueDto>> UpdateGoodsIssueAsync(string accessToken, int id, GoodsIssueDto request, CancellationToken ct = default)
+        => SendWithResultAsync<GoodsIssueDto>(HttpMethod.Put, $"api/v1/inventory/goods-issues/{id}", accessToken, request, ct);
 
-    public async Task<bool> DeleteGoodsIssueAsync(string accessToken, int id, CancellationToken ct = default)
-        => await SendActionAsync(HttpMethod.Delete, $"api/v1/inventory/goods-issues/{id}", accessToken, null, ct);
+    public Task<ApiCallResult<object?>> DeleteGoodsIssueAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendActionAsync(HttpMethod.Delete, $"api/v1/inventory/goods-issues/{id}", accessToken, null, ct);
 
-    public async Task<bool> ConfirmGoodsIssueAsync(string accessToken, int id, CancellationToken ct = default)
-        => await SendActionAsync(HttpMethod.Put, $"api/v1/inventory/goods-issues/{id}/confirm", accessToken, null, ct);
+    public Task<ApiCallResult<object?>> ConfirmGoodsIssueAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendActionAsync(HttpMethod.Put, $"api/v1/inventory/goods-issues/{id}/confirm", accessToken, null, ct);
 
-    public async Task<bool> CancelGoodsIssueAsync(string accessToken, int id, CancellationToken ct = default)
-        => await SendActionAsync(HttpMethod.Put, $"api/v1/inventory/goods-issues/{id}/cancel", accessToken, null, ct);
+    public Task<ApiCallResult<object?>> CancelGoodsIssueAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendActionAsync(HttpMethod.Put, $"api/v1/inventory/goods-issues/{id}/cancel", accessToken, null, ct);
 
     public Task<PagedResult<StockTransferDto>?> GetTransfersAsync(string accessToken, StockTransferPagedRequest request, CancellationToken ct = default)
     {
@@ -454,26 +433,26 @@ public sealed class InventoryApiClient(HttpClient httpClient, ILogger<InventoryA
             parameters.Add($"status={(int)request.Status.Value}");
         }
 
-        return SendAsync<PagedResult<StockTransferDto>>(HttpMethod.Get, BuildQuery("api/v1/inventory/transfers", parameters), accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<StockTransferDto>>(HttpMethod.Get, BuildQuery("api/v1/inventory/transfers", parameters), accessToken, null, ct).ToDataAsync();
     }
 
     public Task<StockTransferDto?> GetTransferByIdAsync(string accessToken, int id, CancellationToken ct = default)
-        => SendAsync<StockTransferDto>(HttpMethod.Get, $"api/v1/inventory/transfers/{id}", accessToken, null, ct);
+        => SendWithResultAsync<StockTransferDto>(HttpMethod.Get, $"api/v1/inventory/transfers/{id}", accessToken, null, ct).ToDataAsync();
 
-    public Task<StockTransferDto?> CreateTransferAsync(string accessToken, StockTransferDto request, CancellationToken ct = default)
-        => SendAsync<StockTransferDto>(HttpMethod.Post, "api/v1/inventory/transfers", accessToken, request, ct);
+    public Task<ApiCallResult<StockTransferDto>> CreateTransferAsync(string accessToken, StockTransferDto request, CancellationToken ct = default)
+        => SendWithResultAsync<StockTransferDto>(HttpMethod.Post, "api/v1/inventory/transfers", accessToken, request, ct);
 
-    public Task<StockTransferDto?> UpdateTransferAsync(string accessToken, int id, StockTransferDto request, CancellationToken ct = default)
-        => SendAsync<StockTransferDto>(HttpMethod.Put, $"api/v1/inventory/transfers/{id}", accessToken, request, ct);
+    public Task<ApiCallResult<StockTransferDto>> UpdateTransferAsync(string accessToken, int id, StockTransferDto request, CancellationToken ct = default)
+        => SendWithResultAsync<StockTransferDto>(HttpMethod.Put, $"api/v1/inventory/transfers/{id}", accessToken, request, ct);
 
-    public async Task<bool> DeleteTransferAsync(string accessToken, int id, CancellationToken ct = default)
-        => await SendActionAsync(HttpMethod.Delete, $"api/v1/inventory/transfers/{id}", accessToken, null, ct);
+    public Task<ApiCallResult<object?>> DeleteTransferAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendActionAsync(HttpMethod.Delete, $"api/v1/inventory/transfers/{id}", accessToken, null, ct);
 
-    public async Task<bool> ConfirmTransferAsync(string accessToken, int id, CancellationToken ct = default)
-        => await SendActionAsync(HttpMethod.Put, $"api/v1/inventory/transfers/{id}/confirm", accessToken, null, ct);
+    public Task<ApiCallResult<object?>> ConfirmTransferAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendActionAsync(HttpMethod.Put, $"api/v1/inventory/transfers/{id}/confirm", accessToken, null, ct);
 
-    public async Task<bool> CancelTransferAsync(string accessToken, int id, CancellationToken ct = default)
-        => await SendActionAsync(HttpMethod.Put, $"api/v1/inventory/transfers/{id}/cancel", accessToken, null, ct);
+    public Task<ApiCallResult<object?>> CancelTransferAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendActionAsync(HttpMethod.Put, $"api/v1/inventory/transfers/{id}/cancel", accessToken, null, ct);
 
     public Task<PagedResult<StockAdjustmentDto>?> GetAdjustmentsAsync(string accessToken, StockAdjustmentPagedRequest request, CancellationToken ct = default)
     {
@@ -503,29 +482,29 @@ public sealed class InventoryApiClient(HttpClient httpClient, ILogger<InventoryA
             parameters.Add($"status={(int)request.Status.Value}");
         }
 
-        return SendAsync<PagedResult<StockAdjustmentDto>>(HttpMethod.Get, BuildQuery("api/v1/inventory/adjustments", parameters), accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<StockAdjustmentDto>>(HttpMethod.Get, BuildQuery("api/v1/inventory/adjustments", parameters), accessToken, null, ct).ToDataAsync();
     }
 
     public Task<StockAdjustmentDto?> GetAdjustmentByIdAsync(string accessToken, int id, CancellationToken ct = default)
-        => SendAsync<StockAdjustmentDto>(HttpMethod.Get, $"api/v1/inventory/adjustments/{id}", accessToken, null, ct);
+        => SendWithResultAsync<StockAdjustmentDto>(HttpMethod.Get, $"api/v1/inventory/adjustments/{id}", accessToken, null, ct).ToDataAsync();
 
-    public Task<StockAdjustmentDto?> CreateAdjustmentAsync(string accessToken, StockAdjustmentDto request, CancellationToken ct = default)
-        => SendAsync<StockAdjustmentDto>(HttpMethod.Post, "api/v1/inventory/adjustments", accessToken, request, ct);
+    public Task<ApiCallResult<StockAdjustmentDto>> CreateAdjustmentAsync(string accessToken, StockAdjustmentDto request, CancellationToken ct = default)
+        => SendWithResultAsync<StockAdjustmentDto>(HttpMethod.Post, "api/v1/inventory/adjustments", accessToken, request, ct);
 
-    public Task<StockAdjustmentDto?> UpdateAdjustmentAsync(string accessToken, int id, StockAdjustmentDto request, CancellationToken ct = default)
-        => SendAsync<StockAdjustmentDto>(HttpMethod.Put, $"api/v1/inventory/adjustments/{id}", accessToken, request, ct);
+    public Task<ApiCallResult<StockAdjustmentDto>> UpdateAdjustmentAsync(string accessToken, int id, StockAdjustmentDto request, CancellationToken ct = default)
+        => SendWithResultAsync<StockAdjustmentDto>(HttpMethod.Put, $"api/v1/inventory/adjustments/{id}", accessToken, request, ct);
 
-    public async Task<bool> DeleteAdjustmentAsync(string accessToken, int id, CancellationToken ct = default)
-        => await SendActionAsync(HttpMethod.Delete, $"api/v1/inventory/adjustments/{id}", accessToken, null, ct);
+    public Task<ApiCallResult<object?>> DeleteAdjustmentAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendActionAsync(HttpMethod.Delete, $"api/v1/inventory/adjustments/{id}", accessToken, null, ct);
 
-    public async Task<bool> ApproveAdjustmentAsync(string accessToken, int id, CancellationToken ct = default)
-        => await SendActionAsync(HttpMethod.Put, $"api/v1/inventory/adjustments/{id}/approve", accessToken, null, ct);
+    public Task<ApiCallResult<object?>> ApproveAdjustmentAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendActionAsync(HttpMethod.Put, $"api/v1/inventory/adjustments/{id}/approve", accessToken, null, ct);
 
-    public async Task<bool> ConfirmAdjustmentAsync(string accessToken, int id, CancellationToken ct = default)
-        => await SendActionAsync(HttpMethod.Put, $"api/v1/inventory/adjustments/{id}/confirm", accessToken, null, ct);
+    public Task<ApiCallResult<object?>> ConfirmAdjustmentAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendActionAsync(HttpMethod.Put, $"api/v1/inventory/adjustments/{id}/confirm", accessToken, null, ct);
 
-    public async Task<bool> CancelAdjustmentAsync(string accessToken, int id, CancellationToken ct = default)
-        => await SendActionAsync(HttpMethod.Put, $"api/v1/inventory/adjustments/{id}/cancel", accessToken, null, ct);
+    public Task<ApiCallResult<object?>> CancelAdjustmentAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendActionAsync(HttpMethod.Put, $"api/v1/inventory/adjustments/{id}/cancel", accessToken, null, ct);
 
     public Task<PagedResult<StockOpnameDto>?> GetOpnamesAsync(string accessToken, StockOpnamePagedRequest request, CancellationToken ct = default)
     {
@@ -550,38 +529,38 @@ public sealed class InventoryApiClient(HttpClient httpClient, ILogger<InventoryA
             parameters.Add($"status={(int)request.Status.Value}");
         }
 
-        return SendAsync<PagedResult<StockOpnameDto>>(HttpMethod.Get, BuildQuery("api/v1/inventory/opnames", parameters), accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<StockOpnameDto>>(HttpMethod.Get, BuildQuery("api/v1/inventory/opnames", parameters), accessToken, null, ct).ToDataAsync();
     }
 
     public Task<StockOpnameDto?> GetOpnameByIdAsync(string accessToken, int id, CancellationToken ct = default)
-        => SendAsync<StockOpnameDto>(HttpMethod.Get, $"api/v1/inventory/opnames/{id}", accessToken, null, ct);
+        => SendWithResultAsync<StockOpnameDto>(HttpMethod.Get, $"api/v1/inventory/opnames/{id}", accessToken, null, ct).ToDataAsync();
 
-    public Task<StockOpnameDto?> CreateOpnameAsync(string accessToken, StockOpnameDto request, CancellationToken ct = default)
-        => SendAsync<StockOpnameDto>(HttpMethod.Post, "api/v1/inventory/opnames", accessToken, request, ct);
+    public Task<ApiCallResult<StockOpnameDto>> CreateOpnameAsync(string accessToken, StockOpnameDto request, CancellationToken ct = default)
+        => SendWithResultAsync<StockOpnameDto>(HttpMethod.Post, "api/v1/inventory/opnames", accessToken, request, ct);
 
-    public async Task<bool> UpdateOpnameAsync(string accessToken, int id, StockOpnameDto request, CancellationToken ct = default)
-        => await SendActionAsync(HttpMethod.Put, $"api/v1/inventory/opnames/{id}", accessToken, request, ct);
+    public Task<ApiCallResult<object?>> UpdateOpnameAsync(string accessToken, int id, StockOpnameDto request, CancellationToken ct = default)
+        => SendActionAsync(HttpMethod.Put, $"api/v1/inventory/opnames/{id}", accessToken, request, ct);
 
-    public async Task<bool> StartOpnameAsync(string accessToken, int id, CancellationToken ct = default)
-        => await SendActionAsync(HttpMethod.Put, $"api/v1/inventory/opnames/{id}/start", accessToken, null, ct);
+    public Task<ApiCallResult<object?>> StartOpnameAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendActionAsync(HttpMethod.Put, $"api/v1/inventory/opnames/{id}/start", accessToken, null, ct);
 
     public async Task<IReadOnlyList<StockOpnameLineDto>> GetOpnameLinesAsync(string accessToken, int id, CancellationToken ct = default)
-        => await SendAsync<IReadOnlyList<StockOpnameLineDto>>(HttpMethod.Get, $"api/v1/inventory/opnames/{id}/lines", accessToken, null, ct) ?? [];
+        => await SendWithResultAsync<IReadOnlyList<StockOpnameLineDto>>(HttpMethod.Get, $"api/v1/inventory/opnames/{id}/lines", accessToken, null, ct).ToDataAsync() ?? [];
 
-    public async Task<bool> UpdateOpnameLinesAsync(string accessToken, int id, IReadOnlyList<StockOpnameLineDto> lines, CancellationToken ct = default)
-        => await SendActionAsync(HttpMethod.Put, $"api/v1/inventory/opnames/{id}/lines", accessToken, lines, ct);
+    public Task<ApiCallResult<object?>> UpdateOpnameLinesAsync(string accessToken, int id, IReadOnlyList<StockOpnameLineDto> lines, CancellationToken ct = default)
+        => SendActionAsync(HttpMethod.Put, $"api/v1/inventory/opnames/{id}/lines", accessToken, lines, ct);
 
-    public async Task<bool> UpdateOpnameLineAsync(string accessToken, int id, int lineId, StockOpnameLineDto line, CancellationToken ct = default)
-        => await SendActionAsync(HttpMethod.Put, $"api/v1/inventory/opnames/{id}/lines/{lineId}", accessToken, line, ct);
+    public Task<ApiCallResult<object?>> UpdateOpnameLineAsync(string accessToken, int id, int lineId, StockOpnameLineDto line, CancellationToken ct = default)
+        => SendActionAsync(HttpMethod.Put, $"api/v1/inventory/opnames/{id}/lines/{lineId}", accessToken, line, ct);
 
-    public async Task<bool> CompleteOpnameAsync(string accessToken, int id, CancellationToken ct = default)
-        => await SendActionAsync(HttpMethod.Put, $"api/v1/inventory/opnames/{id}/complete", accessToken, null, ct);
+    public Task<ApiCallResult<object?>> CompleteOpnameAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendActionAsync(HttpMethod.Put, $"api/v1/inventory/opnames/{id}/complete", accessToken, null, ct);
 
-    public async Task<bool> ApproveOpnameAsync(string accessToken, int id, CancellationToken ct = default)
-        => await SendActionAsync(HttpMethod.Put, $"api/v1/inventory/opnames/{id}/approve", accessToken, null, ct);
+    public Task<ApiCallResult<object?>> ApproveOpnameAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendActionAsync(HttpMethod.Put, $"api/v1/inventory/opnames/{id}/approve", accessToken, null, ct);
 
-    public async Task<bool> CancelOpnameAsync(string accessToken, int id, CancellationToken ct = default)
-        => await SendActionAsync(HttpMethod.Put, $"api/v1/inventory/opnames/{id}/cancel", accessToken, null, ct);
+    public Task<ApiCallResult<object?>> CancelOpnameAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendActionAsync(HttpMethod.Put, $"api/v1/inventory/opnames/{id}/cancel", accessToken, null, ct);
 
     public Task<PagedResult<StockBalanceDto>?> GetStockBalanceReportAsync(string accessToken, StockBalancePagedRequest request, CancellationToken ct = default)
         => GetStockCoreAsync(accessToken, request, "api/v1/inventory/stock/balance", ct);
@@ -599,12 +578,12 @@ public sealed class InventoryApiClient(HttpClient httpClient, ILogger<InventoryA
             parameters.Add($"locationId={locationId.Value}");
         }
 
-        var response = await SendAsync<StockAvailableResponse>(
+        var response = await SendWithResultAsync<StockAvailableResponse>(
             HttpMethod.Get,
             BuildQuery("api/v1/inventory/stock/available", parameters),
             accessToken,
             null,
-            ct);
+            ct).ToDataAsync();
 
         return response?.QtyAvailable;
     }
@@ -654,22 +633,21 @@ public sealed class InventoryApiClient(HttpClient httpClient, ILogger<InventoryA
     public Task<PagedResult<InventoryAdjustmentSummaryDto>?> GetAdjustmentSummaryReportAsync(string accessToken, InventoryReportRequest request, CancellationToken ct = default)
         => GetInventoryReportPagedAsync<InventoryAdjustmentSummaryDto>(accessToken, "api/v1/inventory/reports/adjustment-summary", request, ct);
 
-    private async Task<bool> SendActionAsync(HttpMethod method, string uri, string accessToken, object? body, CancellationToken ct)
+    private Task<ApiCallResult<object?>> SendActionAsync(HttpMethod method, string uri, string accessToken, object? body, CancellationToken ct)
     {
-        var response = await SendRawAsync(method, uri, accessToken, body, ct);
-        return response?.IsSuccessStatusCode == true;
+        return SendWithResultAsync<object?>(method, uri, accessToken, body, ct);
     }
 
     private Task<PagedResult<T>?> GetInventoryReportPagedAsync<T>(string accessToken, string basePath, InventoryReportRequest request, CancellationToken ct)
     {
         var parameters = BuildInventoryReportParameters(request);
-        return SendAsync<PagedResult<T>>(HttpMethod.Get, BuildQuery(basePath, parameters), accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<T>>(HttpMethod.Get, BuildQuery(basePath, parameters), accessToken, null, ct).ToDataAsync();
     }
 
     private async Task<IReadOnlyList<T>> GetInventoryReportListAsync<T>(string accessToken, string basePath, InventoryReportRequest request, CancellationToken ct)
     {
         var parameters = BuildInventoryReportParameters(request, includePaging: false);
-        return await SendAsync<IReadOnlyList<T>>(HttpMethod.Get, BuildQuery(basePath, parameters), accessToken, null, ct) ?? [];
+        return await SendWithResultAsync<IReadOnlyList<T>>(HttpMethod.Get, BuildQuery(basePath, parameters), accessToken, null, ct).ToDataAsync() ?? [];
     }
 
     private static List<string> BuildInventoryReportParameters(InventoryReportRequest request, bool includePaging = true)
@@ -796,7 +774,7 @@ public sealed class InventoryApiClient(HttpClient httpClient, ILogger<InventoryA
         }
 
         var query = $"{basePath}?{string.Join("&", parameters)}";
-        return SendAsync<PagedResult<ItemDto>>(HttpMethod.Get, query, accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<ItemDto>>(HttpMethod.Get, query, accessToken, null, ct).ToDataAsync();
     }
 
     private Task<PagedResult<StockBalanceDto>?> GetStockCoreAsync(string accessToken, StockBalancePagedRequest request, string basePath, CancellationToken ct)
@@ -820,7 +798,7 @@ public sealed class InventoryApiClient(HttpClient httpClient, ILogger<InventoryA
         }
 
         var query = $"{basePath}?{string.Join("&", parameters)}";
-        return SendAsync<PagedResult<StockBalanceDto>>(HttpMethod.Get, query, accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<StockBalanceDto>>(HttpMethod.Get, query, accessToken, null, ct).ToDataAsync();
     }
 
     
@@ -839,4 +817,9 @@ public sealed class InventoryApiClient(HttpClient httpClient, ILogger<InventoryA
         parameters.Add($"sortDirection={Uri.EscapeDataString(request.SortDirection ?? string.Empty)}");
     }
 }
+
+
+
+
+
 

@@ -240,9 +240,9 @@ public sealed class HrAttendanceController(IHrApiClient hrApiClient) : Controlle
         }
 
         var created = await hrApiClient.CreateHolidayAsync(accessToken, MapHolidayDto(model), ct);
-        if (created is null)
+        if (!created.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to create holiday.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(created.ErrorMessage) ? "Failed to create holiday." : created.ErrorMessage);
             ViewData["Title"] = "Create Holiday";
             ViewData["Breadcrumb"] = "HR / Attendance / Holiday / Create";
             return View("HolidayCreate", model);
@@ -302,9 +302,9 @@ public sealed class HrAttendanceController(IHrApiClient hrApiClient) : Controlle
         }
 
         var updated = await hrApiClient.UpdateHolidayAsync(accessToken, id, MapHolidayDto(model), ct);
-        if (updated is null)
+        if (!updated.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to update holiday.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(updated.ErrorMessage) ? "Failed to update holiday." : updated.ErrorMessage);
             ViewData["Title"] = "Edit Holiday";
             ViewData["Breadcrumb"] = "HR / Attendance / Holiday / Edit";
             return View("HolidayEdit", model);
@@ -325,9 +325,7 @@ public sealed class HrAttendanceController(IHrApiClient hrApiClient) : Controlle
         }
 
         var deleted = await hrApiClient.DeleteHolidayAsync(accessToken, id, ct);
-        TempData[deleted ? "SuccessMessage" : "ErrorMessage"] = deleted
-            ? "Holiday deleted."
-            : "Failed to delete holiday.";
+        TempData[deleted.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = deleted.IsSuccess ? "Holiday deleted." : (string.IsNullOrWhiteSpace(deleted.ErrorMessage) ? "Failed to delete holiday." : deleted.ErrorMessage);
 
         return RedirectToAction(nameof(Holiday));
     }
@@ -551,9 +549,9 @@ public sealed class HrAttendanceController(IHrApiClient hrApiClient) : Controlle
             MinimumOtMinutes = model.MinimumOtMinutes
         }, ct);
 
-        if (updated is null)
+        if (!updated.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to save attendance setting.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(updated.ErrorMessage) ? "Failed to save attendance setting." : updated.ErrorMessage);
             ViewData["Title"] = "Attendance Setting";
             ViewData["Breadcrumb"] = "HR / Attendance / Setting";
             return View(model);
@@ -639,9 +637,9 @@ public sealed class HrAttendanceController(IHrApiClient hrApiClient) : Controlle
             Notes = NormalizeTextFilter(model.Notes)
         }, ct);
 
-        if (created is null)
+        if (!created.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to create attendance record.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(created.ErrorMessage) ? "Failed to create attendance record." : created.ErrorMessage);
             ViewData["Title"] = "Create Attendance";
             ViewData["Breadcrumb"] = "HR / Attendance / Create";
             return View(model);
@@ -723,9 +721,9 @@ public sealed class HrAttendanceController(IHrApiClient hrApiClient) : Controlle
             Notes = NormalizeTextFilter(model.Notes)
         }, ct);
 
-        if (updated is null)
+        if (!updated.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to update attendance record.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(updated.ErrorMessage) ? "Failed to update attendance record." : updated.ErrorMessage);
             ViewData["Title"] = "Edit Attendance";
             ViewData["Breadcrumb"] = "HR / Attendance / Edit";
             return View(model);
@@ -746,9 +744,7 @@ public sealed class HrAttendanceController(IHrApiClient hrApiClient) : Controlle
         }
 
         var deleted = await hrApiClient.DeleteAttendanceAsync(accessToken, id, ct);
-        TempData[deleted ? "SuccessMessage" : "ErrorMessage"] = deleted
-            ? "Attendance record deleted."
-            : "Failed to delete attendance record.";
+        TempData[deleted.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = deleted.IsSuccess ? "Attendance record deleted." : (string.IsNullOrWhiteSpace(deleted.ErrorMessage) ? "Failed to delete attendance record." : deleted.ErrorMessage);
 
         return RedirectToAction(nameof(Index));
     }

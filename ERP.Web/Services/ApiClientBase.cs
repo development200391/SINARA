@@ -7,11 +7,6 @@ namespace ERP.Web.Services;
 
 public abstract class ApiClientBase(HttpClient httpClient, ILogger logger, string serviceName)
 {
-    protected async Task<T?> SendAsync<T>(HttpMethod method, string uri, string accessToken, object? body, CancellationToken ct)
-    {
-        var result = await SendWithResultAsync<T>(method, uri, accessToken, body, ct);
-        return result.IsSuccess ? result.Data : default;
-    }
 
     protected async Task<ApiCallResult<T>> SendWithResultAsync<T>(HttpMethod method, string uri, string accessToken, object? body, CancellationToken ct)
     {
@@ -30,6 +25,11 @@ public abstract class ApiClientBase(HttpClient httpClient, ILogger logger, strin
                 : $"{serviceName} API returned status {statusCode} ({response.StatusCode}): {apiErrorMessage}";
 
             return ApiCallResult<T>.Failure(errorMessage, statusCode);
+        }
+
+        if (response.Content is null || response.Content.Headers.ContentLength == 0)
+        {
+            return ApiCallResult<T>.Success(default, statusCode);
         }
 
         try
@@ -163,4 +163,3 @@ public abstract class ApiClientBase(HttpClient httpClient, ILogger logger, strin
         }
     }
 }
-

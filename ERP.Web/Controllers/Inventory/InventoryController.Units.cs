@@ -89,7 +89,7 @@ public sealed partial class InventoryController
             return View("Units/Create", model);
         }
 
-        var created = await inventoryApiClient.CreateUnitAsync(accessToken, new UnitOfMeasureDto
+        var createResult = await inventoryApiClient.CreateUnitAsync(accessToken, new UnitOfMeasureDto
         {
             Code = model.Code,
             Name = model.Name,
@@ -97,9 +97,9 @@ public sealed partial class InventoryController
             IsActive = model.IsActive
         }, ct);
 
-        if (created is null)
+        if (!createResult.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to create unit.");
+            AddApiModelError(createResult, "Failed to create unit.");
             ViewData["Title"] = "Create Unit";
             ViewData["Breadcrumb"] = "Inventory / Units / Create";
             return View("Units/Create", model);
@@ -155,7 +155,7 @@ public sealed partial class InventoryController
             return View("Units/Edit", model);
         }
 
-        var updated = await inventoryApiClient.UpdateUnitAsync(accessToken, id, new UnitOfMeasureDto
+        var updateResult = await inventoryApiClient.UpdateUnitAsync(accessToken, id, new UnitOfMeasureDto
         {
             Id = id,
             Code = model.Code,
@@ -164,9 +164,9 @@ public sealed partial class InventoryController
             IsActive = model.IsActive
         }, ct);
 
-        if (updated is null)
+        if (!updateResult.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to update unit.");
+            AddApiModelError(updateResult, "Failed to update unit.");
             ViewData["Title"] = "Edit Unit";
             ViewData["Breadcrumb"] = "Inventory / Units / Edit";
             return View("Units/Edit", model);
@@ -186,8 +186,11 @@ public sealed partial class InventoryController
             return unauthorized;
         }
 
-        var deleted = await inventoryApiClient.DeleteUnitAsync(accessToken, id, ct);
-        TempData[deleted ? "SuccessMessage" : "ErrorMessage"] = deleted ? "Unit deleted." : "Failed to delete unit.";
+        var deleteResult = await inventoryApiClient.DeleteUnitAsync(accessToken, id, ct);
+        TempData[deleteResult.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = deleteResult.IsSuccess
+            ? "Unit deleted."
+            : ResolveApiErrorMessage(deleteResult, "Failed to delete unit.");
         return RedirectToAction(nameof(Units));
     }
 }
+

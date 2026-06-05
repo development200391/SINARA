@@ -1,4 +1,4 @@
-﻿
+
 using System.Globalization;
 using ERP.Application.DTOs.Common;
 using ERP.Application.DTOs.Finance;
@@ -117,9 +117,9 @@ public sealed partial class FinanceSetupController
         }
 
         var created = await financeApiClient.CreateVendorAsync(accessToken, MapVendorRequest(model), ct);
-        if (created is null)
+        if (!created.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to create vendor.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(created.ErrorMessage) ? "Failed to create vendor." : created.ErrorMessage);
             ViewData["Title"] = "Create Vendor";
             ViewData["Breadcrumb"] = "Finance / Accounts Payable / Vendors / Create";
             return View("Vendors/Create", model);
@@ -192,9 +192,9 @@ public sealed partial class FinanceSetupController
         }
 
         var updated = await financeApiClient.UpdateVendorAsync(accessToken, id, MapVendorRequest(model), ct);
-        if (updated is null)
+        if (!updated.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to update vendor.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(updated.ErrorMessage) ? "Failed to update vendor." : updated.ErrorMessage);
             ViewData["Title"] = "Edit Vendor";
             ViewData["Breadcrumb"] = "Finance / Accounts Payable / Vendors / Edit";
             return View("Vendors/Edit", model);
@@ -215,7 +215,7 @@ public sealed partial class FinanceSetupController
         }
 
         var ok = await financeApiClient.DeleteVendorAsync(accessToken, id, ct);
-        TempData[ok ? "SuccessMessage" : "ErrorMessage"] = ok ? "Vendor deleted." : "Failed to delete vendor.";
+        TempData[ok.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = ok.IsSuccess ? "Vendor deleted." : (string.IsNullOrWhiteSpace(ok.ErrorMessage) ? "Failed to delete vendor." : ok.ErrorMessage);
         return RedirectToAction(nameof(Vendors));
     }
 
@@ -348,9 +348,9 @@ public sealed partial class FinanceSetupController
         }
 
         var created = await financeApiClient.CreateApInvoiceAsync(accessToken, MapApInvoiceRequest(model), ct);
-        if (created is null)
+        if (!created.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to create AP invoice.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(created.ErrorMessage) ? "Failed to create AP invoice." : created.ErrorMessage);
             ViewData["Title"] = "Create AP Invoice";
             ViewData["Breadcrumb"] = "Finance / Accounts Payable / AP Invoices / Create";
             return View("ApInvoices/Create", model);
@@ -458,9 +458,9 @@ public sealed partial class FinanceSetupController
         }
 
         var updated = await financeApiClient.UpdateApInvoiceAsync(accessToken, id, MapApInvoiceRequest(model), ct);
-        if (updated is null)
+        if (!updated.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to update AP invoice.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(updated.ErrorMessage) ? "Failed to update AP invoice." : updated.ErrorMessage);
             ViewData["Title"] = "Edit AP Invoice";
             ViewData["Breadcrumb"] = "Finance / Accounts Payable / AP Invoices / Edit";
             return View("ApInvoices/Edit", model);
@@ -481,9 +481,7 @@ public sealed partial class FinanceSetupController
         }
 
         var approved = await financeApiClient.ApproveApInvoiceAsync(accessToken, id, ct);
-        TempData[approved is null ? "ErrorMessage" : "SuccessMessage"] = approved is null
-            ? "Failed to approve AP invoice."
-            : "AP invoice approved.";
+        TempData[approved.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = approved.IsSuccess ? "AP invoice approved." : (string.IsNullOrWhiteSpace(approved.ErrorMessage) ? "Failed to approve AP invoice." : approved.ErrorMessage);
 
         return RedirectToAction(nameof(ApInvoices));
     }
@@ -499,7 +497,7 @@ public sealed partial class FinanceSetupController
         }
 
         var ok = await financeApiClient.DeleteApInvoiceAsync(accessToken, id, ct);
-        TempData[ok ? "SuccessMessage" : "ErrorMessage"] = ok ? "AP invoice deleted." : "Failed to delete AP invoice.";
+        TempData[ok.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = ok.IsSuccess ? "AP invoice deleted." : (string.IsNullOrWhiteSpace(ok.ErrorMessage) ? "Failed to delete AP invoice." : ok.ErrorMessage);
 
         return RedirectToAction(nameof(ApInvoices));
     }
@@ -618,9 +616,9 @@ public sealed partial class FinanceSetupController
         }
 
         var created = await financeApiClient.CreateApPaymentAsync(accessToken, MapApPaymentRequest(model), ct);
-        if (created is null)
+        if (!created.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to create AP payment.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(created.ErrorMessage) ? "Failed to create AP payment." : created.ErrorMessage);
             ViewData["Title"] = "Create AP Payment";
             ViewData["Breadcrumb"] = "Finance / Accounts Payable / AP Payments / Create";
             return View("ApPayments/Create", model);

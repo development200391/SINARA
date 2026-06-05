@@ -122,9 +122,9 @@ public sealed partial class FinanceSetupController
             IsActive = model.IsActive
         }, ct);
 
-        if (created is null)
+        if (!created.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to create account group.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(created.ErrorMessage) ? "Failed to create account group." : created.ErrorMessage);
             ViewData["Title"] = "Create Account Group";
             ViewData["Breadcrumb"] = "Finance / Account Groups / Create";
             return View("AccountGroups/Create", model);
@@ -206,9 +206,9 @@ public sealed partial class FinanceSetupController
             IsActive = model.IsActive
         }, ct);
 
-        if (updated is null)
+        if (!updated.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to update account group.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(updated.ErrorMessage) ? "Failed to update account group." : updated.ErrorMessage);
             ViewData["Title"] = "Edit Account Group";
             ViewData["Breadcrumb"] = "Finance / Account Groups / Edit";
             return View("AccountGroups/Edit", model);
@@ -229,7 +229,7 @@ public sealed partial class FinanceSetupController
         }
 
         var ok = await financeApiClient.DeleteAccountGroupAsync(accessToken, id, ct);
-        TempData[ok ? "SuccessMessage" : "ErrorMessage"] = ok ? "Account group deleted." : "Failed to delete account group.";
+        TempData[ok.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = ok.IsSuccess ? "Account group deleted." : (string.IsNullOrWhiteSpace(ok.ErrorMessage) ? "Failed to delete account group." : ok.ErrorMessage);
 
         return RedirectToAction(nameof(CoaGroups));
     }

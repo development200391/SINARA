@@ -104,7 +104,7 @@ public sealed partial class InventoryController
             return View("Categories/Create", model);
         }
 
-        var created = await inventoryApiClient.CreateCategoryAsync(accessToken, new ItemCategoryDto
+        var createResult = await inventoryApiClient.CreateCategoryAsync(accessToken, new ItemCategoryDto
         {
             Code = model.Code,
             Name = model.Name,
@@ -113,9 +113,9 @@ public sealed partial class InventoryController
             IsActive = model.IsActive
         }, ct);
 
-        if (created is null)
+        if (!createResult.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to create category.");
+            AddApiModelError(createResult, "Failed to create category.");
             ViewData["Title"] = "Create Category";
             ViewData["Breadcrumb"] = "Inventory / Item Categories / Create";
             return View("Categories/Create", model);
@@ -183,7 +183,7 @@ public sealed partial class InventoryController
             return View("Categories/Edit", model);
         }
 
-        var updated = await inventoryApiClient.UpdateCategoryAsync(accessToken, id, new ItemCategoryDto
+        var updateResult = await inventoryApiClient.UpdateCategoryAsync(accessToken, id, new ItemCategoryDto
         {
             Id = id,
             Code = model.Code,
@@ -193,9 +193,9 @@ public sealed partial class InventoryController
             IsActive = model.IsActive
         }, ct);
 
-        if (updated is null)
+        if (!updateResult.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to update category.");
+            AddApiModelError(updateResult, "Failed to update category.");
             ViewData["Title"] = "Edit Category";
             ViewData["Breadcrumb"] = "Inventory / Item Categories / Edit";
             return View("Categories/Edit", model);
@@ -215,8 +215,11 @@ public sealed partial class InventoryController
             return unauthorized;
         }
 
-        var deleted = await inventoryApiClient.DeleteCategoryAsync(accessToken, id, ct);
-        TempData[deleted ? "SuccessMessage" : "ErrorMessage"] = deleted ? "Category deleted." : "Failed to delete category.";
+        var deleteResult = await inventoryApiClient.DeleteCategoryAsync(accessToken, id, ct);
+        TempData[deleteResult.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = deleteResult.IsSuccess
+            ? "Category deleted."
+            : ResolveApiErrorMessage(deleteResult, "Failed to delete category.");
         return RedirectToAction(nameof(Categories));
     }
 }
+

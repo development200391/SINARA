@@ -125,9 +125,9 @@ public sealed partial class FinanceSetupController
             IsActive = model.IsActive
         }, ct);
 
-        if (created is null)
+        if (!created.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to create cost center.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(created.ErrorMessage) ? "Failed to create cost center." : created.ErrorMessage);
             ViewData["Title"] = "Create Cost Center";
             ViewData["Breadcrumb"] = "Finance / Cost Centers / Create";
             return View("CostCenters/Create", model);
@@ -202,9 +202,9 @@ public sealed partial class FinanceSetupController
             IsActive = model.IsActive
         }, ct);
 
-        if (updated is null)
+        if (!updated.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to update cost center.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(updated.ErrorMessage) ? "Failed to update cost center." : updated.ErrorMessage);
             ViewData["Title"] = "Edit Cost Center";
             ViewData["Breadcrumb"] = "Finance / Cost Centers / Edit";
             return View("CostCenters/Edit", model);
@@ -225,7 +225,7 @@ public sealed partial class FinanceSetupController
         }
 
         var ok = await financeApiClient.DeleteCostCenterAsync(accessToken, id, ct);
-        TempData[ok ? "SuccessMessage" : "ErrorMessage"] = ok ? "Cost center deleted." : "Failed to delete cost center.";
+        TempData[ok.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = ok.IsSuccess ? "Cost center deleted." : (string.IsNullOrWhiteSpace(ok.ErrorMessage) ? "Failed to delete cost center." : ok.ErrorMessage);
 
         return RedirectToAction(nameof(CostCenters));
     }

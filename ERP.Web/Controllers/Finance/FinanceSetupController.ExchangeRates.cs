@@ -123,9 +123,9 @@ public sealed partial class FinanceSetupController
             Source = model.Source
         }, ct);
 
-        if (created is null)
+        if (!created.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to create exchange rate.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(created.ErrorMessage) ? "Failed to create exchange rate." : created.ErrorMessage);
             ViewData["Title"] = "Create Exchange Rate";
             ViewData["Breadcrumb"] = "Finance / Exchange Rates / Create";
             return View("ExchangeRates/Create", model);

@@ -131,9 +131,9 @@ public sealed partial class FinanceSetupController
         }
 
         var created = await financeApiClient.CreateAccountAsync(accessToken, MapAccountDto(model), ct);
-        if (created is null)
+        if (!created.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to create account.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(created.ErrorMessage) ? "Failed to create account." : created.ErrorMessage);
             ViewData["Title"] = "Create Account";
             ViewData["Breadcrumb"] = "Finance / Chart of Accounts / Create";
             return View("Accounts/Create", model);
@@ -211,9 +211,9 @@ public sealed partial class FinanceSetupController
         }
 
         var updated = await financeApiClient.UpdateAccountAsync(accessToken, id, MapAccountDto(model), ct);
-        if (updated is null)
+        if (!updated.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to update account.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(updated.ErrorMessage) ? "Failed to update account." : updated.ErrorMessage);
             ViewData["Title"] = "Edit Account";
             ViewData["Breadcrumb"] = "Finance / Chart of Accounts / Edit";
             return View("Accounts/Edit", model);
@@ -234,7 +234,7 @@ public sealed partial class FinanceSetupController
         }
 
         var ok = await financeApiClient.DeleteAccountAsync(accessToken, id, ct);
-        TempData[ok ? "SuccessMessage" : "ErrorMessage"] = ok ? "Account deleted." : "Failed to delete account.";
+        TempData[ok.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = ok.IsSuccess ? "Account deleted." : (string.IsNullOrWhiteSpace(ok.ErrorMessage) ? "Failed to delete account." : ok.ErrorMessage);
 
         return RedirectToAction(nameof(Coa));
     }

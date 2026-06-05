@@ -154,9 +154,9 @@ public sealed class HrPositionsController(IHrApiClient hrApiClient) : Controller
             IsActive = model.IsActive
         }, ct);
 
-        if (created is null)
+        if (!created.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to create position.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(created.ErrorMessage) ? "Failed to create position." : created.ErrorMessage);
             ViewData["Title"] = "Create Position";
             ViewData["Breadcrumb"] = "HR / Positions / Create";
             return View(model);
@@ -229,9 +229,9 @@ public sealed class HrPositionsController(IHrApiClient hrApiClient) : Controller
             IsActive = model.IsActive
         }, ct);
 
-        if (updated is null)
+        if (!updated.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to update position.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(updated.ErrorMessage) ? "Failed to update position." : updated.ErrorMessage);
             ViewData["Title"] = "Edit Position";
             ViewData["Breadcrumb"] = "HR / Positions / Edit";
             return View(model);
@@ -252,9 +252,7 @@ public sealed class HrPositionsController(IHrApiClient hrApiClient) : Controller
         }
 
         var deleted = await hrApiClient.DeletePositionAsync(accessToken, id, ct);
-        TempData[deleted ? "SuccessMessage" : "ErrorMessage"] = deleted
-            ? "Position deleted."
-            : "Failed to delete position.";
+        TempData[deleted.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = deleted.IsSuccess ? "Position deleted." : (string.IsNullOrWhiteSpace(deleted.ErrorMessage) ? "Failed to delete position." : deleted.ErrorMessage);
 
         return RedirectToAction(nameof(Index));
     }

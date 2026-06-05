@@ -43,23 +43,20 @@ public sealed class FinanceApiClient(HttpClient httpClient, ILogger<FinanceApiCl
         }
 
         var query = $"api/v1/finance/account-groups?{string.Join("&", parameters)}";
-        return SendAsync<PagedResult<AccountGroupDto>>(HttpMethod.Get, query, accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<AccountGroupDto>>(HttpMethod.Get, query, accessToken, null, ct).ToDataAsync();
     }
 
     public Task<AccountGroupDto?> GetAccountGroupByIdAsync(string accessToken, int id, CancellationToken ct = default)
-        => SendAsync<AccountGroupDto>(HttpMethod.Get, $"api/v1/finance/account-groups/{id}", accessToken, null, ct);
+        => SendWithResultAsync<AccountGroupDto>(HttpMethod.Get, $"api/v1/finance/account-groups/{id}", accessToken, null, ct).ToDataAsync();
 
-    public Task<AccountGroupDto?> CreateAccountGroupAsync(string accessToken, AccountGroupDto request, CancellationToken ct = default)
-        => SendAsync<AccountGroupDto>(HttpMethod.Post, "api/v1/finance/account-groups", accessToken, request, ct);
+    public Task<ApiCallResult<AccountGroupDto>> CreateAccountGroupAsync(string accessToken, AccountGroupDto request, CancellationToken ct = default)
+        => SendWithResultAsync<AccountGroupDto>(HttpMethod.Post, "api/v1/finance/account-groups", accessToken, request, ct);
 
-    public Task<AccountGroupDto?> UpdateAccountGroupAsync(string accessToken, int id, AccountGroupDto request, CancellationToken ct = default)
-        => SendAsync<AccountGroupDto>(HttpMethod.Put, $"api/v1/finance/account-groups/{id}", accessToken, request, ct);
+    public Task<ApiCallResult<AccountGroupDto>> UpdateAccountGroupAsync(string accessToken, int id, AccountGroupDto request, CancellationToken ct = default)
+        => SendWithResultAsync<AccountGroupDto>(HttpMethod.Put, $"api/v1/finance/account-groups/{id}", accessToken, request, ct);
 
-    public async Task<bool> DeleteAccountGroupAsync(string accessToken, int id, CancellationToken ct = default)
-    {
-        var response = await SendRawAsync(HttpMethod.Delete, $"api/v1/finance/account-groups/{id}", accessToken, null, ct);
-        return response?.IsSuccessStatusCode == true;
-    }
+    public Task<ApiCallResult<object?>> DeleteAccountGroupAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendWithResultAsync<object?>(HttpMethod.Delete, $"api/v1/finance/account-groups/{id}", accessToken, null, ct);
 
     public Task<PagedResult<AccountDto>?> GetAccountsAsync(string accessToken, AccountPagedRequest request, CancellationToken ct = default)
     {
@@ -117,23 +114,20 @@ public sealed class FinanceApiClient(HttpClient httpClient, ILogger<FinanceApiCl
         }
 
         var query = $"api/v1/finance/accounts?{string.Join("&", parameters)}";
-        return SendAsync<PagedResult<AccountDto>>(HttpMethod.Get, query, accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<AccountDto>>(HttpMethod.Get, query, accessToken, null, ct).ToDataAsync();
     }
 
     public Task<AccountDto?> GetAccountByIdAsync(string accessToken, int id, CancellationToken ct = default)
-        => SendAsync<AccountDto>(HttpMethod.Get, $"api/v1/finance/accounts/{id}", accessToken, null, ct);
+        => SendWithResultAsync<AccountDto>(HttpMethod.Get, $"api/v1/finance/accounts/{id}", accessToken, null, ct).ToDataAsync();
 
-    public Task<AccountDto?> CreateAccountAsync(string accessToken, AccountDto request, CancellationToken ct = default)
-        => SendAsync<AccountDto>(HttpMethod.Post, "api/v1/finance/accounts", accessToken, request, ct);
+    public Task<ApiCallResult<AccountDto>> CreateAccountAsync(string accessToken, AccountDto request, CancellationToken ct = default)
+        => SendWithResultAsync<AccountDto>(HttpMethod.Post, "api/v1/finance/accounts", accessToken, request, ct);
 
-    public Task<AccountDto?> UpdateAccountAsync(string accessToken, int id, AccountDto request, CancellationToken ct = default)
-        => SendAsync<AccountDto>(HttpMethod.Put, $"api/v1/finance/accounts/{id}", accessToken, request, ct);
+    public Task<ApiCallResult<AccountDto>> UpdateAccountAsync(string accessToken, int id, AccountDto request, CancellationToken ct = default)
+        => SendWithResultAsync<AccountDto>(HttpMethod.Put, $"api/v1/finance/accounts/{id}", accessToken, request, ct);
 
-    public async Task<bool> DeleteAccountAsync(string accessToken, int id, CancellationToken ct = default)
-    {
-        var response = await SendRawAsync(HttpMethod.Delete, $"api/v1/finance/accounts/{id}", accessToken, null, ct);
-        return response?.IsSuccessStatusCode == true;
-    }
+    public Task<ApiCallResult<object?>> DeleteAccountAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendWithResultAsync<object?>(HttpMethod.Delete, $"api/v1/finance/accounts/{id}", accessToken, null, ct);
 
     public Task<PagedResult<CostCenterDto>?> GetCostCentersAsync(string accessToken, CostCenterPagedRequest request, CancellationToken ct = default)
     {
@@ -171,23 +165,20 @@ public sealed class FinanceApiClient(HttpClient httpClient, ILogger<FinanceApiCl
         }
 
         var query = $"api/v1/finance/cost-centers?{string.Join("&", parameters)}";
-        return SendAsync<PagedResult<CostCenterDto>>(HttpMethod.Get, query, accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<CostCenterDto>>(HttpMethod.Get, query, accessToken, null, ct).ToDataAsync();
     }
 
     public Task<CostCenterDto?> GetCostCenterByIdAsync(string accessToken, int id, CancellationToken ct = default)
-        => SendAsync<CostCenterDto>(HttpMethod.Get, $"api/v1/finance/cost-centers/{id}", accessToken, null, ct);
+        => SendWithResultAsync<CostCenterDto>(HttpMethod.Get, $"api/v1/finance/cost-centers/{id}", accessToken, null, ct).ToDataAsync();
 
-    public Task<CostCenterDto?> CreateCostCenterAsync(string accessToken, CostCenterDto request, CancellationToken ct = default)
-        => SendAsync<CostCenterDto>(HttpMethod.Post, "api/v1/finance/cost-centers", accessToken, request, ct);
+    public Task<ApiCallResult<CostCenterDto>> CreateCostCenterAsync(string accessToken, CostCenterDto request, CancellationToken ct = default)
+        => SendWithResultAsync<CostCenterDto>(HttpMethod.Post, "api/v1/finance/cost-centers", accessToken, request, ct);
 
-    public Task<CostCenterDto?> UpdateCostCenterAsync(string accessToken, int id, CostCenterDto request, CancellationToken ct = default)
-        => SendAsync<CostCenterDto>(HttpMethod.Put, $"api/v1/finance/cost-centers/{id}", accessToken, request, ct);
+    public Task<ApiCallResult<CostCenterDto>> UpdateCostCenterAsync(string accessToken, int id, CostCenterDto request, CancellationToken ct = default)
+        => SendWithResultAsync<CostCenterDto>(HttpMethod.Put, $"api/v1/finance/cost-centers/{id}", accessToken, request, ct);
 
-    public async Task<bool> DeleteCostCenterAsync(string accessToken, int id, CancellationToken ct = default)
-    {
-        var response = await SendRawAsync(HttpMethod.Delete, $"api/v1/finance/cost-centers/{id}", accessToken, null, ct);
-        return response?.IsSuccessStatusCode == true;
-    }
+    public Task<ApiCallResult<object?>> DeleteCostCenterAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendWithResultAsync<object?>(HttpMethod.Delete, $"api/v1/finance/cost-centers/{id}", accessToken, null, ct);
 
     public Task<PagedResult<CurrencyDto>?> GetCurrenciesAsync(string accessToken, CurrencyPagedRequest request, CancellationToken ct = default)
     {
@@ -220,23 +211,20 @@ public sealed class FinanceApiClient(HttpClient httpClient, ILogger<FinanceApiCl
         }
 
         var query = $"api/v1/finance/currencies?{string.Join("&", parameters)}";
-        return SendAsync<PagedResult<CurrencyDto>>(HttpMethod.Get, query, accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<CurrencyDto>>(HttpMethod.Get, query, accessToken, null, ct).ToDataAsync();
     }
 
     public Task<CurrencyDto?> GetCurrencyByIdAsync(string accessToken, int id, CancellationToken ct = default)
-        => SendAsync<CurrencyDto>(HttpMethod.Get, $"api/v1/finance/currencies/{id}", accessToken, null, ct);
+        => SendWithResultAsync<CurrencyDto>(HttpMethod.Get, $"api/v1/finance/currencies/{id}", accessToken, null, ct).ToDataAsync();
 
-    public Task<CurrencyDto?> CreateCurrencyAsync(string accessToken, CurrencyDto request, CancellationToken ct = default)
-        => SendAsync<CurrencyDto>(HttpMethod.Post, "api/v1/finance/currencies", accessToken, request, ct);
+    public Task<ApiCallResult<CurrencyDto>> CreateCurrencyAsync(string accessToken, CurrencyDto request, CancellationToken ct = default)
+        => SendWithResultAsync<CurrencyDto>(HttpMethod.Post, "api/v1/finance/currencies", accessToken, request, ct);
 
-    public Task<CurrencyDto?> UpdateCurrencyAsync(string accessToken, int id, CurrencyDto request, CancellationToken ct = default)
-        => SendAsync<CurrencyDto>(HttpMethod.Put, $"api/v1/finance/currencies/{id}", accessToken, request, ct);
+    public Task<ApiCallResult<CurrencyDto>> UpdateCurrencyAsync(string accessToken, int id, CurrencyDto request, CancellationToken ct = default)
+        => SendWithResultAsync<CurrencyDto>(HttpMethod.Put, $"api/v1/finance/currencies/{id}", accessToken, request, ct);
 
-    public async Task<bool> DeleteCurrencyAsync(string accessToken, int id, CancellationToken ct = default)
-    {
-        var response = await SendRawAsync(HttpMethod.Delete, $"api/v1/finance/currencies/{id}", accessToken, null, ct);
-        return response?.IsSuccessStatusCode == true;
-    }
+    public Task<ApiCallResult<object?>> DeleteCurrencyAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendWithResultAsync<object?>(HttpMethod.Delete, $"api/v1/finance/currencies/{id}", accessToken, null, ct);
 
     public Task<PagedResult<ExchangeRateDto>?> GetExchangeRatesAsync(string accessToken, ExchangeRatePagedRequest request, CancellationToken ct = default)
     {
@@ -269,14 +257,14 @@ public sealed class FinanceApiClient(HttpClient httpClient, ILogger<FinanceApiCl
         }
 
         var query = $"api/v1/finance/exchange-rates?{string.Join("&", parameters)}";
-        return SendAsync<PagedResult<ExchangeRateDto>>(HttpMethod.Get, query, accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<ExchangeRateDto>>(HttpMethod.Get, query, accessToken, null, ct).ToDataAsync();
     }
 
     public Task<ExchangeRateDto?> GetExchangeRateByIdAsync(string accessToken, int id, CancellationToken ct = default)
-        => SendAsync<ExchangeRateDto>(HttpMethod.Get, $"api/v1/finance/exchange-rates/{id}", accessToken, null, ct);
+        => SendWithResultAsync<ExchangeRateDto>(HttpMethod.Get, $"api/v1/finance/exchange-rates/{id}", accessToken, null, ct).ToDataAsync();
 
-    public Task<ExchangeRateDto?> CreateExchangeRateAsync(string accessToken, ExchangeRateDto request, CancellationToken ct = default)
-        => SendAsync<ExchangeRateDto>(HttpMethod.Post, "api/v1/finance/exchange-rates", accessToken, request, ct);
+    public Task<ApiCallResult<ExchangeRateDto>> CreateExchangeRateAsync(string accessToken, ExchangeRateDto request, CancellationToken ct = default)
+        => SendWithResultAsync<ExchangeRateDto>(HttpMethod.Post, "api/v1/finance/exchange-rates", accessToken, request, ct);
 
     public Task<PagedResult<FiscalYearDto>?> GetFiscalYearsAsync(string accessToken, FiscalYearPagedRequest request, CancellationToken ct = default)
     {
@@ -314,23 +302,20 @@ public sealed class FinanceApiClient(HttpClient httpClient, ILogger<FinanceApiCl
         }
 
         var query = $"api/v1/finance/fiscal-years?{string.Join("&", parameters)}";
-        return SendAsync<PagedResult<FiscalYearDto>>(HttpMethod.Get, query, accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<FiscalYearDto>>(HttpMethod.Get, query, accessToken, null, ct).ToDataAsync();
     }
 
     public Task<FiscalYearDto?> GetFiscalYearByIdAsync(string accessToken, int id, CancellationToken ct = default)
-        => SendAsync<FiscalYearDto>(HttpMethod.Get, $"api/v1/finance/fiscal-years/{id}", accessToken, null, ct);
+        => SendWithResultAsync<FiscalYearDto>(HttpMethod.Get, $"api/v1/finance/fiscal-years/{id}", accessToken, null, ct).ToDataAsync();
 
-    public Task<FiscalYearDto?> CreateFiscalYearAsync(string accessToken, FiscalYearDto request, CancellationToken ct = default)
-        => SendAsync<FiscalYearDto>(HttpMethod.Post, "api/v1/finance/fiscal-years", accessToken, request, ct);
+    public Task<ApiCallResult<FiscalYearDto>> CreateFiscalYearAsync(string accessToken, FiscalYearDto request, CancellationToken ct = default)
+        => SendWithResultAsync<FiscalYearDto>(HttpMethod.Post, "api/v1/finance/fiscal-years", accessToken, request, ct);
 
-    public Task<FiscalYearDto?> UpdateFiscalYearAsync(string accessToken, int id, FiscalYearDto request, CancellationToken ct = default)
-        => SendAsync<FiscalYearDto>(HttpMethod.Put, $"api/v1/finance/fiscal-years/{id}", accessToken, request, ct);
+    public Task<ApiCallResult<FiscalYearDto>> UpdateFiscalYearAsync(string accessToken, int id, FiscalYearDto request, CancellationToken ct = default)
+        => SendWithResultAsync<FiscalYearDto>(HttpMethod.Put, $"api/v1/finance/fiscal-years/{id}", accessToken, request, ct);
 
-    public async Task<bool> CloseFiscalYearAsync(string accessToken, int id, CancellationToken ct = default)
-    {
-        var response = await SendRawAsync(HttpMethod.Put, $"api/v1/finance/fiscal-years/{id}/close", accessToken, null, ct);
-        return response?.IsSuccessStatusCode == true;
-    }
+    public Task<ApiCallResult<object?>> CloseFiscalYearAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendWithResultAsync<object?>(HttpMethod.Put, $"api/v1/finance/fiscal-years/{id}/close", accessToken, null, ct);
 
     public Task<PagedResult<PeriodDto>?> GetPeriodsAsync(string accessToken, PeriodPagedRequest request, CancellationToken ct = default)
     {
@@ -368,17 +353,14 @@ public sealed class FinanceApiClient(HttpClient httpClient, ILogger<FinanceApiCl
         }
 
         var query = $"api/v1/finance/periods?{string.Join("&", parameters)}";
-        return SendAsync<PagedResult<PeriodDto>>(HttpMethod.Get, query, accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<PeriodDto>>(HttpMethod.Get, query, accessToken, null, ct).ToDataAsync();
     }
 
     public Task<PeriodDto?> GetPeriodByIdAsync(string accessToken, int id, CancellationToken ct = default)
-        => SendAsync<PeriodDto>(HttpMethod.Get, $"api/v1/finance/periods/{id}", accessToken, null, ct);
+        => SendWithResultAsync<PeriodDto>(HttpMethod.Get, $"api/v1/finance/periods/{id}", accessToken, null, ct).ToDataAsync();
 
-    public async Task<bool> ClosePeriodAsync(string accessToken, int id, CancellationToken ct = default)
-    {
-        var response = await SendRawAsync(HttpMethod.Put, $"api/v1/finance/periods/{id}/close", accessToken, null, ct);
-        return response?.IsSuccessStatusCode == true;
-    }
+    public Task<ApiCallResult<object?>> ClosePeriodAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendWithResultAsync<object?>(HttpMethod.Put, $"api/v1/finance/periods/{id}/close", accessToken, null, ct);
 
     public Task<PagedResult<TaxCodeDto>?> GetTaxCodesAsync(string accessToken, TaxCodePagedRequest request, CancellationToken ct = default)
     {
@@ -426,23 +408,20 @@ public sealed class FinanceApiClient(HttpClient httpClient, ILogger<FinanceApiCl
         }
 
         var query = $"api/v1/finance/tax-codes?{string.Join("&", parameters)}";
-        return SendAsync<PagedResult<TaxCodeDto>>(HttpMethod.Get, query, accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<TaxCodeDto>>(HttpMethod.Get, query, accessToken, null, ct).ToDataAsync();
     }
 
     public Task<TaxCodeDto?> GetTaxCodeByIdAsync(string accessToken, int id, CancellationToken ct = default)
-        => SendAsync<TaxCodeDto>(HttpMethod.Get, $"api/v1/finance/tax-codes/{id}", accessToken, null, ct);
+        => SendWithResultAsync<TaxCodeDto>(HttpMethod.Get, $"api/v1/finance/tax-codes/{id}", accessToken, null, ct).ToDataAsync();
 
-    public Task<TaxCodeDto?> CreateTaxCodeAsync(string accessToken, TaxCodeDto request, CancellationToken ct = default)
-        => SendAsync<TaxCodeDto>(HttpMethod.Post, "api/v1/finance/tax-codes", accessToken, request, ct);
+    public Task<ApiCallResult<TaxCodeDto>> CreateTaxCodeAsync(string accessToken, TaxCodeDto request, CancellationToken ct = default)
+        => SendWithResultAsync<TaxCodeDto>(HttpMethod.Post, "api/v1/finance/tax-codes", accessToken, request, ct);
 
-    public Task<TaxCodeDto?> UpdateTaxCodeAsync(string accessToken, int id, TaxCodeDto request, CancellationToken ct = default)
-        => SendAsync<TaxCodeDto>(HttpMethod.Put, $"api/v1/finance/tax-codes/{id}", accessToken, request, ct);
+    public Task<ApiCallResult<TaxCodeDto>> UpdateTaxCodeAsync(string accessToken, int id, TaxCodeDto request, CancellationToken ct = default)
+        => SendWithResultAsync<TaxCodeDto>(HttpMethod.Put, $"api/v1/finance/tax-codes/{id}", accessToken, request, ct);
 
-    public async Task<bool> DeleteTaxCodeAsync(string accessToken, int id, CancellationToken ct = default)
-    {
-        var response = await SendRawAsync(HttpMethod.Delete, $"api/v1/finance/tax-codes/{id}", accessToken, null, ct);
-        return response?.IsSuccessStatusCode == true;
-    }
+    public Task<ApiCallResult<object?>> DeleteTaxCodeAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendWithResultAsync<object?>(HttpMethod.Delete, $"api/v1/finance/tax-codes/{id}", accessToken, null, ct);
 
     public Task<PagedResult<JournalEntryDto>?> GetJournalsAsync(string accessToken, JournalPagedRequest request, CancellationToken ct = default)
     {
@@ -485,23 +464,23 @@ public sealed class FinanceApiClient(HttpClient httpClient, ILogger<FinanceApiCl
         }
 
         var query = $"api/v1/finance/journals?{string.Join("&", parameters)}";
-        return SendAsync<PagedResult<JournalEntryDto>>(HttpMethod.Get, query, accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<JournalEntryDto>>(HttpMethod.Get, query, accessToken, null, ct).ToDataAsync();
     }
 
     public Task<JournalEntryDto?> GetJournalByIdAsync(string accessToken, int id, CancellationToken ct = default)
-        => SendAsync<JournalEntryDto>(HttpMethod.Get, $"api/v1/finance/journals/{id}", accessToken, null, ct);
+        => SendWithResultAsync<JournalEntryDto>(HttpMethod.Get, $"api/v1/finance/journals/{id}", accessToken, null, ct).ToDataAsync();
 
-    public Task<JournalEntryDto?> CreateJournalAsync(string accessToken, JournalEntryDto request, CancellationToken ct = default)
-        => SendAsync<JournalEntryDto>(HttpMethod.Post, "api/v1/finance/journals", accessToken, request, ct);
+    public Task<ApiCallResult<JournalEntryDto>> CreateJournalAsync(string accessToken, JournalEntryDto request, CancellationToken ct = default)
+        => SendWithResultAsync<JournalEntryDto>(HttpMethod.Post, "api/v1/finance/journals", accessToken, request, ct);
 
-    public Task<JournalEntryDto?> UpdateJournalAsync(string accessToken, int id, JournalEntryDto request, CancellationToken ct = default)
-        => SendAsync<JournalEntryDto>(HttpMethod.Put, $"api/v1/finance/journals/{id}", accessToken, request, ct);
+    public Task<ApiCallResult<JournalEntryDto>> UpdateJournalAsync(string accessToken, int id, JournalEntryDto request, CancellationToken ct = default)
+        => SendWithResultAsync<JournalEntryDto>(HttpMethod.Put, $"api/v1/finance/journals/{id}", accessToken, request, ct);
 
-    public Task<JournalEntryDto?> PostJournalAsync(string accessToken, int id, CancellationToken ct = default)
-        => SendAsync<JournalEntryDto>(HttpMethod.Put, $"api/v1/finance/journals/{id}/post", accessToken, null, ct);
+    public Task<ApiCallResult<JournalEntryDto>> PostJournalAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendWithResultAsync<JournalEntryDto>(HttpMethod.Put, $"api/v1/finance/journals/{id}/post", accessToken, null, ct);
 
-    public Task<JournalEntryDto?> ReverseJournalAsync(string accessToken, int id, CancellationToken ct = default)
-        => SendAsync<JournalEntryDto>(HttpMethod.Put, $"api/v1/finance/journals/{id}/reverse", accessToken, null, ct);
+    public Task<ApiCallResult<JournalEntryDto>> ReverseJournalAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendWithResultAsync<JournalEntryDto>(HttpMethod.Put, $"api/v1/finance/journals/{id}/reverse", accessToken, null, ct);
 
     public Task<PagedResult<LedgerEntryDto>?> GetLedgerAsync(string accessToken, LedgerPagedRequest request, CancellationToken ct = default)
     {
@@ -534,7 +513,7 @@ public sealed class FinanceApiClient(HttpClient httpClient, ILogger<FinanceApiCl
         }
 
         var query = $"api/v1/finance/ledger?{string.Join("&", parameters)}";
-        return SendAsync<PagedResult<LedgerEntryDto>>(HttpMethod.Get, query, accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<LedgerEntryDto>>(HttpMethod.Get, query, accessToken, null, ct).ToDataAsync();
     }
     public Task<PagedResult<VendorDto>?> GetVendorsAsync(string accessToken, VendorPagedRequest request, CancellationToken ct = default)
     {
@@ -577,23 +556,20 @@ public sealed class FinanceApiClient(HttpClient httpClient, ILogger<FinanceApiCl
         }
 
         var query = $"api/v1/finance/vendors?{string.Join("&", parameters)}";
-        return SendAsync<PagedResult<VendorDto>>(HttpMethod.Get, query, accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<VendorDto>>(HttpMethod.Get, query, accessToken, null, ct).ToDataAsync();
     }
 
     public Task<VendorDto?> GetVendorByIdAsync(string accessToken, int id, CancellationToken ct = default)
-        => SendAsync<VendorDto>(HttpMethod.Get, $"api/v1/finance/vendors/{id}", accessToken, null, ct);
+        => SendWithResultAsync<VendorDto>(HttpMethod.Get, $"api/v1/finance/vendors/{id}", accessToken, null, ct).ToDataAsync();
 
-    public Task<VendorDto?> CreateVendorAsync(string accessToken, VendorDto request, CancellationToken ct = default)
-        => SendAsync<VendorDto>(HttpMethod.Post, "api/v1/finance/vendors", accessToken, request, ct);
+    public Task<ApiCallResult<VendorDto>> CreateVendorAsync(string accessToken, VendorDto request, CancellationToken ct = default)
+        => SendWithResultAsync<VendorDto>(HttpMethod.Post, "api/v1/finance/vendors", accessToken, request, ct);
 
-    public Task<VendorDto?> UpdateVendorAsync(string accessToken, int id, VendorDto request, CancellationToken ct = default)
-        => SendAsync<VendorDto>(HttpMethod.Put, $"api/v1/finance/vendors/{id}", accessToken, request, ct);
+    public Task<ApiCallResult<VendorDto>> UpdateVendorAsync(string accessToken, int id, VendorDto request, CancellationToken ct = default)
+        => SendWithResultAsync<VendorDto>(HttpMethod.Put, $"api/v1/finance/vendors/{id}", accessToken, request, ct);
 
-    public async Task<bool> DeleteVendorAsync(string accessToken, int id, CancellationToken ct = default)
-    {
-        var response = await SendRawAsync(HttpMethod.Delete, $"api/v1/finance/vendors/{id}", accessToken, null, ct);
-        return response?.IsSuccessStatusCode == true;
-    }
+    public Task<ApiCallResult<object?>> DeleteVendorAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendWithResultAsync<object?>(HttpMethod.Delete, $"api/v1/finance/vendors/{id}", accessToken, null, ct);
 
     public Task<PagedResult<ApInvoiceDto>?> GetApInvoicesAsync(string accessToken, ApInvoicePagedRequest request, CancellationToken ct = default)
     {
@@ -661,26 +637,23 @@ public sealed class FinanceApiClient(HttpClient httpClient, ILogger<FinanceApiCl
         }
 
         var query = $"api/v1/finance/ap/invoices?{string.Join("&", parameters)}";
-        return SendAsync<PagedResult<ApInvoiceDto>>(HttpMethod.Get, query, accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<ApInvoiceDto>>(HttpMethod.Get, query, accessToken, null, ct).ToDataAsync();
     }
 
     public Task<ApInvoiceDto?> GetApInvoiceByIdAsync(string accessToken, int id, CancellationToken ct = default)
-        => SendAsync<ApInvoiceDto>(HttpMethod.Get, $"api/v1/finance/ap/invoices/{id}", accessToken, null, ct);
+        => SendWithResultAsync<ApInvoiceDto>(HttpMethod.Get, $"api/v1/finance/ap/invoices/{id}", accessToken, null, ct).ToDataAsync();
 
-    public Task<ApInvoiceDto?> CreateApInvoiceAsync(string accessToken, ApInvoiceDto request, CancellationToken ct = default)
-        => SendAsync<ApInvoiceDto>(HttpMethod.Post, "api/v1/finance/ap/invoices", accessToken, request, ct);
+    public Task<ApiCallResult<ApInvoiceDto>> CreateApInvoiceAsync(string accessToken, ApInvoiceDto request, CancellationToken ct = default)
+        => SendWithResultAsync<ApInvoiceDto>(HttpMethod.Post, "api/v1/finance/ap/invoices", accessToken, request, ct);
 
-    public Task<ApInvoiceDto?> UpdateApInvoiceAsync(string accessToken, int id, ApInvoiceDto request, CancellationToken ct = default)
-        => SendAsync<ApInvoiceDto>(HttpMethod.Put, $"api/v1/finance/ap/invoices/{id}", accessToken, request, ct);
+    public Task<ApiCallResult<ApInvoiceDto>> UpdateApInvoiceAsync(string accessToken, int id, ApInvoiceDto request, CancellationToken ct = default)
+        => SendWithResultAsync<ApInvoiceDto>(HttpMethod.Put, $"api/v1/finance/ap/invoices/{id}", accessToken, request, ct);
 
-    public Task<ApInvoiceDto?> ApproveApInvoiceAsync(string accessToken, int id, CancellationToken ct = default)
-        => SendAsync<ApInvoiceDto>(HttpMethod.Put, $"api/v1/finance/ap/invoices/{id}/approve", accessToken, null, ct);
+    public Task<ApiCallResult<ApInvoiceDto>> ApproveApInvoiceAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendWithResultAsync<ApInvoiceDto>(HttpMethod.Put, $"api/v1/finance/ap/invoices/{id}/approve", accessToken, null, ct);
 
-    public async Task<bool> DeleteApInvoiceAsync(string accessToken, int id, CancellationToken ct = default)
-    {
-        var response = await SendRawAsync(HttpMethod.Delete, $"api/v1/finance/ap/invoices/{id}", accessToken, null, ct);
-        return response?.IsSuccessStatusCode == true;
-    }
+    public Task<ApiCallResult<object?>> DeleteApInvoiceAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendWithResultAsync<object?>(HttpMethod.Delete, $"api/v1/finance/ap/invoices/{id}", accessToken, null, ct);
 
     public Task<PagedResult<ApPaymentDto>?> GetApPaymentsAsync(string accessToken, ApPaymentPagedRequest request, CancellationToken ct = default)
     {
@@ -723,14 +696,14 @@ public sealed class FinanceApiClient(HttpClient httpClient, ILogger<FinanceApiCl
         }
 
         var query = $"api/v1/finance/ap/payments?{string.Join("&", parameters)}";
-        return SendAsync<PagedResult<ApPaymentDto>>(HttpMethod.Get, query, accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<ApPaymentDto>>(HttpMethod.Get, query, accessToken, null, ct).ToDataAsync();
     }
 
     public Task<ApPaymentDto?> GetApPaymentByIdAsync(string accessToken, int id, CancellationToken ct = default)
-        => SendAsync<ApPaymentDto>(HttpMethod.Get, $"api/v1/finance/ap/payments/{id}", accessToken, null, ct);
+        => SendWithResultAsync<ApPaymentDto>(HttpMethod.Get, $"api/v1/finance/ap/payments/{id}", accessToken, null, ct).ToDataAsync();
 
-    public Task<ApPaymentDto?> CreateApPaymentAsync(string accessToken, ApPaymentDto request, CancellationToken ct = default)
-        => SendAsync<ApPaymentDto>(HttpMethod.Post, "api/v1/finance/ap/payments", accessToken, request, ct);
+    public Task<ApiCallResult<ApPaymentDto>> CreateApPaymentAsync(string accessToken, ApPaymentDto request, CancellationToken ct = default)
+        => SendWithResultAsync<ApPaymentDto>(HttpMethod.Post, "api/v1/finance/ap/payments", accessToken, request, ct);
 
     public Task<PagedResult<ApAgingRowDto>?> GetApAgingAsync(string accessToken, ApAgingPagedRequest request, CancellationToken ct = default)
     {
@@ -758,7 +731,7 @@ public sealed class FinanceApiClient(HttpClient httpClient, ILogger<FinanceApiCl
         }
 
         var query = $"api/v1/finance/ap/aging?{string.Join("&", parameters)}";
-        return SendAsync<PagedResult<ApAgingRowDto>>(HttpMethod.Get, query, accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<ApAgingRowDto>>(HttpMethod.Get, query, accessToken, null, ct).ToDataAsync();
     }
 
     public Task<PagedResult<CustomerDto>?> GetCustomersAsync(string accessToken, CustomerPagedRequest request, CancellationToken ct = default)
@@ -812,23 +785,20 @@ public sealed class FinanceApiClient(HttpClient httpClient, ILogger<FinanceApiCl
         }
 
         var query = $"api/v1/finance/customers?{string.Join("&", parameters)}";
-        return SendAsync<PagedResult<CustomerDto>>(HttpMethod.Get, query, accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<CustomerDto>>(HttpMethod.Get, query, accessToken, null, ct).ToDataAsync();
     }
 
     public Task<CustomerDto?> GetCustomerByIdAsync(string accessToken, int id, CancellationToken ct = default)
-        => SendAsync<CustomerDto>(HttpMethod.Get, $"api/v1/finance/customers/{id}", accessToken, null, ct);
+        => SendWithResultAsync<CustomerDto>(HttpMethod.Get, $"api/v1/finance/customers/{id}", accessToken, null, ct).ToDataAsync();
 
-    public Task<CustomerDto?> CreateCustomerAsync(string accessToken, CustomerDto request, CancellationToken ct = default)
-        => SendAsync<CustomerDto>(HttpMethod.Post, "api/v1/finance/customers", accessToken, request, ct);
+    public Task<ApiCallResult<CustomerDto>> CreateCustomerAsync(string accessToken, CustomerDto request, CancellationToken ct = default)
+        => SendWithResultAsync<CustomerDto>(HttpMethod.Post, "api/v1/finance/customers", accessToken, request, ct);
 
-    public Task<CustomerDto?> UpdateCustomerAsync(string accessToken, int id, CustomerDto request, CancellationToken ct = default)
-        => SendAsync<CustomerDto>(HttpMethod.Put, $"api/v1/finance/customers/{id}", accessToken, request, ct);
+    public Task<ApiCallResult<CustomerDto>> UpdateCustomerAsync(string accessToken, int id, CustomerDto request, CancellationToken ct = default)
+        => SendWithResultAsync<CustomerDto>(HttpMethod.Put, $"api/v1/finance/customers/{id}", accessToken, request, ct);
 
-    public async Task<bool> DeleteCustomerAsync(string accessToken, int id, CancellationToken ct = default)
-    {
-        var response = await SendRawAsync(HttpMethod.Delete, $"api/v1/finance/customers/{id}", accessToken, null, ct);
-        return response?.IsSuccessStatusCode == true;
-    }
+    public Task<ApiCallResult<object?>> DeleteCustomerAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendWithResultAsync<object?>(HttpMethod.Delete, $"api/v1/finance/customers/{id}", accessToken, null, ct);
 
     public Task<PagedResult<PeriodClosingRowDto>?> GetPeriodClosingAsync(string accessToken, PeriodClosingPagedRequest request, CancellationToken ct = default)
     {
@@ -886,7 +856,7 @@ public sealed class FinanceApiClient(HttpClient httpClient, ILogger<FinanceApiCl
         }
 
         var query = $"api/v1/finance/finalization/period-closing?{string.Join("&", parameters)}";
-        return SendAsync<PagedResult<PeriodClosingRowDto>>(HttpMethod.Get, query, accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<PeriodClosingRowDto>>(HttpMethod.Get, query, accessToken, null, ct).ToDataAsync();
     }
 
     public Task<PagedResult<SmokeTestRowDto>?> GetSmokeTestsAsync(string accessToken, SmokeTestPagedRequest request, CancellationToken ct = default)
@@ -905,7 +875,7 @@ public sealed class FinanceApiClient(HttpClient httpClient, ILogger<FinanceApiCl
         }
 
         var query = $"api/v1/finance/finalization/smoke-tests?{string.Join("&", parameters)}";
-        return SendAsync<PagedResult<SmokeTestRowDto>>(HttpMethod.Get, query, accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<SmokeTestRowDto>>(HttpMethod.Get, query, accessToken, null, ct).ToDataAsync();
     }
 
     public Task<PagedResult<BudgetDto>?> GetBudgetsAsync(string accessToken, BudgetPagedRequest request, CancellationToken ct = default)
@@ -979,23 +949,20 @@ public sealed class FinanceApiClient(HttpClient httpClient, ILogger<FinanceApiCl
         }
 
         var query = $"api/v1/finance/budgets?{string.Join("&", parameters)}";
-        return SendAsync<PagedResult<BudgetDto>>(HttpMethod.Get, query, accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<BudgetDto>>(HttpMethod.Get, query, accessToken, null, ct).ToDataAsync();
     }
 
     public Task<BudgetDto?> GetBudgetByIdAsync(string accessToken, int id, CancellationToken ct = default)
-        => SendAsync<BudgetDto>(HttpMethod.Get, $"api/v1/finance/budgets/{id}", accessToken, null, ct);
+        => SendWithResultAsync<BudgetDto>(HttpMethod.Get, $"api/v1/finance/budgets/{id}", accessToken, null, ct).ToDataAsync();
 
-    public Task<BudgetDto?> CreateBudgetAsync(string accessToken, BudgetDto request, CancellationToken ct = default)
-        => SendAsync<BudgetDto>(HttpMethod.Post, "api/v1/finance/budgets", accessToken, request, ct);
+    public Task<ApiCallResult<BudgetDto>> CreateBudgetAsync(string accessToken, BudgetDto request, CancellationToken ct = default)
+        => SendWithResultAsync<BudgetDto>(HttpMethod.Post, "api/v1/finance/budgets", accessToken, request, ct);
 
-    public Task<BudgetDto?> UpdateBudgetAsync(string accessToken, int id, BudgetDto request, CancellationToken ct = default)
-        => SendAsync<BudgetDto>(HttpMethod.Put, $"api/v1/finance/budgets/{id}", accessToken, request, ct);
+    public Task<ApiCallResult<BudgetDto>> UpdateBudgetAsync(string accessToken, int id, BudgetDto request, CancellationToken ct = default)
+        => SendWithResultAsync<BudgetDto>(HttpMethod.Put, $"api/v1/finance/budgets/{id}", accessToken, request, ct);
 
-    public async Task<bool> DeleteBudgetAsync(string accessToken, int id, CancellationToken ct = default)
-    {
-        var response = await SendRawAsync(HttpMethod.Delete, $"api/v1/finance/budgets/{id}", accessToken, null, ct);
-        return response?.IsSuccessStatusCode == true;
-    }
+    public Task<ApiCallResult<object?>> DeleteBudgetAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendWithResultAsync<object?>(HttpMethod.Delete, $"api/v1/finance/budgets/{id}", accessToken, null, ct);
 
     public Task<PagedResult<ArInvoiceDto>?> GetArInvoicesAsync(string accessToken, ArInvoicePagedRequest request, CancellationToken ct = default)
     {
@@ -1058,26 +1025,23 @@ public sealed class FinanceApiClient(HttpClient httpClient, ILogger<FinanceApiCl
         }
 
         var query = $"api/v1/finance/ar/invoices?{string.Join("&", parameters)}";
-        return SendAsync<PagedResult<ArInvoiceDto>>(HttpMethod.Get, query, accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<ArInvoiceDto>>(HttpMethod.Get, query, accessToken, null, ct).ToDataAsync();
     }
 
     public Task<ArInvoiceDto?> GetArInvoiceByIdAsync(string accessToken, int id, CancellationToken ct = default)
-        => SendAsync<ArInvoiceDto>(HttpMethod.Get, $"api/v1/finance/ar/invoices/{id}", accessToken, null, ct);
+        => SendWithResultAsync<ArInvoiceDto>(HttpMethod.Get, $"api/v1/finance/ar/invoices/{id}", accessToken, null, ct).ToDataAsync();
 
-    public Task<ArInvoiceDto?> CreateArInvoiceAsync(string accessToken, ArInvoiceDto request, CancellationToken ct = default)
-        => SendAsync<ArInvoiceDto>(HttpMethod.Post, "api/v1/finance/ar/invoices", accessToken, request, ct);
+    public Task<ApiCallResult<ArInvoiceDto>> CreateArInvoiceAsync(string accessToken, ArInvoiceDto request, CancellationToken ct = default)
+        => SendWithResultAsync<ArInvoiceDto>(HttpMethod.Post, "api/v1/finance/ar/invoices", accessToken, request, ct);
 
-    public Task<ArInvoiceDto?> UpdateArInvoiceAsync(string accessToken, int id, ArInvoiceDto request, CancellationToken ct = default)
-        => SendAsync<ArInvoiceDto>(HttpMethod.Put, $"api/v1/finance/ar/invoices/{id}", accessToken, request, ct);
+    public Task<ApiCallResult<ArInvoiceDto>> UpdateArInvoiceAsync(string accessToken, int id, ArInvoiceDto request, CancellationToken ct = default)
+        => SendWithResultAsync<ArInvoiceDto>(HttpMethod.Put, $"api/v1/finance/ar/invoices/{id}", accessToken, request, ct);
 
-    public Task<ArInvoiceDto?> SendArInvoiceAsync(string accessToken, int id, CancellationToken ct = default)
-        => SendAsync<ArInvoiceDto>(HttpMethod.Put, $"api/v1/finance/ar/invoices/{id}/send", accessToken, null, ct);
+    public Task<ApiCallResult<ArInvoiceDto>> SendArInvoiceAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendWithResultAsync<ArInvoiceDto>(HttpMethod.Put, $"api/v1/finance/ar/invoices/{id}/send", accessToken, null, ct);
 
-    public async Task<bool> DeleteArInvoiceAsync(string accessToken, int id, CancellationToken ct = default)
-    {
-        var response = await SendRawAsync(HttpMethod.Delete, $"api/v1/finance/ar/invoices/{id}", accessToken, null, ct);
-        return response?.IsSuccessStatusCode == true;
-    }
+    public Task<ApiCallResult<object?>> DeleteArInvoiceAsync(string accessToken, int id, CancellationToken ct = default)
+        => SendWithResultAsync<object?>(HttpMethod.Delete, $"api/v1/finance/ar/invoices/{id}", accessToken, null, ct);
 
     public Task<PagedResult<ArReceiptDto>?> GetArReceiptsAsync(string accessToken, ArReceiptPagedRequest request, CancellationToken ct = default)
     {
@@ -1120,14 +1084,14 @@ public sealed class FinanceApiClient(HttpClient httpClient, ILogger<FinanceApiCl
         }
 
         var query = $"api/v1/finance/ar/receipts?{string.Join("&", parameters)}";
-        return SendAsync<PagedResult<ArReceiptDto>>(HttpMethod.Get, query, accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<ArReceiptDto>>(HttpMethod.Get, query, accessToken, null, ct).ToDataAsync();
     }
 
     public Task<ArReceiptDto?> GetArReceiptByIdAsync(string accessToken, int id, CancellationToken ct = default)
-        => SendAsync<ArReceiptDto>(HttpMethod.Get, $"api/v1/finance/ar/receipts/{id}", accessToken, null, ct);
+        => SendWithResultAsync<ArReceiptDto>(HttpMethod.Get, $"api/v1/finance/ar/receipts/{id}", accessToken, null, ct).ToDataAsync();
 
-    public Task<ArReceiptDto?> CreateArReceiptAsync(string accessToken, ArReceiptDto request, CancellationToken ct = default)
-        => SendAsync<ArReceiptDto>(HttpMethod.Post, "api/v1/finance/ar/receipts", accessToken, request, ct);
+    public Task<ApiCallResult<ArReceiptDto>> CreateArReceiptAsync(string accessToken, ArReceiptDto request, CancellationToken ct = default)
+        => SendWithResultAsync<ArReceiptDto>(HttpMethod.Post, "api/v1/finance/ar/receipts", accessToken, request, ct);
 
     public Task<PagedResult<ArAgingRowDto>?> GetArAgingAsync(string accessToken, ArAgingPagedRequest request, CancellationToken ct = default)
     {
@@ -1155,7 +1119,7 @@ public sealed class FinanceApiClient(HttpClient httpClient, ILogger<FinanceApiCl
         }
 
         var query = $"api/v1/finance/ar/aging?{string.Join("&", parameters)}";
-        return SendAsync<PagedResult<ArAgingRowDto>>(HttpMethod.Get, query, accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<ArAgingRowDto>>(HttpMethod.Get, query, accessToken, null, ct).ToDataAsync();
     }
     public Task<PagedResult<TrialBalanceRowDto>?> GetTrialBalanceAsync(string accessToken, TrialBalancePagedRequest request, CancellationToken ct = default)
     {
@@ -1164,7 +1128,7 @@ public sealed class FinanceApiClient(HttpClient httpClient, ILogger<FinanceApiCl
         AddReportParameters(parameters, request.PeriodId, request.DateFrom, request.DateTo, request.AccountId, request.CostCenterId, request.Type, null);
 
         var query = $"api/v1/finance/reports/trial-balance?{string.Join("&", parameters)}";
-        return SendAsync<PagedResult<TrialBalanceRowDto>>(HttpMethod.Get, query, accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<TrialBalanceRowDto>>(HttpMethod.Get, query, accessToken, null, ct).ToDataAsync();
     }
 
     public Task<PagedResult<FinancialStatementRowDto>?> GetBalanceSheetAsync(string accessToken, FinancialStatementPagedRequest request, CancellationToken ct = default)
@@ -1237,7 +1201,7 @@ public sealed class FinanceApiClient(HttpClient httpClient, ILogger<FinanceApiCl
         }
 
         var query = $"api/v1/finance/reports/budget-vs-actual?{string.Join("&", parameters)}";
-        return SendAsync<PagedResult<BudgetVsActualRowDto>>(HttpMethod.Get, query, accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<BudgetVsActualRowDto>>(HttpMethod.Get, query, accessToken, null, ct).ToDataAsync();
     }
 
     private Task<PagedResult<FinancialStatementRowDto>?> GetFinancialStatementAsync(
@@ -1251,7 +1215,7 @@ public sealed class FinanceApiClient(HttpClient httpClient, ILogger<FinanceApiCl
         AddReportParameters(parameters, request.PeriodId, request.DateFrom, request.DateTo, null, request.CostCenterId, request.AccountType, request.Section);
 
         var query = $"api/v1/finance/reports/{reportPath}?{string.Join("&", parameters)}";
-        return SendAsync<PagedResult<FinancialStatementRowDto>>(HttpMethod.Get, query, accessToken, null, ct);
+        return SendWithResultAsync<PagedResult<FinancialStatementRowDto>>(HttpMethod.Get, query, accessToken, null, ct).ToDataAsync();
     }
 
     private static void AddPagedParameters(List<string> parameters, PagedRequest request)
@@ -1308,4 +1272,5 @@ public sealed class FinanceApiClient(HttpClient httpClient, ILogger<FinanceApiCl
         }
     }
 }
+
 

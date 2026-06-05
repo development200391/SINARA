@@ -197,11 +197,11 @@ public sealed class HrEmployeesController(
             EmploymentStatus = model.EmploymentStatus
         }, ct);
 
-        if (created is null)
+        if (!created.IsSuccess)
         {
             await DeleteEmployeePhotoSafelyAsync(newPhotoPath, ct);
 
-            ModelState.AddModelError(string.Empty, "Failed to create employee.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(created.ErrorMessage) ? "Failed to create employee." : created.ErrorMessage);
             ViewData["Title"] = "Create Employee";
             ViewData["Breadcrumb"] = "HR / Employees / Create";
             return View(model);
@@ -302,12 +302,12 @@ public sealed class HrEmployeesController(
             EmploymentStatus = model.EmploymentStatus
         }, ct);
 
-        if (updated is null)
+        if (!updated.IsSuccess)
         {
             await DeleteEmployeePhotoSafelyAsync(newPhotoPath, ct);
 
             model.PhotoPath = existingPhotoPath;
-            ModelState.AddModelError(string.Empty, "Failed to update employee.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(updated.ErrorMessage) ? "Failed to update employee." : updated.ErrorMessage);
             ViewData["Title"] = "Edit Employee";
             ViewData["Breadcrumb"] = "HR / Employees / Edit";
             return View(model);
@@ -334,9 +334,7 @@ public sealed class HrEmployeesController(
         }
 
         var deleted = await hrApiClient.DeleteEmployeeAsync(accessToken, id, ct);
-        TempData[deleted ? "SuccessMessage" : "ErrorMessage"] = deleted
-            ? "Employee deleted."
-            : "Failed to delete employee.";
+        TempData[deleted.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = deleted.IsSuccess ? "Employee deleted." : (string.IsNullOrWhiteSpace(deleted.ErrorMessage) ? "Failed to delete employee." : deleted.ErrorMessage);
 
         return RedirectToAction(nameof(Index));
     }

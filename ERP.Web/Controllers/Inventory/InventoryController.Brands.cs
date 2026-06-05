@@ -86,16 +86,16 @@ public sealed partial class InventoryController
             return View("Brands/Create", model);
         }
 
-        var created = await inventoryApiClient.CreateBrandAsync(accessToken, new BrandDto
+        var createResult = await inventoryApiClient.CreateBrandAsync(accessToken, new BrandDto
         {
             Name = model.Name,
             Description = model.Description,
             IsActive = model.IsActive
         }, ct);
 
-        if (created is null)
+        if (!createResult.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to create brand.");
+            AddApiModelError(createResult, "Failed to create brand.");
             ViewData["Title"] = "Create Brand";
             ViewData["Breadcrumb"] = "Inventory / Brands / Create";
             return View("Brands/Create", model);
@@ -151,7 +151,7 @@ public sealed partial class InventoryController
             return View("Brands/Edit", model);
         }
 
-        var updated = await inventoryApiClient.UpdateBrandAsync(accessToken, id, new BrandDto
+        var updateResult = await inventoryApiClient.UpdateBrandAsync(accessToken, id, new BrandDto
         {
             Id = id,
             Name = model.Name,
@@ -159,9 +159,9 @@ public sealed partial class InventoryController
             IsActive = model.IsActive
         }, ct);
 
-        if (updated is null)
+        if (!updateResult.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to update brand.");
+            AddApiModelError(updateResult, "Failed to update brand.");
             ViewData["Title"] = "Edit Brand";
             ViewData["Breadcrumb"] = "Inventory / Brands / Edit";
             return View("Brands/Edit", model);
@@ -181,8 +181,11 @@ public sealed partial class InventoryController
             return unauthorized;
         }
 
-        var deleted = await inventoryApiClient.DeleteBrandAsync(accessToken, id, ct);
-        TempData[deleted ? "SuccessMessage" : "ErrorMessage"] = deleted ? "Brand deleted." : "Failed to delete brand.";
+        var deleteResult = await inventoryApiClient.DeleteBrandAsync(accessToken, id, ct);
+        TempData[deleteResult.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = deleteResult.IsSuccess
+            ? "Brand deleted."
+            : ResolveApiErrorMessage(deleteResult, "Failed to delete brand.");
         return RedirectToAction(nameof(Brands));
     }
 }
+

@@ -124,9 +124,9 @@ public sealed partial class FinanceSetupController
         }
 
         var created = await financeApiClient.CreateCustomerAsync(accessToken, MapCustomerRequest(model), ct);
-        if (created is null)
+        if (!created.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to create customer.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(created.ErrorMessage) ? "Failed to create customer." : created.ErrorMessage);
             ViewData["Title"] = "Create Customer";
             ViewData["Breadcrumb"] = "Finance / Accounts Receivable / Customers / Create";
             return View("Customers/Create", model);
@@ -198,9 +198,9 @@ public sealed partial class FinanceSetupController
         }
 
         var updated = await financeApiClient.UpdateCustomerAsync(accessToken, id, MapCustomerRequest(model), ct);
-        if (updated is null)
+        if (!updated.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to update customer.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(updated.ErrorMessage) ? "Failed to update customer." : updated.ErrorMessage);
             ViewData["Title"] = "Edit Customer";
             ViewData["Breadcrumb"] = "Finance / Accounts Receivable / Customers / Edit";
             return View("Customers/Edit", model);
@@ -221,7 +221,7 @@ public sealed partial class FinanceSetupController
         }
 
         var ok = await financeApiClient.DeleteCustomerAsync(accessToken, id, ct);
-        TempData[ok ? "SuccessMessage" : "ErrorMessage"] = ok ? "Customer deleted." : "Failed to delete customer.";
+        TempData[ok.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = ok.IsSuccess ? "Customer deleted." : (string.IsNullOrWhiteSpace(ok.ErrorMessage) ? "Failed to delete customer." : ok.ErrorMessage);
         return RedirectToAction(nameof(Customers));
     }
 
@@ -350,9 +350,9 @@ public sealed partial class FinanceSetupController
         }
 
         var created = await financeApiClient.CreateArInvoiceAsync(accessToken, MapArInvoiceRequest(model), ct);
-        if (created is null)
+        if (!created.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to create AR invoice.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(created.ErrorMessage) ? "Failed to create AR invoice." : created.ErrorMessage);
             ViewData["Title"] = "Create AR Invoice";
             ViewData["Breadcrumb"] = "Finance / Accounts Receivable / AR Invoices / Create";
             return View("ArInvoices/Create", model);
@@ -459,9 +459,9 @@ public sealed partial class FinanceSetupController
         }
 
         var updated = await financeApiClient.UpdateArInvoiceAsync(accessToken, id, MapArInvoiceRequest(model), ct);
-        if (updated is null)
+        if (!updated.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to update AR invoice.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(updated.ErrorMessage) ? "Failed to update AR invoice." : updated.ErrorMessage);
             ViewData["Title"] = "Edit AR Invoice";
             ViewData["Breadcrumb"] = "Finance / Accounts Receivable / AR Invoices / Edit";
             return View("ArInvoices/Edit", model);
@@ -482,9 +482,7 @@ public sealed partial class FinanceSetupController
         }
 
         var sent = await financeApiClient.SendArInvoiceAsync(accessToken, id, ct);
-        TempData[sent is null ? "ErrorMessage" : "SuccessMessage"] = sent is null
-            ? "Failed to send AR invoice."
-            : "AR invoice sent.";
+        TempData[sent.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = sent.IsSuccess ? "AR invoice sent." : (string.IsNullOrWhiteSpace(sent.ErrorMessage) ? "Failed to send AR invoice." : sent.ErrorMessage);
 
         return RedirectToAction(nameof(ArInvoices));
     }
@@ -500,7 +498,7 @@ public sealed partial class FinanceSetupController
         }
 
         var ok = await financeApiClient.DeleteArInvoiceAsync(accessToken, id, ct);
-        TempData[ok ? "SuccessMessage" : "ErrorMessage"] = ok ? "AR invoice deleted." : "Failed to delete AR invoice.";
+        TempData[ok.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = ok.IsSuccess ? "AR invoice deleted." : (string.IsNullOrWhiteSpace(ok.ErrorMessage) ? "Failed to delete AR invoice." : ok.ErrorMessage);
 
         return RedirectToAction(nameof(ArInvoices));
     }
@@ -619,9 +617,9 @@ public sealed partial class FinanceSetupController
         }
 
         var created = await financeApiClient.CreateArReceiptAsync(accessToken, MapArReceiptRequest(model), ct);
-        if (created is null)
+        if (!created.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to create AR receipt.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(created.ErrorMessage) ? "Failed to create AR receipt." : created.ErrorMessage);
             ViewData["Title"] = "Create AR Receipt";
             ViewData["Breadcrumb"] = "Finance / Accounts Receivable / AR Receipts / Create";
             return View("ArReceipts/Create", model);

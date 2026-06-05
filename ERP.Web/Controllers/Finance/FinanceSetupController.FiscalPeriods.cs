@@ -116,9 +116,9 @@ public sealed partial class FinanceSetupController
             Status = model.Status
         }, ct);
 
-        if (created is null)
+        if (!created.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to create fiscal year.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(created.ErrorMessage) ? "Failed to create fiscal year." : created.ErrorMessage);
             ViewData["Title"] = "Create Fiscal Year";
             ViewData["Breadcrumb"] = "Finance / Fiscal Years / Create";
             return View("FiscalYears/Create", model);
@@ -191,9 +191,9 @@ public sealed partial class FinanceSetupController
             Status = model.Status
         }, ct);
 
-        if (updated is null)
+        if (!updated.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to update fiscal year.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(updated.ErrorMessage) ? "Failed to update fiscal year." : updated.ErrorMessage);
             ViewData["Title"] = "Edit Fiscal Year";
             ViewData["Breadcrumb"] = "Finance / Fiscal Years / Edit";
             return View("FiscalYears/Edit", model);
@@ -214,7 +214,7 @@ public sealed partial class FinanceSetupController
         }
 
         var ok = await financeApiClient.CloseFiscalYearAsync(accessToken, id, ct);
-        TempData[ok ? "SuccessMessage" : "ErrorMessage"] = ok ? "Fiscal year closed." : "Failed to close fiscal year.";
+        TempData[ok.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = ok.IsSuccess ? "Fiscal year closed." : (string.IsNullOrWhiteSpace(ok.ErrorMessage) ? "Failed to close fiscal year." : ok.ErrorMessage);
 
         return RedirectToAction(nameof(FiscalYears));
     }
@@ -296,7 +296,7 @@ public sealed partial class FinanceSetupController
         }
 
         var ok = await financeApiClient.ClosePeriodAsync(accessToken, id, ct);
-        TempData[ok ? "SuccessMessage" : "ErrorMessage"] = ok ? "Period closed." : "Failed to close period.";
+        TempData[ok.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = ok.IsSuccess ? "Period closed." : (string.IsNullOrWhiteSpace(ok.ErrorMessage) ? "Failed to close period." : ok.ErrorMessage);
 
         return RedirectToAction(nameof(Periods));
     }

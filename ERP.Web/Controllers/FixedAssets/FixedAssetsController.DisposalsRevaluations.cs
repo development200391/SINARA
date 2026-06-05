@@ -1,6 +1,7 @@
 using ERP.Application.DTOs.Common;
 using ERP.Application.DTOs.FixedAssets;
 using ERP.Domain.Enums.FixedAssets;
+using ERP.Web.Services;
 using ERP.Web.ViewModels.FixedAssets;
 using Microsoft.AspNetCore.Mvc;
 
@@ -108,9 +109,9 @@ public sealed partial class FixedAssetsController
         }
 
         var created = await fixedAssetsApiClient.CreateDisposalAsync(accessToken, MapDisposalDto(model), ct);
-        if (created is null)
+        if (!created.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to create disposal.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(created.ErrorMessage) ? "Failed to create disposal." : created.ErrorMessage);
             ViewData["Title"] = "Create Disposal";
             ViewData["Breadcrumb"] = "Fixed Assets / Disposals / Create";
             return View("Disposals/Create", model);
@@ -174,9 +175,9 @@ public sealed partial class FixedAssetsController
         }
 
         var updated = await fixedAssetsApiClient.UpdateDisposalAsync(accessToken, id, MapDisposalDto(model), ct);
-        if (updated is null)
+        if (!updated.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to update disposal.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(updated.ErrorMessage) ? "Failed to update disposal." : updated.ErrorMessage);
             ViewData["Title"] = "Edit Disposal";
             ViewData["Breadcrumb"] = "Fixed Assets / Disposals / Edit";
             return View("Disposals/Edit", model);
@@ -197,9 +198,7 @@ public sealed partial class FixedAssetsController
         }
 
         var deleted = await fixedAssetsApiClient.DeleteDisposalAsync(accessToken, id, ct);
-        TempData[deleted ? "SuccessMessage" : "ErrorMessage"] = deleted
-            ? "Disposal deleted."
-            : "Failed to delete disposal.";
+        TempData[deleted.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = deleted.IsSuccess ? "Disposal deleted." : (string.IsNullOrWhiteSpace(deleted.ErrorMessage) ? "Failed to delete disposal." : deleted.ErrorMessage);
 
         return RedirectToAction(nameof(Disposals));
     }
@@ -225,12 +224,10 @@ public sealed partial class FixedAssetsController
         {
             DisposalStatus.Draft => await fixedAssetsApiClient.ApproveDisposalAsync(accessToken, id, ct),
             DisposalStatus.Approved => await fixedAssetsApiClient.PostDisposalAsync(accessToken, id, ct),
-            _ => false
+            _ => ApiCallResult<object?>.Failure("No process action available for the current status.")
         };
 
-        TempData[ok ? "SuccessMessage" : "ErrorMessage"] = ok
-            ? "Disposal processed."
-            : "Failed to process disposal.";
+        TempData[ok.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = ok.IsSuccess ? "Disposal processed." : (string.IsNullOrWhiteSpace(ok.ErrorMessage) ? "Failed to process disposal." : ok.ErrorMessage);
 
         return RedirectToAction(nameof(Disposals));
     }
@@ -246,9 +243,7 @@ public sealed partial class FixedAssetsController
         }
 
         var ok = await fixedAssetsApiClient.CancelDisposalAsync(accessToken, id, ct);
-        TempData[ok ? "SuccessMessage" : "ErrorMessage"] = ok
-            ? "Disposal cancelled."
-            : "Failed to cancel disposal.";
+        TempData[ok.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = ok.IsSuccess ? "Disposal cancelled." : (string.IsNullOrWhiteSpace(ok.ErrorMessage) ? "Failed to cancel disposal." : ok.ErrorMessage);
 
         return RedirectToAction(nameof(Disposals));
     }
@@ -349,9 +344,9 @@ public sealed partial class FixedAssetsController
         }
 
         var created = await fixedAssetsApiClient.CreateRevaluationAsync(accessToken, MapRevaluationDto(model), ct);
-        if (created is null)
+        if (!created.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to create revaluation.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(created.ErrorMessage) ? "Failed to create revaluation." : created.ErrorMessage);
             ViewData["Title"] = "Create Revaluation";
             ViewData["Breadcrumb"] = "Fixed Assets / Revaluations / Create";
             return View("Revaluations/Create", model);
@@ -415,9 +410,9 @@ public sealed partial class FixedAssetsController
         }
 
         var updated = await fixedAssetsApiClient.UpdateRevaluationAsync(accessToken, id, MapRevaluationDto(model), ct);
-        if (updated is null)
+        if (!updated.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to update revaluation.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(updated.ErrorMessage) ? "Failed to update revaluation." : updated.ErrorMessage);
             ViewData["Title"] = "Edit Revaluation";
             ViewData["Breadcrumb"] = "Fixed Assets / Revaluations / Edit";
             return View("Revaluations/Edit", model);
@@ -438,9 +433,7 @@ public sealed partial class FixedAssetsController
         }
 
         var deleted = await fixedAssetsApiClient.DeleteRevaluationAsync(accessToken, id, ct);
-        TempData[deleted ? "SuccessMessage" : "ErrorMessage"] = deleted
-            ? "Revaluation deleted."
-            : "Failed to delete revaluation.";
+        TempData[deleted.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = deleted.IsSuccess ? "Revaluation deleted." : (string.IsNullOrWhiteSpace(deleted.ErrorMessage) ? "Failed to delete revaluation." : deleted.ErrorMessage);
 
         return RedirectToAction(nameof(Revaluations));
     }
@@ -466,12 +459,10 @@ public sealed partial class FixedAssetsController
         {
             RevaluationStatus.Draft => await fixedAssetsApiClient.ApproveRevaluationAsync(accessToken, id, ct),
             RevaluationStatus.Approved => await fixedAssetsApiClient.PostRevaluationAsync(accessToken, id, ct),
-            _ => false
+            _ => ApiCallResult<object?>.Failure("No process action available for the current status.")
         };
 
-        TempData[ok ? "SuccessMessage" : "ErrorMessage"] = ok
-            ? "Revaluation processed."
-            : "Failed to process revaluation.";
+        TempData[ok.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = ok.IsSuccess ? "Revaluation processed." : (string.IsNullOrWhiteSpace(ok.ErrorMessage) ? "Failed to process revaluation." : ok.ErrorMessage);
 
         return RedirectToAction(nameof(Revaluations));
     }

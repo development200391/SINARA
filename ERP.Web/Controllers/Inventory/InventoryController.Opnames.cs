@@ -115,9 +115,9 @@ public sealed partial class InventoryController
             Description = NormalizeText(model.Description)
         }, ct);
 
-        if (created is null)
+        if (!created.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to create stock opname.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(created.ErrorMessage) ? "Failed to create stock opname." : created.ErrorMessage);
             ViewData["Title"] = "Create Stock Opname";
             ViewData["Breadcrumb"] = "Inventory / Stock Opnames / Create";
             return View("Opnames/Create", model);
@@ -189,9 +189,9 @@ public sealed partial class InventoryController
             Description = NormalizeText(model.Description)
         }, ct);
 
-        if (!updated)
+        if (!updated.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to update stock opname.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(updated.ErrorMessage) ? "Failed to update stock opname." : updated.ErrorMessage);
             ViewData["Title"] = "Edit Stock Opname";
             ViewData["Breadcrumb"] = "Inventory / Stock Opnames / Edit";
             return View("Opnames/Edit", model);
@@ -212,7 +212,7 @@ public sealed partial class InventoryController
         }
 
         var ok = await inventoryApiClient.StartOpnameAsync(accessToken, id, ct);
-        TempData[ok ? "SuccessMessage" : "ErrorMessage"] = ok ? "Stock opname started." : "Failed to start stock opname.";
+        TempData[ok.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = ok.IsSuccess ? "Stock opname started." : (string.IsNullOrWhiteSpace(ok.ErrorMessage) ? "Failed to start stock opname." : ok.ErrorMessage);
         return RedirectToAction(nameof(Opnames));
     }
 
@@ -227,7 +227,7 @@ public sealed partial class InventoryController
         }
 
         var ok = await inventoryApiClient.CompleteOpnameAsync(accessToken, id, ct);
-        TempData[ok ? "SuccessMessage" : "ErrorMessage"] = ok ? "Stock opname completed." : "Failed to complete stock opname.";
+        TempData[ok.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = ok.IsSuccess ? "Stock opname completed." : (string.IsNullOrWhiteSpace(ok.ErrorMessage) ? "Failed to complete stock opname." : ok.ErrorMessage);
         return RedirectToAction(nameof(Opnames));
     }
 
@@ -242,7 +242,7 @@ public sealed partial class InventoryController
         }
 
         var ok = await inventoryApiClient.ApproveOpnameAsync(accessToken, id, ct);
-        TempData[ok ? "SuccessMessage" : "ErrorMessage"] = ok ? "Stock opname approved." : "Failed to approve stock opname.";
+        TempData[ok.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = ok.IsSuccess ? "Stock opname approved." : (string.IsNullOrWhiteSpace(ok.ErrorMessage) ? "Failed to approve stock opname." : ok.ErrorMessage);
         return RedirectToAction(nameof(Opnames));
     }
 
@@ -257,7 +257,7 @@ public sealed partial class InventoryController
         }
 
         var ok = await inventoryApiClient.CancelOpnameAsync(accessToken, id, ct);
-        TempData[ok ? "SuccessMessage" : "ErrorMessage"] = ok ? "Stock opname cancelled." : "Failed to cancel stock opname.";
+        TempData[ok.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = ok.IsSuccess ? "Stock opname cancelled." : (string.IsNullOrWhiteSpace(ok.ErrorMessage) ? "Failed to cancel stock opname." : ok.ErrorMessage);
         return RedirectToAction(nameof(Opnames));
     }
 

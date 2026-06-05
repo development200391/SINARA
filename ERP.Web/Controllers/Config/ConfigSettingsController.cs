@@ -46,10 +46,17 @@ public sealed class ConfigSettingsController(IConfigApiClient configApiClient) :
         var updated = await configApiClient.UpdateSettingsAsync(accessToken, model.Settings, ct);
         var languages = await configApiClient.GetLanguagesAsync(accessToken, ct);
 
-        model.Settings = updated ?? model.Settings;
+        model.Settings = updated.Data ?? model.Settings;
         model.Languages = languages;
 
-        TempData["SuccessMessage"] = "Settings saved successfully.";
+        if (!updated.IsSuccess)
+        {
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(updated.ErrorMessage) ? "Failed to save settings." : updated.ErrorMessage);
+        }
+        else
+        {
+            TempData["SuccessMessage"] = "Settings saved successfully.";
+        }
 
         ViewData["Title"] = "System Settings";
         ViewData["Breadcrumb"] = "Configuration / Settings";

@@ -111,7 +111,7 @@ public sealed partial class InventoryController
             return View("Warehouses/Create", model);
         }
 
-        var created = await inventoryApiClient.CreateWarehouseAsync(accessToken, new WarehouseDto
+        var createResult = await inventoryApiClient.CreateWarehouseAsync(accessToken, new WarehouseDto
         {
             Code = model.Code,
             Name = model.Name,
@@ -124,9 +124,9 @@ public sealed partial class InventoryController
             IsActive = model.IsActive
         }, ct);
 
-        if (created is null)
+        if (!createResult.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to create warehouse.");
+            AddApiModelError(createResult, "Failed to create warehouse.");
             ViewData["Title"] = "Create Warehouse";
             ViewData["Breadcrumb"] = "Inventory / Warehouses / Create";
             return View("Warehouses/Create", model);
@@ -193,7 +193,7 @@ public sealed partial class InventoryController
             return View("Warehouses/Edit", model);
         }
 
-        var updated = await inventoryApiClient.UpdateWarehouseAsync(accessToken, id, new WarehouseDto
+        var updateResult = await inventoryApiClient.UpdateWarehouseAsync(accessToken, id, new WarehouseDto
         {
             Id = id,
             Code = model.Code,
@@ -207,9 +207,9 @@ public sealed partial class InventoryController
             IsActive = model.IsActive
         }, ct);
 
-        if (updated is null)
+        if (!updateResult.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to update warehouse.");
+            AddApiModelError(updateResult, "Failed to update warehouse.");
             ViewData["Title"] = "Edit Warehouse";
             ViewData["Breadcrumb"] = "Inventory / Warehouses / Edit";
             return View("Warehouses/Edit", model);
@@ -229,8 +229,11 @@ public sealed partial class InventoryController
             return unauthorized;
         }
 
-        var deleted = await inventoryApiClient.DeleteWarehouseAsync(accessToken, id, ct);
-        TempData[deleted ? "SuccessMessage" : "ErrorMessage"] = deleted ? "Warehouse deleted." : "Failed to delete warehouse.";
+        var deleteResult = await inventoryApiClient.DeleteWarehouseAsync(accessToken, id, ct);
+        TempData[deleteResult.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = deleteResult.IsSuccess
+            ? "Warehouse deleted."
+            : ResolveApiErrorMessage(deleteResult, "Failed to delete warehouse.");
         return RedirectToAction(nameof(Warehouses));
     }
 }
+

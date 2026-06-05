@@ -140,9 +140,9 @@ public sealed class ConfigUsersController(IConfigApiClient configApiClient) : Co
         };
 
         var created = await configApiClient.CreateUserAsync(accessToken, request, ct);
-        if (created is null)
+        if (!created.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to create user.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(created.ErrorMessage) ? "Failed to create user." : created.ErrorMessage);
             ViewData["Title"] = "Create User";
             ViewData["Breadcrumb"] = "Configuration / Users / Create";
             return View(model);
@@ -217,9 +217,9 @@ public sealed class ConfigUsersController(IConfigApiClient configApiClient) : Co
         };
 
         var updated = await configApiClient.UpdateUserAsync(accessToken, id, request, ct);
-        if (updated is null)
+        if (!updated.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to update user.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(updated.ErrorMessage) ? "Failed to update user." : updated.ErrorMessage);
             ViewData["Title"] = "Edit User";
             ViewData["Breadcrumb"] = "Configuration / Users / Edit";
             return View(model);
@@ -239,8 +239,10 @@ public sealed class ConfigUsersController(IConfigApiClient configApiClient) : Co
             return RedirectToAction("Login", "Auth");
         }
 
-        await configApiClient.DeleteUserAsync(accessToken, id, ct);
-        TempData["SuccessMessage"] = "User deleted successfully.";
+        var deleted = await configApiClient.DeleteUserAsync(accessToken, id, ct);
+        TempData[deleted.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = deleted.IsSuccess
+            ? "User deleted successfully."
+            : (string.IsNullOrWhiteSpace(deleted.ErrorMessage) ? "Failed to delete user." : deleted.ErrorMessage);
 
         return RedirectToAction(nameof(Index));
     }

@@ -122,9 +122,9 @@ public sealed class HrLeaveRequestsController(IHrApiClient hrApiClient) : Contro
             Reason = model.Reason
         }, ct);
 
-        if (created is null)
+        if (!created.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to submit leave request.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(created.ErrorMessage) ? "Failed to submit leave request." : created.ErrorMessage);
             ViewData["Title"] = "Create Leave Request";
             ViewData["Breadcrumb"] = "HR / Leave / Requests / Create";
             return View(model);
@@ -205,9 +205,9 @@ public sealed class HrLeaveRequestsController(IHrApiClient hrApiClient) : Contro
             Reason = model.Reason
         }, ct);
 
-        if (updated is null)
+        if (!updated.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to update leave request.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(updated.ErrorMessage) ? "Failed to update leave request." : updated.ErrorMessage);
             ViewData["Title"] = "Edit Leave Request";
             ViewData["Breadcrumb"] = "HR / Leave / Requests / Edit";
             return View(model);
@@ -228,9 +228,7 @@ public sealed class HrLeaveRequestsController(IHrApiClient hrApiClient) : Contro
         }
 
         var deleted = await hrApiClient.DeleteLeaveRequestAsync(accessToken, id, ct);
-        TempData[deleted ? "SuccessMessage" : "ErrorMessage"] = deleted
-            ? "Leave request deleted."
-            : "Failed to delete leave request.";
+        TempData[deleted.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = deleted.IsSuccess ? "Leave request deleted." : (string.IsNullOrWhiteSpace(deleted.ErrorMessage) ? "Failed to delete leave request." : deleted.ErrorMessage);
 
         return RedirectToAction(nameof(Index));
     }
@@ -246,7 +244,7 @@ public sealed class HrLeaveRequestsController(IHrApiClient hrApiClient) : Contro
         }
 
         var ok = await hrApiClient.ApproveLeaveRequestAsync(accessToken, id, ct);
-        TempData[ok ? "SuccessMessage" : "ErrorMessage"] = ok ? "Leave request approved." : "Failed to approve leave request.";
+        TempData[ok.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = ok.IsSuccess ? "Leave request approved." : (string.IsNullOrWhiteSpace(ok.ErrorMessage) ? "Failed to approve leave request." : ok.ErrorMessage);
 
         return RedirectToAction(nameof(Index));
     }
@@ -262,7 +260,7 @@ public sealed class HrLeaveRequestsController(IHrApiClient hrApiClient) : Contro
         }
 
         var ok = await hrApiClient.RejectLeaveRequestAsync(accessToken, id, ct);
-        TempData[ok ? "SuccessMessage" : "ErrorMessage"] = ok ? "Leave request rejected." : "Failed to reject leave request.";
+        TempData[ok.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = ok.IsSuccess ? "Leave request rejected." : (string.IsNullOrWhiteSpace(ok.ErrorMessage) ? "Failed to reject leave request." : ok.ErrorMessage);
 
         return RedirectToAction(nameof(Index));
     }

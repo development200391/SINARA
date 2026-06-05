@@ -1,6 +1,7 @@
 using ERP.Application.DTOs.Common;
 using ERP.Application.DTOs.FixedAssets;
 using ERP.Domain.Enums.FixedAssets;
+using ERP.Web.Services;
 using ERP.Web.ViewModels.FixedAssets;
 using Microsoft.AspNetCore.Mvc;
 
@@ -113,9 +114,9 @@ public sealed partial class FixedAssetsController
         }
 
         var created = await fixedAssetsApiClient.CreateTransferAsync(accessToken, MapTransferDto(model), ct);
-        if (created is null)
+        if (!created.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to create transfer.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(created.ErrorMessage) ? "Failed to create transfer." : created.ErrorMessage);
             ViewData["Title"] = "Create Transfer";
             ViewData["Breadcrumb"] = "Fixed Assets / Asset Transfers / Create";
             return View("Transfers/Create", model);
@@ -180,9 +181,9 @@ public sealed partial class FixedAssetsController
         }
 
         var updated = await fixedAssetsApiClient.UpdateTransferAsync(accessToken, id, MapTransferDto(model), ct);
-        if (updated is null)
+        if (!updated.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to update transfer.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(updated.ErrorMessage) ? "Failed to update transfer." : updated.ErrorMessage);
             ViewData["Title"] = "Edit Transfer";
             ViewData["Breadcrumb"] = "Fixed Assets / Asset Transfers / Edit";
             return View("Transfers/Edit", model);
@@ -203,9 +204,7 @@ public sealed partial class FixedAssetsController
         }
 
         var deleted = await fixedAssetsApiClient.DeleteTransferAsync(accessToken, id, ct);
-        TempData[deleted ? "SuccessMessage" : "ErrorMessage"] = deleted
-            ? "Transfer deleted."
-            : "Failed to delete transfer.";
+        TempData[deleted.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = deleted.IsSuccess ? "Transfer deleted." : (string.IsNullOrWhiteSpace(deleted.ErrorMessage) ? "Failed to delete transfer." : deleted.ErrorMessage);
 
         return RedirectToAction(nameof(Transfers));
     }
@@ -221,9 +220,7 @@ public sealed partial class FixedAssetsController
         }
 
         var ok = await fixedAssetsApiClient.ApproveTransferAsync(accessToken, id, ct);
-        TempData[ok ? "SuccessMessage" : "ErrorMessage"] = ok
-            ? "Transfer approved."
-            : "Failed to approve transfer.";
+        TempData[ok.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = ok.IsSuccess ? "Transfer approved." : (string.IsNullOrWhiteSpace(ok.ErrorMessage) ? "Failed to approve transfer." : ok.ErrorMessage);
 
         return RedirectToAction(nameof(Transfers));
     }
@@ -239,9 +236,7 @@ public sealed partial class FixedAssetsController
         }
 
         var ok = await fixedAssetsApiClient.RejectTransferAsync(accessToken, id, ct);
-        TempData[ok ? "SuccessMessage" : "ErrorMessage"] = ok
-            ? "Transfer rejected."
-            : "Failed to reject transfer.";
+        TempData[ok.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = ok.IsSuccess ? "Transfer rejected." : (string.IsNullOrWhiteSpace(ok.ErrorMessage) ? "Failed to reject transfer." : ok.ErrorMessage);
 
         return RedirectToAction(nameof(Transfers));
     }
@@ -345,9 +340,9 @@ public sealed partial class FixedAssetsController
         }
 
         var created = await fixedAssetsApiClient.CreateMaintenanceOrderAsync(accessToken, MapMaintenanceOrderDto(model), ct);
-        if (created is null)
+        if (!created.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to create maintenance order.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(created.ErrorMessage) ? "Failed to create maintenance order." : created.ErrorMessage);
             ViewData["Title"] = "Create Maintenance Order";
             ViewData["Breadcrumb"] = "Fixed Assets / Maintenance Orders / Create";
             return View("MaintenanceOrders/Create", model);
@@ -412,9 +407,9 @@ public sealed partial class FixedAssetsController
         }
 
         var updated = await fixedAssetsApiClient.UpdateMaintenanceOrderAsync(accessToken, id, MapMaintenanceOrderDto(model), ct);
-        if (updated is null)
+        if (!updated.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to update maintenance order.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(updated.ErrorMessage) ? "Failed to update maintenance order." : updated.ErrorMessage);
             ViewData["Title"] = "Edit Maintenance Order";
             ViewData["Breadcrumb"] = "Fixed Assets / Maintenance Orders / Edit";
             return View("MaintenanceOrders/Edit", model);
@@ -435,9 +430,7 @@ public sealed partial class FixedAssetsController
         }
 
         var deleted = await fixedAssetsApiClient.DeleteMaintenanceOrderAsync(accessToken, id, ct);
-        TempData[deleted ? "SuccessMessage" : "ErrorMessage"] = deleted
-            ? "Maintenance order deleted."
-            : "Failed to delete maintenance order.";
+        TempData[deleted.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = deleted.IsSuccess ? "Maintenance order deleted." : (string.IsNullOrWhiteSpace(deleted.ErrorMessage) ? "Failed to delete maintenance order." : deleted.ErrorMessage);
 
         return RedirectToAction(nameof(MaintenanceOrders));
     }
@@ -463,12 +456,10 @@ public sealed partial class FixedAssetsController
         {
             MaintenanceStatus.Open => await fixedAssetsApiClient.StartMaintenanceOrderAsync(accessToken, id, ct),
             MaintenanceStatus.InProgress => await fixedAssetsApiClient.CompleteMaintenanceOrderAsync(accessToken, id, ct),
-            _ => false
+            _ => ApiCallResult<object?>.Failure("No process action available for the current status.")
         };
 
-        TempData[ok ? "SuccessMessage" : "ErrorMessage"] = ok
-            ? "Maintenance order processed."
-            : "Failed to process maintenance order.";
+        TempData[ok.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = ok.IsSuccess ? "Maintenance order processed." : (string.IsNullOrWhiteSpace(ok.ErrorMessage) ? "Failed to process maintenance order." : ok.ErrorMessage);
 
         return RedirectToAction(nameof(MaintenanceOrders));
     }
@@ -484,9 +475,7 @@ public sealed partial class FixedAssetsController
         }
 
         var ok = await fixedAssetsApiClient.CancelMaintenanceOrderAsync(accessToken, id, ct);
-        TempData[ok ? "SuccessMessage" : "ErrorMessage"] = ok
-            ? "Maintenance order cancelled."
-            : "Failed to cancel maintenance order.";
+        TempData[ok.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = ok.IsSuccess ? "Maintenance order cancelled." : (string.IsNullOrWhiteSpace(ok.ErrorMessage) ? "Failed to cancel maintenance order." : ok.ErrorMessage);
 
         return RedirectToAction(nameof(MaintenanceOrders));
     }

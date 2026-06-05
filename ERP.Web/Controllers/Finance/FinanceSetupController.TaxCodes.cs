@@ -129,9 +129,9 @@ public sealed partial class FinanceSetupController
             IsActive = model.IsActive
         }, ct);
 
-        if (created is null)
+        if (!created.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to create tax code.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(created.ErrorMessage) ? "Failed to create tax code." : created.ErrorMessage);
             ViewData["Title"] = "Create Tax Code";
             ViewData["Breadcrumb"] = "Finance / Tax Codes / Create";
             return View("TaxCodes/Create", model);
@@ -208,9 +208,9 @@ public sealed partial class FinanceSetupController
             IsActive = model.IsActive
         }, ct);
 
-        if (updated is null)
+        if (!updated.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to update tax code.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(updated.ErrorMessage) ? "Failed to update tax code." : updated.ErrorMessage);
             ViewData["Title"] = "Edit Tax Code";
             ViewData["Breadcrumb"] = "Finance / Tax Codes / Edit";
             return View("TaxCodes/Edit", model);
@@ -231,7 +231,7 @@ public sealed partial class FinanceSetupController
         }
 
         var ok = await financeApiClient.DeleteTaxCodeAsync(accessToken, id, ct);
-        TempData[ok ? "SuccessMessage" : "ErrorMessage"] = ok ? "Tax code deleted." : "Failed to delete tax code.";
+        TempData[ok.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = ok.IsSuccess ? "Tax code deleted." : (string.IsNullOrWhiteSpace(ok.ErrorMessage) ? "Failed to delete tax code." : ok.ErrorMessage);
 
         return RedirectToAction(nameof(TaxCodes));
     }

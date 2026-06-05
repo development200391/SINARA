@@ -108,9 +108,9 @@ public sealed partial class FinanceSetupController
             IsActive = model.IsActive
         }, ct);
 
-        if (created is null)
+        if (!created.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to create currency.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(created.ErrorMessage) ? "Failed to create currency." : created.ErrorMessage);
             ViewData["Title"] = "Create Currency";
             ViewData["Breadcrumb"] = "Finance / Currencies / Create";
             return View("Currencies/Create", model);
@@ -180,9 +180,9 @@ public sealed partial class FinanceSetupController
             IsActive = model.IsActive
         }, ct);
 
-        if (updated is null)
+        if (!updated.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to update currency.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(updated.ErrorMessage) ? "Failed to update currency." : updated.ErrorMessage);
             ViewData["Title"] = "Edit Currency";
             ViewData["Breadcrumb"] = "Finance / Currencies / Edit";
             return View("Currencies/Edit", model);
@@ -203,7 +203,7 @@ public sealed partial class FinanceSetupController
         }
 
         var ok = await financeApiClient.DeleteCurrencyAsync(accessToken, id, ct);
-        TempData[ok ? "SuccessMessage" : "ErrorMessage"] = ok ? "Currency deleted." : "Failed to delete currency.";
+        TempData[ok.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = ok.IsSuccess ? "Currency deleted." : (string.IsNullOrWhiteSpace(ok.ErrorMessage) ? "Failed to delete currency." : ok.ErrorMessage);
 
         return RedirectToAction(nameof(Currencies));
     }

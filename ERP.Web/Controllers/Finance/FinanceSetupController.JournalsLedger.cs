@@ -118,9 +118,9 @@ public sealed partial class FinanceSetupController
         }
 
         var created = await financeApiClient.CreateJournalAsync(accessToken, MapJournalRequest(model), ct);
-        if (created is null)
+        if (!created.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to create journal.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(created.ErrorMessage) ? "Failed to create journal." : created.ErrorMessage);
             ViewData["Title"] = "Create Journal";
             ViewData["Breadcrumb"] = "Finance / Journal & Ledger / Create";
             return View("Journals/Create", model);
@@ -221,9 +221,9 @@ public sealed partial class FinanceSetupController
         }
 
         var updated = await financeApiClient.UpdateJournalAsync(accessToken, id, MapJournalRequest(model), ct);
-        if (updated is null)
+        if (!updated.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, "Failed to update journal.");
+            ModelState.AddModelError(string.Empty, string.IsNullOrWhiteSpace(updated.ErrorMessage) ? "Failed to update journal." : updated.ErrorMessage);
             ViewData["Title"] = "Edit Journal";
             ViewData["Breadcrumb"] = "Finance / Journal & Ledger / Edit";
             return View("Journals/Edit", model);
@@ -244,9 +244,7 @@ public sealed partial class FinanceSetupController
         }
 
         var result = await financeApiClient.PostJournalAsync(accessToken, id, ct);
-        TempData[result is null ? "ErrorMessage" : "SuccessMessage"] = result is null
-            ? "Failed to post journal. Ensure journal is balanced."
-            : "Journal posted.";
+        TempData[result.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = result.IsSuccess ? "Journal posted." : (string.IsNullOrWhiteSpace(result.ErrorMessage) ? "Failed to post journal. Ensure journal is balanced." : result.ErrorMessage);
 
         return RedirectToAction(nameof(Journals));
     }
@@ -262,9 +260,7 @@ public sealed partial class FinanceSetupController
         }
 
         var result = await financeApiClient.ReverseJournalAsync(accessToken, id, ct);
-        TempData[result is null ? "ErrorMessage" : "SuccessMessage"] = result is null
-            ? "Failed to reverse journal."
-            : "Journal reversed.";
+        TempData[result.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = result.IsSuccess ? "Journal reversed." : (string.IsNullOrWhiteSpace(result.ErrorMessage) ? "Failed to reverse journal." : result.ErrorMessage);
 
         return RedirectToAction(nameof(Journals));
     }
