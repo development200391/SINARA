@@ -1,0 +1,163 @@
+@model ERP.Web.ViewModels.Approval.ApprovalDelegationsIndexViewModel
+@using ERP.Web.ViewModels.Shared
+@using System.Globalization
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">@T["Delegations"]</h1>
+
+        @{
+            var selectedDelegator = Model.DelegatorUserIdFilter?.ToString(CultureInfo.InvariantCulture);
+            var selectedDelegate = Model.DelegateUserIdFilter?.ToString(CultureInfo.InvariantCulture);
+            var selectedTemplate = Model.TemplateIdFilter?.ToString(CultureInfo.InvariantCulture);
+            var selectedIsActive = Model.IsActiveFilter.HasValue ? (Model.IsActiveFilter.Value ? "true" : "false") : null;
+            var effectiveDateFrom = Model.EffectiveDateFromFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            var effectiveDateTo = Model.EffectiveDateToFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+            var userOptions = Model.UserOptions
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = x.Id.ToString(CultureInfo.InvariantCulture),
+                    Label = x.Label
+                })
+                .ToList();
+
+            var templateOptions = Model.TemplateOptions
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = x.Id.ToString(CultureInfo.InvariantCulture),
+                    Label = x.Label
+                })
+                .ToList();
+
+            var statusOptions = new List<PagedGridFilterOptionViewModel>
+            {
+                new() { Value = "true", Label = T["Active"] },
+                new() { Value = "false", Label = T["Inactive"] }
+            };
+
+            var rows = Model.Items.Items.Select(item => new PagedGridRowViewModel
+            {
+                Cells =
+                [
+                    new PagedGridCellViewModel { Text = item.DelegatorName },
+                    new PagedGridCellViewModel { Text = item.DelegateName },
+                    new PagedGridCellViewModel { Text = string.IsNullOrWhiteSpace(item.TemplateCode) ? T["All"] : item.TemplateCode },
+                    new PagedGridCellViewModel { Text = item.StartDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) },
+                    new PagedGridCellViewModel { Text = item.EndDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) },
+                    new PagedGridCellViewModel { Text = string.IsNullOrWhiteSpace(item.Reason) ? "-" : item.Reason },
+                    new PagedGridCellViewModel { Text = item.IsActive ? T["Active"] : T["Inactive"] }
+                ],
+                Actions = new PagedGridRowActionViewModel
+                {
+                    EditUrl = Url.Action("EditDelegation", "Approval", new { id = item.Id }),
+                    DeleteUrl = Url.Action("RevokeDelegation", "Approval", new { id = item.Id }),
+                    DeleteConfirmMessage = T["Revoke this delegation?"]
+                }
+            }).ToList();
+
+            var gridModel = new PagedGridViewModel
+            {
+                Columns =
+                [
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "delegatorname",
+                        Title = T["Delegator"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "delegatorUserId",
+                            Value = selectedDelegator,
+                            EmptyOptionLabel = T["All Employee"],
+                            Options = userOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "delegatename",
+                        Title = T["Delegate"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "delegateUserId",
+                            Value = selectedDelegate,
+                            EmptyOptionLabel = T["All Employee"],
+                            Options = userOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "templatecode",
+                        Title = T["Template"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "templateId",
+                            Value = selectedTemplate,
+                            EmptyOptionLabel = T["All"],
+                            Options = templateOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "startdate",
+                        Title = T["Start Date"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.DateRange,
+                            QueryKey = "effectiveDateFrom",
+                            QueryKeyTo = "effectiveDateTo",
+                            Value = effectiveDateFrom,
+                            ValueTo = effectiveDateTo,
+                            Placeholder = T["From"],
+                            PlaceholderTo = T["To"]
+                        }
+                    },
+                    new PagedGridColumnViewModel { Key = "enddate", Title = T["End Date"], Sortable = true },
+                    new PagedGridColumnViewModel { Key = "reason", Title = T["Reason"], Sortable = false },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "isactive",
+                        Title = T["Status"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "isActive",
+                            Value = selectedIsActive,
+                            EmptyOptionLabel = T["All Status"],
+                            Options = statusOptions
+                        }
+                    }
+                ],
+                Rows = rows,
+                EmptyMessage = T["msg.no_data"],
+                Page = Model.Items.Page,
+                TotalPages = Model.Items.TotalPages,
+                PageSize = Model.PageSize,
+                SortBy = Model.SortBy,
+                SortDirection = Model.SortDirection,
+                EnableSearch = true,
+                SearchValue = Model.Search,
+                SearchPlaceholder = T["Search"] + " " + T["Delegations"],
+                SearchButtonText = T["common.search"],
+                Actions = new PagedGridActionConfigViewModel
+                {
+                    ActionColumnTitle = T["Action"],
+                    AddUrl = Url.Action("CreateDelegation", "Approval"),
+                    AddButtonText = T["common.add_new"],
+                    EditButtonText = T["common.edit"],
+                    DeleteButtonText = T["Revoke"],
+                    DeleteConfirmMessage = T["Revoke this delegation?"]
+                }
+            };
+        }
+
+        @await Component.InvokeAsync("PagedGrid", gridModel)
+    </div>
+</div>

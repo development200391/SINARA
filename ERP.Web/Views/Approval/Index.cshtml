@@ -1,0 +1,102 @@
+@model ERP.Web.ViewModels.Approval.ApprovalDashboardViewModel
+
+@{
+    var waitingMyActionHtml = await Component.InvokeAsync("TextNumber", new { value = (decimal)Model.Data.WaitingMyActionCount, decimals = 0, cssClass = "sinara-text-number-theme" });
+    var myOpenRequestHtml = await Component.InvokeAsync("TextNumber", new { value = (decimal)Model.Data.MyOpenRequestCount, decimals = 0, cssClass = "sinara-text-number-theme" });
+    var overdueHtml = await Component.InvokeAsync("TextNumber", new { value = (decimal)Model.Data.OverdueStepCount, decimals = 0, cssClass = "sinara-text-number-theme" });
+    var approvedTodayHtml = await Component.InvokeAsync("TextNumber", new { value = (decimal)Model.Data.ApprovedTodayCount, decimals = 0, cssClass = "sinara-text-number-theme" });
+    var rejectedTodayHtml = await Component.InvokeAsync("TextNumber", new { value = (decimal)Model.Data.RejectedTodayCount, decimals = 0, cssClass = "sinara-text-number-theme" });
+    var activeTemplateHtml = await Component.InvokeAsync("TextNumber", new { value = (decimal)Model.Data.ActiveTemplateCount, decimals = 0, cssClass = "sinara-text-number-theme" });
+    var activeDelegationHtml = await Component.InvokeAsync("TextNumber", new { value = (decimal)Model.Data.ActiveDelegationCount, decimals = 0, cssClass = "sinara-text-number-theme" });
+}
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">@T["Approval Dashboard"]</h1>
+
+        <div class="row g-3 mb-4">
+            <div class="col-12 col-md-6 col-xl-3">
+                <div class="border rounded-3 p-3 h-100 bg-body-tertiary">
+                    <div class="small text-muted mb-1">@T["Waiting My Action"]</div>
+                    <div class="h4 mb-0">@waitingMyActionHtml</div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6 col-xl-3">
+                <div class="border rounded-3 p-3 h-100 bg-body-tertiary">
+                    <div class="small text-muted mb-1">@T["My Open Requests"]</div>
+                    <div class="h4 mb-0">@myOpenRequestHtml</div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6 col-xl-3">
+                <div class="border rounded-3 p-3 h-100 bg-body-tertiary">
+                    <div class="small text-muted mb-1">@T["Overdue Steps"]</div>
+                    <div class="h4 mb-0">@overdueHtml</div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6 col-xl-3">
+                <div class="border rounded-3 p-3 h-100 bg-body-tertiary">
+                    <div class="small text-muted mb-1">@T["Approved Today"]</div>
+                    <div class="h4 mb-0">@approvedTodayHtml</div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6 col-xl-4">
+                <div class="border rounded-3 p-3 h-100 bg-body-tertiary">
+                    <div class="small text-muted mb-1">@T["Rejected Today"]</div>
+                    <div class="h4 mb-0">@rejectedTodayHtml</div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6 col-xl-4">
+                <div class="border rounded-3 p-3 h-100 bg-body-tertiary">
+                    <div class="small text-muted mb-1">@T["Active Templates"]</div>
+                    <div class="h4 mb-0">@activeTemplateHtml</div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6 col-xl-4">
+                <div class="border rounded-3 p-3 h-100 bg-body-tertiary">
+                    <div class="small text-muted mb-1">@T["Active Delegations"]</div>
+                    <div class="h4 mb-0">@activeDelegationHtml</div>
+                </div>
+            </div>
+        </div>
+
+        <h2 class="h6 mb-3">@T["Worklist"]</h2>
+        <div class="list-group mb-4">
+            <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" asp-action="Inbox" asp-controller="Approval">
+                <span>@T["Approval Inbox"]</span>
+                <i class="bi bi-chevron-right" aria-hidden="true"></i>
+            </a>
+            <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" asp-action="MyRequests" asp-controller="Approval">
+                <span>@T["My Approval Requests"]</span>
+                <i class="bi bi-chevron-right" aria-hidden="true"></i>
+            </a>
+            <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" asp-action="Delegations" asp-controller="Approval">
+                <span>@T["Delegations"]</span>
+                <i class="bi bi-chevron-right" aria-hidden="true"></i>
+            </a>
+        </div>
+
+        <h2 class="h6 mb-3">@T["Configuration"]</h2>
+        <div class="list-group mb-4">
+            <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" asp-action="Templates" asp-controller="Approval">
+                <span>@T["Approval Templates"]</span>
+                <i class="bi bi-chevron-right" aria-hidden="true"></i>
+            </a>
+        </div>
+
+        <h2 class="h6 mb-3">@T["Reports"]</h2>
+        <div class="list-group">
+            <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" asp-action="SlaReport" asp-controller="Approval">
+                <span>@T["SLA Report"]</span>
+                <i class="bi bi-chevron-right" aria-hidden="true"></i>
+            </a>
+            <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" asp-action="ByTemplateReport" asp-controller="Approval">
+                <span>@T["By Template Report"]</span>
+                <i class="bi bi-chevron-right" aria-hidden="true"></i>
+            </a>
+            <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" asp-action="AuditReport" asp-controller="Approval">
+                <span>@T["Audit Trail"]</span>
+                <i class="bi bi-chevron-right" aria-hidden="true"></i>
+            </a>
+        </div>
+    </div>
+</div>

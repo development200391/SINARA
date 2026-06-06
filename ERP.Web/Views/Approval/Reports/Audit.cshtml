@@ -1,0 +1,159 @@
+@model ERP.Web.ViewModels.Approval.ApprovalAuditIndexViewModel
+@using ERP.Domain.Enums.Approval
+@using ERP.Web.ViewModels.Shared
+@using System.Globalization
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">@T["Audit Trail"]</h1>
+
+        @{
+            string StatusLabel(ApprovalRequestStatus? status)
+            {
+                if (!status.HasValue)
+                {
+                    return "-";
+                }
+
+                return status.Value switch
+                {
+                    ApprovalRequestStatus.Pending => T["Pending"],
+                    ApprovalRequestStatus.InProgress => T["In Progress"],
+                    ApprovalRequestStatus.Approved => T["Approved"],
+                    ApprovalRequestStatus.Rejected => T["Rejected"],
+                    ApprovalRequestStatus.Cancelled => T["Cancelled"],
+                    ApprovalRequestStatus.Expired => T["Expired"],
+                    _ => status.Value.ToString()
+                };
+            }
+
+            var selectedActor = Model.ActorUserIdFilter?.ToString(CultureInfo.InvariantCulture);
+            var actionDateFrom = Model.DateFromFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            var actionDateTo = Model.DateToFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+            var actorOptions = Model.UserOptions
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = x.Id.ToString(CultureInfo.InvariantCulture),
+                    Label = x.Label
+                })
+                .ToList();
+
+            var rows = Model.Items.Items.Select(item => new PagedGridRowViewModel
+            {
+                Cells =
+                [
+                    new PagedGridCellViewModel { Text = item.Id.ToString(CultureInfo.InvariantCulture), CellClass = "text-end" },
+                    new PagedGridCellViewModel { Text = item.RequestId.ToString(CultureInfo.InvariantCulture), CellClass = "text-end" },
+                    new PagedGridCellViewModel { Text = item.ActorUserName },
+                    new PagedGridCellViewModel { Text = item.Action },
+                    new PagedGridCellViewModel { Text = item.Module },
+                    new PagedGridCellViewModel { Text = StatusLabel(item.OldStatus) },
+                    new PagedGridCellViewModel { Text = StatusLabel(item.NewStatus) },
+                    new PagedGridCellViewModel { Text = string.IsNullOrWhiteSpace(item.IpAddress) ? "-" : item.IpAddress },
+                    new PagedGridCellViewModel { Text = item.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture) },
+                    new PagedGridCellViewModel { Text = string.IsNullOrWhiteSpace(item.Comment) ? "-" : item.Comment }
+                ]
+            }).ToList();
+
+            var gridModel = new PagedGridViewModel
+            {
+                Columns =
+                [
+                    new PagedGridColumnViewModel { Key = "id", Title = T["ID"], Sortable = true, CellClass = "text-end" },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "requestid",
+                        Title = T["Request ID"],
+                        Sortable = true,
+                        CellClass = "text-end",
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.NumberRange,
+                            QueryKey = "requestId",
+                            Value = Model.RequestIdFilter?.ToString(CultureInfo.InvariantCulture),
+                            Placeholder = T["Request ID"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "actorusername",
+                        Title = T["Actor"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "actorUserId",
+                            Value = selectedActor,
+                            EmptyOptionLabel = T["All Employee"],
+                            Options = actorOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "action",
+                        Title = T["Action"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Text,
+                            QueryKey = "action",
+                            Value = Model.ActionFilter,
+                            Placeholder = T["Action"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "module",
+                        Title = T["Module"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Text,
+                            QueryKey = "module",
+                            Value = Model.ModuleFilter,
+                            Placeholder = T["Module"]
+                        }
+                    },
+                    new PagedGridColumnViewModel { Key = "oldstatus", Title = T["Old Status"], Sortable = true },
+                    new PagedGridColumnViewModel { Key = "newstatus", Title = T["New Status"], Sortable = true },
+                    new PagedGridColumnViewModel { Key = "ipaddress", Title = T["IP Address"], Sortable = false },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "createdat",
+                        Title = T["Created At"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.DateRange,
+                            QueryKey = "dateFrom",
+                            QueryKeyTo = "dateTo",
+                            Value = actionDateFrom,
+                            ValueTo = actionDateTo,
+                            Placeholder = T["From"],
+                            PlaceholderTo = T["To"]
+                        }
+                    },
+                    new PagedGridColumnViewModel { Key = "comment", Title = T["Comment"], Sortable = false }
+                ],
+                Rows = rows,
+                EmptyMessage = T["msg.no_data"],
+                Page = Model.Items.Page,
+                TotalPages = Model.Items.TotalPages,
+                PageSize = Model.PageSize,
+                SortBy = Model.SortBy,
+                SortDirection = Model.SortDirection,
+                EnableSearch = true,
+                SearchValue = Model.Search,
+                SearchPlaceholder = T["Search"] + " " + T["Audit Trail"],
+                SearchButtonText = T["common.search"],
+                Actions = new PagedGridActionConfigViewModel
+                {
+                    ActionColumnTitle = T["Action"]
+                }
+            };
+        }
+
+        @await Component.InvokeAsync("PagedGrid", gridModel)
+    </div>
+</div>

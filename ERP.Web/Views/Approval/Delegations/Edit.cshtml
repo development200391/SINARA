@@ -1,0 +1,17 @@
+@model ERP.Web.ViewModels.Approval.ApprovalDelegationEditViewModel
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">@T["Edit Delegation"]</h1>
+
+        <form asp-action="EditDelegation" asp-controller="Approval" asp-route-id="@Model.Id" method="post" novalidate>
+            @Html.AntiForgeryToken()
+            <partial name="~/Views/Approval/Delegations/_Form.cshtml" model="Model" />
+
+            <div class="d-flex gap-2 mt-3">
+                <button type="submit" class="btn btn-primary">@T["common.save"]</button>
+                <a asp-action="Delegations" asp-controller="Approval" class="btn btn-outline-secondary">@T["common.cancel"]</a>
+            </div>
+        </form>
+    </div>
+</div>

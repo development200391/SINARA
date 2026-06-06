@@ -1,0 +1,223 @@
+@model ERP.Web.ViewModels.Approval.ApprovalTemplatesIndexViewModel
+@using ERP.Domain.Enums.Approval
+@using ERP.Web.ViewModels.Shared
+@using System.Globalization
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">@T["Approval Templates"]</h1>
+
+        @{
+            string ApprovalTypeLabel(ApprovalType type)
+            {
+                return type switch
+                {
+                    ApprovalType.Sequential => T["Sequential"],
+                    ApprovalType.Parallel => T["Parallel"],
+                    ApprovalType.AnyOne => T["Any One"],
+                    _ => type.ToString()
+                };
+            }
+
+            var selectedApprovalType = Model.ApprovalTypeFilter.HasValue
+                ? ((int)Model.ApprovalTypeFilter.Value).ToString(CultureInfo.InvariantCulture)
+                : null;
+            var selectedIsActive = Model.IsActiveFilter.HasValue ? (Model.IsActiveFilter.Value ? "true" : "false") : null;
+
+            var approvalTypeOptions = Enum.GetValues<ApprovalType>()
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = ((int)x).ToString(CultureInfo.InvariantCulture),
+                    Label = ApprovalTypeLabel(x)
+                })
+                .ToList();
+
+            var statusOptions = new List<PagedGridFilterOptionViewModel>
+            {
+                new() { Value = "true", Label = T["Active"] },
+                new() { Value = "false", Label = T["Inactive"] }
+            };
+
+            var rows = new List<PagedGridRowViewModel>();
+            foreach (var item in Model.Items.Items)
+            {
+                var minAmountHtml = item.MinAmount.HasValue
+                    ? await Component.InvokeAsync("TextNumber", new { value = item.MinAmount.Value, decimals = 2, cssClass = "sinara-text-number-theme" })
+                    : await Component.InvokeAsync("TextNumber", new { text = "-", cssClass = "sinara-text-number-null" });
+                var maxAmountHtml = item.MaxAmount.HasValue
+                    ? await Component.InvokeAsync("TextNumber", new { value = item.MaxAmount.Value, decimals = 2, cssClass = "sinara-text-number-theme" })
+                    : await Component.InvokeAsync("TextNumber", new { text = "-", cssClass = "sinara-text-number-null" });
+
+                rows.Add(new PagedGridRowViewModel
+                {
+                    Cells =
+                    [
+                        new PagedGridCellViewModel { Text = item.Code },
+                        new PagedGridCellViewModel { Text = item.Name },
+                        new PagedGridCellViewModel { Text = item.Module },
+                        new PagedGridCellViewModel { Text = item.ReferenceType },
+                        new PagedGridCellViewModel { Text = ApprovalTypeLabel(item.ApprovalType) },
+                        new PagedGridCellViewModel { Html = minAmountHtml, CellClass = "text-end" },
+                        new PagedGridCellViewModel { Html = maxAmountHtml, CellClass = "text-end" },
+                        new PagedGridCellViewModel { Text = item.SlaHours.ToString(CultureInfo.InvariantCulture), CellClass = "text-end" },
+                        new PagedGridCellViewModel { Text = item.LevelCount.ToString(CultureInfo.InvariantCulture), CellClass = "text-end" },
+                        new PagedGridCellViewModel { Text = item.IsActive ? T["Active"] : T["Inactive"] }
+                    ],
+                    Actions = new PagedGridRowActionViewModel
+                    {
+                        DetailUrl = Url.Action("TemplateLevels", "Approval", new { templateId = item.Id }),
+                        EditUrl = Url.Action("EditTemplate", "Approval", new { id = item.Id }),
+                        DeleteUrl = Url.Action("DeleteTemplate", "Approval", new { id = item.Id }),
+                        DeleteConfirmMessage = T["Delete this data?"]
+                    }
+                });
+            }
+
+            var gridModel = new PagedGridViewModel
+            {
+                Columns =
+                [
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "code",
+                        Title = T["Code"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Text,
+                            QueryKey = "code",
+                            Value = Model.CodeFilter,
+                            Placeholder = T["Code"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "name",
+                        Title = T["Name"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Text,
+                            QueryKey = "name",
+                            Value = Model.NameFilter,
+                            Placeholder = T["Name"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "module",
+                        Title = T["Module"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Text,
+                            QueryKey = "module",
+                            Value = Model.ModuleFilter,
+                            Placeholder = T["Module"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "referencetype",
+                        Title = T["Reference Type"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Text,
+                            QueryKey = "referenceType",
+                            Value = Model.ReferenceTypeFilter,
+                            Placeholder = T["Reference Type"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "approvaltype",
+                        Title = T["Approval Type"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "approvalType",
+                            Value = selectedApprovalType,
+                            EmptyOptionLabel = T["All Type"],
+                            Options = approvalTypeOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "minamount",
+                        Title = T["Minimum Amount"],
+                        Sortable = false,
+                        CellClass = "text-end",
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.NumberRange,
+                            QueryKey = "minAmountFrom",
+                            QueryKeyTo = "minAmountTo",
+                            Value = Model.MinAmountFromFilter?.ToString(CultureInfo.InvariantCulture),
+                            ValueTo = Model.MinAmountToFilter?.ToString(CultureInfo.InvariantCulture),
+                            Placeholder = T["From"],
+                            PlaceholderTo = T["To"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "maxamount",
+                        Title = T["Maximum Amount"],
+                        Sortable = false,
+                        CellClass = "text-end",
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.NumberRange,
+                            QueryKey = "maxAmountFrom",
+                            QueryKeyTo = "maxAmountTo",
+                            Value = Model.MaxAmountFromFilter?.ToString(CultureInfo.InvariantCulture),
+                            ValueTo = Model.MaxAmountToFilter?.ToString(CultureInfo.InvariantCulture),
+                            Placeholder = T["From"],
+                            PlaceholderTo = T["To"]
+                        }
+                    },
+                    new PagedGridColumnViewModel { Key = "slahours", Title = T["SLA Hours"], Sortable = true, CellClass = "text-end" },
+                    new PagedGridColumnViewModel { Key = "levelcount", Title = T["Levels"], Sortable = false, CellClass = "text-end" },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "isactive",
+                        Title = T["Status"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "isActive",
+                            Value = selectedIsActive,
+                            EmptyOptionLabel = T["All Status"],
+                            Options = statusOptions
+                        }
+                    }
+                ],
+                Rows = rows,
+                EmptyMessage = T["msg.no_data"],
+                Page = Model.Items.Page,
+                TotalPages = Model.Items.TotalPages,
+                PageSize = Model.PageSize,
+                SortBy = Model.SortBy,
+                SortDirection = Model.SortDirection,
+                EnableSearch = true,
+                SearchValue = Model.Search,
+                SearchPlaceholder = T["Search"] + " " + T["Approval Templates"],
+                SearchButtonText = T["common.search"],
+                Actions = new PagedGridActionConfigViewModel
+                {
+                    ActionColumnTitle = T["Action"],
+                    AddUrl = Url.Action("CreateTemplate", "Approval"),
+                    AddButtonText = T["common.add_new"],
+                    DetailButtonText = T["Levels"],
+                    EditButtonText = T["common.edit"],
+                    DeleteButtonText = T["common.delete"],
+                    DeleteConfirmMessage = T["Delete this data?"]
+                }
+            };
+        }
+
+        @await Component.InvokeAsync("PagedGrid", gridModel)
+    </div>
+</div>

@@ -1,0 +1,185 @@
+@model ERP.Web.ViewModels.Approval.ApprovalMyRequestsIndexViewModel
+@using ERP.Domain.Enums.Approval
+@using ERP.Web.ViewModels.Shared
+@using Microsoft.AspNetCore.Html
+@using System.Globalization
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">@T["My Approval Requests"]</h1>
+
+        @{
+            string LocalizeStatus(ApprovalRequestStatus status)
+            {
+                return status switch
+                {
+                    ApprovalRequestStatus.Pending => T["Pending"],
+                    ApprovalRequestStatus.InProgress => T["In Progress"],
+                    ApprovalRequestStatus.Approved => T["Approved"],
+                    ApprovalRequestStatus.Rejected => T["Rejected"],
+                    ApprovalRequestStatus.Cancelled => T["Cancelled"],
+                    ApprovalRequestStatus.Expired => T["Expired"],
+                    _ => status.ToString()
+                };
+            }
+
+            string BuildStatusBadge(ApprovalRequestStatus status)
+            {
+                return status switch
+                {
+                    ApprovalRequestStatus.Pending => $"<span class=\"badge text-bg-secondary\">{LocalizeStatus(status)}</span>",
+                    ApprovalRequestStatus.InProgress => $"<span class=\"badge text-bg-primary\">{LocalizeStatus(status)}</span>",
+                    ApprovalRequestStatus.Approved => $"<span class=\"badge text-bg-success\">{LocalizeStatus(status)}</span>",
+                    ApprovalRequestStatus.Rejected => $"<span class=\"badge text-bg-danger\">{LocalizeStatus(status)}</span>",
+                    ApprovalRequestStatus.Cancelled => $"<span class=\"badge text-bg-warning\">{LocalizeStatus(status)}</span>",
+                    ApprovalRequestStatus.Expired => $"<span class=\"badge text-bg-dark\">{LocalizeStatus(status)}</span>",
+                    _ => $"<span class=\"badge text-bg-secondary\">{status}</span>"
+                };
+            }
+
+            var selectedStatus = Model.StatusFilter.HasValue
+                ? ((int)Model.StatusFilter.Value).ToString(CultureInfo.InvariantCulture)
+                : null;
+            var requestedDateFrom = Model.RequestedDateFromFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            var requestedDateTo = Model.RequestedDateToFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+            var statusOptions = Enum.GetValues<ApprovalRequestStatus>()
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = ((int)x).ToString(CultureInfo.InvariantCulture),
+                    Label = LocalizeStatus(x)
+                })
+                .ToList();
+
+            var rows = new List<PagedGridRowViewModel>();
+            foreach (var item in Model.Items.Items)
+            {
+                var amountHtml = item.Amount.HasValue
+                    ? await Component.InvokeAsync("TextNumber", new { value = item.Amount.Value, decimals = 2, cssClass = "sinara-text-number-theme" })
+                    : await Component.InvokeAsync("TextNumber", new { text = "-", cssClass = "sinara-text-number-null" });
+
+                var canCancel = item.Status is ApprovalRequestStatus.Pending or ApprovalRequestStatus.InProgress;
+
+                rows.Add(new PagedGridRowViewModel
+                {
+                    Cells =
+                    [
+                        new PagedGridCellViewModel { Text = item.RequestNo },
+                        new PagedGridCellViewModel { Text = item.Subject },
+                        new PagedGridCellViewModel { Text = item.Module },
+                        new PagedGridCellViewModel { Text = item.ReferenceType },
+                        new PagedGridCellViewModel { Html = amountHtml, CellClass = "text-end" },
+                        new PagedGridCellViewModel { Text = string.IsNullOrWhiteSpace(item.CurrentLevelName) ? "-" : item.CurrentLevelName },
+                        new PagedGridCellViewModel { Text = item.RequestedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) },
+                        new PagedGridCellViewModel { Text = item.FinalActionAt.HasValue ? item.FinalActionAt.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) : "-" },
+                        new PagedGridCellViewModel { Html = new HtmlString(BuildStatusBadge(item.Status)) }
+                    ],
+                    Actions = new PagedGridRowActionViewModel
+                    {
+                        DeleteUrl = canCancel ? Url.Action("CancelRequest", "Approval", new { id = item.Id }) : null,
+                        DeleteConfirmMessage = T["Cancel this request?"]
+                    }
+                });
+            }
+
+            var gridModel = new PagedGridViewModel
+            {
+                Columns =
+                [
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "requestno",
+                        Title = T["Request No"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Text,
+                            QueryKey = "requestNo",
+                            Value = Model.RequestNoFilter,
+                            Placeholder = T["Request No"]
+                        }
+                    },
+                    new PagedGridColumnViewModel { Key = "subject", Title = T["Subject"], Sortable = true },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "module",
+                        Title = T["Module"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Text,
+                            QueryKey = "module",
+                            Value = Model.ModuleFilter,
+                            Placeholder = T["Module"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "referencetype",
+                        Title = T["Reference Type"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Text,
+                            QueryKey = "referenceType",
+                            Value = Model.ReferenceTypeFilter,
+                            Placeholder = T["Reference Type"]
+                        }
+                    },
+                    new PagedGridColumnViewModel { Key = "amount", Title = T["Amount"], Sortable = false, CellClass = "text-end" },
+                    new PagedGridColumnViewModel { Key = "currentlevelname", Title = T["Current Level"], Sortable = false },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "requestedat",
+                        Title = T["Requested At"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.DateRange,
+                            QueryKey = "requestedDateFrom",
+                            QueryKeyTo = "requestedDateTo",
+                            Value = requestedDateFrom,
+                            ValueTo = requestedDateTo,
+                            Placeholder = T["From"],
+                            PlaceholderTo = T["To"]
+                        }
+                    },
+                    new PagedGridColumnViewModel { Key = "finalactionat", Title = T["Final Action At"], Sortable = true },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "status",
+                        Title = T["Status"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "status",
+                            Value = selectedStatus,
+                            EmptyOptionLabel = T["All Status"],
+                            Options = statusOptions
+                        }
+                    }
+                ],
+                Rows = rows,
+                EmptyMessage = T["msg.no_data"],
+                Page = Model.Items.Page,
+                TotalPages = Model.Items.TotalPages,
+                PageSize = Model.PageSize,
+                SortBy = Model.SortBy,
+                SortDirection = Model.SortDirection,
+                EnableSearch = true,
+                SearchValue = Model.Search,
+                SearchPlaceholder = T["Search"] + " " + T["My Approval Requests"],
+                SearchButtonText = T["common.search"],
+                Actions = new PagedGridActionConfigViewModel
+                {
+                    ActionColumnTitle = T["Action"],
+                    DeleteButtonText = T["Cancel"],
+                    DeleteConfirmMessage = T["Cancel this request?"]
+                }
+            };
+        }
+
+        @await Component.InvokeAsync("PagedGrid", gridModel)
+    </div>
+</div>

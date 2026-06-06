@@ -1,0 +1,65 @@
+@model ERP.Web.ViewModels.Approval.ApprovalDelegationEditViewModel
+@using System.Globalization
+
+<div class="row g-3">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <div class="col-md-6">
+        <label asp-for="DelegatorUserId" class="form-label">@T["Delegator"]</label>
+        <select asp-for="DelegatorUserId" class="form-select">
+            <option value="">@T["Select Employee"]</option>
+            @foreach (var option in Model.UserOptions)
+            {
+                <option value="@option.Id" selected="@(Model.DelegatorUserId == option.Id)">@option.Label</option>
+            }
+        </select>
+        <span asp-validation-for="DelegatorUserId" class="text-danger"></span>
+    </div>
+
+    <div class="col-md-6">
+        <label asp-for="DelegateUserId" class="form-label">@T["Delegate"]</label>
+        <select asp-for="DelegateUserId" class="form-select">
+            <option value="">@T["Select Employee"]</option>
+            @foreach (var option in Model.UserOptions)
+            {
+                <option value="@option.Id" selected="@(Model.DelegateUserId == option.Id)">@option.Label</option>
+            }
+        </select>
+        <span asp-validation-for="DelegateUserId" class="text-danger"></span>
+    </div>
+
+    <div class="col-md-6">
+        <label asp-for="TemplateId" class="form-label">@T["Template"]</label>
+        <select asp-for="TemplateId" class="form-select">
+            <option value="">@T["All"]</option>
+            @foreach (var option in Model.TemplateOptions)
+            {
+                <option value="@option.Id" selected="@(Model.TemplateId == option.Id)">@option.Label</option>
+            }
+        </select>
+        <span asp-validation-for="TemplateId" class="text-danger"></span>
+    </div>
+
+    <div class="col-md-3">
+        <label asp-for="StartDate" class="form-label">@T["Start Date"]</label>
+        <input asp-for="StartDate" class="form-control" type="date" />
+        <span asp-validation-for="StartDate" class="text-danger"></span>
+    </div>
+
+    <div class="col-md-3">
+        <label asp-for="EndDate" class="form-label">@T["End Date"]</label>
+        <input asp-for="EndDate" class="form-control" type="date" />
+        <span asp-validation-for="EndDate" class="text-danger"></span>
+    </div>
+
+    <div class="col-12">
+        <label asp-for="Reason" class="form-label">@T["Reason"]</label>
+        <textarea asp-for="Reason" class="form-control" rows="3"></textarea>
+        <span asp-validation-for="Reason" class="text-danger"></span>
+    </div>
+
+    <div class="col-12 form-check mt-1">
+        <input asp-for="IsActive" class="form-check-input" />
+        <label asp-for="IsActive" class="form-check-label">@T["Active"]</label>
+    </div>
+</div>

@@ -1,0 +1,104 @@
+@model ERP.Web.ViewModels.Approval.ApprovalSlaReportIndexViewModel
+@using ERP.Web.ViewModels.Shared
+@using System.Globalization
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">@T["SLA Report"]</h1>
+
+        @{
+            var selectedTemplate = Model.TemplateIdFilter?.ToString(CultureInfo.InvariantCulture);
+
+            var templateOptions = Model.TemplateOptions
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = x.Id.ToString(CultureInfo.InvariantCulture),
+                    Label = x.Label
+                })
+                .ToList();
+
+            var rows = new List<PagedGridRowViewModel>();
+            foreach (var item in Model.Items.Items)
+            {
+                var slaHoursHtml = await Component.InvokeAsync("TextNumber", new { value = item.SlaHours, decimals = 2, cssClass = "sinara-text-number-theme" });
+                var avgResponseHtml = await Component.InvokeAsync("TextNumber", new { value = item.AverageResponseHours, decimals = 2, cssClass = "sinara-text-number-theme" });
+                var complianceHtml = await Component.InvokeAsync("TextNumber", new { value = item.ComplianceRate, decimals = 2, cssClass = "sinara-text-number-theme" });
+
+                rows.Add(new PagedGridRowViewModel
+                {
+                    Cells =
+                    [
+                        new PagedGridCellViewModel { Text = item.Module },
+                        new PagedGridCellViewModel { Text = item.TemplateCode },
+                        new PagedGridCellViewModel { Text = item.TemplateName },
+                        new PagedGridCellViewModel { Html = slaHoursHtml, CellClass = "text-end" },
+                        new PagedGridCellViewModel { Html = avgResponseHtml, CellClass = "text-end" },
+                        new PagedGridCellViewModel { Text = item.TotalSteps.ToString(CultureInfo.InvariantCulture), CellClass = "text-end" },
+                        new PagedGridCellViewModel { Text = item.WithinSlaCount.ToString(CultureInfo.InvariantCulture), CellClass = "text-end" },
+                        new PagedGridCellViewModel { Text = item.OverdueCount.ToString(CultureInfo.InvariantCulture), CellClass = "text-end" },
+                        new PagedGridCellViewModel { Html = complianceHtml, CellClass = "text-end" }
+                    ]
+                });
+            }
+
+            var gridModel = new PagedGridViewModel
+            {
+                Columns =
+                [
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "module",
+                        Title = T["Module"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Text,
+                            QueryKey = "module",
+                            Value = Model.ModuleFilter,
+                            Placeholder = T["Module"]
+                        }
+                    },
+                    new PagedGridColumnViewModel { Key = "templatecode", Title = T["Template Code"], Sortable = true },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "templatename",
+                        Title = T["Template Name"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "templateId",
+                            Value = selectedTemplate,
+                            EmptyOptionLabel = T["All"],
+                            Options = templateOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel { Key = "slahours", Title = T["SLA Hours"], Sortable = true, CellClass = "text-end" },
+                    new PagedGridColumnViewModel { Key = "averageresponsehours", Title = T["Avg Response Hours"], Sortable = true, CellClass = "text-end" },
+                    new PagedGridColumnViewModel { Key = "totalsteps", Title = T["Total Steps"], Sortable = true, CellClass = "text-end" },
+                    new PagedGridColumnViewModel { Key = "withinslacount", Title = T["Within SLA"], Sortable = true, CellClass = "text-end" },
+                    new PagedGridColumnViewModel { Key = "overduecount", Title = T["Overdue"], Sortable = true, CellClass = "text-end" },
+                    new PagedGridColumnViewModel { Key = "compliancerate", Title = T["Compliance Rate"], Sortable = true, CellClass = "text-end" }
+                ],
+                Rows = rows,
+                EmptyMessage = T["msg.no_data"],
+                Page = Model.Items.Page,
+                TotalPages = Model.Items.TotalPages,
+                PageSize = Model.PageSize,
+                SortBy = Model.SortBy,
+                SortDirection = Model.SortDirection,
+                EnableSearch = true,
+                SearchValue = Model.Search,
+                SearchPlaceholder = T["Search"] + " " + T["SLA Report"],
+                SearchButtonText = T["common.search"],
+                Actions = new PagedGridActionConfigViewModel
+                {
+                    ActionColumnTitle = T["Action"]
+                }
+            };
+        }
+
+        @await Component.InvokeAsync("PagedGrid", gridModel)
+    </div>
+</div>
+

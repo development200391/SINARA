@@ -44,6 +44,7 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         await EnsureModuleAsync("Inventory", "INV", "bi-box-seam", 4, now, ct);
         await EnsureModuleAsync("Purchasing", "PUR", "bi-cart-check", 5, now, ct);
         await EnsureModuleAsync("Fixed Assets", "FA", "bi-building-gear", 6, now, ct);
+        await EnsureModuleAsync("General Approval", "APV", "bi-shield-check", 7, now, ct);
     }
 
     private async Task SeedRolesAsync(DateTimeOffset now, CancellationToken ct)
@@ -523,6 +524,8 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
 
         var approverLevel1Id = activeEmployees[0];
         var approverLevel2Id = activeEmployees.Count > 1 ? activeEmployees[1] : activeEmployees[0];
+        var approverLevel3Id = activeEmployees.Count > 2 ? activeEmployees[2] : approverLevel2Id;
+        var approverLevel4Id = activeEmployees.Count > 3 ? activeEmployees[3] : approverLevel3Id;
 
         var categoryManufacturing = await EnsurePurVendorCategoryAsync(
             "RAWMAT",
@@ -628,6 +631,50 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
             approverLevel2Id,
             true,
             "PO approval level 2",
+            now,
+            ct);
+
+        await EnsurePurApprovalConfigAsync(
+            PurchasingDocumentType.PurchaseRequisition,
+            3,
+            250000000m,
+            500000000m,
+            approverLevel3Id,
+            true,
+            "PR approval level 3",
+            now,
+            ct);
+
+        await EnsurePurApprovalConfigAsync(
+            PurchasingDocumentType.PurchaseRequisition,
+            4,
+            500000000.01m,
+            null,
+            approverLevel4Id,
+            true,
+            "PR approval level 4",
+            now,
+            ct);
+
+        await EnsurePurApprovalConfigAsync(
+            PurchasingDocumentType.PurchaseOrder,
+            3,
+            500000000m,
+            1000000000m,
+            approverLevel3Id,
+            true,
+            "PO approval level 3",
+            now,
+            ct);
+
+        await EnsurePurApprovalConfigAsync(
+            PurchasingDocumentType.PurchaseOrder,
+            4,
+            1000000000.01m,
+            null,
+            approverLevel4Id,
+            true,
+            "PO approval level 4",
             now,
             ct);
 
@@ -2411,6 +2458,10 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         var faModule = await dbContext.CfgModules
             .IgnoreQueryFilters()
             .FirstAsync(x => x.Code == "FA", ct);
+
+        var apvModule = await dbContext.CfgModules
+            .IgnoreQueryFilters()
+            .FirstAsync(x => x.Code == "APV", ct);
         var hrEmployees = await EnsureMenuAsync(hrModule.Id, null, "Employees", null, "bi-people", 1, now, ct);
         await EnsureMenuAsync(hrModule.Id, hrEmployees.Id, "All Employees", "/hr/employees", "bi-list", 1, now, ct);
         await EnsureMenuAsync(hrModule.Id, hrEmployees.Id, "Add Employee", "/hr/employees/create", "bi-plus-circle", 2, now, ct);
@@ -2547,6 +2598,21 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         await EnsureMenuAsync(faModule.Id, faOps.Id, "Maintenance Orders", "/fixed-assets/maintenance-orders", "bi-tools", 3, now, ct);
         await EnsureMenuAsync(faModule.Id, faOps.Id, "Disposals", "/fixed-assets/disposals", "bi-trash3", 4, now, ct);
         await EnsureMenuAsync(faModule.Id, faOps.Id, "Revaluations", "/fixed-assets/revaluations", "bi-graph-up-arrow", 5, now, ct);
+
+        await EnsureMenuAsync(apvModule.Id, null, "Approval Dashboard", "/approval", "bi-speedometer2", 1, now, ct);
+
+        var apvWorklist = await EnsureMenuAsync(apvModule.Id, null, "Worklist", null, "bi-list-task", 2, now, ct);
+        await EnsureMenuAsync(apvModule.Id, apvWorklist.Id, "Approval Inbox", "/approval/inbox", "bi-inbox", 1, now, ct);
+        await EnsureMenuAsync(apvModule.Id, apvWorklist.Id, "My Approval Requests", "/approval/my-requests", "bi-send-check", 2, now, ct);
+        await EnsureMenuAsync(apvModule.Id, apvWorklist.Id, "Delegations", "/approval/delegations", "bi-arrow-left-right", 3, now, ct);
+
+        var apvConfiguration = await EnsureMenuAsync(apvModule.Id, null, "Configuration", null, "bi-sliders", 3, now, ct);
+        await EnsureMenuAsync(apvModule.Id, apvConfiguration.Id, "Approval Templates", "/approval/templates", "bi-file-earmark-ruled", 1, now, ct);
+
+        var apvReports = await EnsureMenuAsync(apvModule.Id, null, "Reports", null, "bi-bar-chart-line", 4, now, ct);
+        await EnsureMenuAsync(apvModule.Id, apvReports.Id, "SLA Report", "/approval/reports/sla", "bi-stopwatch", 1, now, ct);
+        await EnsureMenuAsync(apvModule.Id, apvReports.Id, "By Template Report", "/approval/reports/by-template", "bi-grid-3x3-gap", 2, now, ct);
+        await EnsureMenuAsync(apvModule.Id, apvReports.Id, "Audit Trail", "/approval/reports/audit", "bi-journal-text", 3, now, ct);
     }
 
     private async Task SeedSuperAdminPermissionsAsync(CancellationToken ct)
@@ -4209,6 +4275,7 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         return menu;
     }
 }
+
 
 
 

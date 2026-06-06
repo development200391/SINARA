@@ -1,0 +1,83 @@
+@model ERP.Web.ViewModels.Approval.ApprovalLevelEditViewModel
+@using ERP.Domain.Enums.Approval
+
+<div class="row g-3">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <div class="col-12">
+        <div class="small text-muted">@Model.TemplateCode - @Model.TemplateName</div>
+    </div>
+
+    <div class="col-md-3">
+        <label asp-for="LevelOrder" class="form-label">@T["Level Order"]</label>
+        <input asp-for="LevelOrder" class="form-control text-end" type="number" min="1" />
+        <span asp-validation-for="LevelOrder" class="text-danger"></span>
+    </div>
+
+    <div class="col-md-5">
+        <label asp-for="LevelName" class="form-label">@T["Level Name"]</label>
+        <input asp-for="LevelName" class="form-control" />
+        <span asp-validation-for="LevelName" class="text-danger"></span>
+    </div>
+
+    <div class="col-md-4">
+        <label asp-for="ApproverType" class="form-label">@T["Approver Type"]</label>
+        <select asp-for="ApproverType" class="form-select">
+            @foreach (var type in Enum.GetValues<ApprovalApproverType>())
+            {
+                var label = type switch
+                {
+                    ApprovalApproverType.Role => T["Role"],
+                    ApprovalApproverType.Position => T["Position"],
+                    ApprovalApproverType.SpecificUser => T["Specific User"],
+                    ApprovalApproverType.DirectSuperior => T["Direct Superior"],
+                    _ => type.ToString()
+                };
+
+                <option value="@((int)type)" selected="@(Model.ApproverType == type)">@label</option>
+            }
+        </select>
+        <span asp-validation-for="ApproverType" class="text-danger"></span>
+    </div>
+
+    <div class="col-md-4">
+        <label asp-for="ApproverRoleId" class="form-label">@T["Approver Role Id"]</label>
+        <input asp-for="ApproverRoleId" class="form-control text-end" type="number" min="1" />
+        <span asp-validation-for="ApproverRoleId" class="text-danger"></span>
+    </div>
+
+    <div class="col-md-4">
+        <label asp-for="ApproverPositionId" class="form-label">@T["Approver Position Id"]</label>
+        <input asp-for="ApproverPositionId" class="form-control text-end" type="number" min="1" />
+        <span asp-validation-for="ApproverPositionId" class="text-danger"></span>
+    </div>
+
+    <div class="col-md-4">
+        <label asp-for="ApproverUserId" class="form-label">@T["Approver User Id"]</label>
+        <input asp-for="ApproverUserId" class="form-control text-end" type="number" min="1" />
+        <span asp-validation-for="ApproverUserId" class="text-danger"></span>
+    </div>
+
+    <div class="col-md-4">
+        <label asp-for="MinApproversRequired" class="form-label">@T["Minimum Approvers"]</label>
+        <input asp-for="MinApproversRequired" class="form-control text-end" type="number" min="1" />
+        <span asp-validation-for="MinApproversRequired" class="text-danger"></span>
+    </div>
+
+    <div class="col-md-4">
+        <label asp-for="EscalationHours" class="form-label">@T["Escalation Hours"]</label>
+        <input asp-for="EscalationHours" class="form-control text-end" type="number" min="1" />
+        <span asp-validation-for="EscalationHours" class="text-danger"></span>
+    </div>
+
+    <div class="col-md-4">
+        <label asp-for="EscalateToLevelId" class="form-label">@T["Escalate To Level Id"]</label>
+        <input asp-for="EscalateToLevelId" class="form-control text-end" type="number" min="1" />
+        <span asp-validation-for="EscalateToLevelId" class="text-danger"></span>
+    </div>
+
+    <div class="col-12 form-check mt-1">
+        <input asp-for="IsActive" class="form-check-input" />
+        <label asp-for="IsActive" class="form-check-label">@T["Active"]</label>
+    </div>
+</div>

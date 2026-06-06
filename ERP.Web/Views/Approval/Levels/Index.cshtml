@@ -1,0 +1,99 @@
+@model ERP.Web.ViewModels.Approval.ApprovalLevelsIndexViewModel
+@using ERP.Domain.Enums.Approval
+@using ERP.Web.ViewModels.Shared
+@using System.Globalization
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+            <h1 class="h5 mb-0">@T["Approval Levels"]</h1>
+            <div class="text-muted small">@Model.TemplateCode - @Model.TemplateName</div>
+        </div>
+
+        @{
+            string ApproverTypeLabel(ApprovalApproverType type)
+            {
+                return type switch
+                {
+                    ApprovalApproverType.Role => T["Role"],
+                    ApprovalApproverType.Position => T["Position"],
+                    ApprovalApproverType.SpecificUser => T["Specific User"],
+                    ApprovalApproverType.DirectSuperior => T["Direct Superior"],
+                    _ => type.ToString()
+                };
+            }
+
+            string ResolveApproverRef(ERP.Application.DTOs.Approval.ApprovalLevelDto item)
+            {
+                return item.ApproverType switch
+                {
+                    ApprovalApproverType.Role => item.ApproverRoleId?.ToString(CultureInfo.InvariantCulture) ?? "-",
+                    ApprovalApproverType.Position => item.ApproverPositionId?.ToString(CultureInfo.InvariantCulture) ?? "-",
+                    ApprovalApproverType.SpecificUser => item.ApproverUserId?.ToString(CultureInfo.InvariantCulture) ?? "-",
+                    _ => "-"
+                };
+            }
+
+            var rows = Model.Items
+                .OrderBy(x => x.LevelOrder)
+                .Select(item => new PagedGridRowViewModel
+                {
+                    Cells =
+                    [
+                        new PagedGridCellViewModel { Text = item.LevelOrder.ToString(CultureInfo.InvariantCulture), CellClass = "text-end" },
+                        new PagedGridCellViewModel { Text = item.LevelName },
+                        new PagedGridCellViewModel { Text = ApproverTypeLabel(item.ApproverType) },
+                        new PagedGridCellViewModel { Text = ResolveApproverRef(item) },
+                        new PagedGridCellViewModel { Text = item.MinApproversRequired.ToString(CultureInfo.InvariantCulture), CellClass = "text-end" },
+                        new PagedGridCellViewModel { Text = item.EscalationHours?.ToString(CultureInfo.InvariantCulture) ?? "-", CellClass = "text-end" },
+                        new PagedGridCellViewModel { Text = item.EscalateToLevelId?.ToString(CultureInfo.InvariantCulture) ?? "-", CellClass = "text-end" },
+                        new PagedGridCellViewModel { Text = item.IsActive ? T["Active"] : T["Inactive"] }
+                    ],
+                    Actions = new PagedGridRowActionViewModel
+                    {
+                        EditUrl = Url.Action("EditLevel", "Approval", new { templateId = Model.TemplateId, id = item.Id }),
+                        DeleteUrl = Url.Action("DeleteLevel", "Approval", new { templateId = Model.TemplateId, id = item.Id }),
+                        DeleteConfirmMessage = T["Delete this data?"]
+                    }
+                })
+                .ToList();
+
+            var gridModel = new PagedGridViewModel
+            {
+                Columns =
+                [
+                    new PagedGridColumnViewModel { Key = "levelorder", Title = T["Level Order"], Sortable = false, CellClass = "text-end" },
+                    new PagedGridColumnViewModel { Key = "levelname", Title = T["Level Name"], Sortable = false },
+                    new PagedGridColumnViewModel { Key = "approvertype", Title = T["Approver Type"], Sortable = false },
+                    new PagedGridColumnViewModel { Key = "approverref", Title = T["Approver Ref"], Sortable = false },
+                    new PagedGridColumnViewModel { Key = "minapproversrequired", Title = T["Minimum Approvers"], Sortable = false, CellClass = "text-end" },
+                    new PagedGridColumnViewModel { Key = "escalationhours", Title = T["Escalation Hours"], Sortable = false, CellClass = "text-end" },
+                    new PagedGridColumnViewModel { Key = "escalatetolevelid", Title = T["Escalate To Level Id"], Sortable = false, CellClass = "text-end" },
+                    new PagedGridColumnViewModel { Key = "isactive", Title = T["Status"], Sortable = false }
+                ],
+                Rows = rows,
+                EmptyMessage = T["msg.no_data"],
+                Page = 1,
+                TotalPages = 1,
+                PageSize = 20,
+                SortBy = "levelorder",
+                SortDirection = "asc",
+                Actions = new PagedGridActionConfigViewModel
+                {
+                    ActionColumnTitle = T["Action"],
+                    AddUrl = Url.Action("CreateLevel", "Approval", new { templateId = Model.TemplateId }),
+                    AddButtonText = T["common.add_new"],
+                    EditButtonText = T["common.edit"],
+                    DeleteButtonText = T["common.delete"],
+                    DeleteConfirmMessage = T["Delete this data?"]
+                }
+            };
+        }
+
+        @await Component.InvokeAsync("PagedGrid", gridModel)
+
+        <div class="mt-3">
+            <a asp-action="Templates" asp-controller="Approval" class="btn btn-outline-secondary">@T["Back"]</a>
+        </div>
+    </div>
+</div>
