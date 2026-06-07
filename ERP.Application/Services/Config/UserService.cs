@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using ERP.Application.DTOs.Common;
 using ERP.Application.DTOs.Config;
 using ERP.Domain.Entities.Config;
@@ -11,6 +12,7 @@ namespace ERP.Application.Services.Config;
 public sealed class UserService(
     IUnitOfWork unitOfWork,
     IPasswordHasher<SysUser> passwordHasher,
+    IUserCredentialEmailService userCredentialEmailService,
     ICacheService cacheService) : IUserService
 {
     private const string UserPermissionsKeyPrefix = "ERP_cfg:permissions:user:";
@@ -88,6 +90,12 @@ public sealed class UserService(
 
     public async Task<UserDto> CreateAsync(UserDto request, CancellationToken ct = default)
     {
+        var normalizedEmail = request.Email.Trim();
+        if (!await userCredentialEmailService.IsEmailActiveAsync(normalizedEmail, ct))
+        {
+            throw new InvalidOperationException("Email is not active or cannot be validated.");
+        }
+
         var usernameExists = await unitOfWork.Repository<SysUser>()
             .Query()
             .IgnoreQueryFilters()
@@ -101,25 +109,29 @@ public sealed class UserService(
         var emailExists = await unitOfWork.Repository<SysUser>()
             .Query()
             .IgnoreQueryFilters()
-            .AnyAsync(x => x.Email == request.Email, ct);
+            .AnyAsync(x => x.Email == normalizedEmail, ct);
 
         if (emailExists)
         {
             throw new InvalidOperationException("Email already exists.");
         }
 
+        var initialPassword = GenerateInitialPassword();
+
+        await userCredentialEmailService.SendCredentialAsync(normalizedEmail, request.FullName, request.Username, initialPassword, ct);
+
         var user = new SysUser
         {
             Username = request.Username,
             FullName = request.FullName,
-            Email = request.Email,
+            Email = normalizedEmail,
             Phone = request.Phone,
             IsActive = request.IsActive,
             LanguagePreference = "en",
             CreatedBy = "system"
         };
 
-        user.PasswordHash = passwordHasher.HashPassword(user, "ChangeMe123!");
+        user.PasswordHash = passwordHasher.HashPassword(user, initialPassword);
 
         await unitOfWork.Repository<SysUser>().AddAsync(user, ct);
         await unitOfWork.SaveChangesAsync(ct);
@@ -285,6 +297,45 @@ public sealed class UserService(
             .FirstOrDefaultAsync(ct);
     }
 
+    private static string GenerateInitialPassword(int length = 12)
+    {
+        const string uppercase = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+        const string lowercase = "abcdefghijkmnopqrstuvwxyz";
+        const string digits = "23456789";
+        const string symbols = "!@#$%^&*()-_=+";
+
+        var requiredGroups = new[] { uppercase, lowercase, digits, symbols };
+        if (length < requiredGroups.Length)
+        {
+            throw new ArgumentOutOfRangeException(nameof(length), "Password length is too short.");
+        }
+
+        var characters = new List<char>(length);
+
+        foreach (var group in requiredGroups)
+        {
+            characters.Add(GetRandomChar(group));
+        }
+
+        var allCharacters = string.Concat(requiredGroups);
+        while (characters.Count < length)
+        {
+            characters.Add(GetRandomChar(allCharacters));
+        }
+
+        for (var i = characters.Count - 1; i > 0; i--)
+        {
+            var swapIndex = RandomNumberGenerator.GetInt32(i + 1);
+            (characters[i], characters[swapIndex]) = (characters[swapIndex], characters[i]);
+        }
+
+        return new string(characters.ToArray());
+    }
+
+    private static char GetRandomChar(string source)
+    {
+        return source[RandomNumberGenerator.GetInt32(source.Length)];
+    }
     private static async Task SafeCacheAsync(Func<Task> operation)
     {
         try
@@ -297,3 +348,6 @@ public sealed class UserService(
         }
     }
 }
+
+
+

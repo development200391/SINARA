@@ -1,9 +1,12 @@
+using ERP.Application.Options;
 using ERP.Application.Services;
+using ERP.Application.Services.Config;
 using ERP.Domain.Enums;
 using ERP.Domain.Interfaces;
 using ERP.Infrastructure.Cache;
 using ERP.Infrastructure.Data;
 using ERP.Infrastructure.Repositories;
+using ERP.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -34,6 +37,9 @@ public static class DependencyInjection
         services.AddScoped(typeof(IRepository<>), typeof(GenericRepository<>));
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IDataSeeder, DataSeeder>();
+
+        services.Configure<SmtpSettings>(configuration.GetSection(SmtpSettings.SectionName));
+        services.AddScoped<IUserCredentialEmailService, SmtpUserCredentialEmailService>();
 
         var redisConnectionString = configuration["Redis:ConnectionString"] ?? "localhost:6379";
         var redisOptions = ConfigurationOptions.Parse(redisConnectionString);

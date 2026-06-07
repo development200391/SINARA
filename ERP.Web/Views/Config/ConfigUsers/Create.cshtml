@@ -21,7 +21,8 @@
                 </div>
                 <div class="col-md-6">
                     <label asp-for="Email" class="form-label"></label>
-                    <input asp-for="Email" class="form-control" />
+                    <input asp-for="Email" class="form-control" type="email" autocomplete="email" />
+                    <div class="form-text">Password akun akan dikirim ke email ini setelah user disimpan.</div>
                     <span asp-validation-for="Email" class="text-danger"></span>
                 </div>
                 <div class="col-md-6">
@@ -55,3 +56,4 @@
         </form>
     </div>
 </div>
+
