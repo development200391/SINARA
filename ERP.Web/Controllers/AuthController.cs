@@ -82,6 +82,66 @@ public sealed class AuthController(IAuthApiClient authApiClient) : Controller
         return RedirectToAction("Index", "Home");
     }
 
+    [HttpGet("change-password")]
+    [Authorize]
+    public IActionResult ChangePassword()
+    {
+        var accessToken = GetAccessToken();
+        if (string.IsNullOrWhiteSpace(accessToken))
+        {
+            return RedirectToAction("Login", "Auth", new { returnUrl = Url.Action(nameof(ChangePassword), "Auth") });
+        }
+
+        ViewData["Title"] = "Change Password";
+        ViewData["Breadcrumb"] = "Change Password";
+
+        return View(new ChangePasswordViewModel());
+    }
+
+    [HttpPost("change-password")]
+    [Authorize]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ChangePassword(ChangePasswordViewModel model, CancellationToken ct = default)
+    {
+        ViewData["Title"] = "Change Password";
+        ViewData["Breadcrumb"] = "Change Password";
+
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
+        var accessToken = GetAccessToken();
+        if (string.IsNullOrWhiteSpace(accessToken))
+        {
+            return RedirectToAction("Login", "Auth", new { returnUrl = Url.Action(nameof(ChangePassword), "Auth") });
+        }
+
+        var result = await authApiClient.ChangePasswordAsync(new ChangePasswordRequest
+        {
+            CurrentPassword = model.CurrentPassword,
+            NewPassword = model.NewPassword,
+            ConfirmPassword = model.ConfirmPassword
+        }, accessToken, ct);
+
+        if (!result.IsSuccess)
+        {
+            if (result.StatusCode == StatusCodes.Status401Unauthorized)
+            {
+                await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                return RedirectToAction("Login", "Auth", new { returnUrl = Url.Action(nameof(ChangePassword), "Auth") });
+            }
+
+            ModelState.AddModelError(string.Empty,
+                string.IsNullOrWhiteSpace(result.ErrorMessage) ? "Failed to change password." : result.ErrorMessage);
+
+            return View(model);
+        }
+
+        TempData["SuccessMessage"] = "Password changed successfully.";
+        return RedirectToAction(nameof(ChangePassword));
+    }
+
     [HttpPost("logout")]
     [Authorize]
     [ValidateAntiForgeryToken]
@@ -102,5 +162,6 @@ public sealed class AuthController(IAuthApiClient authApiClient) : Controller
     {
         return View();
     }
-}
 
+    private string? GetAccessToken() => User.FindFirstValue("access_token");
+}

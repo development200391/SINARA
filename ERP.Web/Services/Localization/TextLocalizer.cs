@@ -40,11 +40,16 @@ public sealed class TextLocalizer(IHttpContextAccessor httpContextAccessor) : IT
             ["auth.password"] = "Password",
             ["auth.remember_me"] = "Remember Me",
             ["auth.sign_in"] = "Sign In",
+            ["auth.change_password"] = "Change Password",
+            ["auth.current_password"] = "Current Password",
+            ["auth.new_password"] = "New Password",
+            ["auth.confirm_password"] = "Confirm Password",
             ["layout.home"] = "Home",
             ["layout.profile"] = "Profile",
             ["layout.logout"] = "Logout",
             ["layout.configuration"] = "Configuration",
-            ["layout.hr"] = "Human Resources"
+            ["layout.hr"] = "Human Resources",
+            ["layout.change_password"] = "Change Password"
         },
         ["id"] = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -78,11 +83,16 @@ public sealed class TextLocalizer(IHttpContextAccessor httpContextAccessor) : IT
             ["auth.password"] = "Kata Sandi",
             ["auth.remember_me"] = "Ingat Saya",
             ["auth.sign_in"] = "Masuk",
+            ["auth.change_password"] = "Ubah Kata Sandi",
+            ["auth.current_password"] = "Kata Sandi Saat Ini",
+            ["auth.new_password"] = "Kata Sandi Baru",
+            ["auth.confirm_password"] = "Konfirmasi Kata Sandi",
             ["layout.home"] = "Beranda",
             ["layout.profile"] = "Profil",
             ["layout.logout"] = "Keluar",
             ["layout.configuration"] = "Konfigurasi",
-            ["layout.hr"] = "Sumber Daya Manusia"
+            ["layout.hr"] = "Sumber Daya Manusia",
+            ["layout.change_password"] = "Ubah Kata Sandi"
         }
     };
 
@@ -928,4 +938,3 @@ public sealed class TextLocalizer(IHttpContextAccessor httpContextAccessor) : IT
         return !string.IsNullOrWhiteSpace(code) && Resources.ContainsKey(code);
     }
 }
-
