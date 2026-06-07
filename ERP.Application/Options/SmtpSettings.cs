@@ -13,4 +13,6 @@ public sealed class SmtpSettings
     public string FromEmail { get; set; } = string.Empty;
     public string FromName { get; set; } = "SINARA ERP";
     public int TimeoutSeconds { get; set; } = 15;
+    public string PasswordResetUrlTemplate { get; set; } = "https://localhost:60100/auth/reset-password?email={email}&token={token}";
 }
+

@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using ERP.Application.DTOs.Auth;
 using ERP.Application.Options;
+using ERP.Application.Services.Config;
 using ERP.Domain.Entities.System;
 using ERP.Domain.Interfaces;
 using Microsoft.AspNetCore.Identity;
@@ -18,8 +19,12 @@ public sealed class AuthService(
     ICacheService cacheService,
     IPasswordHasher<SysUser> passwordHasher,
     IAuditService auditService,
+    IUserCredentialEmailService userCredentialEmailService,
     IOptions<JwtSettings> jwtOptions) : IAuthService
 {
+    private const int PasswordResetExpiryMinutes = 30;
+    private const string PasswordResetTokenPrefix = "pwdreset_";
+
     private readonly JwtSettings _jwtSettings = jwtOptions.Value;
 
     public async Task<LoginResponse?> LoginAsync(LoginRequest request, string? ipAddress, CancellationToken ct = default)
@@ -73,7 +78,11 @@ public sealed class AuthService(
     {
         var tokenQuery = unitOfWork.Repository<SysRefreshToken>()
             .Query()
-            .Where(x => x.UserId == userId && x.RevokedAt == null && x.ExpiresAt > DateTimeOffset.UtcNow);
+            .Where(x =>
+                x.UserId == userId
+                && x.RevokedAt == null
+                && x.ExpiresAt > DateTimeOffset.UtcNow
+                && !x.Token.StartsWith(PasswordResetTokenPrefix));
 
         if (!string.IsNullOrWhiteSpace(refreshToken))
         {
@@ -113,7 +122,10 @@ public sealed class AuthService(
             .Include(x => x.User)
             .ThenInclude(x => x.UserRoles)
             .ThenInclude(x => x.Role)
-            .FirstOrDefaultAsync(x => x.Token == request.RefreshToken, ct);
+            .FirstOrDefaultAsync(
+                x => x.Token == request.RefreshToken
+                    && !x.Token.StartsWith(PasswordResetTokenPrefix),
+                ct);
 
         if (tokenEntity is null || tokenEntity.RevokedAt is not null || tokenEntity.ExpiresAt <= now)
         {
@@ -195,6 +207,126 @@ public sealed class AuthService(
         return true;
     }
 
+    public async Task RequestPasswordResetAsync(ForgotPasswordRequest request, string? ipAddress, CancellationToken ct = default)
+    {
+        var normalizedEmail = request.Email.Trim();
+        if (string.IsNullOrWhiteSpace(normalizedEmail))
+        {
+            return;
+        }
+
+        var user = await unitOfWork.Repository<SysUser>()
+            .Query()
+            .FirstOrDefaultAsync(x => x.Email == normalizedEmail && x.IsActive, ct);
+
+        if (user is null)
+        {
+            return;
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        var activeResetTokens = await unitOfWork.Repository<SysRefreshToken>()
+            .Query()
+            .Where(x =>
+                x.UserId == user.Id
+                && x.RevokedAt == null
+                && x.ExpiresAt > now
+                && x.Token.StartsWith(PasswordResetTokenPrefix))
+            .ToListAsync(ct);
+
+        foreach (var token in activeResetTokens)
+        {
+            token.RevokedAt = now;
+            unitOfWork.Repository<SysRefreshToken>().Update(token);
+        }
+
+        var plainToken = CreatePasswordResetToken();
+        var expiresAt = now.AddMinutes(PasswordResetExpiryMinutes);
+
+        await unitOfWork.Repository<SysRefreshToken>().AddAsync(new SysRefreshToken
+        {
+            UserId = user.Id,
+            Token = plainToken,
+            ExpiresAt = expiresAt,
+            CreatedByIp = ipAddress
+        }, ct);
+
+        await unitOfWork.SaveChangesAsync(ct);
+
+        await userCredentialEmailService.SendPasswordResetAsync(user.Email, user.FullName, plainToken, expiresAt, ct);
+
+        await auditService.LogAsync("PASSWORD_RESET_REQUEST", user.Id, user.Username, "sys_users", user.Id.ToString(), null, null, ipAddress, ct);
+    }
+
+    public async Task<bool> ResetPasswordAsync(ResetPasswordRequest request, string? ipAddress, CancellationToken ct = default)
+    {
+        var normalizedEmail = request.Email.Trim();
+        var normalizedToken = request.Token.Trim();
+        if (string.IsNullOrWhiteSpace(normalizedEmail) || string.IsNullOrWhiteSpace(normalizedToken))
+        {
+            return false;
+        }
+
+        var user = await unitOfWork.Repository<SysUser>()
+            .Query()
+            .FirstOrDefaultAsync(x => x.Email == normalizedEmail && x.IsActive, ct);
+
+        if (user is null)
+        {
+            return false;
+        }
+
+        var now = DateTimeOffset.UtcNow;
+
+        var resetToken = await unitOfWork.Repository<SysRefreshToken>()
+            .Query()
+            .Where(x =>
+                x.UserId == user.Id
+                && x.Token == normalizedToken
+                && x.RevokedAt == null
+                && x.ExpiresAt > now
+                && x.Token.StartsWith(PasswordResetTokenPrefix))
+            .OrderByDescending(x => x.Id)
+            .FirstOrDefaultAsync(ct);
+
+        if (resetToken is null)
+        {
+            return false;
+        }
+
+        user.PasswordHash = passwordHasher.HashPassword(user, request.NewPassword);
+        user.UpdatedAt = now;
+        user.UpdatedBy = user.Username;
+
+        unitOfWork.Repository<SysUser>().Update(user);
+
+        var activeResetTokens = await unitOfWork.Repository<SysRefreshToken>()
+            .Query()
+            .Where(x =>
+                x.UserId == user.Id
+                && x.RevokedAt == null
+                && x.ExpiresAt > now
+                && x.Token.StartsWith(PasswordResetTokenPrefix))
+            .ToListAsync(ct);
+
+        foreach (var token in activeResetTokens)
+        {
+            token.RevokedAt = now;
+            unitOfWork.Repository<SysRefreshToken>().Update(token);
+        }
+
+        await RevokeActiveRefreshTokensAsync(user.Id, ct);
+
+        await SafeCacheOperationAsync(() => cacheService.RemoveAsync(GetRefreshCacheKey(user.Id), ct));
+        await SafeCacheOperationAsync(() => cacheService.RemoveAsync(GetPermissionCacheKey(user.Id), ct));
+
+        await unitOfWork.SaveChangesAsync(ct);
+
+        await auditService.LogAsync("PASSWORD_RESET", user.Id, user.Username, "sys_users", user.Id.ToString(), null, null, ipAddress, ct);
+
+        return true;
+    }
+
     private LoginResponse BuildLoginResponse(SysUser user, string refreshToken, DateTimeOffset refreshTokenExpiresAt)
     {
         var expiresAt = DateTimeOffset.UtcNow.AddMinutes(_jwtSettings.ExpiryMinutes);
@@ -271,7 +403,11 @@ public sealed class AuthService(
         var now = DateTimeOffset.UtcNow;
         var activeTokens = await unitOfWork.Repository<SysRefreshToken>()
             .Query()
-            .Where(x => x.UserId == userId && x.RevokedAt == null && x.ExpiresAt > now)
+            .Where(x =>
+                x.UserId == userId
+                && x.RevokedAt == null
+                && x.ExpiresAt > now
+                && !x.Token.StartsWith(PasswordResetTokenPrefix))
             .ToListAsync(ct);
 
         foreach (var token in activeTokens)
@@ -299,9 +435,13 @@ public sealed class AuthService(
         return Convert.ToBase64String(bytes);
     }
 
+    private static string CreatePasswordResetToken()
+    {
+        var bytes = RandomNumberGenerator.GetBytes(32);
+        return PasswordResetTokenPrefix + Convert.ToHexString(bytes);
+    }
+
     private static string GetRefreshCacheKey(int userId) => $"ERP_auth:refresh:{userId}";
     private static string GetPermissionCacheKey(int userId) => $"ERP_cfg:permissions:user:{userId}";
 }
-
-
 

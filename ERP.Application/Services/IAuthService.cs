@@ -9,4 +9,7 @@ public interface IAuthService
     Task<LoginResponse?> RefreshTokenAsync(RefreshTokenRequest request, string? ipAddress, CancellationToken ct = default);
     Task<AuthUserDto?> GetCurrentUserAsync(int userId, CancellationToken ct = default);
     Task<bool> ChangePasswordAsync(int userId, ChangePasswordRequest request, string? ipAddress, CancellationToken ct = default);
+    Task RequestPasswordResetAsync(ForgotPasswordRequest request, string? ipAddress, CancellationToken ct = default);
+    Task<bool> ResetPasswordAsync(ResetPasswordRequest request, string? ipAddress, CancellationToken ct = default);
 }
+

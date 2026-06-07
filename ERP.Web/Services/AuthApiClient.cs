@@ -64,24 +64,57 @@ public sealed class AuthApiClient(HttpClient httpClient, ILogger<AuthApiClient> 
             message.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
             var response = await httpClient.SendAsync(message, ct);
-            var statusCode = (int)response.StatusCode;
-            if (response.IsSuccessStatusCode)
-            {
-                return ApiCallResult<object?>.Success(null, statusCode);
-            }
-
-            var apiError = await ReadApiErrorMessageAsync(response, ct);
-            var errorMessage = string.IsNullOrWhiteSpace(apiError)
-                ? $"Change password API returned status {statusCode} ({response.StatusCode})."
-                : apiError;
-
-            return ApiCallResult<object?>.Failure(errorMessage, statusCode);
+            return await BuildNoContentResultAsync(response, "Change password", ct);
         }
         catch (HttpRequestException ex)
         {
             logger.LogWarning(ex, "Failed to reach auth API on change password.");
             return ApiCallResult<object?>.Failure("Failed to reach auth API on change password.");
         }
+    }
+
+    public async Task<ApiCallResult<object?>> ForgotPasswordAsync(ForgotPasswordRequest request, CancellationToken ct = default)
+    {
+        try
+        {
+            var response = await httpClient.PostAsJsonAsync("api/v1/auth/forgot-password", request, ct);
+            return await BuildNoContentResultAsync(response, "Forgot password", ct);
+        }
+        catch (HttpRequestException ex)
+        {
+            logger.LogWarning(ex, "Failed to reach auth API on forgot password.");
+            return ApiCallResult<object?>.Failure("Failed to reach auth API on forgot password.");
+        }
+    }
+
+    public async Task<ApiCallResult<object?>> ResetPasswordAsync(ResetPasswordRequest request, CancellationToken ct = default)
+    {
+        try
+        {
+            var response = await httpClient.PostAsJsonAsync("api/v1/auth/reset-password", request, ct);
+            return await BuildNoContentResultAsync(response, "Reset password", ct);
+        }
+        catch (HttpRequestException ex)
+        {
+            logger.LogWarning(ex, "Failed to reach auth API on reset password.");
+            return ApiCallResult<object?>.Failure("Failed to reach auth API on reset password.");
+        }
+    }
+
+    private static async Task<ApiCallResult<object?>> BuildNoContentResultAsync(HttpResponseMessage response, string actionName, CancellationToken ct)
+    {
+        var statusCode = (int)response.StatusCode;
+        if (response.IsSuccessStatusCode)
+        {
+            return ApiCallResult<object?>.Success(null, statusCode);
+        }
+
+        var apiError = await ReadApiErrorMessageAsync(response, ct);
+        var errorMessage = string.IsNullOrWhiteSpace(apiError)
+            ? $"{actionName} API returned status {statusCode} ({response.StatusCode})."
+            : apiError;
+
+        return ApiCallResult<object?>.Failure(errorMessage, statusCode);
     }
 
     private static async Task<string?> ReadApiErrorMessageAsync(HttpResponseMessage response, CancellationToken ct)
@@ -160,3 +193,4 @@ public sealed class AuthApiClient(HttpClient httpClient, ILogger<AuthApiClient> 
         return true;
     }
 }
+

@@ -25,6 +25,16 @@
                             <h1 class="h4 mb-0">@T["auth.login"]</h1>
                         </div>
 
+                        @if (TempData["SuccessMessage"] is string successMessage)
+                        {
+                            <div class="alert alert-success" role="alert">@successMessage</div>
+                        }
+
+                        @if (TempData["ErrorMessage"] is string errorMessage)
+                        {
+                            <div class="alert alert-danger" role="alert">@errorMessage</div>
+                        }
+
                         <form asp-action="Login" asp-controller="Auth" method="post" novalidate>
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
@@ -48,9 +58,13 @@
                                 <span asp-validation-for="Password" class="text-danger"></span>
                             </div>
 
-                            <div class="form-check mb-3">
+                            <div class="form-check mb-2">
                                 <input asp-for="RememberMe" class="form-check-input" />
                                 <label asp-for="RememberMe" class="form-check-label">@T["auth.remember_me"]</label>
+                            </div>
+
+                            <div class="text-end mb-3">
+                                <a asp-controller="Auth" asp-action="ForgotPassword" class="small">@T["auth.forgot_password"]</a>
                             </div>
 
                             <button type="submit" class="btn btn-primary w-100" id="loginButton">
@@ -88,3 +102,4 @@
     </script>
 </body>
 </html>
+

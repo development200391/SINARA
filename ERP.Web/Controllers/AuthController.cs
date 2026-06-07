@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using ERP.Application.DTOs.Auth;
 using ERP.Web.Services;
+using ERP.Web.Services.Localization;
 using ERP.Web.ViewModels.Auth;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -10,7 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace ERP.Web.Controllers;
 
 [Route("auth")]
-public sealed class AuthController(IAuthApiClient authApiClient) : Controller
+public sealed class AuthController(IAuthApiClient authApiClient, ITextLocalizer textLocalizer) : Controller
 {
     [HttpGet("login")]
     [AllowAnonymous]
@@ -80,6 +81,101 @@ public sealed class AuthController(IAuthApiClient authApiClient) : Controller
         }
 
         return RedirectToAction("Index", "Home");
+    }
+
+    [HttpGet("forgot-password")]
+    [AllowAnonymous]
+    public IActionResult ForgotPassword()
+    {
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            return RedirectToAction("Index", "Home");
+        }
+
+        ViewData["Title"] = textLocalizer["auth.forgot_password"];
+        return View(new ForgotPasswordViewModel());
+    }
+
+    [HttpPost("forgot-password")]
+    [AllowAnonymous]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ForgotPassword(ForgotPasswordViewModel model, CancellationToken ct = default)
+    {
+        ViewData["Title"] = textLocalizer["auth.forgot_password"];
+
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
+        var result = await authApiClient.ForgotPasswordAsync(new ForgotPasswordRequest
+        {
+            Email = model.Email
+        }, ct);
+
+        if (!result.IsSuccess)
+        {
+            ModelState.AddModelError(
+                string.Empty,
+                string.IsNullOrWhiteSpace(result.ErrorMessage) ? "Failed to send reset password request." : result.ErrorMessage);
+
+            return View(model);
+        }
+
+        TempData["SuccessMessage"] = textLocalizer["auth.forgot_password_sent"];
+        return RedirectToAction(nameof(ForgotPassword));
+    }
+
+    [HttpGet("reset-password")]
+    [AllowAnonymous]
+    public IActionResult ResetPassword(string? email = null, string? token = null)
+    {
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(token))
+        {
+            TempData["ErrorMessage"] = textLocalizer["auth.reset_link_invalid"];
+            return RedirectToAction(nameof(ForgotPassword));
+        }
+
+        ViewData["Title"] = textLocalizer["auth.reset_password"];
+
+        return View(new ResetPasswordViewModel
+        {
+            Email = email,
+            Token = token
+        });
+    }
+
+    [HttpPost("reset-password")]
+    [AllowAnonymous]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ResetPassword(ResetPasswordViewModel model, CancellationToken ct = default)
+    {
+        ViewData["Title"] = textLocalizer["auth.reset_password"];
+
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
+        var result = await authApiClient.ResetPasswordAsync(new ResetPasswordRequest
+        {
+            Email = model.Email,
+            Token = model.Token,
+            NewPassword = model.NewPassword,
+            ConfirmPassword = model.ConfirmPassword
+        }, ct);
+
+        if (!result.IsSuccess)
+        {
+            ModelState.AddModelError(
+                string.Empty,
+                string.IsNullOrWhiteSpace(result.ErrorMessage) ? textLocalizer["auth.reset_failed"] : result.ErrorMessage);
+
+            return View(model);
+        }
+
+        TempData["SuccessMessage"] = textLocalizer["auth.reset_success"];
+        return RedirectToAction(nameof(Login));
     }
 
     [HttpGet("change-password")]
@@ -165,3 +261,4 @@ public sealed class AuthController(IAuthApiClient authApiClient) : Controller
 
     private string? GetAccessToken() => User.FindFirstValue("access_token");
 }
+

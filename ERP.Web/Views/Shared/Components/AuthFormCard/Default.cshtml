@@ -1,0 +1,21 @@
+@model ERP.Web.ViewModels.Shared.AuthFormCardViewModel
+
+<div class="col-12 col-sm-10 col-md-7 col-lg-5">
+    <div class="card shadow border-0 rounded-4">
+        <div class="card-body p-4 p-lg-5">
+            <div class="text-center mb-4">
+                <p class="small text-uppercase mb-1">SINARA ERP</p>
+                <h1 class="h4 mb-0">@Model.Title</h1>
+                @if (!string.IsNullOrWhiteSpace(Model.Subtitle))
+                {
+                    <p class="text-muted mt-2 mb-0">@Model.Subtitle</p>
+                }
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(Model.BodyPartialViewName))
+            {
+                @await Html.PartialAsync(Model.BodyPartialViewName, Model.BodyModel)
+            }
+        </div>
+    </div>
+</div>

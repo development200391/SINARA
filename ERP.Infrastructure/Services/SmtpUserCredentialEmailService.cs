@@ -55,15 +55,42 @@ public sealed class SmtpUserCredentialEmailService(
 
         ValidateSmtpConfiguration();
 
+        var body = BuildCredentialEmailBody(fullName, username, temporaryPassword);
+        await SendEmailAsync(normalizedEmail, "SINARA ERP - Account Credentials", body, ct);
+    }
+
+    public async Task SendPasswordResetAsync(string email, string fullName, string resetToken, DateTimeOffset expiresAt, CancellationToken ct = default)
+    {
+        if (!_smtp.Enabled)
+        {
+            logger.LogInformation("SMTP email service is disabled. Skip sending reset password email to {Email}.", email);
+            return;
+        }
+
+        if (!TryNormalizeEmail(email, out var normalizedEmail))
+        {
+            throw new InvalidOperationException("Email format is invalid.");
+        }
+
+        ValidateSmtpConfiguration();
+
+        var resetUrl = BuildPasswordResetUrl(normalizedEmail, resetToken);
+        var body = BuildPasswordResetEmailBody(fullName, resetUrl, expiresAt);
+
+        await SendEmailAsync(normalizedEmail, "SINARA ERP - Reset Password", body, ct);
+    }
+
+    private async Task SendEmailAsync(string recipientEmail, string subject, string body, CancellationToken ct)
+    {
         using var message = new MailMessage
         {
             From = new MailAddress(_smtp.FromEmail, _smtp.FromName),
-            Subject = "SINARA ERP - Account Credentials",
-            Body = BuildCredentialEmailBody(fullName, username, temporaryPassword),
+            Subject = subject,
+            Body = body,
             IsBodyHtml = true
         };
 
-        message.To.Add(normalizedEmail);
+        message.To.Add(recipientEmail);
 
         using var smtpClient = new SmtpClient(_smtp.Host, _smtp.Port)
         {
@@ -92,6 +119,25 @@ public sealed class SmtpUserCredentialEmailService(
         {
             throw new InvalidOperationException("SMTP sender email is not configured.");
         }
+    }
+
+    private string BuildPasswordResetUrl(string email, string resetToken)
+    {
+        var template = _smtp.PasswordResetUrlTemplate?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(template))
+        {
+            throw new InvalidOperationException("SMTP password reset URL template is not configured.");
+        }
+
+        if (!template.Contains("{email}", StringComparison.OrdinalIgnoreCase)
+            || !template.Contains("{token}", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("SMTP password reset URL template must contain {email} and {token} placeholders.");
+        }
+
+        return template
+            .Replace("{email}", Uri.EscapeDataString(email), StringComparison.OrdinalIgnoreCase)
+            .Replace("{token}", Uri.EscapeDataString(resetToken), StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool TryNormalizeEmail(string email, out string normalizedEmail)
@@ -127,6 +173,21 @@ public sealed class SmtpUserCredentialEmailService(
             <p><strong>Username:</strong> {safeUsername}<br />
             <strong>Temporary Password:</strong> {safePassword}</p>
             <p>Please sign in and change your password immediately.</p>
+            """;
+    }
+
+    private static string BuildPasswordResetEmailBody(string fullName, string resetUrl, DateTimeOffset expiresAt)
+    {
+        var safeName = WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(fullName) ? "User" : fullName);
+        var safeResetUrl = WebUtility.HtmlEncode(resetUrl);
+        var expiresText = WebUtility.HtmlEncode(expiresAt.LocalDateTime.ToString("yyyy-MM-dd HH:mm"));
+
+        return $"""
+            <p>Dear {safeName},</p>
+            <p>We received a request to reset your SINARA ERP password.</p>
+            <p><a href="{safeResetUrl}">Click here to reset your password</a></p>
+            <p>This link will expire at {expiresText}.</p>
+            <p>If you did not request this change, you can ignore this email.</p>
             """;
     }
 }

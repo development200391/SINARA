@@ -26,6 +26,29 @@ public sealed class AuthController(IAuthService authService) : ControllerBase
         return Ok(result);
     }
 
+    [HttpPost("forgot-password")]
+    [AllowAnonymous]
+    [EnableRateLimiting("auth-forgot-password")]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request, CancellationToken ct)
+    {
+        await authService.RequestPasswordResetAsync(request, HttpContext.Connection.RemoteIpAddress?.ToString(), ct);
+        return NoContent();
+    }
+
+    [HttpPost("reset-password")]
+    [AllowAnonymous]
+    [EnableRateLimiting("auth-reset-password")]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request, CancellationToken ct)
+    {
+        var reset = await authService.ResetPasswordAsync(request, HttpContext.Connection.RemoteIpAddress?.ToString(), ct);
+        if (!reset)
+        {
+            return BadRequest(new { message = "Reset token is invalid or expired." });
+        }
+
+        return NoContent();
+    }
+
     [HttpPost("logout")]
     [Authorize]
     public async Task<IActionResult> Logout([FromBody] RefreshTokenRequest request, CancellationToken ct)
