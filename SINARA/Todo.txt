@@ -35,3 +35,8 @@ Fixed Assets — inventaris aset perusahaan
 
 
 
+yang baru 
+SINARA_ERP_Sales_Panduan_Detail
+SINARA_ERP_Manufacturing_Panduan_Detail
+
+Buat Approval ke koneksi, dan tambah notif
