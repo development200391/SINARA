@@ -40,3 +40,5 @@ SINARA_ERP_Sales_Panduan_Detail
 SINARA_ERP_Manufacturing_Panduan_Detail
 
 Buat Approval ke koneksi, dan tambah notif
+
+Cek ada config credential nga di sini, kalo ada di ignor git
