@@ -17,6 +17,7 @@ builder.Services
         options.ViewLocationFormats.Insert(0, "/Views/Inventory/{1}/{0}.cshtml");
     });
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddMemoryCache();
 
 builder.Services.Configure<ApiSettings>(builder.Configuration.GetSection(ApiSettings.SectionName));
 
@@ -36,6 +37,7 @@ builder.Services.AddHttpClient<IConfigApiClient, ConfigApiClient>((serviceProvid
 
 builder.Services.AddScoped<ITextLocalizer, TextLocalizer>();
 builder.Services.AddScoped<IEmployeePhotoService, EmployeePhotoService>();
+builder.Services.AddScoped<IMenuPermissionService, MenuPermissionService>();
 builder.Services.AddScoped<IAuditLogExcelExportService, AuditLogExcelExportService>();
 
 builder.Services.AddHttpClient<IHrApiClient, HrApiClient>((serviceProvider, client) =>
@@ -137,4 +139,3 @@ app.MapControllerRoute(
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.Run();
-

@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using ERP.Application.DTOs.Common;
 using ERP.Application.DTOs.HR;
+using ERP.Web.Filters;
 using ERP.Web.Services;
 using ERP.Web.ViewModels.HR;
 using Microsoft.AspNetCore.Authorization;
@@ -10,12 +11,15 @@ namespace ERP.Web.Controllers;
 
 [Authorize]
 [Route("hr/departments")]
-public sealed class HrDepartmentsController(IHrApiClient hrApiClient) : Controller
+public sealed class HrDepartmentsController(IHrApiClient hrApiClient, IMenuPermissionService menuPermissionService) : Controller
 {
     private const int DefaultPageSize = 20;
     private const string DefaultSortBy = "name";
+    private const string DepartmentsMenuUrl = "/hr/departments";
+    private const string DepartmentsMenuKey = "1";
 
     [HttpGet("")]
+    [RequireMenuPermission(DepartmentsMenuUrl, MenuPermissionAction.View, DepartmentsMenuKey)]
     public async Task<IActionResult> Index(
         int page = 1,
         int pageSize = DefaultPageSize,
@@ -29,11 +33,8 @@ public sealed class HrDepartmentsController(IHrApiClient hrApiClient) : Controll
         bool? isActive = null,
         CancellationToken ct = default)
     {
-        var accessToken = GetAccessToken();
-        if (string.IsNullOrWhiteSpace(accessToken))
-        {
-            return RedirectToAction("Login", "Auth", new { returnUrl = Request.Path + Request.QueryString });
-        }
+        var accessToken = GetAccessToken() ?? string.Empty;
+        var permission = await GetMenuPermissionAsync(accessToken, ct);
 
         var normalizedPage = page <= 0 ? 1 : page;
         var normalizedPageSize = NormalizePageSize(pageSize);
@@ -79,6 +80,10 @@ public sealed class HrDepartmentsController(IHrApiClient hrApiClient) : Controll
             ManagerIdFilter = managerId,
             ParentDepartmentIdFilter = parentDepartmentId,
             IsActiveFilter = isActive,
+            CanView = permission.CanView,
+            CanCreate = permission.CanCreate,
+            CanEdit = permission.CanEdit,
+            CanDelete = permission.CanDelete,
             Managers = managers,
             DepartmentOptions = departmentOptions,
             Departments = departments ?? PagedResult<DepartmentDto>.Create([], 0, normalizedPage, normalizedPageSize)
@@ -86,13 +91,10 @@ public sealed class HrDepartmentsController(IHrApiClient hrApiClient) : Controll
     }
 
     [HttpGet("details/{id:int}")]
+    [RequireMenuPermission(DepartmentsMenuUrl, MenuPermissionAction.View, DepartmentsMenuKey)]
     public async Task<IActionResult> Details(int id, CancellationToken ct = default)
     {
-        var accessToken = GetAccessToken();
-        if (string.IsNullOrWhiteSpace(accessToken))
-        {
-            return RedirectToAction("Login", "Auth", new { returnUrl = Request.Path + Request.QueryString });
-        }
+        var accessToken = GetAccessToken() ?? string.Empty;
 
         var department = await hrApiClient.GetDepartmentByIdAsync(accessToken, id, ct);
         if (department is null)
@@ -107,13 +109,10 @@ public sealed class HrDepartmentsController(IHrApiClient hrApiClient) : Controll
     }
 
     [HttpGet("create")]
+    [RequireMenuPermission(DepartmentsMenuUrl, MenuPermissionAction.Create, DepartmentsMenuKey)]
     public async Task<IActionResult> Create(CancellationToken ct = default)
     {
-        var accessToken = GetAccessToken();
-        if (string.IsNullOrWhiteSpace(accessToken))
-        {
-            return RedirectToAction("Login", "Auth");
-        }
+        var accessToken = GetAccessToken() ?? string.Empty;
 
         var model = new HrDepartmentEditViewModel();
         await PopulateFormOptionsAsync(accessToken, model, null, ct);
@@ -126,13 +125,10 @@ public sealed class HrDepartmentsController(IHrApiClient hrApiClient) : Controll
 
     [HttpPost("create")]
     [ValidateAntiForgeryToken]
+    [RequireMenuPermission(DepartmentsMenuUrl, MenuPermissionAction.Create, DepartmentsMenuKey)]
     public async Task<IActionResult> Create(HrDepartmentEditViewModel model, CancellationToken ct = default)
     {
-        var accessToken = GetAccessToken();
-        if (string.IsNullOrWhiteSpace(accessToken))
-        {
-            return RedirectToAction("Login", "Auth");
-        }
+        var accessToken = GetAccessToken() ?? string.Empty;
 
         await PopulateFormOptionsAsync(accessToken, model, null, ct);
 
@@ -165,13 +161,10 @@ public sealed class HrDepartmentsController(IHrApiClient hrApiClient) : Controll
     }
 
     [HttpGet("edit/{id:int}")]
+    [RequireMenuPermission(DepartmentsMenuUrl, MenuPermissionAction.Edit, DepartmentsMenuKey)]
     public async Task<IActionResult> Edit(int id, CancellationToken ct = default)
     {
-        var accessToken = GetAccessToken();
-        if (string.IsNullOrWhiteSpace(accessToken))
-        {
-            return RedirectToAction("Login", "Auth");
-        }
+        var accessToken = GetAccessToken() ?? string.Empty;
 
         var department = await hrApiClient.GetDepartmentByIdAsync(accessToken, id, ct);
         if (department is null)
@@ -199,13 +192,10 @@ public sealed class HrDepartmentsController(IHrApiClient hrApiClient) : Controll
 
     [HttpPost("edit/{id:int}")]
     [ValidateAntiForgeryToken]
+    [RequireMenuPermission(DepartmentsMenuUrl, MenuPermissionAction.Edit, DepartmentsMenuKey)]
     public async Task<IActionResult> Edit(int id, HrDepartmentEditViewModel model, CancellationToken ct = default)
     {
-        var accessToken = GetAccessToken();
-        if (string.IsNullOrWhiteSpace(accessToken))
-        {
-            return RedirectToAction("Login", "Auth");
-        }
+        var accessToken = GetAccessToken() ?? string.Empty;
 
         model.Id = id;
         await PopulateFormOptionsAsync(accessToken, model, id, ct);
@@ -246,13 +236,10 @@ public sealed class HrDepartmentsController(IHrApiClient hrApiClient) : Controll
 
     [HttpPost("delete/{id:int}")]
     [ValidateAntiForgeryToken]
+    [RequireMenuPermission(DepartmentsMenuUrl, MenuPermissionAction.Delete, DepartmentsMenuKey)]
     public async Task<IActionResult> Delete(int id, CancellationToken ct = default)
     {
-        var accessToken = GetAccessToken();
-        if (string.IsNullOrWhiteSpace(accessToken))
-        {
-            return RedirectToAction("Login", "Auth");
-        }
+        var accessToken = GetAccessToken() ?? string.Empty;
 
         var deleted = await hrApiClient.DeleteDepartmentAsync(accessToken, id, ct);
         TempData[deleted.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = deleted.IsSuccess ? "Department deleted." : (string.IsNullOrWhiteSpace(deleted.ErrorMessage) ? "Failed to delete department." : deleted.ErrorMessage);
@@ -288,6 +275,9 @@ public sealed class HrDepartmentsController(IHrApiClient hrApiClient) : Controll
         model.Managers = managers;
         model.ParentDepartments = parentDepartments;
     }
+
+    private Task<MenuPermissionFlags> GetMenuPermissionAsync(string accessToken, CancellationToken ct) =>
+        menuPermissionService.GetMenuPermissionAsync(User, accessToken, DepartmentsMenuUrl, DepartmentsMenuKey, ct);
 
     private static int NormalizePageSize(int pageSize) => pageSize is 20 or 50 or 100 ? pageSize : DefaultPageSize;
 

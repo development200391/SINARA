@@ -128,9 +128,9 @@
                     ],
                     Actions = new PagedGridRowActionViewModel
                     {
-                        DetailUrl = Url.Action("Details", "HrDepartments", new { id = item.Id }),
-                        EditUrl = Url.Action("Edit", "HrDepartments", new { id = item.Id }),
-                        DeleteUrl = Url.Action("Delete", "HrDepartments", new { id = item.Id }),
+                        DetailUrl = Model.CanView ? Url.Action("Details", "HrDepartments", new { id = item.Id }) : null,
+                        EditUrl = Model.CanEdit ? Url.Action("Edit", "HrDepartments", new { id = item.Id }) : null,
+                        DeleteUrl = Model.CanDelete ? Url.Action("Delete", "HrDepartments", new { id = item.Id }) : null,
                         DeleteConfirmMessage = T["Delete this department?"]
                     }
                 }).ToList(),
@@ -147,7 +147,7 @@
                 Actions = new PagedGridActionConfigViewModel
                 {
                     ActionColumnTitle = T["Action"],
-                    AddUrl = Url.Action("Create", "HrDepartments"),
+                    AddUrl = Model.CanCreate ? Url.Action("Create", "HrDepartments") : null,
                     AddButtonText = T["common.add_new"],
                     DetailButtonText = T["Detail"],
                     EditButtonText = T["common.edit"],

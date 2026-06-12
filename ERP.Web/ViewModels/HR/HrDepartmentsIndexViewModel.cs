@@ -18,6 +18,11 @@ public sealed class HrDepartmentsIndexViewModel : PagedGridStateViewModel
     public int? ParentDepartmentIdFilter { get; set; }
     public bool? IsActiveFilter { get; set; }
 
+    public bool CanView { get; set; }
+    public bool CanCreate { get; set; }
+    public bool CanEdit { get; set; }
+    public bool CanDelete { get; set; }
+
     public IReadOnlyList<LookupDto> Managers { get; set; } = [];
     public IReadOnlyList<DepartmentDto> DepartmentOptions { get; set; } = [];
 
