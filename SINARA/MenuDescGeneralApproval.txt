@@ -1,0 +1,104 @@
+﻿Alur General Approval (yang kemarin)
+
+Acuannya ada di SINARA_ERP_GeneralApproval_Panduan_Detail.docx. Pola prosesnya:
+
+1. Konfigurasi approval dulu:
+   template -> level approver -> delegation.
+
+2. Modul asal submit transaksi dan hanya kirim
+   reference_type + reference_id
+   sebagai approval request.
+
+3. Routing engine bikin step approval sesuai tipe:
+   Sequential, Parallel, atau AnyOne
+   (enum sudah ada di ApprovalType.cs).
+
+4. Approver aksi approve/reject/delegate, status request bergerak
+   (Pending, InProgress, Approved, dst. di ApprovalRequestStatus.cs).
+
+5. Notifikasi + reminder/eskalasi jalan selama proses.
+
+6. Saat final (Approved/Rejected/Cancelled), callback update transaksi
+   di modul asal.
+
+7. Semua aksi dicatat ke audit trail + masuk laporan.
+
+
+Kondisi Implementasi Saat Ini di Repo
+
+1. Web layer untuk General Approval sudah ada
+   (dashboard, inbox, template, delegasi, laporan):
+   ApprovalController.cs,
+   ApprovalController.Inbox.cs,
+   ApprovalController.Templates.cs,
+   ApprovalController.Delegations.cs,
+   ApprovalController.Reports.cs.
+
+2. Web client sudah mengarah ke endpoint
+   api/v1/approval/*:
+   ApprovalApiClient.cs,
+   ApprovalApiClient.cs,
+   ApprovalApiClient.cs.
+
+3. Menu modul APV sudah diseed:
+   DataSeeder.cs,
+   DataSeeder.cs.
+
+4. API backend yang benar-benar ada sekarang untuk approval masih
+   Purchasing Approval Configs:
+   ApprovalConfigsController.cs,
+   AppDbContext.cs,
+   20260601183000_AddPurchasingPhase23And24.cs.
+
+Intinya:
+Blueprint General Approval sudah jelas,
+Web sudah siap,
+tapi engine/backend APV terpusat belum lengkap di API.
+
+
+Cara Implement ke Modul Lain
+
+1. Bangun core APV backend dulu: tabel
+   template/level/request/step/delegation/notification/audit,
+   service routing,
+   controller api/v1/approval/*.
+
+2. Ubah modul asal dari "approve langsung" jadi "submit ke APV".
+
+3. Saat submit dokumen, buat approval request
+   (reference_type,
+   reference_id,
+   amount,
+   subject),
+   status dokumen jadi
+   WaitingApproval/InProgress.
+
+4. Final approval/reject hanya lewat APV action endpoint,
+   bukan endpoint per modul.
+
+5. Pindahkan logic finalisasi modul ke callback handler per
+   reference_type
+   (idempotent).
+
+
+Contoh titik integrasi yang sekarang masih approve langsung:
+
+1. Fixed Assets Transfer:
+   TransfersController.cs,
+   TransfersController.cs.
+
+2. Finance AP Invoice:
+   ApInvoicesController.cs.
+
+3. Inventory Opname:
+   OpnamesController.cs.
+
+4. HR Leave Request:
+   LeaveRequestsController.cs,
+   LeaveRequestsController.cs.
+
+
+Kalau kamu mau, saya bisa lanjutkan langsung dari fase implementasi backend APV inti dulu
+(minimal templates + levels + requests + actions)
+lalu kita hook ke 1 modul pilot
+(saran: fa_asset_transfers).
