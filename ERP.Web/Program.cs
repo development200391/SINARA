@@ -1,3 +1,4 @@
+using ERP.Web.Filters;
 using ERP.Web.Models;
 using ERP.Web.Services;
 using ERP.Web.Services.Exports;
@@ -9,7 +10,10 @@ using Microsoft.Extensions.Options;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services
-    .AddControllersWithViews()
+    .AddControllersWithViews(options =>
+    {
+        options.Filters.AddService<AutoRequireMenuPermissionFilter>();
+    })
     .AddRazorOptions(options =>
     {
         options.ViewLocationFormats.Insert(0, "/Views/HR/{1}/{0}.cshtml");
@@ -36,6 +40,7 @@ builder.Services.AddHttpClient<IConfigApiClient, ConfigApiClient>((serviceProvid
 });
 
 builder.Services.AddScoped<ITextLocalizer, TextLocalizer>();
+builder.Services.AddScoped<AutoRequireMenuPermissionFilter>();
 builder.Services.AddScoped<IEmployeePhotoService, EmployeePhotoService>();
 builder.Services.AddScoped<IMenuPermissionService, MenuPermissionService>();
 builder.Services.AddScoped<IAuditLogExcelExportService, AuditLogExcelExportService>();

@@ -7,11 +7,14 @@ public sealed class MenuPermissionService(IConfigApiClient configApiClient, IHtt
 {
     private const string PermissionClaimType = "permissions";
     private const string ParsedClaimCacheKey = "menu-permissions:claim-map";
-    private const string RequestCachePrefix = "menu-permissions:request:";
+    private const string RequestResultCachePrefix = "menu-permissions:request-result:";
     private const string CrossRequestCachePrefix = "menu-permissions:user:";
-    private const string MenuIdCachePrefix = "menu-permissions:menu-id:";
+    private const string RoleIdsCachePrefix = "menu-permissions:role-ids:";
+    private const string MenuUrlMapCacheKey = "menu-permissions:menu-url-map";
+
     private static readonly TimeSpan PermissionCacheDuration = TimeSpan.FromMinutes(5);
-    private static readonly TimeSpan MenuIdCacheDuration = TimeSpan.FromMinutes(30);
+    private static readonly TimeSpan RoleIdsCacheDuration = TimeSpan.FromMinutes(10);
+    private static readonly TimeSpan MenuUrlMapCacheDuration = TimeSpan.FromMinutes(30);
 
     public async Task<MenuPermissionFlags> GetMenuPermissionAsync(
         ClaimsPrincipal user,
@@ -20,71 +23,99 @@ public sealed class MenuPermissionService(IConfigApiClient configApiClient, IHtt
         string? menuKey = null,
         CancellationToken ct = default)
     {
-        if (user.Identity?.IsAuthenticated != true || string.IsNullOrWhiteSpace(accessToken))
-        {
-            return MenuPermissionFlags.None;
-        }
-
-        var normalizedMenuUrl = NormalizeMenuUrl(menuUrl);
-        if (string.IsNullOrWhiteSpace(normalizedMenuUrl))
-        {
-            return MenuPermissionFlags.None;
-        }
-
-        var requestKey = BuildRequestKey(user, normalizedMenuUrl, menuKey);
-        if (TryGetRequestCache(requestKey, out var requestCachedPermission))
-        {
-            return requestCachedPermission;
-        }
-
-        if (TryGetFromClaim(user, normalizedMenuUrl, menuKey, out var claimPermission))
-        {
-            return CacheRequest(requestKey, claimPermission);
-        }
-
-        var crossRequestKey = BuildCrossRequestKey(user, normalizedMenuUrl);
-        if (memoryCache.TryGetValue(crossRequestKey, out MenuPermissionFlags? cachedPermission) && cachedPermission is not null)
-        {
-            return CacheRequest(requestKey, cachedPermission);
-        }
-
-        var resolved = await ResolveFromApiAsync(user, accessToken, normalizedMenuUrl, ct);
-        memoryCache.Set(crossRequestKey, resolved, PermissionCacheDuration);
-
-        return CacheRequest(requestKey, resolved);
+        var result = await GetMenuPermissionResultAsync(user, accessToken, menuUrl, menuKey, ct);
+        return result.Permission;
     }
 
-    private async Task<MenuPermissionFlags> ResolveFromApiAsync(
+    public async Task<MenuPermissionResult> GetMenuPermissionResultAsync(
         ClaimsPrincipal user,
         string accessToken,
-        string normalizedMenuUrl,
+        string menuUrl,
+        string? menuKey = null,
+        CancellationToken ct = default)
+    {
+        if (user.Identity?.IsAuthenticated != true || string.IsNullOrWhiteSpace(accessToken))
+        {
+            return MenuPermissionResult.NoMatch;
+        }
+
+        var normalizedRequestMenuUrl = NormalizeMenuUrl(menuUrl);
+        if (string.IsNullOrWhiteSpace(normalizedRequestMenuUrl))
+        {
+            return MenuPermissionResult.NoMatch;
+        }
+
+        var requestCacheKey = BuildRequestCacheKey(user, normalizedRequestMenuUrl, menuKey);
+        if (TryGetRequestResultCache(requestCacheKey, out var requestCachedResult))
+        {
+            return requestCachedResult;
+        }
+
+        var claimMap = GetParsedClaimMap(user);
+
+        if (!string.IsNullOrWhiteSpace(menuKey)
+            && TryGetClaimPermission(claimMap, menuKey.Trim(), out var permissionByKey))
+        {
+            return CacheRequestResult(requestCacheKey, new MenuPermissionResult
+            {
+                IsMenuMatched = true,
+                MenuUrl = normalizedRequestMenuUrl,
+                Permission = permissionByKey
+            });
+        }
+
+        var menuMatch = await ResolveMenuMatchAsync(accessToken, normalizedRequestMenuUrl, ct);
+        if (!menuMatch.IsMatched)
+        {
+            return CacheRequestResult(requestCacheKey, MenuPermissionResult.NoMatch);
+        }
+
+        var menuIdKey = menuMatch.MenuId.ToString();
+        if (TryGetClaimPermission(claimMap, menuIdKey, out var permissionByMenuId)
+            || TryGetClaimPermission(claimMap, menuMatch.MenuUrl, out permissionByMenuId)
+            || TryGetClaimPermission(claimMap, menuMatch.MenuUrl.TrimStart('/'), out permissionByMenuId))
+        {
+            return CacheRequestResult(requestCacheKey, new MenuPermissionResult
+            {
+                IsMenuMatched = true,
+                MenuId = menuMatch.MenuId,
+                MenuUrl = menuMatch.MenuUrl,
+                Permission = permissionByMenuId
+            });
+        }
+
+        var permissionCacheKey = BuildCrossRequestPermissionCacheKey(user, menuMatch.MenuUrl);
+        if (memoryCache.TryGetValue(permissionCacheKey, out MenuPermissionFlags? cachedPermission) && cachedPermission is not null)
+        {
+            return CacheRequestResult(requestCacheKey, new MenuPermissionResult
+            {
+                IsMenuMatched = true,
+                MenuId = menuMatch.MenuId,
+                MenuUrl = menuMatch.MenuUrl,
+                Permission = cachedPermission
+            });
+        }
+
+        var resolvedPermission = await ResolvePermissionByMenuIdAsync(user, accessToken, menuMatch.MenuId, ct);
+        memoryCache.Set(permissionCacheKey, resolvedPermission, PermissionCacheDuration);
+
+        return CacheRequestResult(requestCacheKey, new MenuPermissionResult
+        {
+            IsMenuMatched = true,
+            MenuId = menuMatch.MenuId,
+            MenuUrl = menuMatch.MenuUrl,
+            Permission = resolvedPermission
+        });
+    }
+
+    private async Task<MenuPermissionFlags> ResolvePermissionByMenuIdAsync(
+        ClaimsPrincipal user,
+        string accessToken,
+        int menuId,
         CancellationToken ct)
     {
-        var roleNames = user.FindAll(ClaimTypes.Role)
-            .Select(x => x.Value)
-            .Where(x => !string.IsNullOrWhiteSpace(x))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
-        if (roleNames.Count == 0)
-        {
-            return MenuPermissionFlags.None;
-        }
-
-        var roles = await configApiClient.GetRolesAsync(accessToken, ct);
-        var roleIds = roles
-            .Where(x => x.IsActive && roleNames.Contains(x.Name, StringComparer.OrdinalIgnoreCase))
-            .Select(x => x.Id)
-            .Distinct()
-            .ToList();
-
+        var roleIds = await ResolveRoleIdsAsync(user, accessToken, ct);
         if (roleIds.Count == 0)
-        {
-            return MenuPermissionFlags.None;
-        }
-
-        var menuId = await ResolveMenuIdAsync(accessToken, normalizedMenuUrl, ct);
-        if (!menuId.HasValue)
         {
             return MenuPermissionFlags.None;
         }
@@ -104,7 +135,7 @@ public sealed class MenuPermissionService(IConfigApiClient configApiClient, IHtt
                 continue;
             }
 
-            var permission = matrix.Permissions.FirstOrDefault(x => x.MenuId == menuId.Value);
+            var permission = matrix.Permissions.FirstOrDefault(x => x.MenuId == menuId);
             if (permission is null)
             {
                 continue;
@@ -122,19 +153,65 @@ public sealed class MenuPermissionService(IConfigApiClient configApiClient, IHtt
         return result;
     }
 
-    private async Task<int?> ResolveMenuIdAsync(string accessToken, string normalizedMenuUrl, CancellationToken ct)
+    private async Task<IReadOnlyList<int>> ResolveRoleIdsAsync(ClaimsPrincipal user, string accessToken, CancellationToken ct)
     {
-        var cacheKey = $"{MenuIdCachePrefix}{normalizedMenuUrl}";
-        if (memoryCache.TryGetValue(cacheKey, out int cachedMenuId))
+        var roleNames = user.FindAll(ClaimTypes.Role)
+            .Select(x => x.Value)
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (roleNames.Count == 0)
         {
-            return cachedMenuId > 0 ? cachedMenuId : null;
+            return [];
+        }
+
+        var roleCacheKey = BuildRoleIdsCacheKey(user);
+        if (memoryCache.TryGetValue(roleCacheKey, out List<int>? cachedRoleIds) && cachedRoleIds is not null)
+        {
+            return cachedRoleIds;
+        }
+
+        var roles = await configApiClient.GetRolesAsync(accessToken, ct);
+        var roleIds = roles
+            .Where(x => x.IsActive && roleNames.Contains(x.Name, StringComparer.OrdinalIgnoreCase))
+            .Select(x => x.Id)
+            .Distinct()
+            .ToList();
+
+        memoryCache.Set(roleCacheKey, roleIds, RoleIdsCacheDuration);
+        return roleIds;
+    }
+
+    private async Task<MenuMatch> ResolveMenuMatchAsync(string accessToken, string normalizedRequestMenuUrl, CancellationToken ct)
+    {
+        var menuMap = await GetMenuUrlMapAsync(accessToken, ct);
+        var candidates = BuildMenuUrlCandidates(normalizedRequestMenuUrl);
+
+        foreach (var candidate in candidates)
+        {
+            if (menuMap.TryGetValue(candidate, out var menuId))
+            {
+                return new MenuMatch(true, menuId, candidate);
+            }
+        }
+
+        return MenuMatch.NotMatched;
+    }
+
+    private async Task<IReadOnlyDictionary<string, int>> GetMenuUrlMapAsync(string accessToken, CancellationToken ct)
+    {
+        if (memoryCache.TryGetValue(MenuUrlMapCacheKey, out Dictionary<string, int>? cachedMap) && cachedMap is not null)
+        {
+            return cachedMap;
         }
 
         var modules = await configApiClient.GetModulesAsync(accessToken, ct);
         if (modules.Count == 0)
         {
-            memoryCache.Set(cacheKey, 0, MenuIdCacheDuration);
-            return null;
+            var empty = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            memoryCache.Set(MenuUrlMapCacheKey, empty, MenuUrlMapCacheDuration);
+            return empty;
         }
 
         var menuTasks = modules
@@ -144,58 +221,71 @@ public sealed class MenuPermissionService(IConfigApiClient configApiClient, IHtt
 
         await Task.WhenAll(menuTasks);
 
-        var menu = menuTasks
-            .SelectMany(x => x.Result)
-            .FirstOrDefault(x => string.Equals(NormalizeMenuUrl(x.Url), normalizedMenuUrl, StringComparison.OrdinalIgnoreCase));
+        var map = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        foreach (var menu in menuTasks.SelectMany(x => x.Result))
+        {
+            var normalizedMenuUrl = NormalizeMenuUrl(menu.Url);
+            if (string.IsNullOrWhiteSpace(normalizedMenuUrl))
+            {
+                continue;
+            }
 
-        var menuId = menu?.Id ?? 0;
-        memoryCache.Set(cacheKey, menuId, MenuIdCacheDuration);
+            map.TryAdd(normalizedMenuUrl, menu.Id);
+        }
 
-        return menuId > 0 ? menuId : null;
+        memoryCache.Set(MenuUrlMapCacheKey, map, MenuUrlMapCacheDuration);
+        return map;
     }
 
-    private bool TryGetFromClaim(
-        ClaimsPrincipal user,
-        string normalizedMenuUrl,
-        string? menuKey,
+    private static IReadOnlyList<string> BuildMenuUrlCandidates(string normalizedRequestMenuUrl)
+    {
+        var trimmed = normalizedRequestMenuUrl.Trim('/');
+        if (string.IsNullOrWhiteSpace(trimmed))
+        {
+            return [];
+        }
+
+        var segments = trimmed.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        var candidates = new List<string>(segments.Length);
+
+        for (var i = segments.Length; i >= 1; i--)
+        {
+            var candidate = $"/{string.Join('/', segments.Take(i))}";
+            if (!candidates.Contains(candidate, StringComparer.OrdinalIgnoreCase))
+            {
+                candidates.Add(candidate);
+            }
+        }
+
+        return candidates;
+    }
+
+    private bool TryGetClaimPermission(
+        IReadOnlyDictionary<string, MenuPermissionFlags> map,
+        string key,
         out MenuPermissionFlags permission)
     {
         permission = MenuPermissionFlags.None;
-
-        var map = GetParsedClaimMap(user);
-        if (map.Count == 0)
+        if (string.IsNullOrWhiteSpace(key))
         {
             return false;
         }
 
-        if (!string.IsNullOrWhiteSpace(menuKey)
-            && map.TryGetValue(menuKey.Trim(), out var byMenuKey)
-            && byMenuKey is not null)
+        if (!map.TryGetValue(key, out var found) || found is null)
         {
-            permission = byMenuKey;
-            return true;
+            return false;
         }
 
-        if (map.TryGetValue(normalizedMenuUrl, out var byUrl) && byUrl is not null)
-        {
-            permission = byUrl;
-            return true;
-        }
-
-        var urlWithoutLeadingSlash = normalizedMenuUrl.TrimStart('/');
-        if (map.TryGetValue(urlWithoutLeadingSlash, out var byRelativeUrl) && byRelativeUrl is not null)
-        {
-            permission = byRelativeUrl;
-            return true;
-        }
-
-        return false;
+        permission = found;
+        return true;
     }
 
     private IReadOnlyDictionary<string, MenuPermissionFlags> GetParsedClaimMap(ClaimsPrincipal user)
     {
         var httpContext = httpContextAccessor.HttpContext;
-        if (httpContext is not null && httpContext.Items.TryGetValue(ParsedClaimCacheKey, out var cached) && cached is Dictionary<string, MenuPermissionFlags> cachedMap)
+        if (httpContext is not null
+            && httpContext.Items.TryGetValue(ParsedClaimCacheKey, out var cached)
+            && cached is Dictionary<string, MenuPermissionFlags> cachedMap)
         {
             return cachedMap;
         }
@@ -274,6 +364,7 @@ public sealed class MenuPermissionService(IConfigApiClient configApiClient, IHtt
             CanEdit = (mask & 4) == 4,
             CanDelete = (mask & 8) == 8
         };
+
         return true;
     }
 
@@ -289,6 +380,18 @@ public sealed class MenuPermissionService(IConfigApiClient configApiClient, IHtt
         }
 
         var trimmed = url.Trim();
+
+        if (Uri.TryCreate(trimmed, UriKind.Absolute, out var absoluteUri))
+        {
+            trimmed = absoluteUri.PathAndQuery;
+        }
+
+        var queryOrHashIndex = trimmed.IndexOfAny(['?', '#']);
+        if (queryOrHashIndex >= 0)
+        {
+            trimmed = trimmed[..queryOrHashIndex];
+        }
+
         if (!trimmed.StartsWith("/", StringComparison.Ordinal))
         {
             trimmed = $"/{trimmed}";
@@ -297,51 +400,65 @@ public sealed class MenuPermissionService(IConfigApiClient configApiClient, IHtt
         return trimmed.TrimEnd('/').ToLowerInvariant();
     }
 
-    private string BuildRequestKey(ClaimsPrincipal user, string normalizedMenuUrl, string? menuKey)
+    private string BuildRequestCacheKey(ClaimsPrincipal user, string normalizedRequestMenuUrl, string? menuKey)
     {
         var userKey = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "anonymous";
         var normalizedMenuKey = string.IsNullOrWhiteSpace(menuKey) ? "-" : menuKey.Trim();
-        return $"{RequestCachePrefix}{userKey}:{normalizedMenuUrl}:{normalizedMenuKey}";
+        return $"{RequestResultCachePrefix}{userKey}:{normalizedRequestMenuUrl}:{normalizedMenuKey}";
     }
 
-    private static string BuildCrossRequestKey(ClaimsPrincipal user, string normalizedMenuUrl)
+    private static string BuildCrossRequestPermissionCacheKey(ClaimsPrincipal user, string normalizedMenuUrl)
     {
         var userId = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "anonymous";
-        var roleSignature = string.Join(",", user.FindAll(ClaimTypes.Role)
+        var roleSignature = BuildRoleSignature(user);
+        return $"{CrossRequestCachePrefix}{userId}:{roleSignature}:{normalizedMenuUrl}";
+    }
+
+    private static string BuildRoleIdsCacheKey(ClaimsPrincipal user)
+    {
+        var userId = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "anonymous";
+        var roleSignature = BuildRoleSignature(user);
+        return $"{RoleIdsCachePrefix}{userId}:{roleSignature}";
+    }
+
+    private static string BuildRoleSignature(ClaimsPrincipal user) =>
+        string.Join(",", user.FindAll(ClaimTypes.Role)
             .Select(x => x.Value)
             .Where(x => !string.IsNullOrWhiteSpace(x))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(x => x, StringComparer.OrdinalIgnoreCase));
 
-        return $"{CrossRequestCachePrefix}{userId}:{roleSignature}:{normalizedMenuUrl}";
-    }
-
-    private bool TryGetRequestCache(string key, out MenuPermissionFlags permission)
+    private bool TryGetRequestResultCache(string key, out MenuPermissionResult result)
     {
-        permission = MenuPermissionFlags.None;
+        result = MenuPermissionResult.NoMatch;
         var items = httpContextAccessor.HttpContext?.Items;
         if (items is null)
         {
             return false;
         }
 
-        if (!items.TryGetValue(key, out var cached) || cached is not MenuPermissionFlags cachedPermission)
+        if (!items.TryGetValue(key, out var cached) || cached is not MenuPermissionResult cachedResult)
         {
             return false;
         }
 
-        permission = cachedPermission;
+        result = cachedResult;
         return true;
     }
 
-    private MenuPermissionFlags CacheRequest(string key, MenuPermissionFlags permission)
+    private MenuPermissionResult CacheRequestResult(string key, MenuPermissionResult result)
     {
         var items = httpContextAccessor.HttpContext?.Items;
         if (items is not null)
         {
-            items[key] = permission;
+            items[key] = result;
         }
 
-        return permission;
+        return result;
+    }
+
+    private readonly record struct MenuMatch(bool IsMatched, int MenuId, string MenuUrl)
+    {
+        public static readonly MenuMatch NotMatched = new(false, 0, string.Empty);
     }
 }

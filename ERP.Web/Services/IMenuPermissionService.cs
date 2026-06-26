@@ -10,4 +10,11 @@ public interface IMenuPermissionService
         string menuUrl,
         string? menuKey = null,
         CancellationToken ct = default);
+
+    Task<MenuPermissionResult> GetMenuPermissionResultAsync(
+        ClaimsPrincipal user,
+        string accessToken,
+        string menuUrl,
+        string? menuKey = null,
+        CancellationToken ct = default);
 }
