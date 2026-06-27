@@ -6,7 +6,9 @@ using ERP.Domain.Entities.Inventory;
 using ERP.Domain.Entities.Purchasing;
 using ERP.Domain.Entities.FixedAssets;
 using ERP.Domain.Entities.System;
+using ERP.Domain.Entities.Sales;
 using ERP.Domain.Enums;
+using ERP.Domain.Enums.Sales;
 using ERP.Domain.Enums.Inventory;
 using ERP.Domain.Enums.Purchasing;
 using ERP.Domain.Enums.FixedAssets;
@@ -28,6 +30,7 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         await SeedAttendanceSettingAsync(now, ct);
         await SeedFinanceMasterDataAsync(now, ct);
         await SeedInventoryMasterDataAsync(now, ct);
+        await SeedSalesMasterDataAsync(now, ct);
         await SeedPurchasingMasterDataAsync(now, ct);
         await SeedFixedAssetsMasterDataAsync(now, ct);
         await SeedAdminUserAsync(now, ct);
@@ -45,6 +48,7 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         await EnsureModuleAsync("Purchasing", "PUR", "bi-cart-check", 5, now, ct);
         await EnsureModuleAsync("Fixed Assets", "FA", "bi-building-gear", 6, now, ct);
         await EnsureModuleAsync("General Approval", "APV", "bi-shield-check", 7, now, ct);
+        await EnsureModuleAsync("Sales", "SAL", "bi-graph-up-arrow", 8, now, ct);
     }
 
     private async Task SeedRolesAsync(DateTimeOffset now, CancellationToken ct)
@@ -508,6 +512,346 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
             ct);
     }
 
+    private async Task SeedSalesMasterDataAsync(DateTimeOffset now, CancellationToken ct)
+    {
+        var today = DateOnly.FromDateTime(now.UtcDateTime);
+
+        var hasIdrCurrency = await dbContext.FinCurrencies
+            .IgnoreQueryFilters()
+            .AnyAsync(x => x.Code == "IDR", ct);
+
+        if (!hasIdrCurrency)
+        {
+            return;
+        }
+
+        var activeEmployeeIds = await dbContext.HrEmployees
+            .IgnoreQueryFilters()
+            .Where(x => !x.IsDeleted && x.EmploymentStatus == EmploymentStatus.Active)
+            .OrderBy(x => x.Id)
+            .Select(x => x.Id)
+            .Take(5)
+            .ToListAsync(ct);
+
+        if (activeEmployeeIds.Count == 0)
+        {
+            return;
+        }
+
+        var activeRoleId = await dbContext.CfgRoles
+            .IgnoreQueryFilters()
+            .Where(x => !x.IsDeleted && x.IsActive)
+            .OrderBy(x => x.Id)
+            .Select(x => (int?)x.Id)
+            .FirstOrDefaultAsync(ct);
+
+        var itemRefs = await dbContext.InvItems
+            .IgnoreQueryFilters()
+            .Where(x => !x.IsDeleted && x.IsActive)
+            .OrderBy(x => x.Id)
+            .Select(x => new { x.Id, x.BaseUomId })
+            .Take(5)
+            .ToListAsync(ct);
+
+        if (itemRefs.Count == 0)
+        {
+            return;
+        }
+
+        var priceListSeeds = new[]
+        {
+            (Code: "SAL-PL-001", Name: "Retail Price List A", Type: PriceListType.Retail, ValidFrom: today.AddDays(-30), ValidTo: (DateOnly?)today.AddMonths(6), Notes: "Seed sales price list 1"),
+            (Code: "SAL-PL-002", Name: "Retail Price List B", Type: PriceListType.Standard, ValidFrom: today.AddDays(-20), ValidTo: (DateOnly?)today.AddMonths(6), Notes: "Seed sales price list 2"),
+            (Code: "SAL-PL-003", Name: "Wholesale Price List", Type: PriceListType.Wholesale, ValidFrom: today.AddDays(-10), ValidTo: (DateOnly?)today.AddMonths(9), Notes: "Seed sales price list 3"),
+            (Code: "SAL-PL-004", Name: "Project Price List", Type: PriceListType.Contract, ValidFrom: today.AddDays(-5), ValidTo: (DateOnly?)today.AddMonths(12), Notes: "Seed sales price list 4"),
+            (Code: "SAL-PL-005", Name: "Promo Price List", Type: PriceListType.Promotional, ValidFrom: today, ValidTo: (DateOnly?)today.AddMonths(3), Notes: "Seed sales price list 5")
+        };
+
+        foreach (var seed in priceListSeeds)
+        {
+            var existing = await dbContext.SalPriceLists
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(x => x.Code == seed.Code, ct);
+
+            if (existing is null)
+            {
+                existing = new SalPriceList
+                {
+                    Code = seed.Code,
+                    CreatedBy = "system",
+                    CreatedAt = now
+                };
+
+                dbContext.SalPriceLists.Add(existing);
+            }
+            else
+            {
+                existing.UpdatedBy = "system";
+                existing.UpdatedAt = now;
+            }
+
+            existing.Name = seed.Name;
+            existing.Type = seed.Type;
+            existing.CurrencyCode = "IDR";
+            existing.ValidFrom = seed.ValidFrom;
+            existing.ValidTo = seed.ValidTo;
+            existing.IsActive = true;
+            existing.Notes = seed.Notes;
+            existing.IsDeleted = false;
+            existing.DeletedAt = null;
+        }
+
+        await dbContext.SaveChangesAsync(ct);
+
+        var priceListCodes = priceListSeeds.Select(x => x.Code).ToArray();
+        var seededPriceLists = await dbContext.SalPriceLists
+            .IgnoreQueryFilters()
+            .Where(x => priceListCodes.Contains(x.Code))
+            .OrderBy(x => x.Code)
+            .ToListAsync(ct);
+
+        if (seededPriceLists.Count == 0)
+        {
+            return;
+        }
+
+        var customerCategorySeeds = new[]
+        {
+            (Code: "SAL-CAT-001", Name: "Corporate A", PaymentTerms: 14, CreditLimit: 50000000m, Description: "Seed customer category 1"),
+            (Code: "SAL-CAT-002", Name: "Corporate B", PaymentTerms: 21, CreditLimit: 35000000m, Description: "Seed customer category 2"),
+            (Code: "SAL-CAT-003", Name: "Retail Premium", PaymentTerms: 7, CreditLimit: 15000000m, Description: "Seed customer category 3"),
+            (Code: "SAL-CAT-004", Name: "Distributor", PaymentTerms: 30, CreditLimit: 100000000m, Description: "Seed customer category 4"),
+            (Code: "SAL-CAT-005", Name: "Project", PaymentTerms: 45, CreditLimit: 150000000m, Description: "Seed customer category 5")
+        };
+
+        for (var i = 0; i < customerCategorySeeds.Length; i++)
+        {
+            var seed = customerCategorySeeds[i];
+            var defaultPriceListId = seededPriceLists[i % seededPriceLists.Count].Id;
+
+            var existing = await dbContext.SalCustomerCategories
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(x => x.Code == seed.Code, ct);
+
+            if (existing is null)
+            {
+                existing = new SalCustomerCategory
+                {
+                    Code = seed.Code,
+                    CreatedBy = "system",
+                    CreatedAt = now
+                };
+
+                dbContext.SalCustomerCategories.Add(existing);
+            }
+            else
+            {
+                existing.UpdatedBy = "system";
+                existing.UpdatedAt = now;
+            }
+
+            existing.Name = seed.Name;
+            existing.DefaultPriceListId = defaultPriceListId;
+            existing.DefaultPaymentTerms = seed.PaymentTerms;
+            existing.DefaultCreditLimit = seed.CreditLimit;
+            existing.Description = seed.Description;
+            existing.IsActive = true;
+            existing.IsDeleted = false;
+            existing.DeletedAt = null;
+        }
+
+        await dbContext.SaveChangesAsync(ct);
+
+        var salesTeamSeeds = new[]
+        {
+            (Code: "SAL-TM-001", Name: "Team North"),
+            (Code: "SAL-TM-002", Name: "Team South"),
+            (Code: "SAL-TM-003", Name: "Team East"),
+            (Code: "SAL-TM-004", Name: "Team West"),
+            (Code: "SAL-TM-005", Name: "Team Central")
+        };
+
+        for (var i = 0; i < salesTeamSeeds.Length; i++)
+        {
+            var seed = salesTeamSeeds[i];
+            var teamLeaderId = activeEmployeeIds[i % activeEmployeeIds.Count];
+
+            var existing = await dbContext.SalSalesTeams
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(x => x.Code == seed.Code, ct);
+
+            if (existing is null)
+            {
+                existing = new SalSalesTeam
+                {
+                    Code = seed.Code,
+                    CreatedBy = "system",
+                    CreatedAt = now
+                };
+
+                dbContext.SalSalesTeams.Add(existing);
+            }
+            else
+            {
+                existing.UpdatedBy = "system";
+                existing.UpdatedAt = now;
+            }
+
+            existing.Name = seed.Name;
+            existing.TeamLeaderId = teamLeaderId;
+            existing.IsActive = true;
+            existing.IsDeleted = false;
+            existing.DeletedAt = null;
+        }
+
+        await dbContext.SaveChangesAsync(ct);
+
+        var salesTeamCodes = salesTeamSeeds.Select(x => x.Code).ToArray();
+        var seededSalesTeams = await dbContext.SalSalesTeams
+            .IgnoreQueryFilters()
+            .Where(x => salesTeamCodes.Contains(x.Code))
+            .OrderBy(x => x.Code)
+            .ToListAsync(ct);
+
+        if (seededSalesTeams.Count == 0)
+        {
+            return;
+        }
+
+        for (var i = 0; i < 5; i++)
+        {
+            var salesTeamId = seededSalesTeams[i % seededSalesTeams.Count].Id;
+            var employeeId = activeEmployeeIds[(i + 1) % activeEmployeeIds.Count];
+
+            var existingMember = await dbContext.SalSalesTeamMembers
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(x => x.SalesTeamId == salesTeamId && x.EmployeeId == employeeId, ct);
+
+            if (existingMember is null)
+            {
+                dbContext.SalSalesTeamMembers.Add(new SalSalesTeamMember
+                {
+                    SalesTeamId = salesTeamId,
+                    EmployeeId = employeeId,
+                    CreatedBy = "system",
+                    CreatedAt = now
+                });
+
+                continue;
+            }
+
+            existingMember.UpdatedBy = "system";
+            existingMember.UpdatedAt = now;
+            existingMember.IsDeleted = false;
+            existingMember.DeletedAt = null;
+        }
+
+        await dbContext.SaveChangesAsync(ct);
+
+        var approvalSeeds = new[]
+        {
+            (DocumentType: SalesDocumentType.SalesQuotation, Level: 1, MinAmount: 0m, MaxAmount: (decimal?)25000000m, MaxDiscountPct: (decimal?)5m, TimeoutHours: 24, AutoApproveIfTimeout: false),
+            (DocumentType: SalesDocumentType.SalesQuotation, Level: 2, MinAmount: 25000000.01m, MaxAmount: (decimal?)100000000m, MaxDiscountPct: (decimal?)10m, TimeoutHours: 24, AutoApproveIfTimeout: false),
+            (DocumentType: SalesDocumentType.SalesQuotation, Level: 3, MinAmount: 100000000.01m, MaxAmount: (decimal?)null, MaxDiscountPct: (decimal?)15m, TimeoutHours: 48, AutoApproveIfTimeout: false),
+            (DocumentType: SalesDocumentType.SalesOrder, Level: 1, MinAmount: 0m, MaxAmount: (decimal?)50000000m, MaxDiscountPct: (decimal?)8m, TimeoutHours: 24, AutoApproveIfTimeout: false),
+            (DocumentType: SalesDocumentType.SalesOrder, Level: 2, MinAmount: 50000000.01m, MaxAmount: (decimal?)null, MaxDiscountPct: (decimal?)12m, TimeoutHours: 48, AutoApproveIfTimeout: true)
+        };
+
+        for (var i = 0; i < approvalSeeds.Length; i++)
+        {
+            var seed = approvalSeeds[i];
+
+            var existing = await dbContext.SalApprovalConfigs
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(x => x.DocumentType == seed.DocumentType && x.Level == seed.Level, ct);
+
+            if (existing is null)
+            {
+                existing = new SalApprovalConfig
+                {
+                    DocumentType = seed.DocumentType,
+                    Level = seed.Level,
+                    CreatedBy = "system",
+                    CreatedAt = now
+                };
+
+                dbContext.SalApprovalConfigs.Add(existing);
+            }
+            else
+            {
+                existing.UpdatedBy = "system";
+                existing.UpdatedAt = now;
+            }
+
+            existing.MinAmount = seed.MinAmount;
+            existing.MaxAmount = seed.MaxAmount;
+            existing.MaxDiscountPct = seed.MaxDiscountPct;
+            existing.TimeoutHours = seed.TimeoutHours;
+            existing.AutoApproveIfTimeout = seed.AutoApproveIfTimeout;
+            existing.IsActive = true;
+
+            if (activeRoleId.HasValue)
+            {
+                existing.ApproverRoleId = activeRoleId.Value;
+                existing.ApproverEmployeeId = null;
+            }
+            else
+            {
+                existing.ApproverRoleId = null;
+                existing.ApproverEmployeeId = activeEmployeeIds[i % activeEmployeeIds.Count];
+            }
+
+            existing.IsDeleted = false;
+            existing.DeletedAt = null;
+        }
+
+        await dbContext.SaveChangesAsync(ct);
+
+        for (var i = 0; i < 5; i++)
+        {
+            var priceListId = seededPriceLists[i % seededPriceLists.Count].Id;
+            var itemRef = itemRefs[i % itemRefs.Count];
+            const decimal minQty = 1m;
+
+            var existing = await dbContext.SalPriceListItems
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(x => x.PriceListId == priceListId &&
+                                          x.ItemId == itemRef.Id &&
+                                          x.UomId == itemRef.BaseUomId &&
+                                          x.MinQty == minQty, ct);
+
+            if (existing is null)
+            {
+                existing = new SalPriceListItem
+                {
+                    PriceListId = priceListId,
+                    ItemId = itemRef.Id,
+                    UomId = itemRef.BaseUomId,
+                    MinQty = minQty,
+                    CreatedBy = "system",
+                    CreatedAt = now
+                };
+
+                dbContext.SalPriceListItems.Add(existing);
+            }
+            else
+            {
+                existing.UpdatedBy = "system";
+                existing.UpdatedAt = now;
+            }
+
+            existing.PriceListId = priceListId;
+            existing.ItemId = itemRef.Id;
+            existing.UomId = itemRef.BaseUomId;
+            existing.MinQty = minQty;
+            existing.UnitPrice = 20000m + (i * 5000m);
+            existing.DiscountPct = i * 2m;
+            existing.IsDeleted = false;
+            existing.DeletedAt = null;
+        }
+
+        await dbContext.SaveChangesAsync(ct);
+    }
     private async Task SeedPurchasingMasterDataAsync(DateTimeOffset now, CancellationToken ct)
     {
         var activeEmployees = await dbContext.HrEmployees
@@ -2455,6 +2799,9 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
             .IgnoreQueryFilters()
             .FirstAsync(x => x.Code == "PUR", ct);
 
+        var salModule = await dbContext.CfgModules
+            .IgnoreQueryFilters()
+            .FirstAsync(x => x.Code == "SAL", ct);
         var faModule = await dbContext.CfgModules
             .IgnoreQueryFilters()
             .FirstAsync(x => x.Code == "FA", ct);
@@ -2584,6 +2931,14 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         await EnsureMenuAsync(purModule.Id, purMaster.Id, "Buyer Groups", "/purchasing/buyer-groups", "bi-people", 3, now, ct);
         await EnsureMenuAsync(purModule.Id, purMaster.Id, "Vendors", "/purchasing/vendors", "bi-building", 4, now, ct);
 
+        await EnsureMenuAsync(salModule.Id, null, "Sales Dashboard", "/sales", "bi-speedometer2", 1, now, ct);
+
+        var salMaster = await EnsureMenuAsync(salModule.Id, null, "Sales Master", null, "bi-diagram-3", 2, now, ct);
+        await EnsureMenuAsync(salModule.Id, salMaster.Id, "Customer Categories", "/sales/customer-categories", "bi-tags", 1, now, ct);
+        await EnsureMenuAsync(salModule.Id, salMaster.Id, "Price Lists", "/sales/price-lists", "bi-card-list", 2, now, ct);
+        await EnsureMenuAsync(salModule.Id, salMaster.Id, "Approval Configs", "/sales/approval-configs", "bi-shield-check", 3, now, ct);
+        await EnsureMenuAsync(salModule.Id, salMaster.Id, "Sales Teams", "/sales/teams", "bi-people", 4, now, ct);
+        await EnsureMenuAsync(salModule.Id, salMaster.Id, "Customers", "/sales/customers", "bi-person-lines-fill", 5, now, ct);
         await EnsureMenuAsync(faModule.Id, null, "Fixed Assets Dashboard", "/fixed-assets", "bi-speedometer2", 1, now, ct);
 
         var faMaster = await EnsureMenuAsync(faModule.Id, null, "Fixed Assets Master", null, "bi-diagram-3", 2, now, ct);
@@ -4275,54 +4630,5 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         return menu;
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 

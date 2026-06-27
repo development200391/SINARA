@@ -1,0 +1,37 @@
+@model ERP.Web.ViewModels.Sales.SalesDashboardViewModel
+@using System.Globalization
+
+<div class="row g-3">
+    <div class="col-md-3 col-sm-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="text-muted small">@T["Active Customer Categories"]</div>
+                <div class="h3 mb-0">@Model.Data.ActiveCustomerCategoryCount.ToString("N0", CultureInfo.InvariantCulture)</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="text-muted small">@T["Active Price Lists"]</div>
+                <div class="h3 mb-0">@Model.Data.ActivePriceListCount.ToString("N0", CultureInfo.InvariantCulture)</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="text-muted small">@T["Active Sales Teams"]</div>
+                <div class="h3 mb-0">@Model.Data.ActiveSalesTeamCount.ToString("N0", CultureInfo.InvariantCulture)</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="text-muted small">@T["Over Credit Limit Customers"]</div>
+                <div class="h3 mb-0 text-danger">@Model.Data.OverCreditLimitCustomerCount.ToString("N0", CultureInfo.InvariantCulture)</div>
+            </div>
+        </div>
+    </div>
+</div>

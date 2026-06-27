@@ -1,0 +1,53 @@
+@model ERP.Web.ViewModels.Sales.SalesTeamEditViewModel
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label asp-for="Code" class="form-label"></label>
+                <input asp-for="Code" class="form-control" />
+                <span asp-validation-for="Code" class="text-danger"></span>
+            </div>
+            <div class="col-md-5">
+                <label asp-for="Name" class="form-label"></label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="TeamLeaderId" class="form-label">@T["Team Leader"]</label>
+                <select asp-for="TeamLeaderId" class="form-select">
+                    <option value="">@T["Select Employee"]</option>
+                    @foreach (var option in Model.EmployeeOptions)
+                    {
+                        <option value="@option.Id">@option.Name</option>
+                    }
+                </select>
+                <span asp-validation-for="TeamLeaderId" class="text-danger"></span>
+            </div>
+            <div class="col-md-8">
+                <label asp-for="MemberEmployeeIds" class="form-label">@T["Members"]</label>
+                <select asp-for="MemberEmployeeIds" class="form-select" multiple size="10">
+                    @foreach (var option in Model.EmployeeOptions)
+                    {
+                        <option value="@option.Id">@option.Name</option>
+                    }
+                </select>
+                <div class="form-text">@T["Hold Ctrl or Cmd to select multiple employees"]</div>
+            </div>
+            <div class="col-md-4 d-flex align-items-center">
+                <div class="form-check mt-3">
+                    <input asp-for="IsActive" class="form-check-input" />
+                    <label asp-for="IsActive" class="form-check-label">@T["Active"]</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4 d-flex gap-2">
+            <button type="submit" class="btn btn-primary">@T["common.save"]</button>
+            <a asp-action="Teams" class="btn btn-outline-secondary">@T["common.back"]</a>
+        </div>
+    </div>
+</div>
+

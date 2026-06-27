@@ -6,11 +6,13 @@ using ERP.Domain.Entities.Finance;
 using ERP.Domain.Entities.System;
 using ERP.Domain.Entities.Inventory;
 using ERP.Domain.Entities.Purchasing;
+using ERP.Domain.Entities.Sales;
 using ERP.Domain.Entities.FixedAssets;
 using ERP.Domain.Interfaces;
 using ERP.Domain.Enums;
 using ERP.Domain.Enums.Inventory;
 using ERP.Domain.Enums.Purchasing;
+using ERP.Domain.Enums.Sales;
 using ERP.Domain.Enums.FixedAssets;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -98,6 +100,13 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<PurApprovalConfig> PurApprovalConfigs => Set<PurApprovalConfig>();
     public DbSet<PurBuyerGroup> PurBuyerGroups => Set<PurBuyerGroup>();
     public DbSet<PurBuyerGroupCategory> PurBuyerGroupCategories => Set<PurBuyerGroupCategory>();
+
+    public DbSet<SalCustomerCategory> SalCustomerCategories => Set<SalCustomerCategory>();
+    public DbSet<SalPriceList> SalPriceLists => Set<SalPriceList>();
+    public DbSet<SalPriceListItem> SalPriceListItems => Set<SalPriceListItem>();
+    public DbSet<SalApprovalConfig> SalApprovalConfigs => Set<SalApprovalConfig>();
+    public DbSet<SalSalesTeam> SalSalesTeams => Set<SalSalesTeam>();
+    public DbSet<SalSalesTeamMember> SalSalesTeamMembers => Set<SalSalesTeamMember>();
 
     public DbSet<FaAssetCategory> FaAssetCategories => Set<FaAssetCategory>();
     public DbSet<FaLocation> FaLocations => Set<FaLocation>();
@@ -195,6 +204,13 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         ConfigurePurApprovalConfig(modelBuilder.Entity<PurApprovalConfig>());
         ConfigurePurBuyerGroup(modelBuilder.Entity<PurBuyerGroup>());
         ConfigurePurBuyerGroupCategory(modelBuilder.Entity<PurBuyerGroupCategory>());
+
+        ConfigureSalCustomerCategory(modelBuilder.Entity<SalCustomerCategory>());
+        ConfigureSalPriceList(modelBuilder.Entity<SalPriceList>());
+        ConfigureSalPriceListItem(modelBuilder.Entity<SalPriceListItem>());
+        ConfigureSalApprovalConfig(modelBuilder.Entity<SalApprovalConfig>());
+        ConfigureSalSalesTeam(modelBuilder.Entity<SalSalesTeam>());
+        ConfigureSalSalesTeamMember(modelBuilder.Entity<SalSalesTeamMember>());
 
         ConfigureFaAssetCategory(modelBuilder.Entity<FaAssetCategory>());
         ConfigureFaLocation(modelBuilder.Entity<FaLocation>());
@@ -1101,6 +1117,181 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         builder.HasIndex(x => new { x.BuyerGroupId, x.ItemCategoryId }).IsUnique();
     }
 
+    private static void ConfigureSalCustomerCategory(EntityTypeBuilder<SalCustomerCategory> builder)
+    {
+        builder.ToTable("sal_customer_categories", t =>
+        {
+            t.HasCheckConstraint("ck_sal_customer_categories_default_payment_terms_non_negative", "default_payment_terms >= 0");
+            t.HasCheckConstraint("ck_sal_customer_categories_default_credit_limit_non_negative", "default_credit_limit >= 0");
+        });
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.Code).HasMaxLength(20).IsRequired();
+        builder.Property(x => x.Name).HasMaxLength(100).IsRequired();
+        builder.Property(x => x.DefaultPaymentTerms).HasDefaultValue(2).IsRequired();
+        builder.Property(x => x.DefaultCreditLimit).HasColumnType("numeric(18,4)").HasDefaultValue(0m).IsRequired();
+        builder.Property(x => x.Description).HasColumnType("text");
+        builder.Property(x => x.IsActive).HasDefaultValue(true).IsRequired();
+
+        builder.HasOne(x => x.DefaultPriceList)
+            .WithMany(x => x.CustomerCategories)
+            .HasForeignKey(x => x.DefaultPriceListId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasIndex(x => x.Code).IsUnique();
+        builder.HasIndex(x => x.Name);
+        builder.HasIndex(x => x.DefaultPriceListId);
+        builder.HasIndex(x => x.IsActive);
+    }
+
+    private static void ConfigureSalPriceList(EntityTypeBuilder<SalPriceList> builder)
+    {
+        builder.ToTable("sal_price_lists", t =>
+        {
+            t.HasCheckConstraint("ck_sal_price_lists_valid_range", "valid_to IS NULL OR valid_to >= valid_from");
+        });
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.Code).HasMaxLength(30).IsRequired();
+        builder.Property(x => x.Name).HasMaxLength(100).IsRequired();
+        builder.Property(x => x.Type).HasConversion<int>().HasDefaultValue(PriceListType.Standard).IsRequired();
+        builder.Property(x => x.CurrencyCode).HasMaxLength(10).HasDefaultValue("IDR").IsRequired();
+        builder.Property(x => x.ValidFrom).HasColumnType("date").IsRequired();
+        builder.Property(x => x.ValidTo).HasColumnType("date");
+        builder.Property(x => x.IsActive).HasDefaultValue(true).IsRequired();
+        builder.Property(x => x.Notes).HasColumnType("text");
+
+        builder.HasOne(x => x.Currency)
+            .WithMany()
+            .HasForeignKey(x => x.CurrencyCode)
+            .HasPrincipalKey(x => x.Code)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(x => x.Code).IsUnique();
+        builder.HasIndex(x => x.Name);
+        builder.HasIndex(x => x.Type);
+        builder.HasIndex(x => x.CurrencyCode);
+        builder.HasIndex(x => x.ValidFrom);
+        builder.HasIndex(x => x.ValidTo);
+        builder.HasIndex(x => x.IsActive);
+    }
+
+    private static void ConfigureSalPriceListItem(EntityTypeBuilder<SalPriceListItem> builder)
+    {
+        builder.ToTable("sal_price_list_items", t =>
+        {
+            t.HasCheckConstraint("ck_sal_price_list_items_min_qty_positive", "min_qty > 0");
+            t.HasCheckConstraint("ck_sal_price_list_items_unit_price_non_negative", "unit_price >= 0");
+            t.HasCheckConstraint("ck_sal_price_list_items_discount_range", "discount_pct >= 0 AND discount_pct <= 100");
+        });
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.MinQty).HasColumnType("numeric(18,4)").HasDefaultValue(1m).IsRequired();
+        builder.Property(x => x.UnitPrice).HasColumnType("numeric(18,4)").HasDefaultValue(0m).IsRequired();
+        builder.Property(x => x.DiscountPct).HasColumnType("numeric(5,2)").HasDefaultValue(0m).IsRequired();
+
+        builder.HasOne(x => x.PriceList)
+            .WithMany(x => x.Items)
+            .HasForeignKey(x => x.PriceListId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(x => x.Item)
+            .WithMany()
+            .HasForeignKey(x => x.ItemId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.Uom)
+            .WithMany()
+            .HasForeignKey(x => x.UomId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(x => x.PriceListId);
+        builder.HasIndex(x => x.ItemId);
+        builder.HasIndex(x => x.UomId);
+        builder.HasIndex(x => new { x.PriceListId, x.ItemId, x.UomId, x.MinQty }).IsUnique();
+    }
+
+    private static void ConfigureSalApprovalConfig(EntityTypeBuilder<SalApprovalConfig> builder)
+    {
+        builder.ToTable("sal_approval_configs", t =>
+        {
+            t.HasCheckConstraint("ck_sal_approval_configs_level_positive", "level > 0");
+            t.HasCheckConstraint("ck_sal_approval_configs_min_amount_non_negative", "min_amount >= 0");
+            t.HasCheckConstraint("ck_sal_approval_configs_max_amount_non_negative", "max_amount IS NULL OR max_amount >= 0");
+            t.HasCheckConstraint("ck_sal_approval_configs_amount_range", "max_amount IS NULL OR max_amount >= min_amount");
+            t.HasCheckConstraint("ck_sal_approval_configs_max_discount_pct_range", "max_discount_pct IS NULL OR (max_discount_pct >= 0 AND max_discount_pct <= 100)");
+            t.HasCheckConstraint("ck_sal_approval_configs_timeout_hours_positive", "timeout_hours > 0");
+            t.HasCheckConstraint("ck_sal_approval_configs_has_approver", "approver_role_id IS NOT NULL OR approver_employee_id IS NOT NULL");
+        });
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.DocumentType).HasConversion<int>().IsRequired();
+        builder.Property(x => x.Level).IsRequired();
+        builder.Property(x => x.MinAmount).HasColumnType("numeric(18,4)").HasDefaultValue(0m).IsRequired();
+        builder.Property(x => x.MaxAmount).HasColumnType("numeric(18,4)");
+        builder.Property(x => x.MaxDiscountPct).HasColumnType("numeric(5,2)");
+        builder.Property(x => x.TimeoutHours).HasDefaultValue(48).IsRequired();
+        builder.Property(x => x.AutoApproveIfTimeout).HasDefaultValue(false).IsRequired();
+        builder.Property(x => x.IsActive).HasDefaultValue(true).IsRequired();
+
+        builder.HasOne(x => x.ApproverRole)
+            .WithMany()
+            .HasForeignKey(x => x.ApproverRoleId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.ApproverEmployee)
+            .WithMany()
+            .HasForeignKey(x => x.ApproverEmployeeId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasIndex(x => x.DocumentType);
+        builder.HasIndex(x => x.Level);
+        builder.HasIndex(x => x.ApproverRoleId);
+        builder.HasIndex(x => x.ApproverEmployeeId);
+        builder.HasIndex(x => x.IsActive);
+        builder.HasIndex(x => new { x.DocumentType, x.Level }).IsUnique();
+    }
+
+    private static void ConfigureSalSalesTeam(EntityTypeBuilder<SalSalesTeam> builder)
+    {
+        builder.ToTable("sal_sales_teams");
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.Code).HasMaxLength(20).IsRequired();
+        builder.Property(x => x.Name).HasMaxLength(100).IsRequired();
+        builder.Property(x => x.IsActive).HasDefaultValue(true).IsRequired();
+
+        builder.HasOne(x => x.TeamLeader)
+            .WithMany()
+            .HasForeignKey(x => x.TeamLeaderId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(x => x.Code).IsUnique();
+        builder.HasIndex(x => x.Name);
+        builder.HasIndex(x => x.TeamLeaderId);
+        builder.HasIndex(x => x.IsActive);
+    }
+
+    private static void ConfigureSalSalesTeamMember(EntityTypeBuilder<SalSalesTeamMember> builder)
+    {
+        builder.ToTable("sal_sales_team_members");
+        ConfigureAuditEntity(builder);
+
+        builder.HasOne(x => x.SalesTeam)
+            .WithMany(x => x.Members)
+            .HasForeignKey(x => x.SalesTeamId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(x => x.Employee)
+            .WithMany()
+            .HasForeignKey(x => x.EmployeeId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(x => x.SalesTeamId);
+        builder.HasIndex(x => x.EmployeeId);
+        builder.HasIndex(x => new { x.SalesTeamId, x.EmployeeId }).IsUnique();
+    }
+
     private static void ConfigureFaAssetCategory(EntityTypeBuilder<FaAssetCategory> builder)
     {
         builder.ToTable("fa_asset_categories", t =>
@@ -1656,6 +1847,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         {
             t.HasCheckConstraint("ck_fin_customers_non_negative_credit_limit", "credit_limit >= 0");
             t.HasCheckConstraint("ck_fin_customers_non_negative_terms", "payment_terms_days >= 0");
+            t.HasCheckConstraint("ck_fin_customers_non_negative_credit_used", "credit_used >= 0");
+            t.HasCheckConstraint("ck_fin_customers_non_negative_total_ytd_sales", "total_ytd_sales >= 0");
         });
         ConfigureAuditEntity(builder);
 
@@ -1668,6 +1861,10 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         builder.Property(x => x.ContactPerson).HasMaxLength(100);
         builder.Property(x => x.CreditLimit).HasColumnType("numeric(18,4)").HasDefaultValue(0m).IsRequired();
         builder.Property(x => x.PaymentTermsDays).HasDefaultValue(30).IsRequired();
+        builder.Property(x => x.CreditUsed).HasColumnType("numeric(18,4)").HasDefaultValue(0m).IsRequired();
+        builder.Property(x => x.LastOrderDate).HasColumnType("date");
+        builder.Property(x => x.TotalYtdSales).HasColumnType("numeric(18,4)").HasDefaultValue(0m).IsRequired();
+        builder.Property(x => x.Notes).HasColumnType("text");
         builder.Property(x => x.IsActive).HasDefaultValue(true).IsRequired();
 
         builder.HasOne(x => x.DefaultAccount)
@@ -1680,11 +1877,38 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             .HasForeignKey(x => x.DefaultTaxCodeId)
             .OnDelete(DeleteBehavior.SetNull);
 
+        builder.HasOne(x => x.CustomerCategory)
+            .WithMany(x => x.Customers)
+            .HasForeignKey(x => x.CustomerCategoryId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.PriceList)
+            .WithMany(x => x.Customers)
+            .HasForeignKey(x => x.PriceListId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.SalesEmployee)
+            .WithMany()
+            .HasForeignKey(x => x.SalesEmployeeId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.SalesTeam)
+            .WithMany(x => x.Customers)
+            .HasForeignKey(x => x.SalesTeamId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         builder.HasIndex(x => x.Code).IsUnique();
         builder.HasIndex(x => x.Name);
         builder.HasIndex(x => x.IsActive);
         builder.HasIndex(x => x.DefaultAccountId);
         builder.HasIndex(x => x.DefaultTaxCodeId);
+        builder.HasIndex(x => x.CustomerCategoryId);
+        builder.HasIndex(x => x.PriceListId);
+        builder.HasIndex(x => x.SalesEmployeeId);
+        builder.HasIndex(x => x.SalesTeamId);
+        builder.HasIndex(x => x.CreditUsed);
+        builder.HasIndex(x => x.LastOrderDate);
+        builder.HasIndex(x => x.TotalYtdSales);
     }
 
     private static void ConfigureFinArInvoice(EntityTypeBuilder<FinArInvoice> builder)
@@ -2725,3 +2949,9 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         }
     }
 }
+
+
+
+
+
+

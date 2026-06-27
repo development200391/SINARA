@@ -17,3 +17,8 @@ docker compose -f docker-compose.yml -f docker-compose.override.yml up -d --buil
 Fase 8 udh di finance
 
 setiap buat grid, pakai pagedgrid dan jangan lupa semua multi language
+
+
+FLUSH REDIS
+docker exec -it erp_redis redis-cli -a "ChangeMe_Redis!"
+FLUSHALL ASYNC

@@ -1,0 +1,153 @@
+@model ERP.Web.ViewModels.Sales.SalesTeamsIndexViewModel
+@using ERP.Web.ViewModels.Shared
+@using System.Globalization
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">@T["Sales Teams"]</h1>
+
+        @{
+            var selectedLeader = Model.TeamLeaderIdFilter?.ToString(CultureInfo.InvariantCulture);
+            var selectedMember = Model.MemberEmployeeIdFilter?.ToString(CultureInfo.InvariantCulture);
+            var selectedStatus = Model.IsActiveFilter.HasValue ? (Model.IsActiveFilter.Value ? "true" : "false") : null;
+
+            var employeeOptions = Model.EmployeeOptions
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = x.Id.ToString(CultureInfo.InvariantCulture),
+                    Label = x.Name
+                })
+                .ToList();
+
+            var statusOptions = new List<PagedGridFilterOptionViewModel>
+            {
+                new() { Value = "true", Label = T["Active"] },
+                new() { Value = "false", Label = T["Inactive"] }
+            };
+
+            var rows = Model.Items.Items.Select(item => new PagedGridRowViewModel
+            {
+                Cells =
+                [
+                    new PagedGridCellViewModel { Text = item.Code },
+                    new PagedGridCellViewModel { Text = item.Name },
+                    new PagedGridCellViewModel { Text = item.TeamLeaderName },
+                    new PagedGridCellViewModel { Text = item.MemberCount.ToString(CultureInfo.InvariantCulture), CellClass = "text-end" },
+                    new PagedGridCellViewModel { Text = item.MemberEmployeeNames.Count > 0 ? string.Join(", ", item.MemberEmployeeNames) : "-" },
+                    new PagedGridCellViewModel { Text = item.IsActive ? T["Active"] : T["Inactive"] }
+                ],
+                Actions = new PagedGridRowActionViewModel
+                {
+                    EditUrl = Url.Action("EditTeam", "Sales", new { id = item.Id }),
+                    DeleteUrl = Url.Action("DeleteTeam", "Sales", new { id = item.Id }),
+                    DeleteConfirmMessage = T["Delete this data?"]
+                }
+            }).ToList();
+
+            var gridModel = new PagedGridViewModel
+            {
+                Columns =
+                [
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "code",
+                        Title = T["Code"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Text,
+                            QueryKey = "code",
+                            Value = Model.CodeFilter,
+                            Placeholder = T["Filter code"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "name",
+                        Title = T["Name"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Text,
+                            QueryKey = "name",
+                            Value = Model.NameFilter,
+                            Placeholder = T["Filter name"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "teamleadername",
+                        Title = T["Team Leader"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "teamLeaderId",
+                            Value = selectedLeader,
+                            EmptyOptionLabel = T["All"],
+                            Options = employeeOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "membercount",
+                        Title = T["Member Count"],
+                        Sortable = true,
+                        CellClass = "text-end"
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "memberemployeename",
+                        Title = T["Members"],
+                        Sortable = false,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "memberEmployeeId",
+                            Value = selectedMember,
+                            EmptyOptionLabel = T["All"],
+                            Options = employeeOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "isactive",
+                        Title = T["Status"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "isActive",
+                            Value = selectedStatus,
+                            EmptyOptionLabel = T["All"],
+                            Options = statusOptions
+                        }
+                    }
+                ],
+                Rows = rows,
+                EmptyMessage = T["msg.no_data"],
+                Page = Model.Items.Page,
+                TotalPages = Model.Items.TotalPages,
+                PageSize = Model.PageSize,
+                SortBy = Model.SortBy,
+                SortDirection = Model.SortDirection,
+                EnableSearch = true,
+                SearchValue = Model.Search,
+                SearchPlaceholder = T["Search"] + " " + T["Sales Teams"],
+                SearchButtonText = T["common.search"],
+                Actions = new PagedGridActionConfigViewModel
+                {
+                    ActionColumnTitle = T["Action"],
+                    AddUrl = Url.Action("CreateTeam", "Sales"),
+                    AddButtonText = T["common.add_new"],
+                    EditButtonText = T["common.edit"],
+                    DeleteButtonText = T["common.delete"],
+                    DeleteConfirmMessage = T["Delete this data?"]
+                }
+            };
+        }
+
+        @await Component.InvokeAsync("PagedGrid", gridModel)
+    </div>
+</div>
+

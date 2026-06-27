@@ -1,0 +1,188 @@
+@model ERP.Web.ViewModels.Sales.SalesPriceListsIndexViewModel
+@using ERP.Web.ViewModels.Shared
+@using System.Globalization
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">@T["Price Lists"]</h1>
+
+        @{
+            var selectedType = Model.TypeFilter.HasValue ? ((int)Model.TypeFilter.Value).ToString(CultureInfo.InvariantCulture) : null;
+            var selectedCurrencyCode = Model.CurrencyCodeFilter;
+            var selectedIsActive = Model.IsActiveFilter.HasValue ? (Model.IsActiveFilter.Value ? "true" : "false") : null;
+
+            var typeOptions = Enum.GetValues<ERP.Domain.Enums.Sales.PriceListType>()
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = ((int)x).ToString(CultureInfo.InvariantCulture),
+                    Label = x.ToString()
+                })
+                .ToList();
+
+            var currencyOptions = Model.CurrencyOptions
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = x,
+                    Label = x
+                })
+                .ToList();
+
+            var statusOptions = new List<PagedGridFilterOptionViewModel>
+            {
+                new() { Value = "true", Label = T["Active"] },
+                new() { Value = "false", Label = T["Inactive"] }
+            };
+
+            var rows = Model.Items.Items.Select(item => new PagedGridRowViewModel
+            {
+                Cells =
+                [
+                    new PagedGridCellViewModel { Text = item.Code },
+                    new PagedGridCellViewModel { Text = item.Name },
+                    new PagedGridCellViewModel { Text = item.Type.ToString() },
+                    new PagedGridCellViewModel { Text = item.CurrencyCode },
+                    new PagedGridCellViewModel { Text = item.ValidFrom.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) },
+                    new PagedGridCellViewModel { Text = item.ValidTo.HasValue ? item.ValidTo.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) : "-" },
+                    new PagedGridCellViewModel { Text = item.IsActive ? T["Active"] : T["Inactive"] }
+                ],
+                Actions = new PagedGridRowActionViewModel
+                {
+                    DetailUrl = Url.Action("PriceListDetail", "Sales", new { id = item.Id }),
+                    EditUrl = Url.Action("EditPriceList", "Sales", new { id = item.Id }),
+                    DeleteUrl = Url.Action("DeletePriceList", "Sales", new { id = item.Id }),
+                    DeleteConfirmMessage = T["Delete this data?"]
+                }
+            }).ToList();
+
+            var gridModel = new PagedGridViewModel
+            {
+                Columns =
+                [
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "code",
+                        Title = T["Code"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Text,
+                            QueryKey = "code",
+                            Value = Model.CodeFilter,
+                            Placeholder = T["Filter code"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "name",
+                        Title = T["Name"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Text,
+                            QueryKey = "name",
+                            Value = Model.NameFilter,
+                            Placeholder = T["Filter name"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "type",
+                        Title = T["Type"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "type",
+                            Value = selectedType,
+                            EmptyOptionLabel = T["All"],
+                            Options = typeOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "currencycode",
+                        Title = T["Currency"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "currencyCode",
+                            Value = selectedCurrencyCode,
+                            EmptyOptionLabel = T["All"],
+                            Options = currencyOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "validfrom",
+                        Title = T["Valid From"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.DateRange,
+                            QueryKey = "validFromFrom",
+                            QueryKeyTo = "validFromTo",
+                            Value = Model.ValidFromFromFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                            ValueTo = Model.ValidFromToFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                            Placeholder = T["From"],
+                            PlaceholderTo = T["To"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "validto",
+                        Title = T["Valid To"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.DateRange,
+                            QueryKey = "validToFrom",
+                            QueryKeyTo = "validToTo",
+                            Value = Model.ValidToFromFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                            ValueTo = Model.ValidToToFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                            Placeholder = T["From"],
+                            PlaceholderTo = T["To"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "isactive",
+                        Title = T["Status"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "isActive",
+                            Value = selectedIsActive,
+                            EmptyOptionLabel = T["All"],
+                            Options = statusOptions
+                        }
+                    }
+                ],
+                Rows = rows,
+                EmptyMessage = T["msg.no_data"],
+                Page = Model.Items.Page,
+                TotalPages = Model.Items.TotalPages,
+                PageSize = Model.PageSize,
+                SortBy = Model.SortBy,
+                SortDirection = Model.SortDirection,
+                EnableSearch = true,
+                SearchValue = Model.Search,
+                SearchPlaceholder = T["Search"] + " " + T["Price Lists"],
+                SearchButtonText = T["common.search"],
+                Actions = new PagedGridActionConfigViewModel
+                {
+                    ActionColumnTitle = T["Action"],
+                    AddUrl = Url.Action("CreatePriceList", "Sales"),
+                    AddButtonText = T["common.add_new"],
+                    DetailButtonText = T["Detail"],
+                    EditButtonText = T["common.edit"],
+                    DeleteButtonText = T["common.delete"],
+                    DeleteConfirmMessage = T["Delete this data?"]
+                }
+            };
+        }
+
+        @await Component.InvokeAsync("PagedGrid", gridModel)
+    </div>
+</div>

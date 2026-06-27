@@ -1,0 +1,288 @@
+@model ERP.Web.ViewModels.Sales.SalesCustomersIndexViewModel
+@using ERP.Web.ViewModels.Shared
+@using System.Globalization
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">@T["Sales Customers"]</h1>
+
+        @{
+            var selectedCategory = Model.CustomerCategoryIdFilter?.ToString(CultureInfo.InvariantCulture);
+            var selectedPriceList = Model.PriceListIdFilter?.ToString(CultureInfo.InvariantCulture);
+            var selectedSalesEmployee = Model.SalesEmployeeIdFilter?.ToString(CultureInfo.InvariantCulture);
+            var selectedSalesTeam = Model.SalesTeamIdFilter?.ToString(CultureInfo.InvariantCulture);
+            var selectedOverLimit = Model.IsOverCreditLimitFilter.HasValue ? (Model.IsOverCreditLimitFilter.Value ? "true" : "false") : null;
+            var selectedStatus = Model.IsActiveFilter.HasValue ? (Model.IsActiveFilter.Value ? "true" : "false") : null;
+
+            var categoryOptions = Model.CustomerCategoryOptions
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = x.Id.ToString(CultureInfo.InvariantCulture),
+                    Label = x.Label
+                })
+                .ToList();
+
+            var priceListOptions = Model.PriceListOptions
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = x.Id.ToString(CultureInfo.InvariantCulture),
+                    Label = x.Label
+                })
+                .ToList();
+
+            var teamOptions = Model.SalesTeamOptions
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = x.Id.ToString(CultureInfo.InvariantCulture),
+                    Label = x.Label
+                })
+                .ToList();
+
+            var employeeOptions = Model.SalesEmployeeOptions
+                .Select(x => new PagedGridFilterOptionViewModel
+                {
+                    Value = x.Id.ToString(CultureInfo.InvariantCulture),
+                    Label = x.Name
+                })
+                .ToList();
+
+            var overLimitOptions = new List<PagedGridFilterOptionViewModel>
+            {
+                new() { Value = "true", Label = T["Over Limit"] },
+                new() { Value = "false", Label = T["Within Limit"] }
+            };
+
+            var statusOptions = new List<PagedGridFilterOptionViewModel>
+            {
+                new() { Value = "true", Label = T["Active"] },
+                new() { Value = "false", Label = T["Inactive"] }
+            };
+
+            var rows = Model.Items.Items.Select(item => new PagedGridRowViewModel
+            {
+                Cells =
+                [
+                    new PagedGridCellViewModel { Text = item.Code },
+                    new PagedGridCellViewModel { Text = item.Name },
+                    new PagedGridCellViewModel { Text = string.IsNullOrWhiteSpace(item.CustomerCategoryName) ? "-" : item.CustomerCategoryName },
+                    new PagedGridCellViewModel { Text = string.IsNullOrWhiteSpace(item.PriceListName) ? "-" : item.PriceListName },
+                    new PagedGridCellViewModel { Text = string.IsNullOrWhiteSpace(item.SalesEmployeeName) ? "-" : item.SalesEmployeeName },
+                    new PagedGridCellViewModel { Text = string.IsNullOrWhiteSpace(item.SalesTeamName) ? "-" : item.SalesTeamName },
+                    new PagedGridCellViewModel { Text = item.CreditLimit.ToString("N2", CultureInfo.InvariantCulture), CellClass = "text-end" },
+                    new PagedGridCellViewModel { Text = item.CreditUsed.ToString("N2", CultureInfo.InvariantCulture), CellClass = "text-end" },
+                    new PagedGridCellViewModel { Text = item.LastOrderDate.HasValue ? item.LastOrderDate.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) : "-" },
+                    new PagedGridCellViewModel { Text = item.TotalYtdSales.ToString("N2", CultureInfo.InvariantCulture), CellClass = "text-end" },
+                    new PagedGridCellViewModel { Text = item.IsOverCreditLimit ? T["Over Limit"] : T["Within Limit"] },
+                    new PagedGridCellViewModel { Text = item.IsActive ? T["Active"] : T["Inactive"] }
+                ],
+                Actions = new PagedGridRowActionViewModel
+                {
+                    DetailUrl = Url.Action("CustomerDetail", "Sales", new { id = item.Id })
+                }
+            }).ToList();
+
+            var gridModel = new PagedGridViewModel
+            {
+                Columns =
+                [
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "code",
+                        Title = T["Code"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Text,
+                            QueryKey = "code",
+                            Value = Model.CodeFilter,
+                            Placeholder = T["Filter code"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "name",
+                        Title = T["Name"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Text,
+                            QueryKey = "name",
+                            Value = Model.NameFilter,
+                            Placeholder = T["Filter name"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "customercategoryname",
+                        Title = T["Category"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "customerCategoryId",
+                            Value = selectedCategory,
+                            EmptyOptionLabel = T["All"],
+                            Options = categoryOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "pricelistname",
+                        Title = T["Price List"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "priceListId",
+                            Value = selectedPriceList,
+                            EmptyOptionLabel = T["All"],
+                            Options = priceListOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "salesemployeename",
+                        Title = T["Sales Employee"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "salesEmployeeId",
+                            Value = selectedSalesEmployee,
+                            EmptyOptionLabel = T["All"],
+                            Options = employeeOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "salesteamname",
+                        Title = T["Sales Team"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "salesTeamId",
+                            Value = selectedSalesTeam,
+                            EmptyOptionLabel = T["All"],
+                            Options = teamOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "creditlimit",
+                        Title = T["Credit Limit"],
+                        Sortable = true,
+                        CellClass = "text-end",
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.NumberRange,
+                            QueryKey = "creditLimitFrom",
+                            QueryKeyTo = "creditLimitTo",
+                            Value = Model.CreditLimitFromFilter?.ToString(CultureInfo.InvariantCulture),
+                            ValueTo = Model.CreditLimitToFilter?.ToString(CultureInfo.InvariantCulture),
+                            Placeholder = T["From"],
+                            PlaceholderTo = T["To"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "creditused",
+                        Title = T["Credit Used"],
+                        Sortable = true,
+                        CellClass = "text-end",
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.NumberRange,
+                            QueryKey = "creditUsedFrom",
+                            QueryKeyTo = "creditUsedTo",
+                            Value = Model.CreditUsedFromFilter?.ToString(CultureInfo.InvariantCulture),
+                            ValueTo = Model.CreditUsedToFilter?.ToString(CultureInfo.InvariantCulture),
+                            Placeholder = T["From"],
+                            PlaceholderTo = T["To"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "lastorderdate",
+                        Title = T["Last Order Date"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.DateRange,
+                            QueryKey = "lastOrderDateFrom",
+                            QueryKeyTo = "lastOrderDateTo",
+                            Value = Model.LastOrderDateFromFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                            ValueTo = Model.LastOrderDateToFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                            Placeholder = T["From"],
+                            PlaceholderTo = T["To"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "totalytdsales",
+                        Title = T["YTD Sales"],
+                        Sortable = true,
+                        CellClass = "text-end",
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.NumberRange,
+                            QueryKey = "totalYtdSalesFrom",
+                            QueryKeyTo = "totalYtdSalesTo",
+                            Value = Model.TotalYtdSalesFromFilter?.ToString(CultureInfo.InvariantCulture),
+                            ValueTo = Model.TotalYtdSalesToFilter?.ToString(CultureInfo.InvariantCulture),
+                            Placeholder = T["From"],
+                            PlaceholderTo = T["To"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "isovercreditlimit",
+                        Title = T["Credit Status"],
+                        Sortable = false,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "isOverCreditLimit",
+                            Value = selectedOverLimit,
+                            EmptyOptionLabel = T["All"],
+                            Options = overLimitOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "isactive",
+                        Title = T["Status"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "isActive",
+                            Value = selectedStatus,
+                            EmptyOptionLabel = T["All"],
+                            Options = statusOptions
+                        }
+                    }
+                ],
+                Rows = rows,
+                EmptyMessage = T["msg.no_data"],
+                Page = Model.Items.Page,
+                TotalPages = Model.Items.TotalPages,
+                PageSize = Model.PageSize,
+                SortBy = Model.SortBy,
+                SortDirection = Model.SortDirection,
+                EnableSearch = true,
+                SearchValue = Model.Search,
+                SearchPlaceholder = T["Search"] + " " + T["Sales Customers"],
+                SearchButtonText = T["common.search"],
+                Actions = new PagedGridActionConfigViewModel
+                {
+                    ActionColumnTitle = T["Action"],
+                    DetailButtonText = T["Detail"]
+                }
+            };
+        }
+
+        @await Component.InvokeAsync("PagedGrid", gridModel)
+    </div>
+</div>
+

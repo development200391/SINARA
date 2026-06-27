@@ -1,0 +1,56 @@
+@model ERP.Web.ViewModels.Sales.SalesPriceListEditViewModel
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label asp-for="Code" class="form-label"></label>
+                <input asp-for="Code" class="form-control" />
+                <span asp-validation-for="Code" class="text-danger"></span>
+            </div>
+            <div class="col-md-5">
+                <label asp-for="Name" class="form-label"></label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="Type" class="form-label"></label>
+                <select asp-for="Type" asp-items="Html.GetEnumSelectList<ERP.Domain.Enums.Sales.PriceListType>()" class="form-select"></select>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="CurrencyCode" class="form-label">@T["Currency"]</label>
+                <select asp-for="CurrencyCode" class="form-select">
+                    @foreach (var currency in Model.CurrencyOptions)
+                    {
+                        <option value="@currency">@currency</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="ValidFrom" class="form-label"></label>
+                <input asp-for="ValidFrom" class="form-control" type="date" />
+                <span asp-validation-for="ValidFrom" class="text-danger"></span>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="ValidTo" class="form-label"></label>
+                <input asp-for="ValidTo" class="form-control" type="date" />
+                <span asp-validation-for="ValidTo" class="text-danger"></span>
+            </div>
+            <div class="col-md-9">
+                <label asp-for="Notes" class="form-label"></label>
+                <textarea asp-for="Notes" class="form-control" rows="2"></textarea>
+            </div>
+            <div class="col-md-3 d-flex align-items-center">
+                <div class="form-check mt-4">
+                    <input asp-for="IsActive" class="form-check-input" />
+                    <label asp-for="IsActive" class="form-check-label">@T["Active"]</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4 d-flex gap-2">
+            <button type="submit" class="btn btn-primary">@T["common.save"]</button>
+            <a asp-action="PriceLists" class="btn btn-outline-secondary">@T["common.back"]</a>
+        </div>
+    </div>
+</div>

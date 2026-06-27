@@ -1,0 +1,53 @@
+@model ERP.Web.ViewModels.Sales.SalesCustomerCategoryEditViewModel
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label asp-for="Code" class="form-label"></label>
+                <input asp-for="Code" class="form-control" />
+                <span asp-validation-for="Code" class="text-danger"></span>
+            </div>
+            <div class="col-md-5">
+                <label asp-for="Name" class="form-label"></label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="DefaultPriceListId" class="form-label">@T["Default Price List"]</label>
+                <select asp-for="DefaultPriceListId" class="form-select">
+                    <option value="">@T["All"]</option>
+                    @foreach (var option in Model.PriceListOptions)
+                    {
+                        <option value="@option.Id">@option.Label</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="DefaultPaymentTerms" class="form-label">@T["Default Payment Terms"]</label>
+                <input asp-for="DefaultPaymentTerms" class="form-control" type="number" min="0" />
+                <span asp-validation-for="DefaultPaymentTerms" class="text-danger"></span>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="DefaultCreditLimit" class="form-label">@T["Default Credit Limit"]</label>
+                <input asp-for="DefaultCreditLimit" class="form-control" type="number" step="0.0001" min="0" />
+                <span asp-validation-for="DefaultCreditLimit" class="text-danger"></span>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="Description" class="form-label"></label>
+                <textarea asp-for="Description" class="form-control" rows="2"></textarea>
+            </div>
+            <div class="col-md-3 d-flex align-items-center">
+                <div class="form-check mt-4">
+                    <input asp-for="IsActive" class="form-check-input" />
+                    <label asp-for="IsActive" class="form-check-label">@T["Active"]</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4 d-flex gap-2">
+            <button type="submit" class="btn btn-primary">@T["common.save"]</button>
+            <a asp-action="CustomerCategories" class="btn btn-outline-secondary">@T["common.back"]</a>
+        </div>
+    </div>
+</div>

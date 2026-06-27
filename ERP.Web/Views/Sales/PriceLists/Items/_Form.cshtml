@@ -1,0 +1,50 @@
+@model ERP.Web.ViewModels.Sales.SalesPriceListItemEditViewModel
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label asp-for="ItemId" class="form-label">@T["Item"]</label>
+                <select asp-for="ItemId" class="form-select">
+                    <option value="">@T["Select"]</option>
+                    @foreach (var option in Model.ItemOptions)
+                    {
+                        <option value="@option.Id">@option.Label</option>
+                    }
+                </select>
+                <span asp-validation-for="ItemId" class="text-danger"></span>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="UomId" class="form-label">@T["UoM"]</label>
+                <select asp-for="UomId" class="form-select">
+                    <option value="">@T["Select"]</option>
+                    @foreach (var option in Model.UomOptions)
+                    {
+                        <option value="@option.Id">@option.Label</option>
+                    }
+                </select>
+                <span asp-validation-for="UomId" class="text-danger"></span>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="MinQty" class="form-label">@T["Min Qty"]</label>
+                <input asp-for="MinQty" class="form-control" type="number" step="0.0001" min="0.0001" />
+                <span asp-validation-for="MinQty" class="text-danger"></span>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="UnitPrice" class="form-label">@T["Unit Price"]</label>
+                <input asp-for="UnitPrice" class="form-control" type="number" step="0.0001" min="0" />
+                <span asp-validation-for="UnitPrice" class="text-danger"></span>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="DiscountPct" class="form-label">@T["Discount %"]</label>
+                <input asp-for="DiscountPct" class="form-control" type="number" step="0.01" min="0" max="100" />
+                <span asp-validation-for="DiscountPct" class="text-danger"></span>
+            </div>
+        </div>
+
+        <div class="mt-4 d-flex gap-2">
+            <button type="submit" class="btn btn-primary">@T["common.save"]</button>
+            <a asp-action="PriceListDetail" asp-route-id="@Model.PriceListId" class="btn btn-outline-secondary">@T["common.back"]</a>
+        </div>
+    </div>
+</div>

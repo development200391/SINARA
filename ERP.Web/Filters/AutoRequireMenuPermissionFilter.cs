@@ -39,6 +39,12 @@ public sealed class AutoRequireMenuPermissionFilter(IMenuPermissionService menuP
 
         if (!result.IsMenuMatched)
         {
+            if (IsFailClosedPath(path))
+            {
+                context.Result = new RedirectToActionResult("AccessDenied", "Auth", null);
+                return;
+            }
+
             await next();
             return;
         }
@@ -50,6 +56,11 @@ public sealed class AutoRequireMenuPermissionFilter(IMenuPermissionService menuP
         }
 
         await next();
+    }
+
+    private static bool IsFailClosedPath(string path)
+    {
+        return path.StartsWith("/sales", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool ShouldSkip(ActionExecutingContext context)
@@ -137,4 +148,3 @@ public sealed class AutoRequireMenuPermissionFilter(IMenuPermissionService menuP
         return false;
     }
 }
-

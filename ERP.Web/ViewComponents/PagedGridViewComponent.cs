@@ -41,11 +41,33 @@ public sealed class PagedGridViewComponent(IMenuPermissionService menuPermission
 
             if (!result.IsMenuMatched)
             {
-                // If there is no matrix entry for this route, keep existing UI behavior.
-                return true;
+                return !IsFailClosedActionUrl(actionUrl);
             }
 
             return result.Permission.Allows(action);
+        }
+
+        static bool IsFailClosedActionUrl(string actionUrl)
+        {
+            var candidate = actionUrl.Trim();
+
+            if (Uri.TryCreate(candidate, UriKind.Absolute, out var absoluteUri))
+            {
+                candidate = absoluteUri.PathAndQuery;
+            }
+
+            var queryOrHashIndex = candidate.IndexOfAny(['?', '#']);
+            if (queryOrHashIndex >= 0)
+            {
+                candidate = candidate[..queryOrHashIndex];
+            }
+
+            if (!candidate.StartsWith("/", StringComparison.Ordinal))
+            {
+                candidate = $"/{candidate}";
+            }
+
+            return candidate.StartsWith("/sales", StringComparison.OrdinalIgnoreCase);
         }
 
         var securedRows = new List<PagedGridRowViewModel>(model.Rows.Count);
@@ -125,4 +147,3 @@ public sealed class PagedGridViewComponent(IMenuPermissionService menuPermission
         return View(securedModel);
     }
 }
-

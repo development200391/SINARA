@@ -1,0 +1,74 @@
+@model ERP.Web.ViewModels.Sales.SalesCustomerDetailViewModel
+@using System.Globalization
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3">
+            <div>
+                <h1 class="h5 mb-1">@Model.Customer.Code - @Model.Customer.Name</h1>
+                <div class="text-muted small">@T["Sales Customer Detail"]</div>
+            </div>
+            <a class="btn btn-sm btn-outline-secondary" asp-action="Customers">@T["common.back"]</a>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="small text-muted">@T["Code"]</div>
+                <div>@Model.Customer.Code</div>
+            </div>
+            <div class="col-md-8">
+                <div class="small text-muted">@T["Name"]</div>
+                <div>@Model.Customer.Name</div>
+            </div>
+            <div class="col-md-4">
+                <div class="small text-muted">@T["Category"]</div>
+                <div>@(string.IsNullOrWhiteSpace(Model.Customer.CustomerCategoryName) ? "-" : Model.Customer.CustomerCategoryName)</div>
+            </div>
+            <div class="col-md-4">
+                <div class="small text-muted">@T["Price List"]</div>
+                <div>@(string.IsNullOrWhiteSpace(Model.Customer.PriceListName) ? "-" : Model.Customer.PriceListName)</div>
+            </div>
+            <div class="col-md-4">
+                <div class="small text-muted">@T["Sales Employee"]</div>
+                <div>@(string.IsNullOrWhiteSpace(Model.Customer.SalesEmployeeName) ? "-" : Model.Customer.SalesEmployeeName)</div>
+            </div>
+            <div class="col-md-4">
+                <div class="small text-muted">@T["Sales Team"]</div>
+                <div>@(string.IsNullOrWhiteSpace(Model.Customer.SalesTeamName) ? "-" : Model.Customer.SalesTeamName)</div>
+            </div>
+            <div class="col-md-4">
+                <div class="small text-muted">@T["Credit Limit"]</div>
+                <div>@Model.Customer.CreditLimit.ToString("N2", CultureInfo.InvariantCulture)</div>
+            </div>
+            <div class="col-md-4">
+                <div class="small text-muted">@T["Credit Used"]</div>
+                <div>@Model.Customer.CreditUsed.ToString("N2", CultureInfo.InvariantCulture)</div>
+            </div>
+            <div class="col-md-4">
+                <div class="small text-muted">@T["Last Order Date"]</div>
+                <div>@(Model.Customer.LastOrderDate.HasValue ? Model.Customer.LastOrderDate.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) : "-")</div>
+            </div>
+            <div class="col-md-4">
+                <div class="small text-muted">@T["YTD Sales"]</div>
+                <div>@Model.Customer.TotalYtdSales.ToString("N2", CultureInfo.InvariantCulture)</div>
+            </div>
+            <div class="col-md-4">
+                <div class="small text-muted">@T["Credit Status"]</div>
+                <div>@(Model.Customer.IsOverCreditLimit ? T["Over Limit"] : T["Within Limit"])</div>
+            </div>
+            <div class="col-md-4">
+                <div class="small text-muted">@T["Status"]</div>
+                <div>@(Model.Customer.IsActive ? T["Active"] : T["Inactive"])</div>
+            </div>
+            <div class="col-md-4">
+                <div class="small text-muted">@T["Tax ID"]</div>
+                <div>@(string.IsNullOrWhiteSpace(Model.Customer.TaxId) ? "-" : Model.Customer.TaxId)</div>
+            </div>
+            <div class="col-md-4">
+                <div class="small text-muted">@T["Contact Person"]</div>
+                <div>@(string.IsNullOrWhiteSpace(Model.Customer.ContactPerson) ? "-" : Model.Customer.ContactPerson)</div>
+            </div>
+        </div>
+    </div>
+</div>
+

@@ -1,0 +1,10 @@
+@model ERP.Web.ViewModels.Sales.SalesPriceListItemEditViewModel
+
+<form asp-action="CreatePriceListItem" asp-route-priceListId="@Model.PriceListId" method="post">
+    @Html.AntiForgeryToken()
+    <partial name="_Form" model="Model" />
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
