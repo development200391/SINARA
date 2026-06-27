@@ -1,0 +1,138 @@
+@model ERP.Web.ViewModels.Manufacturing.ManufacturingMrpRunsIndexViewModel
+@using ERP.Application.DTOs.Manufacturing
+@using ERP.Domain.Enums.Manufacturing
+@using ERP.Web.ViewModels.Shared
+@using System.Globalization
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">@T["MRP"]</h1>
+
+        @{
+            var selectedStatus = Model.StatusFilter.HasValue ? ((int)Model.StatusFilter.Value).ToString(CultureInfo.InvariantCulture) : null;
+            var statusOptions = Enum.GetValues<MrpStatus>()
+                .Select(x => new PagedGridFilterOptionViewModel { Value = ((int)x).ToString(CultureInfo.InvariantCulture), Label = x.ToString() })
+                .ToList();
+
+            PagedGridRowActionViewModel? ResolveActions(ManufacturingMrpRunDto item)
+            {
+                return item.Status switch
+                {
+                    MrpStatus.Draft => new PagedGridRowActionViewModel
+                    {
+                        EditUrl = Url.Action("EditMrpRun", "Manufacturing", new { id = item.Id }),
+                        ApproveUrl = Url.Action("RunMrp", "Manufacturing", new { id = item.Id }),
+                        RejectUrl = Url.Action("CancelMrp", "Manufacturing", new { id = item.Id }),
+                        DeleteUrl = Url.Action("DeleteMrp", "Manufacturing", new { id = item.Id }),
+                        ApproveConfirmMessage = T["Run this MRP?"],
+                        RejectConfirmMessage = T["Cancel this MRP?"],
+                        DeleteConfirmMessage = T["Delete this data?"]
+                    },
+                    MrpStatus.Running => new PagedGridRowActionViewModel
+                    {
+                        ApproveUrl = Url.Action("CompleteMrp", "Manufacturing", new { id = item.Id }),
+                        RejectUrl = Url.Action("CancelMrp", "Manufacturing", new { id = item.Id }),
+                        ApproveConfirmMessage = T["Complete this MRP?"],
+                        RejectConfirmMessage = T["Cancel this MRP?"]
+                    },
+                    _ => null
+                };
+            }
+
+            var rows = Model.Items.Items.Select(item => new PagedGridRowViewModel
+            {
+                Cells =
+                [
+                    new PagedGridCellViewModel { Text = item.Code },
+                    new PagedGridCellViewModel { Text = item.RunDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) },
+                    new PagedGridCellViewModel { Text = item.Status.ToString() },
+                    new PagedGridCellViewModel { Text = item.HorizonDays.ToString(CultureInfo.InvariantCulture), CellClass = "text-end" },
+                    new PagedGridCellViewModel { Text = item.TotalDemandItems.ToString(CultureInfo.InvariantCulture), CellClass = "text-end" },
+                    new PagedGridCellViewModel { Text = item.RecommendedWoCount.ToString(CultureInfo.InvariantCulture), CellClass = "text-end" },
+                    new PagedGridCellViewModel { Text = item.RecommendedPrCount.ToString(CultureInfo.InvariantCulture), CellClass = "text-end" },
+                    new PagedGridCellViewModel { Text = item.StartedAt.HasValue ? item.StartedAt.Value.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) : "-" },
+                    new PagedGridCellViewModel { Text = item.CompletedAt.HasValue ? item.CompletedAt.Value.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) : "-" }
+                ],
+                Actions = ResolveActions(item)
+            }).ToList();
+
+            var gridModel = new PagedGridViewModel
+            {
+                Columns =
+                [
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "code",
+                        Title = T["Code"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Text,
+                            QueryKey = "code",
+                            Value = Model.CodeFilter,
+                            Placeholder = T["Filter code"]
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "rundate",
+                        Title = T["Run Date"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.DateRange,
+                            QueryKey = "runDateFrom",
+                            QueryKeyTo = "runDateTo",
+                            Value = Model.RunDateFromFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                            ValueTo = Model.RunDateToFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "status",
+                        Title = T["Status"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "status",
+                            Value = selectedStatus,
+                            EmptyOptionLabel = T["All"],
+                            Options = statusOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel { Key = "horizondays", Title = T["Horizon (Days)"], Sortable = true, CellClass = "text-end" },
+                    new PagedGridColumnViewModel { Key = "totaldemand", Title = T["Demand Items"], Sortable = false, CellClass = "text-end" },
+                    new PagedGridColumnViewModel { Key = "recommendedwo", Title = T["Recommended WO"], Sortable = false, CellClass = "text-end" },
+                    new PagedGridColumnViewModel { Key = "recommendedpr", Title = T["Recommended PR"], Sortable = false, CellClass = "text-end" },
+                    new PagedGridColumnViewModel { Key = "startedat", Title = T["Started At"], Sortable = false },
+                    new PagedGridColumnViewModel { Key = "completedat", Title = T["Completed At"], Sortable = false }
+                ],
+                Rows = rows,
+                EmptyMessage = T["msg.no_data"],
+                Page = Model.Items.Page,
+                TotalPages = Model.Items.TotalPages,
+                PageSize = Model.PageSize,
+                SortBy = Model.SortBy,
+                SortDirection = Model.SortDirection,
+                EnableSearch = true,
+                SearchValue = Model.Search,
+                SearchPlaceholder = T["Search"] + " " + T["MRP"],
+                SearchButtonText = T["common.search"],
+                Actions = new PagedGridActionConfigViewModel
+                {
+                    ActionColumnTitle = T["Action"],
+                    AddUrl = Url.Action("CreateMrpRun", "Manufacturing"),
+                    AddButtonText = T["common.add_new"],
+                    EditButtonText = T["common.edit"],
+                    ApproveButtonText = T["Process"],
+                    RejectButtonText = T["Cancel"],
+                    DeleteButtonText = T["common.delete"],
+                    DeleteConfirmMessage = T["Delete this data?"]
+                }
+            };
+        }
+
+        @await Component.InvokeAsync("PagedGrid", gridModel)
+    </div>
+</div>

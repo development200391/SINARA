@@ -1,0 +1,135 @@
+@model ERP.Web.ViewModels.Manufacturing.ManufacturingBomsIndexViewModel
+@using ERP.Domain.Enums.Manufacturing
+@using ERP.Web.ViewModels.Shared
+@using System.Globalization
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">@T["BOMs"]</h1>
+
+        @{
+            var selectedStatus = Model.StatusFilter.HasValue ? ((int)Model.StatusFilter.Value).ToString(CultureInfo.InvariantCulture) : null;
+            var selectedActive = Model.IsActiveFilter.HasValue ? (Model.IsActiveFilter.Value ? "true" : "false") : null;
+
+            var statusOptions = Enum.GetValues<BomStatus>()
+                .Select(x => new PagedGridFilterOptionViewModel { Value = ((int)x).ToString(CultureInfo.InvariantCulture), Label = x.ToString() })
+                .ToList();
+            var activeOptions = new List<PagedGridFilterOptionViewModel>
+            {
+                new() { Value = "true", Label = T["Active"] },
+                new() { Value = "false", Label = T["Inactive"] }
+            };
+
+            var rows = Model.Items.Items.Select(item => new PagedGridRowViewModel
+            {
+                Cells =
+                [
+                    new PagedGridCellViewModel { Text = item.Code },
+                    new PagedGridCellViewModel { Text = string.IsNullOrWhiteSpace(item.ItemCode) ? "-" : item.ItemCode },
+                    new PagedGridCellViewModel { Text = string.IsNullOrWhiteSpace(item.RoutingCode) ? "-" : item.RoutingCode },
+                    new PagedGridCellViewModel { Text = item.Version.ToString(CultureInfo.InvariantCulture), CellClass = "text-end" },
+                    new PagedGridCellViewModel { Text = item.Status.ToString() },
+                    new PagedGridCellViewModel { Text = item.QtyProduced.ToString("N2", CultureInfo.InvariantCulture), CellClass = "text-end" },
+                    new PagedGridCellViewModel { Text = item.StandardCost.ToString("N2", CultureInfo.InvariantCulture), CellClass = "text-end" },
+                    new PagedGridCellViewModel { Text = item.EffectiveDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) },
+                    new PagedGridCellViewModel { Text = item.IsActive ? T["Active"] : T["Inactive"] }
+                ],
+                Actions = new PagedGridRowActionViewModel
+                {
+                    EditUrl = Url.Action("EditBom", "Manufacturing", new { id = item.Id }),
+                    DeleteUrl = Url.Action("DeleteBom", "Manufacturing", new { id = item.Id }),
+                    DeleteConfirmMessage = T["Delete this data?"]
+                }
+            }).ToList();
+
+            var gridModel = new PagedGridViewModel
+            {
+                Columns =
+                [
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "code",
+                        Title = T["Code"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Text,
+                            QueryKey = "code",
+                            Value = Model.CodeFilter,
+                            Placeholder = T["Filter code"]
+                        }
+                    },
+                    new PagedGridColumnViewModel { Key = "item", Title = T["Item"], Sortable = false },
+                    new PagedGridColumnViewModel { Key = "routing", Title = T["Routing"], Sortable = false },
+                    new PagedGridColumnViewModel { Key = "version", Title = T["Version"], Sortable = true, CellClass = "text-end" },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "status",
+                        Title = T["Status"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "status",
+                            Value = selectedStatus,
+                            EmptyOptionLabel = T["All"],
+                            Options = statusOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel { Key = "qtyproduced", Title = T["Qty Produced"], Sortable = true, CellClass = "text-end" },
+                    new PagedGridColumnViewModel { Key = "standardcost", Title = T["Standard Cost"], Sortable = false, CellClass = "text-end" },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "effectivedate",
+                        Title = T["Effective Date"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.DateRange,
+                            QueryKey = "effectiveDateFrom",
+                            QueryKeyTo = "effectiveDateTo",
+                            Value = Model.EffectiveDateFromFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                            ValueTo = Model.EffectiveDateToFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "isactive",
+                        Title = T["Active"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "isActive",
+                            Value = selectedActive,
+                            EmptyOptionLabel = T["All"],
+                            Options = activeOptions
+                        }
+                    }
+                ],
+                Rows = rows,
+                EmptyMessage = T["msg.no_data"],
+                Page = Model.Items.Page,
+                TotalPages = Model.Items.TotalPages,
+                PageSize = Model.PageSize,
+                SortBy = Model.SortBy,
+                SortDirection = Model.SortDirection,
+                EnableSearch = true,
+                SearchValue = Model.Search,
+                SearchPlaceholder = T["Search"] + " " + T["BOMs"],
+                SearchButtonText = T["common.search"],
+                Actions = new PagedGridActionConfigViewModel
+                {
+                    ActionColumnTitle = T["Action"],
+                    AddUrl = Url.Action("CreateBom", "Manufacturing"),
+                    AddButtonText = T["common.add_new"],
+                    EditButtonText = T["common.edit"],
+                    DeleteButtonText = T["common.delete"],
+                    DeleteConfirmMessage = T["Delete this data?"]
+                }
+            };
+        }
+
+        @await Component.InvokeAsync("PagedGrid", gridModel)
+    </div>
+</div>

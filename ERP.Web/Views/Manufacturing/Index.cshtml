@@ -1,0 +1,58 @@
+@model ERP.Web.ViewModels.Manufacturing.ManufacturingDashboardViewModel
+@using System.Globalization
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">@T["Manufacturing Dashboard"]</h1>
+
+        <div class="row g-3 mb-4">
+            <div class="col-12 col-md-6 col-xl-3">
+                <div class="border rounded-3 p-3 h-100 bg-body-tertiary">
+                    <div class="small text-muted mb-1">@T["Active Work Orders"]</div>
+                    <div class="h4 mb-0">@Model.Data.ActiveWorkOrderCount.ToString("N0", CultureInfo.InvariantCulture)</div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6 col-xl-3">
+                <div class="border rounded-3 p-3 h-100 bg-body-tertiary">
+                    <div class="small text-muted mb-1">@T["Open MRP Runs"]</div>
+                    <div class="h4 mb-0">@Model.Data.OpenMrpRunCount.ToString("N0", CultureInfo.InvariantCulture)</div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6 col-xl-3">
+                <div class="border rounded-3 p-3 h-100 bg-body-tertiary">
+                    <div class="small text-muted mb-1">@T["Pending QC"]</div>
+                    <div class="h4 mb-0">@Model.Data.PendingQcCount.ToString("N0", CultureInfo.InvariantCulture)</div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6 col-xl-3">
+                <div class="border rounded-3 p-3 h-100 bg-body-tertiary">
+                    <div class="small text-muted mb-1">@T["Average OEE (%)"]</div>
+                    <div class="h4 mb-0">@Model.Data.AverageOeePct.ToString("N2", CultureInfo.InvariantCulture)</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-12 col-lg-6">
+                <h2 class="h6 mb-2">@T["Production Execution"]</h2>
+                <div class="list-group">
+                    <a class="list-group-item list-group-item-action" asp-action="WorkOrders" asp-controller="Manufacturing">@T["Work Orders"]</a>
+                    <a class="list-group-item list-group-item-action" asp-action="Mrp" asp-controller="Manufacturing">@T["MRP"]</a>
+                    <a class="list-group-item list-group-item-action" asp-action="Qc" asp-controller="Manufacturing">@T["Quality Control"]</a>
+                    <a class="list-group-item list-group-item-action" asp-action="Scrap" asp-controller="Manufacturing">@T["Scrap"]</a>
+                    <a class="list-group-item list-group-item-action" asp-action="Rework" asp-controller="Manufacturing">@T["Rework"]</a>
+                </div>
+            </div>
+            <div class="col-12 col-lg-6">
+                <h2 class="h6 mb-2">@T["Master & Reports"]</h2>
+                <div class="list-group">
+                    <a class="list-group-item list-group-item-action" asp-action="Boms" asp-controller="Manufacturing">@T["BOMs"]</a>
+                    <a class="list-group-item list-group-item-action" asp-action="Routings" asp-controller="Manufacturing">@T["Routings"]</a>
+                    <a class="list-group-item list-group-item-action" asp-action="WorkCenters" asp-controller="Manufacturing">@T["Work Centers"]</a>
+                    <a class="list-group-item list-group-item-action" asp-action="QcParameters" asp-controller="Manufacturing">@T["QC Parameters"]</a>
+                    <a class="list-group-item list-group-item-action" asp-action="ProductionOutputReport" asp-controller="Manufacturing">@T["Production Output"]</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

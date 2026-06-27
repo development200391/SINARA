@@ -8,12 +8,14 @@ using ERP.Domain.Entities.Inventory;
 using ERP.Domain.Entities.Purchasing;
 using ERP.Domain.Entities.Sales;
 using ERP.Domain.Entities.FixedAssets;
+using ERP.Domain.Entities.Manufacturing;
 using ERP.Domain.Interfaces;
 using ERP.Domain.Enums;
 using ERP.Domain.Enums.Inventory;
 using ERP.Domain.Enums.Purchasing;
 using ERP.Domain.Enums.Sales;
 using ERP.Domain.Enums.FixedAssets;
+using ERP.Domain.Enums.Manufacturing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Npgsql.EntityFrameworkCore.PostgreSQL;
@@ -107,7 +109,16 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<SalApprovalConfig> SalApprovalConfigs => Set<SalApprovalConfig>();
     public DbSet<SalSalesTeam> SalSalesTeams => Set<SalSalesTeam>();
     public DbSet<SalSalesTeamMember> SalSalesTeamMembers => Set<SalSalesTeamMember>();
-
+    public DbSet<MfgWorkCenter> MfgWorkCenters => Set<MfgWorkCenter>();
+    public DbSet<MfgRouting> MfgRoutings => Set<MfgRouting>();
+    public DbSet<MfgBom> MfgBoms => Set<MfgBom>();
+    public DbSet<MfgWorkOrder> MfgWorkOrders => Set<MfgWorkOrder>();
+    public DbSet<MfgMrpRun> MfgMrpRuns => Set<MfgMrpRun>();
+    public DbSet<MfgQcParameter> MfgQcParameters => Set<MfgQcParameter>();
+    public DbSet<MfgQcInspection> MfgQcInspections => Set<MfgQcInspection>();
+    public DbSet<MfgScrapRecord> MfgScrapRecords => Set<MfgScrapRecord>();
+    public DbSet<MfgReworkOrder> MfgReworkOrders => Set<MfgReworkOrder>();
+    public DbSet<MfgOeeSnapshot> MfgOeeSnapshots => Set<MfgOeeSnapshot>();
     public DbSet<FaAssetCategory> FaAssetCategories => Set<FaAssetCategory>();
     public DbSet<FaLocation> FaLocations => Set<FaLocation>();
     public DbSet<FaDepreciationConfig> FaDepreciationConfigs => Set<FaDepreciationConfig>();
@@ -211,7 +222,16 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         ConfigureSalApprovalConfig(modelBuilder.Entity<SalApprovalConfig>());
         ConfigureSalSalesTeam(modelBuilder.Entity<SalSalesTeam>());
         ConfigureSalSalesTeamMember(modelBuilder.Entity<SalSalesTeamMember>());
-
+        ConfigureMfgWorkCenter(modelBuilder.Entity<MfgWorkCenter>());
+        ConfigureMfgRouting(modelBuilder.Entity<MfgRouting>());
+        ConfigureMfgBom(modelBuilder.Entity<MfgBom>());
+        ConfigureMfgWorkOrder(modelBuilder.Entity<MfgWorkOrder>());
+        ConfigureMfgMrpRun(modelBuilder.Entity<MfgMrpRun>());
+        ConfigureMfgQcParameter(modelBuilder.Entity<MfgQcParameter>());
+        ConfigureMfgQcInspection(modelBuilder.Entity<MfgQcInspection>());
+        ConfigureMfgScrapRecord(modelBuilder.Entity<MfgScrapRecord>());
+        ConfigureMfgReworkOrder(modelBuilder.Entity<MfgReworkOrder>());
+        ConfigureMfgOeeSnapshot(modelBuilder.Entity<MfgOeeSnapshot>());
         ConfigureFaAssetCategory(modelBuilder.Entity<FaAssetCategory>());
         ConfigureFaLocation(modelBuilder.Entity<FaLocation>());
         ConfigureFaDepreciationConfig(modelBuilder.Entity<FaDepreciationConfig>());
@@ -1290,6 +1310,322 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         builder.HasIndex(x => x.SalesTeamId);
         builder.HasIndex(x => x.EmployeeId);
         builder.HasIndex(x => new { x.SalesTeamId, x.EmployeeId }).IsUnique();
+    }
+
+    private static void ConfigureMfgWorkCenter(EntityTypeBuilder<MfgWorkCenter> builder)
+    {
+        builder.ToTable("mfg_work_centers", t =>
+        {
+            t.HasCheckConstraint("ck_mfg_work_centers_capacity_hours_positive", "capacity_hours_per_day > 0");
+            t.HasCheckConstraint("ck_mfg_work_centers_labor_cost_non_negative", "labor_cost_per_hour >= 0");
+            t.HasCheckConstraint("ck_mfg_work_centers_overhead_cost_non_negative", "overhead_cost_per_hour >= 0");
+        });
+        ConfigureAuditEntity(builder);
+        builder.Property(x => x.Code).HasMaxLength(30).IsRequired();
+        builder.Property(x => x.Name).HasMaxLength(100).IsRequired();
+        builder.Property(x => x.CapacityHoursPerDay).HasColumnType("numeric(18,2)").IsRequired();
+        builder.Property(x => x.LaborCostPerHour).HasColumnType("numeric(18,4)").HasDefaultValue(0m).IsRequired();
+        builder.Property(x => x.OverheadCostPerHour).HasColumnType("numeric(18,4)").HasDefaultValue(0m).IsRequired();
+        builder.Property(x => x.IsActive).HasDefaultValue(true).IsRequired();
+        builder.Property(x => x.Notes).HasColumnType("text");
+        builder.HasOne(x => x.WipAccount)
+            .WithMany()
+            .HasForeignKey(x => x.WipAccountId)
+            .OnDelete(DeleteBehavior.SetNull);
+        builder.HasIndex(x => x.Code).IsUnique();
+        builder.HasIndex(x => x.Name);
+        builder.HasIndex(x => x.WipAccountId);
+        builder.HasIndex(x => x.IsActive);
+    }
+    private static void ConfigureMfgRouting(EntityTypeBuilder<MfgRouting> builder)
+    {
+        builder.ToTable("mfg_routings", t =>
+        {
+            t.HasCheckConstraint("ck_mfg_routings_version_positive", "version > 0");
+            t.HasCheckConstraint("ck_mfg_routings_lead_time_non_negative", "total_lead_time_hours >= 0");
+        });
+        ConfigureAuditEntity(builder);
+        builder.Property(x => x.Code).HasMaxLength(30).IsRequired();
+        builder.Property(x => x.Name).HasMaxLength(100).IsRequired();
+        builder.Property(x => x.Version).HasDefaultValue(1).IsRequired();
+        builder.Property(x => x.Status).HasConversion<int>().HasDefaultValue(RoutingStatus.Draft).IsRequired();
+        builder.Property(x => x.TotalLeadTimeHours).HasColumnType("numeric(18,2)").HasDefaultValue(0m).IsRequired();
+        builder.Property(x => x.IsActive).HasDefaultValue(true).IsRequired();
+        builder.Property(x => x.Notes).HasColumnType("text");
+        builder.HasOne(x => x.Item)
+            .WithMany()
+            .HasForeignKey(x => x.ItemId)
+            .OnDelete(DeleteBehavior.SetNull);
+        builder.HasOne(x => x.WorkCenter)
+            .WithMany(x => x.Routings)
+            .HasForeignKey(x => x.WorkCenterId)
+            .OnDelete(DeleteBehavior.SetNull);
+        builder.HasIndex(x => x.Code).IsUnique();
+        builder.HasIndex(x => x.Name);
+        builder.HasIndex(x => x.ItemId);
+        builder.HasIndex(x => x.WorkCenterId);
+        builder.HasIndex(x => x.Status);
+        builder.HasIndex(x => x.IsActive);
+    }
+    private static void ConfigureMfgBom(EntityTypeBuilder<MfgBom> builder)
+    {
+        builder.ToTable("mfg_boms", t =>
+        {
+            t.HasCheckConstraint("ck_mfg_boms_version_positive", "version > 0");
+            t.HasCheckConstraint("ck_mfg_boms_qty_produced_positive", "qty_produced > 0");
+            t.HasCheckConstraint("ck_mfg_boms_standard_cost_non_negative", "standard_cost >= 0");
+        });
+        ConfigureAuditEntity(builder);
+        builder.Property(x => x.Code).HasMaxLength(30).IsRequired();
+        builder.Property(x => x.Version).HasDefaultValue(1).IsRequired();
+        builder.Property(x => x.Status).HasConversion<int>().HasDefaultValue(BomStatus.Draft).IsRequired();
+        builder.Property(x => x.QtyProduced).HasColumnType("numeric(18,4)").HasDefaultValue(1m).IsRequired();
+        builder.Property(x => x.StandardCost).HasColumnType("numeric(18,4)").HasDefaultValue(0m).IsRequired();
+        builder.Property(x => x.EffectiveDate).HasColumnType("date").IsRequired();
+        builder.Property(x => x.IsActive).HasDefaultValue(true).IsRequired();
+        builder.Property(x => x.Notes).HasColumnType("text");
+        builder.HasOne(x => x.Item)
+            .WithMany()
+            .HasForeignKey(x => x.ItemId)
+            .OnDelete(DeleteBehavior.SetNull);
+        builder.HasOne(x => x.Routing)
+            .WithMany(x => x.Boms)
+            .HasForeignKey(x => x.RoutingId)
+            .OnDelete(DeleteBehavior.SetNull);
+        builder.HasIndex(x => x.Code).IsUnique();
+        builder.HasIndex(x => x.ItemId);
+        builder.HasIndex(x => x.RoutingId);
+        builder.HasIndex(x => x.Status);
+        builder.HasIndex(x => x.EffectiveDate);
+        builder.HasIndex(x => x.IsActive);
+    }
+    private static void ConfigureMfgMrpRun(EntityTypeBuilder<MfgMrpRun> builder)
+    {
+        builder.ToTable("mfg_mrp_runs", t =>
+        {
+            t.HasCheckConstraint("ck_mfg_mrp_runs_horizon_days_positive", "horizon_days > 0");
+            t.HasCheckConstraint("ck_mfg_mrp_runs_total_demand_items_non_negative", "total_demand_items >= 0");
+            t.HasCheckConstraint("ck_mfg_mrp_runs_recommended_wo_non_negative", "recommended_wo_count >= 0");
+            t.HasCheckConstraint("ck_mfg_mrp_runs_recommended_pr_non_negative", "recommended_pr_count >= 0");
+            t.HasCheckConstraint("ck_mfg_mrp_runs_completed_after_started", "completed_at IS NULL OR started_at IS NULL OR completed_at >= started_at");
+        });
+        ConfigureAuditEntity(builder);
+        builder.Property(x => x.Code).HasMaxLength(30).IsRequired();
+        builder.Property(x => x.RunDate).HasColumnType("date").IsRequired();
+        builder.Property(x => x.Status).HasConversion<int>().HasDefaultValue(MrpStatus.Draft).IsRequired();
+        builder.Property(x => x.HorizonDays).HasDefaultValue(30).IsRequired();
+        builder.Property(x => x.TotalDemandItems).HasDefaultValue(0).IsRequired();
+        builder.Property(x => x.RecommendedWoCount).HasDefaultValue(0).IsRequired();
+        builder.Property(x => x.RecommendedPrCount).HasDefaultValue(0).IsRequired();
+        builder.Property(x => x.StartedAt).HasColumnType("timestamptz");
+        builder.Property(x => x.CompletedAt).HasColumnType("timestamptz");
+        builder.Property(x => x.Notes).HasColumnType("text");
+        builder.HasIndex(x => x.Code).IsUnique();
+        builder.HasIndex(x => x.RunDate);
+        builder.HasIndex(x => x.Status);
+    }
+    private static void ConfigureMfgWorkOrder(EntityTypeBuilder<MfgWorkOrder> builder)
+    {
+        builder.ToTable("mfg_work_orders", t =>
+        {
+            t.HasCheckConstraint("ck_mfg_work_orders_qty_planned_positive", "qty_planned > 0");
+            t.HasCheckConstraint("ck_mfg_work_orders_qty_good_non_negative", "qty_good >= 0");
+            t.HasCheckConstraint("ck_mfg_work_orders_qty_scrap_non_negative", "qty_scrap >= 0");
+            t.HasCheckConstraint("ck_mfg_work_orders_plan_date_range", "planned_end_date >= planned_start_date");
+            t.HasCheckConstraint("ck_mfg_work_orders_standard_cost_non_negative", "standard_cost_total >= 0");
+            t.HasCheckConstraint("ck_mfg_work_orders_actual_cost_non_negative", "actual_cost_total >= 0");
+        });
+        ConfigureAuditEntity(builder);
+        builder.Property(x => x.Code).HasMaxLength(30).IsRequired();
+        builder.Property(x => x.Status).HasConversion<int>().HasDefaultValue(WorkOrderStatus.Draft).IsRequired();
+        builder.Property(x => x.ProductionType).HasConversion<int>().HasDefaultValue(ProductionType.MakeToStock).IsRequired();
+        builder.Property(x => x.QtyPlanned).HasColumnType("numeric(18,4)").IsRequired();
+        builder.Property(x => x.QtyGood).HasColumnType("numeric(18,4)").HasDefaultValue(0m).IsRequired();
+        builder.Property(x => x.QtyScrap).HasColumnType("numeric(18,4)").HasDefaultValue(0m).IsRequired();
+        builder.Property(x => x.PlannedStartDate).HasColumnType("date").IsRequired();
+        builder.Property(x => x.PlannedEndDate).HasColumnType("date").IsRequired();
+        builder.Property(x => x.ActualStartAt).HasColumnType("timestamptz");
+        builder.Property(x => x.ActualEndAt).HasColumnType("timestamptz");
+        builder.Property(x => x.StandardCostTotal).HasColumnType("numeric(18,4)").HasDefaultValue(0m).IsRequired();
+        builder.Property(x => x.ActualCostTotal).HasColumnType("numeric(18,4)").HasDefaultValue(0m).IsRequired();
+        builder.Property(x => x.IsActive).HasDefaultValue(true).IsRequired();
+        builder.Property(x => x.Notes).HasColumnType("text");
+        builder.HasOne(x => x.Item)
+            .WithMany()
+            .HasForeignKey(x => x.ItemId)
+            .OnDelete(DeleteBehavior.SetNull);
+        builder.HasOne(x => x.Bom)
+            .WithMany(x => x.WorkOrders)
+            .HasForeignKey(x => x.BomId)
+            .OnDelete(DeleteBehavior.SetNull);
+        builder.HasOne(x => x.Routing)
+            .WithMany(x => x.WorkOrders)
+            .HasForeignKey(x => x.RoutingId)
+            .OnDelete(DeleteBehavior.SetNull);
+        builder.HasOne(x => x.WorkCenter)
+            .WithMany(x => x.WorkOrders)
+            .HasForeignKey(x => x.WorkCenterId)
+            .OnDelete(DeleteBehavior.SetNull);
+        builder.HasOne(x => x.MrpRun)
+            .WithMany(x => x.WorkOrders)
+            .HasForeignKey(x => x.MrpRunId)
+            .OnDelete(DeleteBehavior.SetNull);
+        builder.HasIndex(x => x.Code).IsUnique();
+        builder.HasIndex(x => x.ItemId);
+        builder.HasIndex(x => x.BomId);
+        builder.HasIndex(x => x.RoutingId);
+        builder.HasIndex(x => x.WorkCenterId);
+        builder.HasIndex(x => x.MrpRunId);
+        builder.HasIndex(x => x.Status);
+        builder.HasIndex(x => x.PlannedStartDate);
+        builder.HasIndex(x => x.IsActive);
+    }
+    private static void ConfigureMfgQcParameter(EntityTypeBuilder<MfgQcParameter> builder)
+    {
+        builder.ToTable("mfg_qc_parameters", t =>
+        {
+            t.HasCheckConstraint("ck_mfg_qc_parameters_min_max", "min_value IS NULL OR max_value IS NULL OR min_value <= max_value");
+        });
+        ConfigureAuditEntity(builder);
+        builder.Property(x => x.Code).HasMaxLength(30).IsRequired();
+        builder.Property(x => x.Name).HasMaxLength(100).IsRequired();
+        builder.Property(x => x.ParameterType).HasConversion<int>().HasDefaultValue(QcParameterType.Numeric).IsRequired();
+        builder.Property(x => x.MinValue).HasColumnType("numeric(18,4)");
+        builder.Property(x => x.MaxValue).HasColumnType("numeric(18,4)");
+        builder.Property(x => x.IsCritical).HasDefaultValue(false).IsRequired();
+        builder.Property(x => x.IsActive).HasDefaultValue(true).IsRequired();
+        builder.Property(x => x.Notes).HasColumnType("text");
+        builder.HasOne(x => x.Item)
+            .WithMany()
+            .HasForeignKey(x => x.ItemId)
+            .OnDelete(DeleteBehavior.SetNull);
+        builder.HasIndex(x => x.Code).IsUnique();
+        builder.HasIndex(x => x.Name);
+        builder.HasIndex(x => x.ItemId);
+        builder.HasIndex(x => x.ParameterType);
+        builder.HasIndex(x => x.IsCritical);
+        builder.HasIndex(x => x.IsActive);
+    }
+    private static void ConfigureMfgQcInspection(EntityTypeBuilder<MfgQcInspection> builder)
+    {
+        builder.ToTable("mfg_qc_inspections");
+        ConfigureAuditEntity(builder);
+        builder.Property(x => x.Code).HasMaxLength(30).IsRequired();
+        builder.Property(x => x.InspectedAt).HasColumnType("timestamptz").IsRequired();
+        builder.Property(x => x.Status).HasConversion<int>().HasDefaultValue(QcStatus.Pending).IsRequired();
+        builder.Property(x => x.Result).HasConversion<int>().HasDefaultValue(QcResult.Pass).IsRequired();
+        builder.Property(x => x.Notes).HasColumnType("text");
+        builder.HasOne(x => x.WorkOrder)
+            .WithMany(x => x.QcInspections)
+            .HasForeignKey(x => x.WorkOrderId)
+            .OnDelete(DeleteBehavior.SetNull);
+        builder.HasOne(x => x.Item)
+            .WithMany()
+            .HasForeignKey(x => x.ItemId)
+            .OnDelete(DeleteBehavior.SetNull);
+        builder.HasOne(x => x.InspectorEmployee)
+            .WithMany()
+            .HasForeignKey(x => x.InspectorEmployeeId)
+            .OnDelete(DeleteBehavior.SetNull);
+        builder.HasIndex(x => x.Code).IsUnique();
+        builder.HasIndex(x => x.WorkOrderId);
+        builder.HasIndex(x => x.ItemId);
+        builder.HasIndex(x => x.InspectorEmployeeId);
+        builder.HasIndex(x => x.Status);
+        builder.HasIndex(x => x.Result);
+        builder.HasIndex(x => x.InspectedAt);
+    }
+    private static void ConfigureMfgScrapRecord(EntityTypeBuilder<MfgScrapRecord> builder)
+    {
+        builder.ToTable("mfg_scrap_records", t =>
+        {
+            t.HasCheckConstraint("ck_mfg_scrap_records_qty_positive", "qty_scrap > 0");
+            t.HasCheckConstraint("ck_mfg_scrap_records_unit_cost_non_negative", "unit_cost >= 0");
+            t.HasCheckConstraint("ck_mfg_scrap_records_total_cost_non_negative", "total_scrap_cost >= 0");
+        });
+        ConfigureAuditEntity(builder);
+        builder.Property(x => x.Code).HasMaxLength(30).IsRequired();
+        builder.Property(x => x.Reason).HasConversion<int>().HasDefaultValue(ScrapReason.Other).IsRequired();
+        builder.Property(x => x.QtyScrap).HasColumnType("numeric(18,4)").IsRequired();
+        builder.Property(x => x.UnitCost).HasColumnType("numeric(18,4)").HasDefaultValue(0m).IsRequired();
+        builder.Property(x => x.TotalScrapCost).HasColumnType("numeric(18,4)").HasDefaultValue(0m).IsRequired();
+        builder.Property(x => x.RecordedAt).HasColumnType("timestamptz").IsRequired();
+        builder.Property(x => x.Notes).HasColumnType("text");
+        builder.HasOne(x => x.WorkOrder)
+            .WithMany(x => x.ScrapRecords)
+            .HasForeignKey(x => x.WorkOrderId)
+            .OnDelete(DeleteBehavior.SetNull);
+        builder.HasOne(x => x.Item)
+            .WithMany()
+            .HasForeignKey(x => x.ItemId)
+            .OnDelete(DeleteBehavior.SetNull);
+        builder.HasOne(x => x.WorkCenter)
+            .WithMany(x => x.ScrapRecords)
+            .HasForeignKey(x => x.WorkCenterId)
+            .OnDelete(DeleteBehavior.SetNull);
+        builder.HasIndex(x => x.Code).IsUnique();
+        builder.HasIndex(x => x.WorkOrderId);
+        builder.HasIndex(x => x.ItemId);
+        builder.HasIndex(x => x.WorkCenterId);
+        builder.HasIndex(x => x.Reason);
+        builder.HasIndex(x => x.RecordedAt);
+    }
+    private static void ConfigureMfgReworkOrder(EntityTypeBuilder<MfgReworkOrder> builder)
+    {
+        builder.ToTable("mfg_rework_orders", t =>
+        {
+            t.HasCheckConstraint("ck_mfg_rework_orders_qty_positive", "qty_rework > 0");
+            t.HasCheckConstraint("ck_mfg_rework_orders_closed_after_opened", "closed_at IS NULL OR closed_at >= opened_at");
+        });
+        ConfigureAuditEntity(builder);
+        builder.Property(x => x.Code).HasMaxLength(30).IsRequired();
+        builder.Property(x => x.QtyRework).HasColumnType("numeric(18,4)").IsRequired();
+        builder.Property(x => x.Status).HasConversion<int>().HasDefaultValue(WorkOrderStatus.Draft).IsRequired();
+        builder.Property(x => x.OpenedAt).HasColumnType("timestamptz").IsRequired();
+        builder.Property(x => x.ClosedAt).HasColumnType("timestamptz");
+        builder.Property(x => x.Notes).HasColumnType("text");
+        builder.HasOne(x => x.SourceWorkOrder)
+            .WithMany()
+            .HasForeignKey(x => x.SourceWorkOrderId)
+            .OnDelete(DeleteBehavior.SetNull);
+        builder.HasOne(x => x.WorkOrder)
+            .WithMany()
+            .HasForeignKey(x => x.WorkOrderId)
+            .OnDelete(DeleteBehavior.SetNull);
+        builder.HasOne(x => x.Item)
+            .WithMany()
+            .HasForeignKey(x => x.ItemId)
+            .OnDelete(DeleteBehavior.SetNull);
+        builder.HasIndex(x => x.Code).IsUnique();
+        builder.HasIndex(x => x.SourceWorkOrderId);
+        builder.HasIndex(x => x.WorkOrderId);
+        builder.HasIndex(x => x.ItemId);
+        builder.HasIndex(x => x.Status);
+        builder.HasIndex(x => x.OpenedAt);
+        builder.HasIndex(x => x.ClosedAt);
+    }
+    private static void ConfigureMfgOeeSnapshot(EntityTypeBuilder<MfgOeeSnapshot> builder)
+    {
+        builder.ToTable("mfg_oee_snapshots", t =>
+        {
+            t.HasCheckConstraint("ck_mfg_oee_snapshots_availability_range", "availability_pct >= 0 AND availability_pct <= 100");
+            t.HasCheckConstraint("ck_mfg_oee_snapshots_performance_range", "performance_pct >= 0 AND performance_pct <= 100");
+            t.HasCheckConstraint("ck_mfg_oee_snapshots_quality_range", "quality_pct >= 0 AND quality_pct <= 100");
+            t.HasCheckConstraint("ck_mfg_oee_snapshots_oee_range", "oee_pct >= 0 AND oee_pct <= 100");
+        });
+        ConfigureAuditEntity(builder);
+        builder.Property(x => x.SnapshotDate).HasColumnType("date").IsRequired();
+        builder.Property(x => x.AvailabilityPct).HasColumnType("numeric(5,2)").IsRequired();
+        builder.Property(x => x.PerformancePct).HasColumnType("numeric(5,2)").IsRequired();
+        builder.Property(x => x.QualityPct).HasColumnType("numeric(5,2)").IsRequired();
+        builder.Property(x => x.OeePct).HasColumnType("numeric(5,2)").IsRequired();
+        builder.HasOne(x => x.WorkCenter)
+            .WithMany(x => x.OeeSnapshots)
+            .HasForeignKey(x => x.WorkCenterId)
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.HasIndex(x => x.WorkCenterId);
+        builder.HasIndex(x => x.SnapshotDate);
+        builder.HasIndex(x => new { x.WorkCenterId, x.SnapshotDate }).IsUnique();
     }
 
     private static void ConfigureFaAssetCategory(EntityTypeBuilder<FaAssetCategory> builder)

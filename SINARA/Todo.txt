@@ -40,3 +40,10 @@ SINARA_ERP_Sales_Panduan_Detail
 SINARA_ERP_Manufacturing_Panduan_Detail
 
 Buat Approval ke koneksi, dan tambah notif
+
+
+Setiap buat menu bilang
+Pakai ViewComponent yang ada,
+Menu nya langsung di buat juga agar nanti langsung coba
+tambah data di table minimal 5 data agar tidak kosong
+buat ReadMe[Modul].txt di D:\Projek\SINARA\SINARA berisi deskripsi setiap menu yang kita buar

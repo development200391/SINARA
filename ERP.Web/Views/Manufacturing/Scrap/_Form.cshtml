@@ -1,0 +1,159 @@
+@model ERP.Web.ViewModels.Manufacturing.ManufacturingScrapRecordEditViewModel
+@using System.Text.Json
+
+@{
+    var itemOptionsJson = JsonSerializer.Serialize(Model.ItemOptions.Select(x => new
+    {
+        id = x.Id,
+        label = x.Label
+    }));
+
+    var workOrderItemMappingsJson = JsonSerializer.Serialize(Model.WorkOrderItemMappings.Select(x => new
+    {
+        id = x.Id,
+        itemId = x.ItemId
+    }));
+}
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label asp-for="Code" class="form-label"></label>
+                <input asp-for="Code" class="form-control" />
+                <span asp-validation-for="Code" class="text-danger"></span>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="WorkOrderId" class="form-label">@T["Work Order"]</label>
+                <select asp-for="WorkOrderId" class="form-select">
+                    <option value="">-- Select --</option>
+                    @foreach (var option in Model.WorkOrderOptions)
+                    {
+                        <option value="@option.Id">@option.Label</option>
+                    }
+                </select>
+                <span asp-validation-for="WorkOrderId" class="text-danger"></span>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="ItemId" class="form-label">@T["Item"]</label>
+                <select asp-for="ItemId" class="form-select">
+                    <option value="">-- Select --</option>
+                    @foreach (var option in Model.ItemOptions)
+                    {
+                        <option value="@option.Id">@option.Label</option>
+                    }
+                </select>
+                <span asp-validation-for="ItemId" class="text-danger"></span>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="WorkCenterId" class="form-label">@T["Work Center"]</label>
+                <select asp-for="WorkCenterId" class="form-select">
+                    <option value="">-- Select --</option>
+                    @foreach (var option in Model.WorkCenterOptions)
+                    {
+                        <option value="@option.Id">@option.Label</option>
+                    }
+                </select>
+                <span asp-validation-for="WorkCenterId" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-3">
+                <label asp-for="Reason" class="form-label"></label>
+                <select asp-for="Reason" asp-items="Html.GetEnumSelectList<ERP.Domain.Enums.Manufacturing.ScrapReason>()" class="form-select"></select>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="QtyScrap" class="form-label">@T["Qty Scrap"]</label>
+                <input asp-for="QtyScrap" class="form-control" type="number" min="0.0001" step="0.0001" />
+                <span asp-validation-for="QtyScrap" class="text-danger"></span>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="UnitCost" class="form-label">@T["Unit Cost"]</label>
+                <input asp-for="UnitCost" class="form-control" type="number" min="0" step="0.0001" />
+                <span asp-validation-for="UnitCost" class="text-danger"></span>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="RecordedAt" class="form-label">@T["Recorded At"]</label>
+                <input asp-for="RecordedAt" asp-format="{0:yyyy-MM-ddTHH:mm}" class="form-control" type="datetime-local" />
+                <span asp-validation-for="RecordedAt" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-12">
+                <label asp-for="Notes" class="form-label"></label>
+                <textarea asp-for="Notes" class="form-control" rows="2"></textarea>
+                <span asp-validation-for="Notes" class="text-danger"></span>
+            </div>
+        </div>
+
+        <div class="mt-4 d-flex gap-2">
+            <button type="submit" class="btn btn-primary">@T["common.save"]</button>
+            <a asp-action="Scrap" class="btn btn-outline-secondary">@T["common.back"]</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    (() => {
+        const workOrderSelect = document.getElementById('WorkOrderId');
+        const itemSelect = document.getElementById('ItemId');
+
+        if (!workOrderSelect || !itemSelect) {
+            return;
+        }
+
+        const allItems = @Html.Raw(itemOptionsJson);
+        const workOrderMappings = @Html.Raw(workOrderItemMappingsJson);
+        const itemById = new Map(allItems.map((item) => [item.id, item]));
+        const itemByWorkOrderId = new Map(
+            workOrderMappings
+                .filter((item) => Number.isInteger(item.itemId) && item.itemId > 0)
+                .map((item) => [item.id, item.itemId])
+        );
+
+        const parseId = (value) => {
+            const parsed = Number.parseInt(String(value || ''), 10);
+            return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+        };
+
+        const setItemOptions = (options, selectedId) => {
+            itemSelect.innerHTML = '';
+
+            const placeholder = document.createElement('option');
+            placeholder.value = '';
+            placeholder.textContent = '-- Select --';
+            itemSelect.appendChild(placeholder);
+
+            for (const option of options) {
+                const node = document.createElement('option');
+                node.value = String(option.id);
+                node.textContent = option.label;
+                itemSelect.appendChild(node);
+            }
+
+            const normalizedSelectedId = parseId(selectedId);
+            if (normalizedSelectedId && options.some((option) => option.id === normalizedSelectedId)) {
+                itemSelect.value = String(normalizedSelectedId);
+            }
+            else {
+                itemSelect.value = '';
+            }
+        };
+
+        const refreshItemOptions = () => {
+            const selectedWorkOrderId = parseId(workOrderSelect.value);
+            const currentItemId = parseId(itemSelect.value);
+            const mappedItemId = selectedWorkOrderId ? itemByWorkOrderId.get(selectedWorkOrderId) : null;
+
+            if (mappedItemId && itemById.has(mappedItemId)) {
+                setItemOptions([itemById.get(mappedItemId)], mappedItemId);
+                return;
+            }
+
+            setItemOptions(allItems, currentItemId);
+        };
+
+        workOrderSelect.addEventListener('change', refreshItemOptions);
+        refreshItemOptions();
+    })();
+</script>

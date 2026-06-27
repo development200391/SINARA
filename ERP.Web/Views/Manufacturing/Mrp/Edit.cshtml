@@ -1,0 +1,10 @@
+@model ERP.Web.ViewModels.Manufacturing.ManufacturingMrpRunEditViewModel
+
+<form asp-action="EditMrpRun" asp-route-id="@Model.Id" method="post" class="needs-validation" novalidate>
+    @Html.AntiForgeryToken()
+    <partial name="_Form" model="Model" />
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

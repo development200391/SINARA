@@ -1,0 +1,224 @@
+@model ERP.Web.ViewModels.Manufacturing.ManufacturingWorkOrderEditViewModel
+@using System.Text.Json
+
+@{
+    var bomMappingsJson = JsonSerializer.Serialize(Model.BomItemMappings.Select(x => new
+    {
+        id = x.Id,
+        label = x.Label,
+        itemId = x.ItemId
+    }));
+
+    var routingMappingsJson = JsonSerializer.Serialize(Model.RoutingItemMappings.Select(x => new
+    {
+        id = x.Id,
+        label = x.Label,
+        itemId = x.ItemId
+    }));
+}
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label asp-for="Code" class="form-label"></label>
+                <input asp-for="Code" class="form-control" />
+                <span asp-validation-for="Code" class="text-danger"></span>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="ItemId" class="form-label">@T["Item"]</label>
+                <select asp-for="ItemId" class="form-select">
+                    <option value="">-- Select --</option>
+                    @foreach (var option in Model.ItemOptions)
+                    {
+                        <option value="@option.Id">@option.Label</option>
+                    }
+                </select>
+                <span asp-validation-for="ItemId" class="text-danger"></span>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="BomId" class="form-label">@T["BOM"]</label>
+                <select asp-for="BomId" class="form-select">
+                    <option value="">-- Select --</option>
+                    @foreach (var option in Model.BomOptions)
+                    {
+                        <option value="@option.Id">@option.Label</option>
+                    }
+                </select>
+                <span asp-validation-for="BomId" class="text-danger"></span>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="MrpRunId" class="form-label">@T["MRP Run"]</label>
+                <select asp-for="MrpRunId" class="form-select">
+                    <option value="">-- Select --</option>
+                    @foreach (var option in Model.MrpRunOptions)
+                    {
+                        <option value="@option.Id">@option.Label</option>
+                    }
+                </select>
+                <span asp-validation-for="MrpRunId" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-3">
+                <label asp-for="RoutingId" class="form-label">@T["Routing"]</label>
+                <select asp-for="RoutingId" class="form-select">
+                    <option value="">-- Select --</option>
+                    @foreach (var option in Model.RoutingOptions)
+                    {
+                        <option value="@option.Id">@option.Label</option>
+                    }
+                </select>
+                <span asp-validation-for="RoutingId" class="text-danger"></span>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="WorkCenterId" class="form-label">@T["Work Center"]</label>
+                <select asp-for="WorkCenterId" class="form-select">
+                    <option value="">-- Select --</option>
+                    @foreach (var option in Model.WorkCenterOptions)
+                    {
+                        <option value="@option.Id">@option.Label</option>
+                    }
+                </select>
+                <span asp-validation-for="WorkCenterId" class="text-danger"></span>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="Status" class="form-label"></label>
+                <select asp-for="Status" asp-items="Html.GetEnumSelectList<ERP.Domain.Enums.Manufacturing.WorkOrderStatus>()" class="form-select"></select>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="ProductionType" class="form-label">@T["Production Type"]</label>
+                <select asp-for="ProductionType" asp-items="Html.GetEnumSelectList<ERP.Domain.Enums.Manufacturing.ProductionType>()" class="form-select"></select>
+            </div>
+
+            <div class="col-md-3">
+                <label asp-for="QtyPlanned" class="form-label">@T["Planned Qty"]</label>
+                <input asp-for="QtyPlanned" class="form-control" type="number" min="0.0001" step="0.0001" />
+                <span asp-validation-for="QtyPlanned" class="text-danger"></span>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="QtyGood" class="form-label">@T["Good Qty"]</label>
+                <input asp-for="QtyGood" class="form-control" type="number" min="0" step="0.0001" />
+                <span asp-validation-for="QtyGood" class="text-danger"></span>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="QtyScrap" class="form-label">@T["Scrap Qty"]</label>
+                <input asp-for="QtyScrap" class="form-control" type="number" min="0" step="0.0001" />
+                <span asp-validation-for="QtyScrap" class="text-danger"></span>
+            </div>
+            <div class="col-md-3 d-flex align-items-center">
+                <div class="form-check mt-4">
+                    <input asp-for="IsActive" class="form-check-input" />
+                    <label asp-for="IsActive" class="form-check-label">@T["Active"]</label>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <label asp-for="PlannedStartDate" class="form-label">@T["Planned Start Date"]</label>
+                <input asp-for="PlannedStartDate" class="form-control" type="date" />
+                <span asp-validation-for="PlannedStartDate" class="text-danger"></span>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="PlannedEndDate" class="form-label">@T["Planned End Date"]</label>
+                <input asp-for="PlannedEndDate" class="form-control" type="date" />
+                <span asp-validation-for="PlannedEndDate" class="text-danger"></span>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="ActualStartAt" class="form-label">@T["Actual Start At"]</label>
+                <input asp-for="ActualStartAt" asp-format="{0:yyyy-MM-ddTHH:mm}" class="form-control" type="datetime-local" />
+                <span asp-validation-for="ActualStartAt" class="text-danger"></span>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="ActualEndAt" class="form-label">@T["Actual End At"]</label>
+                <input asp-for="ActualEndAt" asp-format="{0:yyyy-MM-ddTHH:mm}" class="form-control" type="datetime-local" />
+                <span asp-validation-for="ActualEndAt" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-3">
+                <label asp-for="StandardCostTotal" class="form-label">@T["Standard Cost Total"]</label>
+                <input asp-for="StandardCostTotal" class="form-control" type="number" min="0" step="0.0001" />
+                <span asp-validation-for="StandardCostTotal" class="text-danger"></span>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="ActualCostTotal" class="form-label">@T["Actual Cost Total"]</label>
+                <input asp-for="ActualCostTotal" class="form-control" type="number" min="0" step="0.0001" />
+                <span asp-validation-for="ActualCostTotal" class="text-danger"></span>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="Notes" class="form-label"></label>
+                <textarea asp-for="Notes" class="form-control" rows="2"></textarea>
+                <span asp-validation-for="Notes" class="text-danger"></span>
+            </div>
+        </div>
+
+        <div class="mt-4 d-flex gap-2">
+            <button type="submit" class="btn btn-primary">@T["common.save"]</button>
+            <a asp-action="WorkOrders" class="btn btn-outline-secondary">@T["common.back"]</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    (() => {
+        const itemSelect = document.getElementById('ItemId');
+        const bomSelect = document.getElementById('BomId');
+        const routingSelect = document.getElementById('RoutingId');
+
+        if (!itemSelect || !bomSelect || !routingSelect) {
+            return;
+        }
+
+        const bomOptions = @Html.Raw(bomMappingsJson);
+        const routingOptions = @Html.Raw(routingMappingsJson);
+
+        const parseId = (value) => {
+            const parsed = Number.parseInt(String(value || ''), 10);
+            return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+        };
+
+        const setOptions = (select, options, selectedId) => {
+            select.innerHTML = '';
+
+            const placeholder = document.createElement('option');
+            placeholder.value = '';
+            placeholder.textContent = '-- Select --';
+            select.appendChild(placeholder);
+
+            for (const option of options) {
+                const node = document.createElement('option');
+                node.value = String(option.id);
+                node.textContent = option.label;
+                select.appendChild(node);
+            }
+
+            const normalizedSelectedId = parseId(selectedId);
+            if (normalizedSelectedId && options.some((option) => option.id === normalizedSelectedId)) {
+                select.value = String(normalizedSelectedId);
+            }
+            else {
+                select.value = '';
+            }
+        };
+
+        const filterByItem = (options, itemId) => {
+            if (!itemId) {
+                return options;
+            }
+
+            return options.filter((option) => !option.itemId || option.itemId === itemId);
+        };
+
+        const refreshDependentSelects = () => {
+            const itemId = parseId(itemSelect.value);
+            const selectedBomId = bomSelect.value;
+            const selectedRoutingId = routingSelect.value;
+
+            setOptions(bomSelect, filterByItem(bomOptions, itemId), selectedBomId);
+            setOptions(routingSelect, filterByItem(routingOptions, itemId), selectedRoutingId);
+        };
+
+        itemSelect.addEventListener('change', refreshDependentSelects);
+        refreshDependentSelects();
+    })();
+</script>

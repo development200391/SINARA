@@ -1,0 +1,62 @@
+@model ERP.Web.ViewModels.Manufacturing.ManufacturingScrapAnalysisReportViewModel
+@using ERP.Domain.Enums.Manufacturing
+@using ERP.Web.ViewModels.Shared
+@using System.Globalization
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">@T["Scrap Analysis"]</h1>
+
+        @{
+            var selectedReason = Model.ReasonFilter.HasValue ? ((int)Model.ReasonFilter.Value).ToString(CultureInfo.InvariantCulture) : null;
+            var reasonOptions = Enum.GetValues<ScrapReason>()
+                .Select(x => new PagedGridFilterOptionViewModel { Value = ((int)x).ToString(CultureInfo.InvariantCulture), Label = x.ToString() })
+                .ToList();
+
+            var rows = Model.Items.Items.Select(item => new PagedGridRowViewModel
+            {
+                Cells =
+                [
+                    new PagedGridCellViewModel { Text = item.Reason.ToString() },
+                    new PagedGridCellViewModel { Text = item.TotalQtyScrap.ToString("N2", CultureInfo.InvariantCulture), CellClass = "text-end" },
+                    new PagedGridCellViewModel { Text = item.TotalScrapCost.ToString("N2", CultureInfo.InvariantCulture), CellClass = "text-end" }
+                ]
+            }).ToList();
+
+            var gridModel = new PagedGridViewModel
+            {
+                Columns =
+                [
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "reason",
+                        Title = T["Reason"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "reason",
+                            Value = selectedReason,
+                            EmptyOptionLabel = T["All"],
+                            Options = reasonOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel { Key = "totalqtyscrap", Title = T["Total Qty Scrap"], Sortable = true, CellClass = "text-end" },
+                    new PagedGridColumnViewModel { Key = "totalscrapcost", Title = T["Total Scrap Cost"], Sortable = true, CellClass = "text-end" }
+                ],
+                Rows = rows,
+                EmptyMessage = T["msg.no_data"],
+                Page = Model.Items.Page,
+                TotalPages = Model.Items.TotalPages,
+                PageSize = Model.PageSize,
+                SortBy = Model.SortBy,
+                SortDirection = Model.SortDirection,
+                EnableSearch = false,
+                SearchValue = Model.Search,
+                Actions = new PagedGridActionConfigViewModel { ActionColumnTitle = T["Action"] }
+            };
+        }
+
+        @await Component.InvokeAsync("PagedGrid", gridModel)
+    </div>
+</div>

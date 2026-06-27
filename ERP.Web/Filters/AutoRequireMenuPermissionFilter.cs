@@ -60,7 +60,7 @@ public sealed class AutoRequireMenuPermissionFilter(IMenuPermissionService menuP
 
     private static bool IsFailClosedPath(string path)
     {
-        return path.StartsWith("/sales", StringComparison.OrdinalIgnoreCase);
+        return path.StartsWith("/sales", StringComparison.OrdinalIgnoreCase) || path.StartsWith("/manufacturing", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool ShouldSkip(ActionExecutingContext context)
@@ -148,3 +148,4 @@ public sealed class AutoRequireMenuPermissionFilter(IMenuPermissionService menuP
         return false;
     }
 }
+

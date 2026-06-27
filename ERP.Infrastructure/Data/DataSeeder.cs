@@ -7,11 +7,13 @@ using ERP.Domain.Entities.Purchasing;
 using ERP.Domain.Entities.FixedAssets;
 using ERP.Domain.Entities.System;
 using ERP.Domain.Entities.Sales;
+using ERP.Domain.Entities.Manufacturing;
 using ERP.Domain.Enums;
 using ERP.Domain.Enums.Sales;
 using ERP.Domain.Enums.Inventory;
 using ERP.Domain.Enums.Purchasing;
 using ERP.Domain.Enums.FixedAssets;
+using ERP.Domain.Enums.Manufacturing;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -31,6 +33,7 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         await SeedFinanceMasterDataAsync(now, ct);
         await SeedInventoryMasterDataAsync(now, ct);
         await SeedSalesMasterDataAsync(now, ct);
+        await SeedManufacturingMasterDataAsync(now, ct);
         await SeedPurchasingMasterDataAsync(now, ct);
         await SeedFixedAssetsMasterDataAsync(now, ct);
         await SeedAdminUserAsync(now, ct);
@@ -49,6 +52,7 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         await EnsureModuleAsync("Fixed Assets", "FA", "bi-building-gear", 6, now, ct);
         await EnsureModuleAsync("General Approval", "APV", "bi-shield-check", 7, now, ct);
         await EnsureModuleAsync("Sales", "SAL", "bi-graph-up-arrow", 8, now, ct);
+        await EnsureModuleAsync("Manufacturing", "MFG", "bi-gear-wide-connected", 9, now, ct);
     }
 
     private async Task SeedRolesAsync(DateTimeOffset now, CancellationToken ct)
@@ -852,6 +856,515 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
 
         await dbContext.SaveChangesAsync(ct);
     }
+    private async Task SeedManufacturingMasterDataAsync(DateTimeOffset now, CancellationToken ct)
+    {
+        var today = DateOnly.FromDateTime(now.UtcDateTime.Date);
+        var items = await dbContext.InvItems
+            .IgnoreQueryFilters()
+            .Where(x => !x.IsDeleted && x.IsActive)
+            .OrderBy(x => x.ItemCode)
+            .Take(5)
+            .ToListAsync(ct);
+        if (items.Count == 0)
+        {
+            return;
+        }
+        var employees = await dbContext.HrEmployees
+            .IgnoreQueryFilters()
+            .Where(x => !x.IsDeleted && x.EmploymentStatus == EmploymentStatus.Active)
+            .OrderBy(x => x.EmployeeCode)
+            .Take(5)
+            .ToListAsync(ct);
+        if (employees.Count == 0)
+        {
+            return;
+        }
+        var wipAccountId = await dbContext.FinAccounts
+            .IgnoreQueryFilters()
+            .Where(x => !x.IsDeleted && x.IsActive)
+            .OrderBy(x => x.Code)
+            .Select(x => (int?)x.Id)
+            .FirstOrDefaultAsync(ct);
+        var workCenterSeeds = new[]
+        {
+            (Code: "MFG-WC-001", Name: "Cutting Line", Capacity: 8m, LaborCost: 65000m, OverheadCost: 30000m, Notes: "Primary cutting process"),
+            (Code: "MFG-WC-002", Name: "Welding Line", Capacity: 8m, LaborCost: 70000m, OverheadCost: 32000m, Notes: "Welding process"),
+            (Code: "MFG-WC-003", Name: "Painting Booth", Capacity: 7m, LaborCost: 60000m, OverheadCost: 28000m, Notes: "Paint and finish"),
+            (Code: "MFG-WC-004", Name: "Assembly Line", Capacity: 9m, LaborCost: 68000m, OverheadCost: 31000m, Notes: "Final assembly"),
+            (Code: "MFG-WC-005", Name: "Packaging Line", Capacity: 8m, LaborCost: 55000m, OverheadCost: 25000m, Notes: "Packing and handover")
+        };
+        foreach (var seed in workCenterSeeds)
+        {
+            var existing = await dbContext.MfgWorkCenters
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(x => x.Code == seed.Code, ct);
+            if (existing is null)
+            {
+                existing = new MfgWorkCenter
+                {
+                    Code = seed.Code,
+                    CreatedBy = "system",
+                    CreatedAt = now
+                };
+                dbContext.MfgWorkCenters.Add(existing);
+            }
+            else
+            {
+                existing.UpdatedBy = "system";
+                existing.UpdatedAt = now;
+            }
+            existing.Name = seed.Name;
+            existing.CapacityHoursPerDay = seed.Capacity;
+            existing.LaborCostPerHour = seed.LaborCost;
+            existing.OverheadCostPerHour = seed.OverheadCost;
+            existing.WipAccountId = wipAccountId;
+            existing.IsActive = true;
+            existing.Notes = seed.Notes;
+            existing.IsDeleted = false;
+            existing.DeletedAt = null;
+        }
+        await dbContext.SaveChangesAsync(ct);
+        var workCenterCodes = workCenterSeeds.Select(x => x.Code).ToArray();
+        var workCenters = await dbContext.MfgWorkCenters
+            .IgnoreQueryFilters()
+            .Where(x => workCenterCodes.Contains(x.Code))
+            .OrderBy(x => x.Code)
+            .ToListAsync(ct);
+        var routingSeeds = new[]
+        {
+            (Code: "MFG-RT-001", Name: "Routing A", Version: 1, Status: RoutingStatus.Active, LeadTime: 12m, Notes: "Standard routing A"),
+            (Code: "MFG-RT-002", Name: "Routing B", Version: 1, Status: RoutingStatus.Active, LeadTime: 10m, Notes: "Standard routing B"),
+            (Code: "MFG-RT-003", Name: "Routing C", Version: 1, Status: RoutingStatus.Active, LeadTime: 14m, Notes: "Standard routing C"),
+            (Code: "MFG-RT-004", Name: "Routing D", Version: 1, Status: RoutingStatus.Draft, LeadTime: 8m, Notes: "Pilot routing D"),
+            (Code: "MFG-RT-005", Name: "Routing E", Version: 2, Status: RoutingStatus.Active, LeadTime: 16m, Notes: "Improved routing E")
+        };
+        for (var i = 0; i < routingSeeds.Length; i++)
+        {
+            var seed = routingSeeds[i];
+            var item = items[i % items.Count];
+            var workCenter = workCenters[i % workCenters.Count];
+            var existing = await dbContext.MfgRoutings
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(x => x.Code == seed.Code, ct);
+            if (existing is null)
+            {
+                existing = new MfgRouting
+                {
+                    Code = seed.Code,
+                    CreatedBy = "system",
+                    CreatedAt = now
+                };
+                dbContext.MfgRoutings.Add(existing);
+            }
+            else
+            {
+                existing.UpdatedBy = "system";
+                existing.UpdatedAt = now;
+            }
+            existing.Name = seed.Name;
+            existing.ItemId = item.Id;
+            existing.WorkCenterId = workCenter.Id;
+            existing.Version = seed.Version;
+            existing.Status = seed.Status;
+            existing.TotalLeadTimeHours = seed.LeadTime;
+            existing.IsActive = true;
+            existing.Notes = seed.Notes;
+            existing.IsDeleted = false;
+            existing.DeletedAt = null;
+        }
+        await dbContext.SaveChangesAsync(ct);
+        var routingCodes = routingSeeds.Select(x => x.Code).ToArray();
+        var routings = await dbContext.MfgRoutings
+            .IgnoreQueryFilters()
+            .Where(x => routingCodes.Contains(x.Code))
+            .OrderBy(x => x.Code)
+            .ToListAsync(ct);
+        var bomSeeds = new[]
+        {
+            (Code: "MFG-BOM-001", Version: 1, Status: BomStatus.Active, QtyProduced: 1m, StandardCost: 220000m, Notes: "Main BOM A"),
+            (Code: "MFG-BOM-002", Version: 1, Status: BomStatus.Active, QtyProduced: 1m, StandardCost: 180000m, Notes: "Main BOM B"),
+            (Code: "MFG-BOM-003", Version: 1, Status: BomStatus.Active, QtyProduced: 1m, StandardCost: 260000m, Notes: "Main BOM C"),
+            (Code: "MFG-BOM-004", Version: 2, Status: BomStatus.Draft, QtyProduced: 1m, StandardCost: 240000m, Notes: "Revision BOM D"),
+            (Code: "MFG-BOM-005", Version: 1, Status: BomStatus.Active, QtyProduced: 1m, StandardCost: 300000m, Notes: "Main BOM E")
+        };
+        for (var i = 0; i < bomSeeds.Length; i++)
+        {
+            var seed = bomSeeds[i];
+            var item = items[i % items.Count];
+            var routing = routings[i % routings.Count];
+            var existing = await dbContext.MfgBoms
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(x => x.Code == seed.Code, ct);
+            if (existing is null)
+            {
+                existing = new MfgBom
+                {
+                    Code = seed.Code,
+                    CreatedBy = "system",
+                    CreatedAt = now
+                };
+                dbContext.MfgBoms.Add(existing);
+            }
+            else
+            {
+                existing.UpdatedBy = "system";
+                existing.UpdatedAt = now;
+            }
+            existing.ItemId = item.Id;
+            existing.RoutingId = routing.Id;
+            existing.Version = seed.Version;
+            existing.Status = seed.Status;
+            existing.QtyProduced = seed.QtyProduced;
+            existing.StandardCost = seed.StandardCost;
+            existing.EffectiveDate = today.AddDays(-(i * 5));
+            existing.IsActive = true;
+            existing.Notes = seed.Notes;
+            existing.IsDeleted = false;
+            existing.DeletedAt = null;
+        }
+        await dbContext.SaveChangesAsync(ct);
+        var bomCodes = bomSeeds.Select(x => x.Code).ToArray();
+        var boms = await dbContext.MfgBoms
+            .IgnoreQueryFilters()
+            .Where(x => bomCodes.Contains(x.Code))
+            .OrderBy(x => x.Code)
+            .ToListAsync(ct);
+        var mrpSeeds = new[]
+        {
+            (Code: "MFG-MRP-001", Status: MrpStatus.Completed, HorizonDays: 30, Demand: 12, Wo: 5, Pr: 3, Notes: "Weekly run 1"),
+            (Code: "MFG-MRP-002", Status: MrpStatus.Completed, HorizonDays: 30, Demand: 14, Wo: 6, Pr: 4, Notes: "Weekly run 2"),
+            (Code: "MFG-MRP-003", Status: MrpStatus.Completed, HorizonDays: 45, Demand: 16, Wo: 7, Pr: 4, Notes: "Bi-weekly run"),
+            (Code: "MFG-MRP-004", Status: MrpStatus.Running, HorizonDays: 30, Demand: 10, Wo: 4, Pr: 2, Notes: "Current run"),
+            (Code: "MFG-MRP-005", Status: MrpStatus.Draft, HorizonDays: 60, Demand: 20, Wo: 9, Pr: 6, Notes: "Planned run")
+        };
+        for (var i = 0; i < mrpSeeds.Length; i++)
+        {
+            var seed = mrpSeeds[i];
+            var runDate = today.AddDays(-(i * 7));
+            var startAt = now.AddDays(-(i * 7)).AddHours(-2);
+            DateTimeOffset? completedAt = seed.Status == MrpStatus.Completed
+                ? startAt.AddHours(1)
+                : null;
+            var existing = await dbContext.MfgMrpRuns
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(x => x.Code == seed.Code, ct);
+            if (existing is null)
+            {
+                existing = new MfgMrpRun
+                {
+                    Code = seed.Code,
+                    CreatedBy = "system",
+                    CreatedAt = now
+                };
+                dbContext.MfgMrpRuns.Add(existing);
+            }
+            else
+            {
+                existing.UpdatedBy = "system";
+                existing.UpdatedAt = now;
+            }
+            existing.RunDate = runDate;
+            existing.Status = seed.Status;
+            existing.HorizonDays = seed.HorizonDays;
+            existing.TotalDemandItems = seed.Demand;
+            existing.RecommendedWoCount = seed.Wo;
+            existing.RecommendedPrCount = seed.Pr;
+            existing.StartedAt = seed.Status == MrpStatus.Draft ? null : startAt;
+            existing.CompletedAt = completedAt;
+            existing.Notes = seed.Notes;
+            existing.IsDeleted = false;
+            existing.DeletedAt = null;
+        }
+        await dbContext.SaveChangesAsync(ct);
+        var mrpCodes = mrpSeeds.Select(x => x.Code).ToArray();
+        var mrpRuns = await dbContext.MfgMrpRuns
+            .IgnoreQueryFilters()
+            .Where(x => mrpCodes.Contains(x.Code))
+            .OrderBy(x => x.Code)
+            .ToListAsync(ct);
+        var workOrderSeeds = new[]
+        {
+            (Code: "MFG-WO-001", Status: WorkOrderStatus.Planned, ProductionType: ProductionType.MakeToStock, Planned: 120m, Good: 0m, Scrap: 0m, StdCost: 26400000m, ActCost: 0m, Notes: "Planned WO"),
+            (Code: "MFG-WO-002", Status: WorkOrderStatus.Released, ProductionType: ProductionType.MakeToOrder, Planned: 90m, Good: 10m, Scrap: 1m, StdCost: 16200000m, ActCost: 17100000m, Notes: "Released WO"),
+            (Code: "MFG-WO-003", Status: WorkOrderStatus.InProgress, ProductionType: ProductionType.BatchProduction, Planned: 75m, Good: 40m, Scrap: 2m, StdCost: 19500000m, ActCost: 18800000m, Notes: "In progress WO"),
+            (Code: "MFG-WO-004", Status: WorkOrderStatus.Completed, ProductionType: ProductionType.MakeToStock, Planned: 110m, Good: 108m, Scrap: 2m, StdCost: 26400000m, ActCost: 25900000m, Notes: "Completed WO"),
+            (Code: "MFG-WO-005", Status: WorkOrderStatus.Closed, ProductionType: ProductionType.Rework, Planned: 30m, Good: 29m, Scrap: 1m, StdCost: 9000000m, ActCost: 9400000m, Notes: "Closed WO")
+        };
+        for (var i = 0; i < workOrderSeeds.Length; i++)
+        {
+            var seed = workOrderSeeds[i];
+            var item = items[i % items.Count];
+            var bom = boms[i % boms.Count];
+            var routing = routings[i % routings.Count];
+            var workCenter = workCenters[i % workCenters.Count];
+            var mrp = mrpRuns[i % mrpRuns.Count];
+            var plannedStart = today.AddDays(-(i * 3 + 5));
+            var plannedEnd = plannedStart.AddDays(3);
+            DateTimeOffset? actualStart = seed.Status is WorkOrderStatus.Released or WorkOrderStatus.InProgress or WorkOrderStatus.Completed or WorkOrderStatus.Closed
+                ? now.AddDays(-(i * 3 + 4))
+                : null;
+            DateTimeOffset? actualEnd = seed.Status is WorkOrderStatus.Completed or WorkOrderStatus.Closed
+                ? now.AddDays(-(i * 3 + 1))
+                : null;
+            var existing = await dbContext.MfgWorkOrders
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(x => x.Code == seed.Code, ct);
+            if (existing is null)
+            {
+                existing = new MfgWorkOrder
+                {
+                    Code = seed.Code,
+                    CreatedBy = "system",
+                    CreatedAt = now
+                };
+                dbContext.MfgWorkOrders.Add(existing);
+            }
+            else
+            {
+                existing.UpdatedBy = "system";
+                existing.UpdatedAt = now;
+            }
+            existing.ItemId = item.Id;
+            existing.BomId = bom.Id;
+            existing.RoutingId = routing.Id;
+            existing.WorkCenterId = workCenter.Id;
+            existing.MrpRunId = mrp.Id;
+            existing.Status = seed.Status;
+            existing.ProductionType = seed.ProductionType;
+            existing.QtyPlanned = seed.Planned;
+            existing.QtyGood = seed.Good;
+            existing.QtyScrap = seed.Scrap;
+            existing.PlannedStartDate = plannedStart;
+            existing.PlannedEndDate = plannedEnd;
+            existing.ActualStartAt = actualStart;
+            existing.ActualEndAt = actualEnd;
+            existing.StandardCostTotal = seed.StdCost;
+            existing.ActualCostTotal = seed.ActCost;
+            existing.IsActive = true;
+            existing.Notes = seed.Notes;
+            existing.IsDeleted = false;
+            existing.DeletedAt = null;
+        }
+        await dbContext.SaveChangesAsync(ct);
+        var workOrderCodes = workOrderSeeds.Select(x => x.Code).ToArray();
+        var workOrders = await dbContext.MfgWorkOrders
+            .IgnoreQueryFilters()
+            .Where(x => workOrderCodes.Contains(x.Code))
+            .OrderBy(x => x.Code)
+            .ToListAsync(ct);
+        var qcParameterSeeds = new[]
+        {
+            (Code: "MFG-QCP-001", Name: "Length Check", Type: QcParameterType.Numeric, Min: (decimal?)9.8m, Max: (decimal?)10.2m, Critical: true, Notes: "Length tolerance"),
+            (Code: "MFG-QCP-002", Name: "Width Check", Type: QcParameterType.Numeric, Min: (decimal?)4.9m, Max: (decimal?)5.1m, Critical: true, Notes: "Width tolerance"),
+            (Code: "MFG-QCP-003", Name: "Visual Defect", Type: QcParameterType.Boolean, Min: null, Max: null, Critical: true, Notes: "No visible defect"),
+            (Code: "MFG-QCP-004", Name: "Coating Thickness", Type: QcParameterType.Numeric, Min: (decimal?)0.8m, Max: (decimal?)1.2m, Critical: false, Notes: "Paint thickness"),
+            (Code: "MFG-QCP-005", Name: "Torque Test", Type: QcParameterType.Numeric, Min: (decimal?)20m, Max: (decimal?)30m, Critical: false, Notes: "Torque range")
+        };
+        for (var i = 0; i < qcParameterSeeds.Length; i++)
+        {
+            var seed = qcParameterSeeds[i];
+            var item = items[i % items.Count];
+            var existing = await dbContext.MfgQcParameters
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(x => x.Code == seed.Code, ct);
+            if (existing is null)
+            {
+                existing = new MfgQcParameter
+                {
+                    Code = seed.Code,
+                    CreatedBy = "system",
+                    CreatedAt = now
+                };
+                dbContext.MfgQcParameters.Add(existing);
+            }
+            else
+            {
+                existing.UpdatedBy = "system";
+                existing.UpdatedAt = now;
+            }
+            existing.Name = seed.Name;
+            existing.ItemId = item.Id;
+            existing.ParameterType = seed.Type;
+            existing.MinValue = seed.Min;
+            existing.MaxValue = seed.Max;
+            existing.IsCritical = seed.Critical;
+            existing.IsActive = true;
+            existing.Notes = seed.Notes;
+            existing.IsDeleted = false;
+            existing.DeletedAt = null;
+        }
+        await dbContext.SaveChangesAsync(ct);
+        var qcInspectionSeeds = new[]
+        {
+            (Code: "MFG-QCI-001", Status: QcStatus.Passed, Result: QcResult.Pass, Notes: "All checks pass"),
+            (Code: "MFG-QCI-002", Status: QcStatus.Passed, Result: QcResult.Pass, Notes: "All checks pass"),
+            (Code: "MFG-QCI-003", Status: QcStatus.Failed, Result: QcResult.Fail, Notes: "Dimension out of tolerance"),
+            (Code: "MFG-QCI-004", Status: QcStatus.ConditionalPass, Result: QcResult.ConditionalPass, Notes: "Minor cosmetic issue"),
+            (Code: "MFG-QCI-005", Status: QcStatus.Pending, Result: QcResult.Pass, Notes: "Waiting final inspection")
+        };
+        for (var i = 0; i < qcInspectionSeeds.Length; i++)
+        {
+            var seed = qcInspectionSeeds[i];
+            var workOrder = workOrders[i % workOrders.Count];
+            var item = items[i % items.Count];
+            var inspector = employees[i % employees.Count];
+            var existing = await dbContext.MfgQcInspections
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(x => x.Code == seed.Code, ct);
+            if (existing is null)
+            {
+                existing = new MfgQcInspection
+                {
+                    Code = seed.Code,
+                    CreatedBy = "system",
+                    CreatedAt = now
+                };
+                dbContext.MfgQcInspections.Add(existing);
+            }
+            else
+            {
+                existing.UpdatedBy = "system";
+                existing.UpdatedAt = now;
+            }
+            existing.WorkOrderId = workOrder.Id;
+            existing.ItemId = item.Id;
+            existing.InspectorEmployeeId = inspector.Id;
+            existing.InspectedAt = now.AddDays(-i).AddHours(-1);
+            existing.Status = seed.Status;
+            existing.Result = seed.Result;
+            existing.Notes = seed.Notes;
+            existing.IsDeleted = false;
+            existing.DeletedAt = null;
+        }
+        await dbContext.SaveChangesAsync(ct);
+        var scrapSeeds = new[]
+        {
+            (Code: "MFG-SCR-001", Reason: ScrapReason.MaterialDefect, Qty: 2m, UnitCost: 220000m, Notes: "Material crack"),
+            (Code: "MFG-SCR-002", Reason: ScrapReason.MachineFault, Qty: 1m, UnitCost: 180000m, Notes: "Machine jam"),
+            (Code: "MFG-SCR-003", Reason: ScrapReason.OperatorError, Qty: 3m, UnitCost: 260000m, Notes: "Wrong setting"),
+            (Code: "MFG-SCR-004", Reason: ScrapReason.Defective, Qty: 2m, UnitCost: 240000m, Notes: "Finish defect"),
+            (Code: "MFG-SCR-005", Reason: ScrapReason.DesignChange, Qty: 1m, UnitCost: 300000m, Notes: "Revision change")
+        };
+        for (var i = 0; i < scrapSeeds.Length; i++)
+        {
+            var seed = scrapSeeds[i];
+            var workOrder = workOrders[i % workOrders.Count];
+            var item = items[i % items.Count];
+            var workCenter = workCenters[i % workCenters.Count];
+            var existing = await dbContext.MfgScrapRecords
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(x => x.Code == seed.Code, ct);
+            if (existing is null)
+            {
+                existing = new MfgScrapRecord
+                {
+                    Code = seed.Code,
+                    CreatedBy = "system",
+                    CreatedAt = now
+                };
+                dbContext.MfgScrapRecords.Add(existing);
+            }
+            else
+            {
+                existing.UpdatedBy = "system";
+                existing.UpdatedAt = now;
+            }
+            existing.WorkOrderId = workOrder.Id;
+            existing.ItemId = item.Id;
+            existing.WorkCenterId = workCenter.Id;
+            existing.Reason = seed.Reason;
+            existing.QtyScrap = seed.Qty;
+            existing.UnitCost = seed.UnitCost;
+            existing.TotalScrapCost = seed.Qty * seed.UnitCost;
+            existing.RecordedAt = now.AddDays(-i);
+            existing.Notes = seed.Notes;
+            existing.IsDeleted = false;
+            existing.DeletedAt = null;
+        }
+        await dbContext.SaveChangesAsync(ct);
+        var reworkSeeds = new[]
+        {
+            (Code: "MFG-RWK-001", Qty: 3m, Status: WorkOrderStatus.InProgress, Notes: "Rework for dimension"),
+            (Code: "MFG-RWK-002", Qty: 2m, Status: WorkOrderStatus.Planned, Notes: "Rework for finish"),
+            (Code: "MFG-RWK-003", Qty: 1m, Status: WorkOrderStatus.Completed, Notes: "Rework done"),
+            (Code: "MFG-RWK-004", Qty: 2m, Status: WorkOrderStatus.Released, Notes: "Rework in queue"),
+            (Code: "MFG-RWK-005", Qty: 1m, Status: WorkOrderStatus.Closed, Notes: "Rework closed")
+        };
+        for (var i = 0; i < reworkSeeds.Length; i++)
+        {
+            var seed = reworkSeeds[i];
+            var sourceWorkOrder = workOrders[i % workOrders.Count];
+            var workOrder = workOrders[(i + 1) % workOrders.Count];
+            var item = items[i % items.Count];
+            var existing = await dbContext.MfgReworkOrders
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(x => x.Code == seed.Code, ct);
+            if (existing is null)
+            {
+                existing = new MfgReworkOrder
+                {
+                    Code = seed.Code,
+                    CreatedBy = "system",
+                    CreatedAt = now
+                };
+                dbContext.MfgReworkOrders.Add(existing);
+            }
+            else
+            {
+                existing.UpdatedBy = "system";
+                existing.UpdatedAt = now;
+            }
+            existing.SourceWorkOrderId = sourceWorkOrder.Id;
+            existing.WorkOrderId = workOrder.Id;
+            existing.ItemId = item.Id;
+            existing.QtyRework = seed.Qty;
+            existing.Status = seed.Status;
+            existing.OpenedAt = now.AddDays(-i - 1);
+            existing.ClosedAt = seed.Status is WorkOrderStatus.Completed or WorkOrderStatus.Closed
+                ? now.AddDays(-i)
+                : null;
+            existing.Notes = seed.Notes;
+            existing.IsDeleted = false;
+            existing.DeletedAt = null;
+        }
+        await dbContext.SaveChangesAsync(ct);
+        for (var i = 0; i < 5; i++)
+        {
+            var workCenter = workCenters[i % workCenters.Count];
+            var snapshotDate = today.AddDays(-i);
+            var existing = await dbContext.MfgOeeSnapshots
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(x => x.WorkCenterId == workCenter.Id && x.SnapshotDate == snapshotDate, ct);
+            if (existing is null)
+            {
+                existing = new MfgOeeSnapshot
+                {
+                    WorkCenterId = workCenter.Id,
+                    SnapshotDate = snapshotDate,
+                    CreatedBy = "system",
+                    CreatedAt = now
+                };
+                dbContext.MfgOeeSnapshots.Add(existing);
+            }
+            else
+            {
+                existing.UpdatedBy = "system";
+                existing.UpdatedAt = now;
+            }
+            var availability = decimal.Round(82m + i, 2, MidpointRounding.AwayFromZero);
+            var performance = decimal.Round(78m + i, 2, MidpointRounding.AwayFromZero);
+            var quality = decimal.Round(90m - i, 2, MidpointRounding.AwayFromZero);
+            var oee = decimal.Round((availability * performance * quality) / 10000m, 2, MidpointRounding.AwayFromZero);
+            existing.AvailabilityPct = availability;
+            existing.PerformancePct = performance;
+            existing.QualityPct = quality;
+            existing.OeePct = oee;
+            existing.IsDeleted = false;
+            existing.DeletedAt = null;
+        }
+        await dbContext.SaveChangesAsync(ct);
+    }
+
     private async Task SeedPurchasingMasterDataAsync(DateTimeOffset now, CancellationToken ct)
     {
         var activeEmployees = await dbContext.HrEmployees
@@ -2802,6 +3315,9 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         var salModule = await dbContext.CfgModules
             .IgnoreQueryFilters()
             .FirstAsync(x => x.Code == "SAL", ct);
+        var mfgModule = await dbContext.CfgModules
+            .IgnoreQueryFilters()
+            .FirstAsync(x => x.Code == "MFG", ct);
         var faModule = await dbContext.CfgModules
             .IgnoreQueryFilters()
             .FirstAsync(x => x.Code == "FA", ct);
@@ -2939,6 +3455,24 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         await EnsureMenuAsync(salModule.Id, salMaster.Id, "Approval Configs", "/sales/approval-configs", "bi-shield-check", 3, now, ct);
         await EnsureMenuAsync(salModule.Id, salMaster.Id, "Sales Teams", "/sales/teams", "bi-people", 4, now, ct);
         await EnsureMenuAsync(salModule.Id, salMaster.Id, "Customers", "/sales/customers", "bi-person-lines-fill", 5, now, ct);
+        await EnsureMenuAsync(mfgModule.Id, null, "Manufacturing Dashboard", "/manufacturing", "bi-speedometer2", 1, now, ct);
+        var mfgExecution = await EnsureMenuAsync(mfgModule.Id, null, "Production Execution", null, "bi-hammer", 2, now, ct);
+        await EnsureMenuAsync(mfgModule.Id, mfgExecution.Id, "Work Orders", "/manufacturing/work-orders", "bi-list-check", 1, now, ct);
+        await EnsureMenuAsync(mfgModule.Id, mfgExecution.Id, "MRP", "/manufacturing/mrp", "bi-bezier2", 2, now, ct);
+        await EnsureMenuAsync(mfgModule.Id, mfgExecution.Id, "Quality Control", "/manufacturing/qc", "bi-clipboard2-check", 3, now, ct);
+        await EnsureMenuAsync(mfgModule.Id, mfgExecution.Id, "Scrap", "/manufacturing/scrap", "bi-recycle", 4, now, ct);
+        await EnsureMenuAsync(mfgModule.Id, mfgExecution.Id, "Rework", "/manufacturing/rework", "bi-arrow-repeat", 5, now, ct);
+        var mfgReports = await EnsureMenuAsync(mfgModule.Id, null, "Manufacturing Reports", null, "bi-bar-chart-line", 3, now, ct);
+        await EnsureMenuAsync(mfgModule.Id, mfgReports.Id, "Production Output", "/manufacturing/reports/production-output", "bi-graph-up", 1, now, ct);
+        await EnsureMenuAsync(mfgModule.Id, mfgReports.Id, "OEE Report", "/manufacturing/reports/oee", "bi-speedometer", 2, now, ct);
+        await EnsureMenuAsync(mfgModule.Id, mfgReports.Id, "Cost Variance", "/manufacturing/reports/cost-variance", "bi-currency-dollar", 3, now, ct);
+        await EnsureMenuAsync(mfgModule.Id, mfgReports.Id, "Scrap Analysis", "/manufacturing/reports/scrap-analysis", "bi-pie-chart", 4, now, ct);
+        await EnsureMenuAsync(mfgModule.Id, mfgReports.Id, "Capacity", "/manufacturing/reports/capacity", "bi-bar-chart-steps", 5, now, ct);
+        var mfgMaster = await EnsureMenuAsync(mfgModule.Id, null, "Manufacturing Master", null, "bi-diagram-3", 4, now, ct);
+        await EnsureMenuAsync(mfgModule.Id, mfgMaster.Id, "BOMs", "/manufacturing/boms", "bi-list-ul", 1, now, ct);
+        await EnsureMenuAsync(mfgModule.Id, mfgMaster.Id, "Routings", "/manufacturing/routings", "bi-signpost-split", 2, now, ct);
+        await EnsureMenuAsync(mfgModule.Id, mfgMaster.Id, "Work Centers", "/manufacturing/work-centers", "bi-gear-wide", 3, now, ct);
+        await EnsureMenuAsync(mfgModule.Id, mfgMaster.Id, "QC Parameters", "/manufacturing/qc/parameters", "bi-sliders2", 4, now, ct);
         await EnsureMenuAsync(faModule.Id, null, "Fixed Assets Dashboard", "/fixed-assets", "bi-speedometer2", 1, now, ct);
 
         var faMaster = await EnsureMenuAsync(faModule.Id, null, "Fixed Assets Master", null, "bi-diagram-3", 2, now, ct);

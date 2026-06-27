@@ -67,7 +67,7 @@ public sealed class PagedGridViewComponent(IMenuPermissionService menuPermission
                 candidate = $"/{candidate}";
             }
 
-            return candidate.StartsWith("/sales", StringComparison.OrdinalIgnoreCase);
+            return candidate.StartsWith("/sales", StringComparison.OrdinalIgnoreCase) || candidate.StartsWith("/manufacturing", StringComparison.OrdinalIgnoreCase);
         }
 
         var securedRows = new List<PagedGridRowViewModel>(model.Rows.Count);
@@ -147,3 +147,4 @@ public sealed class PagedGridViewComponent(IMenuPermissionService menuPermission
         return View(securedModel);
     }
 }
+

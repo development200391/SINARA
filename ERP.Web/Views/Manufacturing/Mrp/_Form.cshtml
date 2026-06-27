@@ -1,0 +1,67 @@
+@model ERP.Web.ViewModels.Manufacturing.ManufacturingMrpRunEditViewModel
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label asp-for="Code" class="form-label"></label>
+                <input asp-for="Code" class="form-control" />
+                <span asp-validation-for="Code" class="text-danger"></span>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="RunDate" class="form-label">@T["Run Date"]</label>
+                <input asp-for="RunDate" class="form-control" type="date" />
+                <span asp-validation-for="RunDate" class="text-danger"></span>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="Status" class="form-label"></label>
+                <select asp-for="Status" asp-items="Html.GetEnumSelectList<ERP.Domain.Enums.Manufacturing.MrpStatus>()" class="form-select"></select>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="HorizonDays" class="form-label">@T["Horizon Days"]</label>
+                <input asp-for="HorizonDays" class="form-control" type="number" min="1" />
+                <span asp-validation-for="HorizonDays" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-3">
+                <label asp-for="TotalDemandItems" class="form-label">@T["Total Demand Items"]</label>
+                <input asp-for="TotalDemandItems" class="form-control" type="number" min="0" />
+                <span asp-validation-for="TotalDemandItems" class="text-danger"></span>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="RecommendedWoCount" class="form-label">@T["Recommended WO Count"]</label>
+                <input asp-for="RecommendedWoCount" class="form-control" type="number" min="0" />
+                <span asp-validation-for="RecommendedWoCount" class="text-danger"></span>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="RecommendedPrCount" class="form-label">@T["Recommended PR Count"]</label>
+                <input asp-for="RecommendedPrCount" class="form-control" type="number" min="0" />
+                <span asp-validation-for="RecommendedPrCount" class="text-danger"></span>
+            </div>
+            <div class="col-md-3"></div>
+
+            <div class="col-md-3">
+                <label asp-for="StartedAt" class="form-label">@T["Started At"]</label>
+                <input asp-for="StartedAt" asp-format="{0:yyyy-MM-ddTHH:mm}" class="form-control" type="datetime-local" />
+                <span asp-validation-for="StartedAt" class="text-danger"></span>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="CompletedAt" class="form-label">@T["Completed At"]</label>
+                <input asp-for="CompletedAt" asp-format="{0:yyyy-MM-ddTHH:mm}" class="form-control" type="datetime-local" />
+                <span asp-validation-for="CompletedAt" class="text-danger"></span>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="Notes" class="form-label"></label>
+                <textarea asp-for="Notes" class="form-control" rows="2"></textarea>
+                <span asp-validation-for="Notes" class="text-danger"></span>
+            </div>
+        </div>
+
+        <div class="mt-4 d-flex gap-2">
+            <button type="submit" class="btn btn-primary">@T["common.save"]</button>
+            <a asp-action="Mrp" class="btn btn-outline-secondary">@T["common.back"]</a>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,169 @@
+@model ERP.Web.ViewModels.Manufacturing.ManufacturingReworkOrdersIndexViewModel
+@using ERP.Application.DTOs.Manufacturing
+@using ERP.Domain.Enums.Manufacturing
+@using ERP.Web.ViewModels.Shared
+@using System.Globalization
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">@T["Rework"]</h1>
+
+        @{
+            var selectedStatus = Model.StatusFilter.HasValue ? ((int)Model.StatusFilter.Value).ToString(CultureInfo.InvariantCulture) : null;
+            var statusOptions = Enum.GetValues<WorkOrderStatus>()
+                .Select(x => new PagedGridFilterOptionViewModel { Value = ((int)x).ToString(CultureInfo.InvariantCulture), Label = x.ToString() })
+                .ToList();
+
+            PagedGridRowActionViewModel? ResolveActions(ManufacturingReworkOrderDto item)
+            {
+                var canEdit = item.Status is not WorkOrderStatus.Closed and not WorkOrderStatus.Cancelled;
+                var editUrl = canEdit ? Url.Action("EditRework", "Manufacturing", new { id = item.Id }) : null;
+
+                return item.Status switch
+                {
+                    WorkOrderStatus.Draft => new PagedGridRowActionViewModel
+                    {
+                        EditUrl = editUrl,
+                        ApproveUrl = Url.Action("StartRework", "Manufacturing", new { id = item.Id }),
+                        RejectUrl = Url.Action("CancelRework", "Manufacturing", new { id = item.Id }),
+                        DeleteUrl = Url.Action("DeleteRework", "Manufacturing", new { id = item.Id }),
+                        ApproveConfirmMessage = T["Start this rework?"],
+                        RejectConfirmMessage = T["Cancel this rework?"],
+                        DeleteConfirmMessage = T["Delete this data?"]
+                    },
+                    WorkOrderStatus.Planned or WorkOrderStatus.Released => new PagedGridRowActionViewModel
+                    {
+                        EditUrl = editUrl,
+                        ApproveUrl = Url.Action("StartRework", "Manufacturing", new { id = item.Id }),
+                        RejectUrl = Url.Action("CancelRework", "Manufacturing", new { id = item.Id }),
+                        ApproveConfirmMessage = T["Start this rework?"],
+                        RejectConfirmMessage = T["Cancel this rework?"]
+                    },
+                    WorkOrderStatus.InProgress => new PagedGridRowActionViewModel
+                    {
+                        EditUrl = editUrl,
+                        ApproveUrl = Url.Action("CompleteRework", "Manufacturing", new { id = item.Id }),
+                        RejectUrl = Url.Action("CancelRework", "Manufacturing", new { id = item.Id }),
+                        ApproveConfirmMessage = T["Complete this rework?"],
+                        RejectConfirmMessage = T["Cancel this rework?"]
+                    },
+                    WorkOrderStatus.Completed => new PagedGridRowActionViewModel
+                    {
+                        EditUrl = editUrl,
+                        ApproveUrl = Url.Action("CloseRework", "Manufacturing", new { id = item.Id }),
+                        ApproveConfirmMessage = T["Close this rework?"]
+                    },
+                    _ => canEdit
+                        ? new PagedGridRowActionViewModel { EditUrl = editUrl }
+                        : null
+                };
+            }
+
+            var rows = Model.Items.Items.Select(item => new PagedGridRowViewModel
+            {
+                Cells =
+                [
+                    new PagedGridCellViewModel { Text = item.Code },
+                    new PagedGridCellViewModel { Text = string.IsNullOrWhiteSpace(item.SourceWorkOrderCode) ? "-" : item.SourceWorkOrderCode },
+                    new PagedGridCellViewModel { Text = string.IsNullOrWhiteSpace(item.WorkOrderCode) ? "-" : item.WorkOrderCode },
+                    new PagedGridCellViewModel { Text = string.IsNullOrWhiteSpace(item.ItemCode) ? "-" : item.ItemCode },
+                    new PagedGridCellViewModel { Text = item.QtyRework.ToString("N2", CultureInfo.InvariantCulture), CellClass = "text-end" },
+                    new PagedGridCellViewModel { Text = item.Status.ToString() },
+                    new PagedGridCellViewModel { Text = item.OpenedAt.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) },
+                    new PagedGridCellViewModel { Text = item.ClosedAt.HasValue ? item.ClosedAt.Value.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) : "-" }
+                ],
+                Actions = ResolveActions(item)
+            }).ToList();
+
+            var gridModel = new PagedGridViewModel
+            {
+                Columns =
+                [
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "code",
+                        Title = T["Code"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Text,
+                            QueryKey = "code",
+                            Value = Model.CodeFilter,
+                            Placeholder = T["Filter code"]
+                        }
+                    },
+                    new PagedGridColumnViewModel { Key = "source", Title = T["Source WO"], Sortable = false },
+                    new PagedGridColumnViewModel { Key = "target", Title = T["Target WO"], Sortable = false },
+                    new PagedGridColumnViewModel { Key = "item", Title = T["Item"], Sortable = false },
+                    new PagedGridColumnViewModel { Key = "qtyrework", Title = T["Qty Rework"], Sortable = true, CellClass = "text-end" },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "status",
+                        Title = T["Status"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.Select,
+                            QueryKey = "status",
+                            Value = selectedStatus,
+                            EmptyOptionLabel = T["All"],
+                            Options = statusOptions
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "openedat",
+                        Title = T["Opened At"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.DateRange,
+                            QueryKey = "openedFrom",
+                            QueryKeyTo = "openedTo",
+                            Value = Model.OpenedFromFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                            ValueTo = Model.OpenedToFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+                        }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "closedat",
+                        Title = T["Closed At"],
+                        Sortable = true,
+                        Filter = new PagedGridFilterViewModel
+                        {
+                            Type = PagedGridFilterType.DateRange,
+                            QueryKey = "closedFrom",
+                            QueryKeyTo = "closedTo",
+                            Value = Model.ClosedFromFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                            ValueTo = Model.ClosedToFilter?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+                        }
+                    }
+                ],
+                Rows = rows,
+                EmptyMessage = T["msg.no_data"],
+                Page = Model.Items.Page,
+                TotalPages = Model.Items.TotalPages,
+                PageSize = Model.PageSize,
+                SortBy = Model.SortBy,
+                SortDirection = Model.SortDirection,
+                EnableSearch = true,
+                SearchValue = Model.Search,
+                SearchPlaceholder = T["Search"] + " " + T["Rework"],
+                SearchButtonText = T["common.search"],
+                Actions = new PagedGridActionConfigViewModel
+                {
+                    ActionColumnTitle = T["Action"],
+                    AddUrl = Url.Action("CreateRework", "Manufacturing"),
+                    AddButtonText = T["common.add_new"],
+                    EditButtonText = T["common.edit"],
+                    ApproveButtonText = T["Process"],
+                    RejectButtonText = T["Cancel"],
+                    DeleteButtonText = T["common.delete"],
+                    DeleteConfirmMessage = T["Delete this data?"]
+                }
+            };
+        }
+
+        @await Component.InvokeAsync("PagedGrid", gridModel)
+    </div>
+</div>

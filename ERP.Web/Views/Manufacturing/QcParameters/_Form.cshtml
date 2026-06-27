@@ -1,0 +1,62 @@
+@model ERP.Web.ViewModels.Manufacturing.ManufacturingQcParameterEditViewModel
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label asp-for="Code" class="form-label"></label>
+                <input asp-for="Code" class="form-control" />
+                <span asp-validation-for="Code" class="text-danger"></span>
+            </div>
+            <div class="col-md-5">
+                <label asp-for="Name" class="form-label"></label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="ItemId" class="form-label">@T["Item"]</label>
+                <select asp-for="ItemId" class="form-select">
+                    <option value="">-- Select --</option>
+                    @foreach (var option in Model.ItemOptions)
+                    {
+                        <option value="@option.Id">@option.Label</option>
+                    }
+                </select>
+                <span asp-validation-for="ItemId" class="text-danger"></span>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="ParameterType" class="form-label">@T["Parameter Type"]</label>
+                <select asp-for="ParameterType" asp-items="Html.GetEnumSelectList<ERP.Domain.Enums.Manufacturing.QcParameterType>()" class="form-select"></select>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="MinValue" class="form-label">@T["Min Value"]</label>
+                <input asp-for="MinValue" class="form-control" type="number" step="0.0001" />
+                <span asp-validation-for="MinValue" class="text-danger"></span>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="MaxValue" class="form-label">@T["Max Value"]</label>
+                <input asp-for="MaxValue" class="form-control" type="number" step="0.0001" />
+                <span asp-validation-for="MaxValue" class="text-danger"></span>
+            </div>
+            <div class="col-md-3 d-flex align-items-center gap-4">
+                <div class="form-check mt-4">
+                    <input asp-for="IsCritical" class="form-check-input" />
+                    <label asp-for="IsCritical" class="form-check-label">@T["Critical"]</label>
+                </div>
+                <div class="form-check mt-4">
+                    <input asp-for="IsActive" class="form-check-input" />
+                    <label asp-for="IsActive" class="form-check-label">@T["Active"]</label>
+                </div>
+            </div>
+            <div class="col-md-12">
+                <label asp-for="Notes" class="form-label"></label>
+                <textarea asp-for="Notes" class="form-control" rows="2"></textarea>
+            </div>
+        </div>
+
+        <div class="mt-4 d-flex gap-2">
+            <button type="submit" class="btn btn-primary">@T["common.save"]</button>
+            <a asp-action="QcParameters" class="btn btn-outline-secondary">@T["common.back"]</a>
+        </div>
+    </div>
+</div>

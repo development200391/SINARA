@@ -1,0 +1,10 @@
+@model ERP.Web.ViewModels.Manufacturing.ManufacturingRoutingEditViewModel
+
+<form asp-action="CreateRouting" method="post" class="needs-validation" novalidate>
+    @Html.AntiForgeryToken()
+    <partial name="_Form" model="Model" />
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
