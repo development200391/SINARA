@@ -11,7 +11,7 @@ public sealed class AppDbContextFactory : IDesignTimeDbContextFactory<AppDbConte
     {
         var connectionString =
             Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")
-            ?? "Host=localhost;Port=5432;Database=erp_db;Username=erp_user;Password=ChangeMe_Str0ng!";
+            ?? "Host=localhost;Port=5432;Database=erp_db;Username=postgres;Password=postgres";
 
         var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
         dataSourceBuilder.MapEnum<HolidayType>("holiday_type_enum");
