@@ -25,19 +25,21 @@ builder.Services.AddMemoryCache();
 
 builder.Services.Configure<ApiSettings>(builder.Configuration.GetSection(ApiSettings.SectionName));
 
+builder.Services.AddTransient<CorrelationIdHandler>();
+
 builder.Services.AddHttpClient<IAuthApiClient, AuthApiClient>((serviceProvider, client) =>
 {
     var options = serviceProvider.GetRequiredService<IOptions<ApiSettings>>().Value;
     var baseUrl = options.BaseUrl?.TrimEnd('/') ?? "http://localhost:8081";
     client.BaseAddress = new Uri($"{baseUrl}/");
-});
+}).AddHttpMessageHandler<CorrelationIdHandler>();
 
 builder.Services.AddHttpClient<IConfigApiClient, ConfigApiClient>((serviceProvider, client) =>
 {
     var options = serviceProvider.GetRequiredService<IOptions<ApiSettings>>().Value;
     var baseUrl = options.BaseUrl?.TrimEnd('/') ?? "http://localhost:8081";
     client.BaseAddress = new Uri($"{baseUrl}/");
-});
+}).AddHttpMessageHandler<CorrelationIdHandler>();
 
 builder.Services.AddScoped<ITextLocalizer, TextLocalizer>();
 builder.Services.AddScoped<AutoRequireMenuPermissionFilter>();
@@ -50,56 +52,56 @@ builder.Services.AddHttpClient<IHrApiClient, HrApiClient>((serviceProvider, clie
     var options = serviceProvider.GetRequiredService<IOptions<ApiSettings>>().Value;
     var baseUrl = options.BaseUrl?.TrimEnd('/') ?? "http://localhost:8081";
     client.BaseAddress = new Uri($"{baseUrl}/");
-});
+}).AddHttpMessageHandler<CorrelationIdHandler>();
 
 builder.Services.AddHttpClient<IFinanceApiClient, FinanceApiClient>((serviceProvider, client) =>
 {
     var options = serviceProvider.GetRequiredService<IOptions<ApiSettings>>().Value;
     var baseUrl = options.BaseUrl?.TrimEnd('/') ?? "http://localhost:8081";
     client.BaseAddress = new Uri($"{baseUrl}/");
-});
+}).AddHttpMessageHandler<CorrelationIdHandler>();
 
 builder.Services.AddHttpClient<IInventoryApiClient, InventoryApiClient>((serviceProvider, client) =>
 {
     var options = serviceProvider.GetRequiredService<IOptions<ApiSettings>>().Value;
     var baseUrl = options.BaseUrl?.TrimEnd('/') ?? "http://localhost:8081";
     client.BaseAddress = new Uri($"{baseUrl}/");
-});
+}).AddHttpMessageHandler<CorrelationIdHandler>();
 
 builder.Services.AddHttpClient<IPurchasingApiClient, PurchasingApiClient>((serviceProvider, client) =>
 {
     var options = serviceProvider.GetRequiredService<IOptions<ApiSettings>>().Value;
     var baseUrl = options.BaseUrl?.TrimEnd('/') ?? "http://localhost:8081";
     client.BaseAddress = new Uri($"{baseUrl}/");
-});
+}).AddHttpMessageHandler<CorrelationIdHandler>();
 
 builder.Services.AddHttpClient<ISalesApiClient, SalesApiClient>((serviceProvider, client) =>
 {
     var options = serviceProvider.GetRequiredService<IOptions<ApiSettings>>().Value;
     var baseUrl = options.BaseUrl?.TrimEnd('/') ?? "http://localhost:8081";
     client.BaseAddress = new Uri($"{baseUrl}/");
-});
+}).AddHttpMessageHandler<CorrelationIdHandler>();
 
 builder.Services.AddHttpClient<IManufacturingApiClient, ManufacturingApiClient>((serviceProvider, client) =>
 {
     var options = serviceProvider.GetRequiredService<IOptions<ApiSettings>>().Value;
     var baseUrl = options.BaseUrl?.TrimEnd('/') ?? "http://localhost:8081";
     client.BaseAddress = new Uri($"{baseUrl}/");
-});
+}).AddHttpMessageHandler<CorrelationIdHandler>();
 
 builder.Services.AddHttpClient<IApprovalApiClient, ApprovalApiClient>((serviceProvider, client) =>
 {
     var options = serviceProvider.GetRequiredService<IOptions<ApiSettings>>().Value;
     var baseUrl = options.BaseUrl?.TrimEnd('/') ?? "http://localhost:8081";
     client.BaseAddress = new Uri($"{baseUrl}/");
-});
+}).AddHttpMessageHandler<CorrelationIdHandler>();
 
 builder.Services.AddHttpClient<IFixedAssetsApiClient, FixedAssetsApiClient>((serviceProvider, client) =>
 {
     var options = serviceProvider.GetRequiredService<IOptions<ApiSettings>>().Value;
     var baseUrl = options.BaseUrl?.TrimEnd('/') ?? "http://localhost:8081";
     client.BaseAddress = new Uri($"{baseUrl}/");
-});
+}).AddHttpMessageHandler<CorrelationIdHandler>();
 
 builder.Services
     .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -124,6 +126,7 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
+app.UseMiddleware<ERP.Web.Middleware.CorrelationIdMiddleware>();
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 

@@ -65,12 +65,16 @@ public sealed class RequestLoggingMiddleware
 
         Directory.CreateDirectory(_logDirectory);
 
+        var correlationId = context.Request.Headers["X-Correlation-Id"].FirstOrDefault();
+
         var sb = new StringBuilder();
         sb.AppendLine($"=== {startTime:yyyy-MM-dd HH:mm:ss} ===");
         sb.AppendLine($"{context.Request.Method} {context.Request.Path}{context.Request.QueryString}");
         sb.Append($"Start : {startTime:HH:mm:ss.fff} | ");
         sb.Append($"Finish : {finishTime:HH:mm:ss.fff} | ");
         sb.AppendLine($"Duration : {duration.TotalMilliseconds:F0}ms");
+        if (correlationId is not null)
+            sb.AppendLine($"CorrelationId: {correlationId}");
         sb.AppendLine("[REQUEST BODY]");
         sb.AppendLine(string.IsNullOrWhiteSpace(requestBody) ? "(empty)" : requestBody);
         sb.AppendLine($"[RESPONSE {context.Response.StatusCode}]");
