@@ -11,6 +11,7 @@ public sealed class TextLocalizer(IHttpContextAccessor httpContextAccessor) : IT
         ["en"] = new(StringComparer.OrdinalIgnoreCase)
         {
             ["common.save"] = "Save",
+            ["common.back"] = "Back",
             ["common.cancel"] = "Cancel",
             ["common.edit"] = "Edit",
             ["common.delete"] = "Delete",
@@ -65,6 +66,7 @@ public sealed class TextLocalizer(IHttpContextAccessor httpContextAccessor) : IT
         ["id"] = new(StringComparer.OrdinalIgnoreCase)
         {
             ["common.save"] = "Simpan",
+            ["common.back"] = "Kembali",
             ["common.cancel"] = "Batal",
             ["common.edit"] = "Ubah",
             ["common.delete"] = "Hapus",

@@ -49,7 +49,6 @@ public sealed class SalesCustomerCategoryEditViewModel
     [Range(0, int.MaxValue)]
     public int DefaultPaymentTerms { get; set; } = 2;
 
-    [Range(typeof(decimal), "0", "999999999999999.9999")]
     public decimal DefaultCreditLimit { get; set; }
 
     public string? Description { get; set; }
@@ -144,10 +143,8 @@ public sealed class SalesPriceListItemEditViewModel
     [Range(1, int.MaxValue)]
     public int UomId { get; set; }
 
-    [Range(typeof(decimal), "0.0001", "999999999999999.9999")]
     public decimal MinQty { get; set; } = 1m;
 
-    [Range(typeof(decimal), "0", "999999999999999.9999")]
     public decimal UnitPrice { get; set; }
 
     [Range(typeof(decimal), "0", "100")]
@@ -191,10 +188,8 @@ public sealed class SalesApprovalConfigEditViewModel
     [Range(1, int.MaxValue)]
     public int Level { get; set; } = 1;
 
-    [Range(typeof(decimal), "0", "999999999999999.9999")]
     public decimal MinAmount { get; set; }
 
-    [Range(typeof(decimal), "0", "999999999999999.9999")]
     public decimal? MaxAmount { get; set; }
 
     [Range(typeof(decimal), "0", "100")]

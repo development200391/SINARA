@@ -2,7 +2,7 @@
 
 <form asp-action="CreateWorkCenter" method="post" class="needs-validation" novalidate>
     @Html.AntiForgeryToken()
-    <partial name="_Form" model="Model" />
+    <partial name="WorkCenters/_Form" model="Model" />
 </form>
 
 @section Scripts {

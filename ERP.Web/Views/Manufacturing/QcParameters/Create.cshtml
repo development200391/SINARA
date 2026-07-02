@@ -2,7 +2,7 @@
 
 <form asp-action="CreateQcParameter" method="post" class="needs-validation" novalidate>
     @Html.AntiForgeryToken()
-    <partial name="_Form" model="Model" />
+    <partial name="QcParameters/_Form" model="Model" />
 </form>
 
 @section Scripts {

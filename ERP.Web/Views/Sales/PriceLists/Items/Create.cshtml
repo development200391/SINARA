@@ -2,7 +2,7 @@
 
 <form asp-action="CreatePriceListItem" asp-route-priceListId="@Model.PriceListId" method="post">
     @Html.AntiForgeryToken()
-    <partial name="_Form" model="Model" />
+    <partial name="PriceLists/Items/_Form" model="Model" />
 </form>
 
 @section Scripts {

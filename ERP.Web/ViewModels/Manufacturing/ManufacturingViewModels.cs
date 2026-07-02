@@ -236,13 +236,10 @@ public sealed class ManufacturingWorkCenterEditViewModel
     [MaxLength(100)]
     public string Name { get; set; } = string.Empty;
 
-    [Range(typeof(decimal), "0.01", "999999999999999.99")]
     public decimal CapacityHoursPerDay { get; set; }
 
-    [Range(typeof(decimal), "0", "999999999999999.99")]
     public decimal LaborCostPerHour { get; set; }
 
-    [Range(typeof(decimal), "0", "999999999999999.99")]
     public decimal OverheadCostPerHour { get; set; }
 
     public int? WipAccountId { get; set; }
@@ -270,7 +267,6 @@ public sealed class ManufacturingRoutingEditViewModel
 
     public RoutingStatus Status { get; set; } = RoutingStatus.Draft;
 
-    [Range(typeof(decimal), "0", "999999999999999.99")]
     public decimal TotalLeadTimeHours { get; set; }
 
     public bool IsActive { get; set; } = true;
@@ -299,10 +295,8 @@ public sealed class ManufacturingBomEditViewModel
 
     public BomStatus Status { get; set; } = BomStatus.Draft;
 
-    [Range(typeof(decimal), "0.0001", "999999999999999.9999")]
     public decimal QtyProduced { get; set; } = 1m;
 
-    [Range(typeof(decimal), "0", "999999999999999.9999")]
     public decimal StandardCost { get; set; }
 
     [Required]
@@ -363,13 +357,10 @@ public sealed class ManufacturingWorkOrderEditViewModel
     public WorkOrderStatus Status { get; set; } = WorkOrderStatus.Draft;
     public ProductionType ProductionType { get; set; } = ProductionType.MakeToStock;
 
-    [Range(typeof(decimal), "0.0001", "999999999999999.9999")]
     public decimal QtyPlanned { get; set; }
 
-    [Range(typeof(decimal), "0", "999999999999999.9999")]
     public decimal QtyGood { get; set; }
 
-    [Range(typeof(decimal), "0", "999999999999999.9999")]
     public decimal QtyScrap { get; set; }
 
     [Required]
@@ -381,10 +372,8 @@ public sealed class ManufacturingWorkOrderEditViewModel
     public DateTimeOffset? ActualStartAt { get; set; }
     public DateTimeOffset? ActualEndAt { get; set; }
 
-    [Range(typeof(decimal), "0", "999999999999999.9999")]
     public decimal StandardCostTotal { get; set; }
 
-    [Range(typeof(decimal), "0", "999999999999999.9999")]
     public decimal ActualCostTotal { get; set; }
 
     public bool IsActive { get; set; } = true;
@@ -467,10 +456,8 @@ public sealed class ManufacturingScrapRecordEditViewModel
 
     public ScrapReason Reason { get; set; } = ScrapReason.Other;
 
-    [Range(typeof(decimal), "0.0001", "999999999999999.9999")]
     public decimal QtyScrap { get; set; }
 
-    [Range(typeof(decimal), "0", "999999999999999.9999")]
     public decimal UnitCost { get; set; }
 
     public DateTimeOffset RecordedAt { get; set; } = DateTimeOffset.Now;
@@ -494,7 +481,6 @@ public sealed class ManufacturingReworkOrderEditViewModel
     public int? WorkOrderId { get; set; }
     public int? ItemId { get; set; }
 
-    [Range(typeof(decimal), "0.0001", "999999999999999.9999")]
     public decimal QtyRework { get; set; }
 
     public WorkOrderStatus Status { get; set; } = WorkOrderStatus.Draft;

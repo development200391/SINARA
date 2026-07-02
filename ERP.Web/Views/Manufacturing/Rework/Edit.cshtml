@@ -2,7 +2,7 @@
 
 <form asp-action="EditRework" asp-route-id="@Model.Id" method="post" class="needs-validation" novalidate>
     @Html.AntiForgeryToken()
-    <partial name="_Form" model="Model" />
+    <partial name="Rework/_Form" model="Model" />
 </form>
 
 @section Scripts {
