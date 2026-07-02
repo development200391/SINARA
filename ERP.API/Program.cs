@@ -122,6 +122,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseMiddleware<ERP.API.Middleware.RequestLoggingMiddleware>();
 app.UseHttpsRedirection();
 app.UseRateLimiter();
 app.UseAuthentication();
