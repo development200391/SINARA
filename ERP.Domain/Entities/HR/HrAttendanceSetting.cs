@@ -11,5 +11,8 @@ public sealed class HrAttendanceSetting : BaseEntity
     public TimeOnly BreakStart { get; set; } = new(12, 0);
     public TimeOnly BreakEnd { get; set; } = new(13, 0);
     public int MinimumOtMinutes { get; set; } = 60;
+    public decimal? OfficeLatitude { get; set; }
+    public decimal? OfficeLongitude { get; set; }
+    public int RadiusMeters { get; set; } = 100;
 }
 

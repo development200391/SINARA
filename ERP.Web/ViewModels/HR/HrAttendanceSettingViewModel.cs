@@ -29,4 +29,13 @@ public sealed class HrAttendanceSettingViewModel
 
     [Range(0, 1440)]
     public int MinimumOtMinutes { get; set; } = 60;
+
+    [Range(-90, 90)]
+    public decimal? OfficeLatitude { get; set; }
+
+    [Range(-180, 180)]
+    public decimal? OfficeLongitude { get; set; }
+
+    [Range(1, 100000)]
+    public int RadiusMeters { get; set; } = 100;
 }

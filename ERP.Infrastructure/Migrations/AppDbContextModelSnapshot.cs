@@ -340,9 +340,25 @@ namespace ERP.Infrastructure.Migrations
                         .HasColumnType("timestamptz")
                         .HasColumnName("check_in");
 
+                    b.Property<decimal?>("CheckInLatitude")
+                        .HasColumnType("numeric(9,6)")
+                        .HasColumnName("check_in_latitude");
+
+                    b.Property<decimal?>("CheckInLongitude")
+                        .HasColumnType("numeric(9,6)")
+                        .HasColumnName("check_in_longitude");
+
                     b.Property<DateTimeOffset?>("CheckOut")
                         .HasColumnType("timestamptz")
                         .HasColumnName("check_out");
+
+                    b.Property<decimal?>("CheckOutLatitude")
+                        .HasColumnType("numeric(9,6)")
+                        .HasColumnName("check_out_latitude");
+
+                    b.Property<decimal?>("CheckOutLongitude")
+                        .HasColumnType("numeric(9,6)")
+                        .HasColumnName("check_out_longitude");
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamptz")
@@ -474,6 +490,20 @@ namespace ERP.Infrastructure.Migrations
                         .HasColumnType("integer")
                         .HasDefaultValue(60)
                         .HasColumnName("minimum_ot_minutes");
+
+                    b.Property<decimal?>("OfficeLatitude")
+                        .HasColumnType("numeric(9,6)")
+                        .HasColumnName("office_latitude");
+
+                    b.Property<decimal?>("OfficeLongitude")
+                        .HasColumnType("numeric(9,6)")
+                        .HasColumnName("office_longitude");
+
+                    b.Property<int>("RadiusMeters")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(100)
+                        .HasColumnName("radius_meters");
 
                     b.Property<string>("SingletonKey")
                         .IsRequired()

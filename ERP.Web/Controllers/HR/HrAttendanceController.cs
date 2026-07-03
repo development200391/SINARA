@@ -546,7 +546,10 @@ public sealed class HrAttendanceController(IHrApiClient hrApiClient) : Controlle
             WorkEnd = workEnd!.Value,
             BreakStart = breakStart!.Value,
             BreakEnd = breakEnd!.Value,
-            MinimumOtMinutes = model.MinimumOtMinutes
+            MinimumOtMinutes = model.MinimumOtMinutes,
+            OfficeLatitude = model.OfficeLatitude,
+            OfficeLongitude = model.OfficeLongitude,
+            RadiusMeters = model.RadiusMeters
         }, ct);
 
         if (!updated.IsSuccess)
@@ -988,7 +991,10 @@ public sealed class HrAttendanceController(IHrApiClient hrApiClient) : Controlle
             WorkEnd = dto.WorkEnd.ToString("HH:mm", CultureInfo.InvariantCulture),
             BreakStart = dto.BreakStart.ToString("HH:mm", CultureInfo.InvariantCulture),
             BreakEnd = dto.BreakEnd.ToString("HH:mm", CultureInfo.InvariantCulture),
-            MinimumOtMinutes = dto.MinimumOtMinutes
+            MinimumOtMinutes = dto.MinimumOtMinutes,
+            OfficeLatitude = dto.OfficeLatitude,
+            OfficeLongitude = dto.OfficeLongitude,
+            RadiusMeters = dto.RadiusMeters
         };
     }
 

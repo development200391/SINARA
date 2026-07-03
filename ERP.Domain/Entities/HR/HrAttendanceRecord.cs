@@ -8,6 +8,10 @@ public sealed class HrAttendanceRecord : BaseEntity
     public DateOnly Date { get; set; }
     public DateTimeOffset? CheckIn { get; set; }
     public DateTimeOffset? CheckOut { get; set; }
+    public decimal? CheckInLatitude { get; set; }
+    public decimal? CheckInLongitude { get; set; }
+    public decimal? CheckOutLatitude { get; set; }
+    public decimal? CheckOutLongitude { get; set; }
     public AttendanceStatus Status { get; set; } = AttendanceStatus.Present;
     public string? Notes { get; set; }
 

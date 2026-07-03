@@ -58,3 +58,16 @@ public sealed class AttendanceReportRequest : PagedRequest
     public AttendanceStatus? Status { get; set; }
     public string? Notes { get; set; }
 }
+
+public sealed class CheckInOutRequest
+{
+    public decimal Latitude { get; set; }
+    public decimal Longitude { get; set; }
+}
+
+public sealed class MarkAttendanceStatusRequest
+{
+    public DateOnly Date { get; set; }
+    public AttendanceStatus Status { get; set; }
+    public string? Notes { get; set; }
+}

@@ -1,6 +1,7 @@
 using ERP.Application.DTOs.Common;
 using ERP.Application.DTOs.HR;
 using ERP.Domain.Entities.HR;
+using ERP.Domain.Enums;
 using ERP.Domain.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,6 +10,14 @@ namespace ERP.Application.Services.HR;
 public sealed class AttendanceService(IUnitOfWork unitOfWork) : IAttendanceService
 {
     private const string DefaultSortBy = "date";
+    private static readonly TimeSpan LocalOffset = TimeSpan.FromHours(7);
+    private static readonly AttendanceStatus[] SelfReportableStatuses =
+    [
+        AttendanceStatus.HalfDay,
+        AttendanceStatus.Sick,
+        AttendanceStatus.Cuti,
+        AttendanceStatus.Absent
+    ];
 
     public async Task<PagedResult<AttendanceReportDto>> GetPagedAsync(AttendanceReportRequest request, CancellationToken ct = default)
     {
@@ -248,6 +257,173 @@ public sealed class AttendanceService(IUnitOfWork unitOfWork) : IAttendanceServi
 
         return true;
     }
+
+    public async Task<AttendanceDto?> GetTodayAsync(int employeeId, CancellationToken ct = default)
+    {
+        var today = TodayLocal();
+
+        var entity = await unitOfWork.Repository<HrAttendanceRecord>()
+            .Query()
+            .AsNoTracking()
+            .Include(x => x.Employee)
+            .ThenInclude(x => x.Department)
+            .FirstOrDefaultAsync(x => x.EmployeeId == employeeId && x.Date == today, ct);
+
+        return entity is null ? null : MapAttendance(entity);
+    }
+
+    public async Task<AttendanceDto> CheckInAsync(int employeeId, decimal latitude, decimal longitude, CancellationToken ct = default)
+    {
+        var today = TodayLocal();
+
+        var entity = await unitOfWork.Repository<HrAttendanceRecord>()
+            .Query()
+            .FirstOrDefaultAsync(x => x.EmployeeId == employeeId && x.Date == today, ct);
+
+        if (entity is not null && entity.CheckIn.HasValue)
+        {
+            throw new InvalidOperationException("You have already checked in today.");
+        }
+
+        await ValidateWithinOfficeRadiusAsync(latitude, longitude, ct);
+
+        var now = DateTimeOffset.UtcNow;
+
+        if (entity is null)
+        {
+            entity = new HrAttendanceRecord
+            {
+                EmployeeId = employeeId,
+                Date = today,
+                CheckIn = now,
+                CheckInLatitude = latitude,
+                CheckInLongitude = longitude,
+                Status = AttendanceStatus.Present,
+                CreatedBy = "system"
+            };
+
+            await unitOfWork.Repository<HrAttendanceRecord>().AddAsync(entity, ct);
+        }
+        else
+        {
+            entity.CheckIn = now;
+            entity.CheckInLatitude = latitude;
+            entity.CheckInLongitude = longitude;
+            entity.UpdatedBy = "system";
+            entity.UpdatedAt = now;
+            unitOfWork.Repository<HrAttendanceRecord>().Update(entity);
+        }
+
+        await unitOfWork.SaveChangesAsync(ct);
+
+        return await GetByIdAsync(entity.Id, ct)
+            ?? throw new InvalidOperationException("Failed to load attendance record.");
+    }
+
+    public async Task<AttendanceDto> CheckOutAsync(int employeeId, decimal latitude, decimal longitude, CancellationToken ct = default)
+    {
+        var today = TodayLocal();
+
+        var entity = await unitOfWork.Repository<HrAttendanceRecord>()
+            .Query()
+            .FirstOrDefaultAsync(x => x.EmployeeId == employeeId && x.Date == today, ct);
+
+        if (entity is null || !entity.CheckIn.HasValue)
+        {
+            throw new InvalidOperationException("You must check in before checking out.");
+        }
+
+        if (entity.CheckOut.HasValue)
+        {
+            throw new InvalidOperationException("You have already checked out today.");
+        }
+
+        await ValidateWithinOfficeRadiusAsync(latitude, longitude, ct);
+
+        var now = DateTimeOffset.UtcNow;
+
+        entity.CheckOut = now;
+        entity.CheckOutLatitude = latitude;
+        entity.CheckOutLongitude = longitude;
+        entity.UpdatedBy = "system";
+        entity.UpdatedAt = now;
+
+        unitOfWork.Repository<HrAttendanceRecord>().Update(entity);
+        await unitOfWork.SaveChangesAsync(ct);
+
+        return await GetByIdAsync(entity.Id, ct)
+            ?? throw new InvalidOperationException("Failed to load attendance record.");
+    }
+
+    public async Task<AttendanceDto> MarkStatusAsync(int employeeId, MarkAttendanceStatusRequest request, CancellationToken ct = default)
+    {
+        if (!SelfReportableStatuses.Contains(request.Status))
+        {
+            throw new InvalidOperationException("Status is not self-reportable.");
+        }
+
+        var entity = await unitOfWork.Repository<HrAttendanceRecord>()
+            .Query()
+            .FirstOrDefaultAsync(x => x.EmployeeId == employeeId && x.Date == request.Date, ct);
+
+        if (entity is not null && (entity.CheckIn.HasValue || entity.CheckOut.HasValue))
+        {
+            throw new InvalidOperationException("Cannot mark status for a day that already has check-in/check-out.");
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        var notes = NormalizeText(request.Notes);
+
+        if (entity is null)
+        {
+            entity = new HrAttendanceRecord
+            {
+                EmployeeId = employeeId,
+                Date = request.Date,
+                Status = request.Status,
+                Notes = notes,
+                CreatedBy = "system"
+            };
+
+            await unitOfWork.Repository<HrAttendanceRecord>().AddAsync(entity, ct);
+        }
+        else
+        {
+            entity.Status = request.Status;
+            entity.Notes = notes;
+            entity.UpdatedBy = "system";
+            entity.UpdatedAt = now;
+            unitOfWork.Repository<HrAttendanceRecord>().Update(entity);
+        }
+
+        await unitOfWork.SaveChangesAsync(ct);
+
+        return await GetByIdAsync(entity.Id, ct)
+            ?? throw new InvalidOperationException("Failed to load attendance record.");
+    }
+
+    private async Task ValidateWithinOfficeRadiusAsync(decimal latitude, decimal longitude, CancellationToken ct)
+    {
+        var setting = await unitOfWork.Repository<HrAttendanceSetting>()
+            .Query()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(ct);
+
+        if (setting?.OfficeLatitude is null || setting.OfficeLongitude is null)
+        {
+            return;
+        }
+
+        var distance = GeoUtils.DistanceMeters(setting.OfficeLatitude.Value, setting.OfficeLongitude.Value, latitude, longitude);
+
+        if (distance > setting.RadiusMeters)
+        {
+            throw new InvalidOperationException(
+                $"Anda berada {Math.Round(distance)}m dari kantor, maksimum {setting.RadiusMeters}m.");
+        }
+    }
+
+    private static DateOnly TodayLocal() => DateOnly.FromDateTime(DateTimeOffset.UtcNow.ToOffset(LocalOffset).DateTime);
 
     private async Task ValidateEmployeeAsync(int employeeId, CancellationToken ct)
     {

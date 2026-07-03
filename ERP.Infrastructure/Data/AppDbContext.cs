@@ -556,6 +556,10 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         builder.Property(x => x.Date).HasColumnType("date").IsRequired();
         builder.Property(x => x.CheckIn).HasColumnType("timestamptz");
         builder.Property(x => x.CheckOut).HasColumnType("timestamptz");
+        builder.Property(x => x.CheckInLatitude).HasColumnType("numeric(9,6)");
+        builder.Property(x => x.CheckInLongitude).HasColumnType("numeric(9,6)");
+        builder.Property(x => x.CheckOutLatitude).HasColumnType("numeric(9,6)");
+        builder.Property(x => x.CheckOutLongitude).HasColumnType("numeric(9,6)");
         builder.Property(x => x.Status).HasConversion<int>().IsRequired();
         builder.Property(x => x.Notes).HasColumnType("text");
 
@@ -584,6 +588,9 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         builder.Property(x => x.BreakStart).HasColumnType("time").IsRequired();
         builder.Property(x => x.BreakEnd).HasColumnType("time").IsRequired();
         builder.Property(x => x.MinimumOtMinutes).HasDefaultValue(60).IsRequired();
+        builder.Property(x => x.OfficeLatitude).HasColumnType("numeric(9,6)");
+        builder.Property(x => x.OfficeLongitude).HasColumnType("numeric(9,6)");
+        builder.Property(x => x.RadiusMeters).HasDefaultValue(100).IsRequired();
 
         builder.HasIndex(x => x.SingletonKey).IsUnique();
     }

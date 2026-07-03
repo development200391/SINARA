@@ -147,6 +147,18 @@ public sealed class EmployeeService(IUnitOfWork unitOfWork) : IEmployeeService
         return entity is null ? null : MapEmployeeDetail(entity);
     }
 
+    public async Task<EmployeeDetailDto?> GetByUserIdAsync(int userId, CancellationToken ct = default)
+    {
+        var entity = await unitOfWork.Repository<HrEmployee>()
+            .Query()
+            .AsNoTracking()
+            .Include(x => x.Department)
+            .Include(x => x.Position)
+            .FirstOrDefaultAsync(x => x.UserId == userId, ct);
+
+        return entity is null ? null : MapEmployeeDetail(entity);
+    }
+
     public async Task<EmployeeDetailDto> CreateAsync(CreateEmployeeRequest request, CancellationToken ct = default)
     {
         var generatedCode = await GenerateNextEmployeeCodeAsync(ct);

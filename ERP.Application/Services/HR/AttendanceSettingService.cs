@@ -52,6 +52,11 @@ public sealed class AttendanceSettingService(IUnitOfWork unitOfWork) : IAttendan
             throw new InvalidOperationException("Break time must be within work schedule.");
         }
 
+        if (request.RadiusMeters <= 0)
+        {
+            throw new InvalidOperationException("Radius must be greater than zero.");
+        }
+
         var entity = await GetOrCreateEntityAsync(ct);
 
         entity.AttendancePeriodStartDay = request.AttendancePeriodStartDay;
@@ -62,6 +67,9 @@ public sealed class AttendanceSettingService(IUnitOfWork unitOfWork) : IAttendan
         entity.BreakStart = request.BreakStart;
         entity.BreakEnd = request.BreakEnd;
         entity.MinimumOtMinutes = request.MinimumOtMinutes;
+        entity.OfficeLatitude = request.OfficeLatitude;
+        entity.OfficeLongitude = request.OfficeLongitude;
+        entity.RadiusMeters = request.RadiusMeters;
         entity.UpdatedBy = "system";
         entity.UpdatedAt = DateTimeOffset.UtcNow;
 
@@ -139,7 +147,10 @@ public sealed class AttendanceSettingService(IUnitOfWork unitOfWork) : IAttendan
             WorkEnd = entity.WorkEnd,
             BreakStart = entity.BreakStart,
             BreakEnd = entity.BreakEnd,
-            MinimumOtMinutes = entity.MinimumOtMinutes
+            MinimumOtMinutes = entity.MinimumOtMinutes,
+            OfficeLatitude = entity.OfficeLatitude,
+            OfficeLongitude = entity.OfficeLongitude,
+            RadiusMeters = entity.RadiusMeters
         };
     }
 }

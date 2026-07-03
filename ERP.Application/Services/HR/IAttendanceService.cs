@@ -11,4 +11,8 @@ public interface IAttendanceService
     Task<AttendanceDto> CreateAsync(AttendanceRecordRequest request, CancellationToken ct = default);
     Task<AttendanceDto?> UpdateAsync(int id, AttendanceRecordRequest request, CancellationToken ct = default);
     Task<bool> DeleteAsync(int id, CancellationToken ct = default);
+    Task<AttendanceDto?> GetTodayAsync(int employeeId, CancellationToken ct = default);
+    Task<AttendanceDto> CheckInAsync(int employeeId, decimal latitude, decimal longitude, CancellationToken ct = default);
+    Task<AttendanceDto> CheckOutAsync(int employeeId, decimal latitude, decimal longitude, CancellationToken ct = default);
+    Task<AttendanceDto> MarkStatusAsync(int employeeId, MarkAttendanceStatusRequest request, CancellationToken ct = default);
 }
