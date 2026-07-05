@@ -9,6 +9,11 @@
     --sinara-navbar-text-rgb: 248, 250, 252;
     --sinara-grid-header-bg: #0f766e;
     --sinara-grid-header-text: #f8fafc;
+    /* Warna logo (sinar matahari) sengaja dipisah dari palet tema di atas,
+       jadi bisa diganti bebas tanpa perlu selaras dengan warna navbar/tombol. */
+    --sinara-logo-start: #fde68a;
+    --sinara-logo-end: #ea580c;
+    --sinara-logo-ray: #f97316;
     --bs-primary: var(--sinara-primary);
     --bs-primary-rgb: var(--sinara-primary-rgb);
     --bs-link-color-rgb: var(--sinara-primary-rgb);
