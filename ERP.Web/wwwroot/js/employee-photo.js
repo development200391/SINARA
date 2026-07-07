@@ -2,6 +2,7 @@
     const maxFileSizeBytes = 5 * 1024 * 1024;
     const allowedMimeTypes = new Set(['image/jpeg', 'image/jpg', 'image/pjpeg', 'image/png']);
     const allowedExtensions = ['.jpg', '.jpeg', '.png'];
+    const outputSize = 300;
 
     const parseNumber = (value) => {
         const parsed = Number.parseFloat(value ?? '');
@@ -85,6 +86,12 @@
         let cropper = null;
         let modal = null;
         let activeObjectUrl = null;
+        let previewObjectUrl = null;
+
+        // The raw file the user picked, kept separate from photoInput.files so that
+        // re-cropping always starts from the original photo instead of the
+        // already-cropped output that gets swapped into the input on Apply.
+        let originalFile = null;
 
         const ensureModal = () => {
             if (modal || typeof bootstrap === 'undefined' || typeof bootstrap.Modal !== 'function') {
@@ -165,11 +172,6 @@
             modalInstance.show();
         };
 
-        const getSelectedFile = () => {
-            const [file] = photoInput.files ?? [];
-            return file ?? null;
-        };
-
         const showRecropButton = () => {
             if (recropButton instanceof HTMLElement) {
                 recropButton.classList.remove('d-none');
@@ -179,6 +181,7 @@
         const resetToExistingOrDefault = () => {
             const fallbackPath = photoPreview.dataset.persistedSrc || defaultAvatar;
             photoPreview.src = fallbackPath;
+            originalFile = null;
             clearCropFields(cropXInput, cropYInput, cropWidthInput, cropHeightInput);
             if (recropButton instanceof HTMLElement) {
                 recropButton.classList.add('d-none');
@@ -189,7 +192,7 @@
             clearCropFields(cropXInput, cropYInput, cropWidthInput, cropHeightInput);
             setError('');
 
-            const file = getSelectedFile();
+            const [file] = photoInput.files ?? [];
             if (!file) {
                 resetToExistingOrDefault();
                 return;
@@ -208,59 +211,77 @@
                 return;
             }
 
-            const objectUrl = URL.createObjectURL(file);
-            openCropModal(objectUrl);
+            originalFile = file;
+            openCropModal(URL.createObjectURL(file));
             showRecropButton();
         });
 
         if (recropButton instanceof HTMLButtonElement) {
             recropButton.addEventListener('click', () => {
-                const file = getSelectedFile();
-                if (!file) {
+                if (!originalFile) {
                     setError('Select a photo first.');
                     return;
                 }
 
                 setError('');
-                const objectUrl = URL.createObjectURL(file);
-                openCropModal(objectUrl);
+                openCropModal(URL.createObjectURL(originalFile));
             });
         }
 
         applyButton.addEventListener('click', () => {
-            if (!cropper) {
+            if (!cropper || !originalFile) {
                 setError('Crop area is not ready yet.');
                 return;
             }
 
-            const data = cropper.getData(true);
-            cropXInput.value = Number.isFinite(data.x) ? data.x.toFixed(2) : '';
-            cropYInput.value = Number.isFinite(data.y) ? data.y.toFixed(2) : '';
-            cropWidthInput.value = Number.isFinite(data.width) ? data.width.toFixed(2) : '';
-            cropHeightInput.value = Number.isFinite(data.height) ? data.height.toFixed(2) : '';
-
-            const previewCanvas = cropper.getCroppedCanvas({
-                width: 300,
-                height: 300,
+            const croppedCanvas = cropper.getCroppedCanvas({
+                width: outputSize,
+                height: outputSize,
                 imageSmoothingQuality: 'high'
             });
 
-            if (previewCanvas) {
-                photoPreview.src = previewCanvas.toDataURL('image/webp', 0.85);
+            if (!croppedCanvas) {
+                setError('Failed to process the cropped photo.');
+                return;
             }
 
-            const modalInstance = ensureModal();
-            if (modalInstance) {
-                modalInstance.hide();
-            }
+            croppedCanvas.toBlob((blob) => {
+                if (!blob) {
+                    setError('Failed to process the cropped photo.');
+                    return;
+                }
 
-            setError('');
+                // Upload the exact pixels the user just previewed instead of the raw
+                // photo plus numeric crop coordinates, so there is nothing left for the
+                // client and server to disagree about (EXIF orientation, DPI, rounding, ...).
+                const croppedFile = new File([blob], 'cropped-photo.png', { type: 'image/png' });
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(croppedFile);
+                photoInput.files = dataTransfer.files;
+
+                cropXInput.value = '0';
+                cropYInput.value = '0';
+                cropWidthInput.value = String(croppedCanvas.width);
+                cropHeightInput.value = String(croppedCanvas.height);
+
+                if (previewObjectUrl) {
+                    URL.revokeObjectURL(previewObjectUrl);
+                }
+                previewObjectUrl = URL.createObjectURL(blob);
+                photoPreview.src = previewObjectUrl;
+
+                const modalInstance = ensureModal();
+                if (modalInstance) {
+                    modalInstance.hide();
+                }
+
+                setError('');
+            }, 'image/png');
         });
 
         if (form instanceof HTMLFormElement) {
             form.addEventListener('submit', (event) => {
-                const file = getSelectedFile();
-                if (!file) {
+                if (!originalFile) {
                     return;
                 }
 
