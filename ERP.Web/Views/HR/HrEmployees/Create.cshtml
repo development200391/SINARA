@@ -1,5 +1,7 @@
 @model ERP.Web.ViewModels.HR.HrEmployeeEditViewModel
 @using ERP.Domain.Enums
+@using ERP.Web.ViewModels.Shared
+@using System.Globalization
 
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css" />
 
@@ -87,13 +89,22 @@
 
             <div class="col-md-6">
                 <label asp-for="UserId" class="form-label">@T["Linked User"]</label>
-                <select asp-for="UserId" class="form-select">
-                    <option value="">@T["No linked user"]</option>
-                    @foreach (var user in Model.Users)
+                @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+                {
+                    Name = nameof(Model.UserId),
+                    Id = Html.IdFor(x => x.UserId).ToString(),
+                    CssClass = "form-select",
+                    SearchPlaceholder = T["Search user..."],
+                    EmptyOptionLabel = T["No linked user"],
+                    SelectedValue = Model.UserId.HasValue
+                        ? Model.UserId.Value.ToString(CultureInfo.InvariantCulture)
+                        : null,
+                    Options = Model.Users.Select(user => new SearchableSelectOptionViewModel
                     {
-                        <option value="@user.Id" selected="@(Model.UserId == user.Id)">@user.Name</option>
-                    }
-                </select>
+                        Value = user.Id.ToString(CultureInfo.InvariantCulture),
+                        Label = user.Name
+                    }).ToList()
+                })
                 <span asp-validation-for="UserId" class="text-danger"></span>
             </div>
 
