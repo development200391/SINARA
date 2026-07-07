@@ -47,6 +47,9 @@ public sealed class HrEmployeeEditViewModel
 
     public EmploymentStatus EmploymentStatus { get; set; } = EmploymentStatus.Active;
 
+    public int? UserId { get; set; }
+
     public IReadOnlyList<DepartmentDto> Departments { get; set; } = [];
     public IReadOnlyList<PositionDto> Positions { get; set; } = [];
+    public IReadOnlyList<LookupDto> Users { get; set; } = [];
 }

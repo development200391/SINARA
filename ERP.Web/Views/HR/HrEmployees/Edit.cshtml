@@ -85,6 +85,18 @@
                 <span asp-validation-for="TerminationDate" class="text-danger"></span>
             </div>
 
+            <div class="col-md-6">
+                <label asp-for="UserId" class="form-label">@T["Linked User"]</label>
+                <select asp-for="UserId" class="form-select">
+                    <option value="">@T["No linked user"]</option>
+                    @foreach (var user in Model.Users)
+                    {
+                        <option value="@user.Id" selected="@(Model.UserId == user.Id)">@user.Name</option>
+                    }
+                </select>
+                <span asp-validation-for="UserId" class="text-danger"></span>
+            </div>
+
             <div class="col-12 d-flex gap-2">
                 <button type="submit" class="btn btn-primary">@T["common.save"]</button>
                 <a asp-action="Index" class="btn btn-outline-secondary">@T["common.cancel"]</a>

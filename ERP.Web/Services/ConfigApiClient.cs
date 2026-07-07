@@ -1,5 +1,6 @@
 using ERP.Application.DTOs.Common;
 using ERP.Application.DTOs.Config;
+using ERP.Application.DTOs.HR;
 
 namespace ERP.Web.Services;
 
@@ -38,6 +39,11 @@ public sealed class ConfigApiClient(HttpClient httpClient, ILogger<ConfigApiClie
 
         var query = $"api/v1/config/users?{string.Join("&", parameters)}";
         return SendWithResultAsync<PagedResult<UserDto>>(HttpMethod.Get, query, accessToken, null, ct).ToDataAsync();
+    }
+
+    public async Task<IReadOnlyList<LookupDto>> GetUserOptionsAsync(string accessToken, CancellationToken ct = default)
+    {
+        return await SendWithResultAsync<IReadOnlyList<LookupDto>>(HttpMethod.Get, "api/v1/config/users/options", accessToken, null, ct).ToDataAsync() ?? [];
     }
 
     public Task<UserDto?> GetUserByIdAsync(string accessToken, int id, CancellationToken ct = default)

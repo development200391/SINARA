@@ -67,6 +67,10 @@
                             }
                         </div>
                     </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-muted small">@T["Linked User"]</label>
+                        <div class="form-control-plaintext">@(string.IsNullOrWhiteSpace(Model.Username) ? "-" : Model.Username)</div>
+                    </div>
                 </div>
             </div>
         </div>

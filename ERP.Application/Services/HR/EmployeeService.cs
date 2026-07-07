@@ -2,6 +2,7 @@ using System.Globalization;
 using ERP.Application.DTOs.Common;
 using ERP.Application.DTOs.HR;
 using ERP.Domain.Entities.HR;
+using ERP.Domain.Entities.System;
 using ERP.Domain.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -31,6 +32,7 @@ public sealed class EmployeeService(IUnitOfWork unitOfWork) : IEmployeeService
             .AsNoTracking()
             .Include(x => x.Department)
             .Include(x => x.Position)
+            .Include(x => x.User)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(request.Search))
@@ -142,6 +144,7 @@ public sealed class EmployeeService(IUnitOfWork unitOfWork) : IEmployeeService
             .AsNoTracking()
             .Include(x => x.Department)
             .Include(x => x.Position)
+            .Include(x => x.User)
             .FirstOrDefaultAsync(x => x.Id == id, ct);
 
         return entity is null ? null : MapEmployeeDetail(entity);
@@ -168,6 +171,7 @@ public sealed class EmployeeService(IUnitOfWork unitOfWork) : IEmployeeService
         var normalizedPhotoPath = NormalizePhotoPath(request.PhotoPath);
 
         await ValidateDepartmentAndPositionAsync(request.DepartmentId, request.PositionId, ct);
+        await ValidateUserAsync(request.UserId, ct);
 
         var entity = new HrEmployee
         {
@@ -180,6 +184,7 @@ public sealed class EmployeeService(IUnitOfWork unitOfWork) : IEmployeeService
             PositionId = request.PositionId,
             HireDate = request.HireDate,
             EmploymentStatus = request.EmploymentStatus,
+            UserId = request.UserId,
             CreatedBy = "system"
         };
 
@@ -212,6 +217,7 @@ public sealed class EmployeeService(IUnitOfWork unitOfWork) : IEmployeeService
         }
 
         await ValidateDepartmentAndPositionAsync(request.DepartmentId, request.PositionId, ct);
+        await ValidateUserAsync(request.UserId, ct);
 
         entity.FullName = normalizedFullName;
         entity.Email = normalizedEmail;
@@ -222,6 +228,7 @@ public sealed class EmployeeService(IUnitOfWork unitOfWork) : IEmployeeService
         entity.HireDate = request.HireDate;
         entity.TerminationDate = request.TerminationDate;
         entity.EmploymentStatus = request.EmploymentStatus;
+        entity.UserId = request.UserId;
         entity.UpdatedBy = "system";
         entity.UpdatedAt = DateTimeOffset.UtcNow;
 
@@ -413,6 +420,24 @@ public sealed class EmployeeService(IUnitOfWork unitOfWork) : IEmployeeService
         }
     }
 
+    private async Task ValidateUserAsync(int? userId, CancellationToken ct)
+    {
+        if (!userId.HasValue || userId.Value <= 0)
+        {
+            return;
+        }
+
+        var userExists = await unitOfWork.Repository<SysUser>()
+            .Query()
+            .AsNoTracking()
+            .AnyAsync(x => x.Id == userId.Value, ct);
+
+        if (!userExists)
+        {
+            throw new InvalidOperationException("Linked user account not found.");
+        }
+    }
+
     private static string NormalizeSortBy(string? sortBy)
     {
         if (string.IsNullOrWhiteSpace(sortBy))
@@ -487,7 +512,9 @@ public sealed class EmployeeService(IUnitOfWork unitOfWork) : IEmployeeService
             PositionName = entity.Position.Name,
             HireDate = entity.HireDate,
             TerminationDate = entity.TerminationDate,
-            EmploymentStatus = entity.EmploymentStatus
+            EmploymentStatus = entity.EmploymentStatus,
+            UserId = entity.UserId,
+            Username = entity.User?.Username
         };
     }
 
@@ -507,7 +534,9 @@ public sealed class EmployeeService(IUnitOfWork unitOfWork) : IEmployeeService
             PositionName = entity.Position.Name,
             HireDate = entity.HireDate,
             TerminationDate = entity.TerminationDate,
-            EmploymentStatus = entity.EmploymentStatus
+            EmploymentStatus = entity.EmploymentStatus,
+            UserId = entity.UserId,
+            Username = entity.User?.Username
         };
     }
 }

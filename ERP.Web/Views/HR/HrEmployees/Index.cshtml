@@ -187,6 +187,11 @@
                             EmptyOptionLabel = T["All Status"],
                             Options = statusFilterOptions
                         }
+                    },
+                    new PagedGridColumnViewModel
+                    {
+                        Key = "username",
+                        Title = T["Linked User"]
                     }
                 ],
                 Rows = Model.Employees.Items.Select(employee => new PagedGridRowViewModel
@@ -211,7 +216,8 @@
                                 EmploymentStatus.OnLeave => "<span class=\"badge text-bg-warning\">On Leave</span>",
                                 _ => "<span class=\"badge text-bg-secondary\">Unknown</span>"
                             })
-                        }
+                        },
+                        new PagedGridCellViewModel { Text = employee.Username ?? "-" }
                     ],
                     Actions = new PagedGridRowActionViewModel
                     {

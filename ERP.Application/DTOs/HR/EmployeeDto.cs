@@ -18,6 +18,8 @@ public sealed class EmployeeListDto
     public DateOnly HireDate { get; set; }
     public DateOnly? TerminationDate { get; set; }
     public EmploymentStatus EmploymentStatus { get; set; }
+    public int? UserId { get; set; }
+    public string? Username { get; set; }
 }
 
 public sealed class EmployeeDetailDto
@@ -35,6 +37,8 @@ public sealed class EmployeeDetailDto
     public DateOnly HireDate { get; set; }
     public DateOnly? TerminationDate { get; set; }
     public EmploymentStatus EmploymentStatus { get; set; }
+    public int? UserId { get; set; }
+    public string? Username { get; set; }
 }
 
 public class CreateEmployeeRequest
@@ -48,6 +52,7 @@ public class CreateEmployeeRequest
     public int PositionId { get; set; }
     public DateOnly HireDate { get; set; }
     public EmploymentStatus EmploymentStatus { get; set; } = EmploymentStatus.Active;
+    public int? UserId { get; set; }
 }
 
 public sealed class UpdateEmployeeRequest : CreateEmployeeRequest

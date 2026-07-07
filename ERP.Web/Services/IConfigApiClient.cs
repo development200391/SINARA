@@ -1,5 +1,6 @@
 using ERP.Application.DTOs.Common;
 using ERP.Application.DTOs.Config;
+using ERP.Application.DTOs.HR;
 
 namespace ERP.Web.Services;
 
@@ -8,6 +9,7 @@ public interface IConfigApiClient
     Task<IReadOnlyList<NavigationModuleDto>> GetNavigationAsync(string accessToken, CancellationToken ct = default);
 
     Task<PagedResult<UserDto>?> GetUsersAsync(string accessToken, UserPagedRequest request, CancellationToken ct = default);
+    Task<IReadOnlyList<LookupDto>> GetUserOptionsAsync(string accessToken, CancellationToken ct = default);
     Task<UserDto?> GetUserByIdAsync(string accessToken, int id, CancellationToken ct = default);
     Task<ApiCallResult<UserDto>> CreateUserAsync(string accessToken, UserDto request, CancellationToken ct = default);
     Task<ApiCallResult<UserDto>> UpdateUserAsync(string accessToken, int id, UserDto request, CancellationToken ct = default);

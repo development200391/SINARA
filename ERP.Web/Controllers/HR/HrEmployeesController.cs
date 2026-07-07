@@ -13,6 +13,7 @@ namespace ERP.Web.Controllers;
 [Route("hr/employees")]
 public sealed class HrEmployeesController(
     IHrApiClient hrApiClient,
+    IConfigApiClient configApiClient,
     IEmployeePhotoService employeePhotoService,
     ILogger<HrEmployeesController> logger) : Controller
 {
@@ -194,7 +195,8 @@ public sealed class HrEmployeesController(
             DepartmentId = model.DepartmentId,
             PositionId = model.PositionId,
             HireDate = model.HireDate,
-            EmploymentStatus = model.EmploymentStatus
+            EmploymentStatus = model.EmploymentStatus,
+            UserId = model.UserId
         }, ct);
 
         if (!created.IsSuccess)
@@ -238,7 +240,8 @@ public sealed class HrEmployeesController(
             PositionId = employee.PositionId,
             HireDate = employee.HireDate,
             TerminationDate = employee.TerminationDate,
-            EmploymentStatus = employee.EmploymentStatus
+            EmploymentStatus = employee.EmploymentStatus,
+            UserId = employee.UserId
         };
 
         await PopulateFormOptionsAsync(accessToken, model, ct);
@@ -299,7 +302,8 @@ public sealed class HrEmployeesController(
             PositionId = model.PositionId,
             HireDate = model.HireDate,
             TerminationDate = model.TerminationDate,
-            EmploymentStatus = model.EmploymentStatus
+            EmploymentStatus = model.EmploymentStatus,
+            UserId = model.UserId
         }, ct);
 
         if (!updated.IsSuccess)
@@ -387,11 +391,13 @@ public sealed class HrEmployeesController(
     {
         var departmentsTask = hrApiClient.GetDepartmentOptionsAsync(accessToken, ct);
         var positionsTask = hrApiClient.GetPositionOptionsAsync(accessToken, ct);
+        var usersTask = configApiClient.GetUserOptionsAsync(accessToken, ct);
 
-        await Task.WhenAll(departmentsTask, positionsTask);
+        await Task.WhenAll(departmentsTask, positionsTask, usersTask);
 
         var departments = await departmentsTask;
         var positions = await positionsTask;
+        var users = await usersTask;
 
         if (model.DepartmentId <= 0)
         {
@@ -406,6 +412,7 @@ public sealed class HrEmployeesController(
 
         model.Departments = departments;
         model.Positions = positions;
+        model.Users = users;
     }
 
     private void ValidatePositionBelongsToDepartment(HrEmployeeEditViewModel model)

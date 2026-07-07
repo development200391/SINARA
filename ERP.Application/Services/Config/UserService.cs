@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using ERP.Application.DTOs.Common;
 using ERP.Application.DTOs.Config;
+using ERP.Application.DTOs.HR;
 using ERP.Domain.Entities.Config;
 using ERP.Domain.Entities.System;
 using ERP.Domain.Interfaces;
@@ -86,6 +87,20 @@ public sealed class UserService(
     public async Task<UserDto?> GetByIdAsync(int id, CancellationToken ct = default)
     {
         return await GetByIdInternalAsync(id, ct);
+    }
+
+    public async Task<IReadOnlyList<LookupDto>> GetOptionsAsync(CancellationToken ct = default)
+    {
+        return await unitOfWork.Repository<SysUser>()
+            .Query()
+            .AsNoTracking()
+            .OrderBy(x => x.Username)
+            .Select(x => new LookupDto
+            {
+                Id = x.Id,
+                Name = x.Username + " - " + x.FullName
+            })
+            .ToListAsync(ct);
     }
 
     public async Task<UserDto> CreateAsync(UserDto request, CancellationToken ct = default)
