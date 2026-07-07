@@ -33,6 +33,12 @@ public sealed class EmployeePhotoService(IWebHostEnvironment environment) : IEmp
         inputStream.Position = 0;
         using var image = await Image.LoadAsync<Rgba32>(inputStream, ct);
 
+        // Browsers/Cropper.js display and measure crops against the EXIF-corrected
+        // orientation, but ImageSharp keeps the raw pixel orientation unless told
+        // otherwise. Auto-orient first so the crop rectangle lines up with what the
+        // user actually saw and selected in the browser.
+        image.Mutate(context => context.AutoOrient());
+
         var cropRectangle = BuildCropRectangle(image.Width, image.Height, cropData);
         image.Mutate(context =>
         {

@@ -128,9 +128,15 @@
             }
 
             activeObjectUrl = objectUrl;
-            cropImage.src = objectUrl;
 
-            cropImage.onload = () => {
+            let imageReady = false;
+            let modalReady = false;
+
+            const tryInitCropper = () => {
+                if (!imageReady || !modalReady || cropper) {
+                    return;
+                }
+
                 cropper = new Cropper(cropImage, {
                     aspectRatio: 1,
                     viewMode: 1,
@@ -144,6 +150,17 @@
                     scalable: false
                 });
             };
+
+            cropImage.onload = () => {
+                imageReady = true;
+                tryInitCropper();
+            };
+            cropImage.src = objectUrl;
+
+            modalElement.addEventListener('shown.bs.modal', () => {
+                modalReady = true;
+                tryInitCropper();
+            }, { once: true });
 
             modalInstance.show();
         };
