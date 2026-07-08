@@ -554,3 +554,137 @@ body {
         padding: 0.4rem 0.72rem;
     }
 }
+
+.sinara-searchable-select {
+    position: relative;
+}
+
+.sinara-searchable-select [data-searchable-select-toggle] {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    width: 100%;
+    border-radius: 0.85rem;
+    border: 1px solid rgba(var(--sinara-primary-rgb), 0.22);
+    background-color: #ffffff;
+    background-image: none;
+    padding: 0.45rem 2.25rem 0.45rem 0.9rem;
+    position: relative;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.sinara-searchable-select [data-searchable-select-toggle]::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: 1.05rem;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-right: 2px solid rgba(var(--sinara-primary-rgb), 0.6);
+    border-bottom: 2px solid rgba(var(--sinara-primary-rgb), 0.6);
+    transform: translateY(-65%) rotate(45deg);
+    transition: transform 0.2s ease;
+    pointer-events: none;
+}
+
+.sinara-searchable-select [data-searchable-select-toggle][aria-expanded="true"]::after {
+    transform: translateY(-35%) rotate(-135deg);
+}
+
+.sinara-searchable-select [data-searchable-select-toggle]:hover {
+    border-color: rgba(var(--sinara-primary-rgb), 0.45);
+}
+
+.sinara-searchable-select [data-searchable-select-toggle]:focus,
+.sinara-searchable-select [data-searchable-select-toggle][aria-expanded="true"] {
+    border-color: var(--sinara-primary);
+    box-shadow: 0 0 0 0.2rem rgba(var(--sinara-primary-rgb), 0.16);
+    outline: none;
+}
+
+.sinara-searchable-select [data-searchable-select-toggle]:disabled {
+    background-color: #f1f5f9;
+    color: #94a3b8;
+    border-color: #e2e8f0;
+}
+
+.sinara-searchable-select .dropdown-menu {
+    border: 1px solid rgba(var(--sinara-primary-rgb), 0.16);
+    border-radius: 1rem;
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.14), 0 4px 10px rgba(15, 23, 42, 0.06);
+    padding: 0.6rem;
+    margin-top: 0.4rem;
+}
+
+.sinara-searchable-select [data-searchable-select-input] {
+    border-radius: 0.7rem;
+    border: 1px solid rgba(var(--sinara-primary-rgb), 0.2);
+    padding-left: 2.1rem;
+    background-color: #fff;
+    background-repeat: no-repeat;
+    background-position: 0.7rem center;
+    background-size: 0.85rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%2394a3b8' stroke-width='1.6'%3E%3Ccircle cx='7' cy='7' r='5.2'/%3E%3Cpath d='M11 11l3.5 3.5' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+
+.sinara-searchable-select [data-searchable-select-input]:focus {
+    border-color: var(--sinara-primary);
+    box-shadow: 0 0 0 0.15rem rgba(var(--sinara-primary-rgb), 0.18);
+}
+
+.sinara-searchable-select-options {
+    max-height: 240px;
+    overflow-y: auto;
+    border: 1px solid rgba(var(--sinara-primary-rgb), 0.12);
+    border-radius: 0.75rem;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(var(--sinara-primary-rgb), 0.35) transparent;
+}
+
+.sinara-searchable-select-options::-webkit-scrollbar {
+    width: 0.4rem;
+}
+
+.sinara-searchable-select-options::-webkit-scrollbar-thumb {
+    background-color: rgba(var(--sinara-primary-rgb), 0.32);
+    border-radius: 999px;
+}
+
+.sinara-searchable-select-options::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.sinara-searchable-select-options .list-group-item {
+    border: 0;
+    border-bottom: 1px solid rgba(var(--sinara-primary-rgb), 0.1);
+    padding: 0.55rem 0.85rem;
+    font-size: 0.92rem;
+    color: var(--sinara-text);
+    transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+.sinara-searchable-select-options .list-group-item:last-child {
+    border-bottom: 0;
+}
+
+.sinara-searchable-select-options .list-group-item:hover,
+.sinara-searchable-select-options .list-group-item:focus-visible {
+    background-color: rgba(var(--sinara-primary-rgb), 0.1);
+    color: var(--sinara-text);
+}
+
+.sinara-searchable-select-options .list-group-item.active {
+    background: linear-gradient(135deg, var(--sinara-navbar-bg), var(--sinara-primary));
+    color: #f8fafc;
+    font-weight: 600;
+}
+
+.sinara-searchable-select-options .list-group-item.disabled {
+    opacity: 0.5;
+}
+
+.sinara-searchable-select [data-searchable-select-empty] {
+    padding: 0.5rem 0.25rem 0.1rem;
+}

@@ -24,7 +24,7 @@
         <span data-searchable-select-label>@selectedLabel</span>
     </button>
 
-    <div class="dropdown-menu w-100 p-2">
+    <div class="dropdown-menu w-100">
         <input type="search"
                class="form-control form-control-sm mb-2"
                placeholder="@Model.SearchPlaceholder"
@@ -32,7 +32,7 @@
                data-searchable-select-input
                @(Model.IsDisabled ? "disabled" : null) />
 
-        <div class="list-group list-group-flush border rounded" style="max-height:240px; overflow-y:auto;">
+        <div class="list-group list-group-flush sinara-searchable-select-options">
             <button type="button"
                     class="list-group-item list-group-item-action @(string.IsNullOrWhiteSpace(selectedValue) ? "active" : string.Empty)"
                     data-searchable-select-option
