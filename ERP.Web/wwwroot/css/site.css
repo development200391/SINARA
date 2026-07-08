@@ -19,11 +19,43 @@
     --bs-link-color-rgb: var(--sinara-primary-rgb);
     --bs-link-hover-color-rgb: var(--sinara-primary-rgb);
     --bs-focus-ring-color: rgba(var(--sinara-primary-rgb), 0.28);
+    --sinara-radius: 0.85rem;
 }
 
 body {
     background: radial-gradient(circle at top right, var(--sinara-bg-accent), transparent 40%), var(--sinara-bg);
     color: var(--sinara-text);
+}
+
+/* Global rounded-input look, applied to every Bootstrap .form-control / .form-select in the app. */
+.form-control,
+.form-select {
+    border-radius: var(--sinara-radius);
+    border-color: #cbd5e1;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--sinara-primary);
+    box-shadow: 0 0 0 0.2rem rgba(var(--sinara-primary-rgb), 0.16);
+}
+
+.form-control:read-only,
+.form-control:disabled,
+.form-select:disabled {
+    background-color: #f1f5f9;
+    color: #64748b;
+}
+
+.form-control.is-invalid,
+.form-select.is-invalid {
+    border-color: #dc3545;
+}
+
+.form-control.is-invalid:focus,
+.form-select.is-invalid:focus {
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.18);
 }
 
 .login-page {
@@ -565,7 +597,7 @@ body {
     justify-content: space-between;
     gap: 0.5rem;
     width: 100%;
-    border-radius: 0.85rem;
+    border-radius: var(--sinara-radius);
     border: 1px solid rgba(var(--sinara-primary-rgb), 0.22);
     background-color: #ffffff;
     background-image: none;
@@ -611,14 +643,14 @@ body {
 
 .sinara-searchable-select .dropdown-menu {
     border: 1px solid rgba(var(--sinara-primary-rgb), 0.16);
-    border-radius: 1rem;
+    border-radius: var(--sinara-radius);
     box-shadow: 0 18px 40px rgba(15, 23, 42, 0.14), 0 4px 10px rgba(15, 23, 42, 0.06);
     padding: 0.6rem;
     margin-top: 0.4rem;
 }
 
 .sinara-searchable-select [data-searchable-select-input] {
-    border-radius: 0.7rem;
+    border-radius: var(--sinara-radius);
     border: 1px solid rgba(var(--sinara-primary-rgb), 0.2);
     padding-left: 2.1rem;
     background-color: #fff;
@@ -637,7 +669,7 @@ body {
     max-height: 240px;
     overflow-y: auto;
     border: 1px solid rgba(var(--sinara-primary-rgb), 0.12);
-    border-radius: 0.75rem;
+    border-radius: var(--sinara-radius);
     overflow-x: hidden;
     scrollbar-width: thin;
     scrollbar-color: rgba(var(--sinara-primary-rgb), 0.35) transparent;
@@ -689,29 +721,3 @@ body {
     padding: 0.5rem 0.25rem 0.1rem;
 }
 
-/* Reusable rounded-input styling, shared across TextInput / DropdownViewComponent / DateInputViewComponent. */
-.sinara-text-input {
-    border-radius: 0.5rem;
-    border: 1px solid #cbd5e1;
-    padding: 0.5rem 0.75rem;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease;
-}
-
-.sinara-text-input:focus {
-    border-color: var(--sinara-primary);
-    box-shadow: 0 0 0 0.2rem rgba(var(--sinara-primary-rgb), 0.16);
-}
-
-.sinara-text-input:read-only {
-    background-color: #f1f5f9;
-    color: #64748b;
-}
-
-.sinara-text-input.is-invalid {
-    border-color: #dc3545;
-    background-image: none;
-}
-
-.sinara-text-input.is-invalid:focus {
-    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.18);
-}

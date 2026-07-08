@@ -1,0 +1,135 @@
+@model ERP.Web.ViewModels.HR.HrEmployeeEditViewModel
+@using ERP.Domain.Enums
+@using ERP.Web.ViewModels.Shared
+@using System.Globalization
+
+@{
+    var isEdit = Model.Id > 0;
+}
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">@(isEdit ? T["Edit Employee"] : T["Create Employee"])</h1>
+
+        <form method="post" enctype="multipart/form-data" class="row g-3">
+            @Html.AntiForgeryToken()
+            @if (isEdit)
+            {
+                <input asp-for="Id" type="hidden" />
+            }
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="col-lg-3 col-md-4">
+                @await Component.InvokeAsync("EmployeePhoto", Model)
+            </div>
+
+            <div class="col-lg-3 col-md-4">
+                    @await Component.InvokeAsync("TextInput", new TextInputViewModel
+                    {
+                        Name = "EmployeeCode",
+                        Label = T["label.employee_code"],
+                        Placeholder = "Auto-generated",
+                        IsReadOnly = isEdit,
+                        HelpText = T["Generated automatically on save."]
+                    })
+
+            </div>
+
+            <div class="col-lg-6 col-md-8">
+                @await Component.InvokeAsync("TextInput", new TextInputViewModel
+                {
+                    Name = nameof(Model.FullName),
+                    Id = Html.IdFor(x => x.FullName).ToString(),
+                    Label = T["label.full_name"],
+                    Value = Model.FullName,
+                    IsRequired = true,
+                    MaxLength = 200
+                })
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="Email" class="form-label"></label>
+                <input asp-for="Email" class="form-control" />
+                <span asp-validation-for="Email" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="Phone" class="form-label"></label>
+                <input asp-for="Phone" class="form-control" />
+                <span asp-validation-for="Phone" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-4">
+                <label asp-for="DepartmentId" class="form-label">@T["Department"]</label>
+                <select asp-for="DepartmentId" class="form-select">
+                    <option value="">@T["Select Department"]</option>
+                    @foreach (var department in Model.Departments)
+                    {
+                        <option value="@department.Id" selected="@(Model.DepartmentId == department.Id)">@department.Code - @department.Name</option>
+                    }
+                </select>
+                <span asp-validation-for="DepartmentId" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-4">
+                <label asp-for="PositionId" class="form-label">@T["Position"]</label>
+                <select asp-for="PositionId" class="form-select">
+                    <option value="">@T["Select Position"]</option>
+                    @foreach (var position in Model.Positions)
+                    {
+                        <option value="@position.Id" selected="@(Model.PositionId == position.Id)">@position.DepartmentName - @position.Name (L@position.Level)</option>
+                    }
+                </select>
+                <span asp-validation-for="PositionId" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-4">
+                <label asp-for="EmploymentStatus" class="form-label">@T["Status"]</label>
+                <select asp-for="EmploymentStatus" class="form-select">
+                    @foreach (var status in Enum.GetValues<EmploymentStatus>())
+                    {
+                        <option value="@status" selected="@(Model.EmploymentStatus == status)">@status</option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="HireDate" class="form-label"></label>
+                <input asp-for="HireDate" class="form-control" type="date" />
+                <span asp-validation-for="HireDate" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="TerminationDate" class="form-label"></label>
+                <input asp-for="TerminationDate" class="form-control" type="date" />
+                <span asp-validation-for="TerminationDate" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="UserId" class="form-label">@T["Linked User"]</label>
+                @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+                {
+                    Name = nameof(Model.UserId),
+                    Id = Html.IdFor(x => x.UserId).ToString(),
+                    CssClass = "form-select",
+                    SearchPlaceholder = T["Search user..."],
+                    EmptyOptionLabel = T["No linked user"],
+                    SelectedValue = Model.UserId.HasValue
+                        ? Model.UserId.Value.ToString(CultureInfo.InvariantCulture)
+                        : null,
+                    Options = Model.Users.Select(user => new SearchableSelectOptionViewModel
+                    {
+                        Value = user.Id.ToString(CultureInfo.InvariantCulture),
+                        Label = user.Name
+                    }).ToList()
+                })
+                <span asp-validation-for="UserId" class="text-danger"></span>
+            </div>
+
+            <div class="col-12 d-flex gap-2">
+                <button type="submit" class="btn btn-primary">@T["common.save"]</button>
+                <a asp-action="Index" class="btn btn-outline-secondary">@T["common.cancel"]</a>
+            </div>
+        </form>
+    </div>
+</div>

@@ -5,7 +5,7 @@
     var modelState = ViewData.ModelState.ContainsKey(Model.Name) ? ViewData.ModelState[Model.Name] : null;
     var hasError = modelState != null && modelState.Errors.Count > 0;
     var errorMessage = hasError ? modelState!.Errors[0].ErrorMessage : string.Empty;
-    var inputClass = hasError ? "form-control sinara-text-input is-invalid" : "form-control sinara-text-input";
+    var inputClass = hasError ? "form-control is-invalid" : "form-control";
     var requiredMessage = $"{Model.Label} wajib diisi.";
 }
 
