@@ -1,0 +1,44 @@
+@model ERP.Web.ViewModels.Shared.TextInputViewModel
+
+@{
+    var inputId = string.IsNullOrWhiteSpace(Model.Id) ? Model.Name : Model.Id;
+    var modelState = ViewData.ModelState.ContainsKey(Model.Name) ? ViewData.ModelState[Model.Name] : null;
+    var hasError = modelState != null && modelState.Errors.Count > 0;
+    var errorMessage = hasError ? modelState!.Errors[0].ErrorMessage : string.Empty;
+    var inputClass = hasError ? "form-control sinara-text-input is-invalid" : "form-control sinara-text-input";
+    var requiredMessage = $"{Model.Label} wajib diisi.";
+}
+
+<div class="sinara-text-input-group">
+    @if (!string.IsNullOrWhiteSpace(Model.Label))
+    {
+        <label for="@inputId" class="form-label">
+            @Model.Label
+            @if (Model.IsRequired)
+            {
+                <span class="text-danger">*</span>
+            }
+        </label>
+    }
+
+    <input type="text"
+           id="@inputId"
+           name="@Model.Name"
+           class="@inputClass"
+           value="@Model.Value"
+           placeholder="@Model.Placeholder"
+           maxlength="@Model.MaxLength"
+           readonly="@Model.IsReadOnly"
+           required="@Model.IsRequired"
+           data-val="@(Model.IsRequired ? "true" : null)"
+           data-val-required="@(Model.IsRequired ? requiredMessage : null)" />
+
+    <span class="@(hasError ? "text-danger field-validation-error" : "text-danger field-validation-valid")"
+          data-valmsg-for="@Model.Name"
+          data-valmsg-replace="true">@errorMessage</span>
+
+    @if (!string.IsNullOrWhiteSpace(Model.HelpText))
+    {
+        <div class="form-text">@Model.HelpText</div>
+    }
+</div>

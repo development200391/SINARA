@@ -18,15 +18,26 @@
             </div>
 
             <div class="col-lg-3 col-md-4">
-                <label class="form-label">@T["label.employee_code"]</label>
-                <input type="text" class="form-control" value="" placeholder="Auto-generated" disabled />
-                <div class="form-text">@T["Generated automatically on save."]</div>
+                @await Component.InvokeAsync("TextInput", new TextInputViewModel
+                {
+                    Name = "EmployeeCode",
+                    Label = T["label.employee_code"],
+                    Placeholder = "Auto-generated",
+                    IsReadOnly = true,
+                    HelpText = T["Generated automatically on save."]
+                })
             </div>
 
             <div class="col-lg-6 col-md-8">
-                <label asp-for="FullName" class="form-label"></label>
-                <input asp-for="FullName" class="form-control" />
-                <span asp-validation-for="FullName" class="text-danger"></span>
+                @await Component.InvokeAsync("TextInput", new TextInputViewModel
+                {
+                    Name = nameof(Model.FullName),
+                    Id = Html.IdFor(x => x.FullName).ToString(),
+                    Label = T["label.full_name"],
+                    Value = Model.FullName,
+                    IsRequired = true,
+                    MaxLength = 200
+                })
             </div>
 
             <div class="col-md-6">
