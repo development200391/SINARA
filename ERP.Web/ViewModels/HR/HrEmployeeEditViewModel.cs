@@ -21,6 +21,7 @@ public sealed class HrEmployeeEditViewModel
     public string? Email { get; set; }
 
     [MaxLength(30)]
+    [RegularExpression(@"^[0-9+\-\s()]{6,20}$", ErrorMessage = "Phone number is not valid.")]
     public string? Phone { get; set; }
 
     [MaxLength(500)]

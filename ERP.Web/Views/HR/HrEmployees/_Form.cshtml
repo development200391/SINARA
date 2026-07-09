@@ -26,8 +26,9 @@
             <div class="col-lg-3 col-md-4">
                     @await Component.InvokeAsync("TextInput", new TextInputViewModel
                     {
-                        Name = "EmployeeCode",
+                        Name = nameof(Model.EmployeeCode),
                         Label = T["label.employee_code"],
+                        Value = Model.EmployeeCode,
                         Placeholder = "Auto-generated",
                         IsReadOnly = isEdit,
                         HelpText = T["Generated automatically on save."]
@@ -48,15 +49,23 @@
             </div>
 
             <div class="col-md-6">
-                <label asp-for="Email" class="form-label"></label>
-                <input asp-for="Email" class="form-control" />
-                <span asp-validation-for="Email" class="text-danger"></span>
+                @await Component.InvokeAsync("FormEmail", new FormEmailViewModel
+                {
+                    Name = nameof(Model.Email),
+                    Id = Html.IdFor(x => x.Email).ToString(),
+                    Label = T["Email"],
+                    Value = Model.Email
+                })
             </div>
 
             <div class="col-md-6">
-                <label asp-for="Phone" class="form-label"></label>
-                <input asp-for="Phone" class="form-control" />
-                <span asp-validation-for="Phone" class="text-danger"></span>
+                @await Component.InvokeAsync("FormPhone", new FormPhoneViewModel
+                {
+                    Name = nameof(Model.Phone),
+                    Id = Html.IdFor(x => x.Phone).ToString(),
+                    Label = T["Phone"],
+                    Value = Model.Phone
+                })
             </div>
 
             <div class="col-md-4">
@@ -94,15 +103,24 @@
             </div>
 
             <div class="col-md-6">
-                <label asp-for="HireDate" class="form-label"></label>
-                <input asp-for="HireDate" class="form-control" type="date" />
-                <span asp-validation-for="HireDate" class="text-danger"></span>
+                @await Component.InvokeAsync("FormDate", new FormDateViewModel
+                {
+                    Name = nameof(Model.HireDate),
+                    Id = Html.IdFor(x => x.HireDate).ToString(),
+                    Label = T["Hire Date"],
+                    Value = Model.HireDate,
+                    IsRequired = true
+                })
             </div>
 
             <div class="col-md-6">
-                <label asp-for="TerminationDate" class="form-label"></label>
-                <input asp-for="TerminationDate" class="form-control" type="date" />
-                <span asp-validation-for="TerminationDate" class="text-danger"></span>
+                @await Component.InvokeAsync("FormDate", new FormDateViewModel
+                {
+                    Name = nameof(Model.TerminationDate),
+                    Id = Html.IdFor(x => x.TerminationDate).ToString(),
+                    Label = T["Termination Date"],
+                    Value = Model.TerminationDate
+                })
             </div>
 
             <div class="col-md-6">

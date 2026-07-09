@@ -47,3 +47,7 @@ Pakai ViewComponent yang ada,
 Menu nya langsung di buat juga agar nanti langsung coba
 tambah data di table minimal 5 data agar tidak kosong
 buat ReadMe[Modul].txt di D:\Projek\SINARA\SINARA berisi deskripsi setiap menu yang kita buar
+
+
+
+Masih di employee, perfekin semua dulu

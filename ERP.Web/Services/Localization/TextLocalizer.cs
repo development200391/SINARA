@@ -884,6 +884,9 @@ public sealed class TextLocalizer(IHttpContextAccessor httpContextAccessor) : IT
         ["Fully Depreciated"] = "Depresiasi Penuh",
         ["Disposed"] = "Dilepas",
         ["Processed"] = "Diproses",
+        ["{0} is required."] = "{0} wajib diisi.",
+        ["{0} is not valid."] = "{0} tidak valid.",
+        ["{0} must be checked."] = "{0} wajib dicentang.",
     };
 
     private static readonly Dictionary<string, string> EnglishPhrases = new(StringComparer.OrdinalIgnoreCase)
