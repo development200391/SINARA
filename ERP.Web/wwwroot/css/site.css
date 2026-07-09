@@ -63,6 +63,11 @@ body {
     background: linear-gradient(135deg, #e2f7f4, #f9fbfc);
 }
 
+.login-page .sinara-logo-icon {
+    width: 56px;
+    height: 56px;
+}
+
 .page-hero {
     background: #ffffff;
     border: 1px solid #e5e7eb;
