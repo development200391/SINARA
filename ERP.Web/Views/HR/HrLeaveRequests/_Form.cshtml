@@ -1,0 +1,88 @@
+@model ERP.Web.ViewModels.HR.HrLeaveRequestEditViewModel
+@using ERP.Web.ViewModels.Shared
+@using System.Globalization
+
+@{
+    var isEdit = Model.Id > 0;
+}
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">@(isEdit ? T["Edit Leave Request"] : T["Create Leave Request"])</h1>
+
+        <form method="post" class="row g-3">
+            @Html.AntiForgeryToken()
+            @if (isEdit)
+            {
+                <input asp-for="Id" type="hidden" />
+            }
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="col-md-6">
+                <label asp-for="EmployeeId" class="form-label">@T["Employee"]</label>
+                @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+                {
+                    Name = nameof(Model.EmployeeId),
+                    Id = Html.IdFor(x => x.EmployeeId).ToString(),
+                    CssClass = "form-select",
+                    SearchPlaceholder = T["Search employee..."],
+                    EmptyOptionLabel = T["Select Employee"],
+                    SelectedValue = Model.EmployeeId > 0
+                        ? Model.EmployeeId.ToString(CultureInfo.InvariantCulture)
+                        : null,
+                    IsRequired = true,
+                    Options = Model.Employees.Select(employee => new SearchableSelectOptionViewModel
+                    {
+                        Value = employee.Id.ToString(CultureInfo.InvariantCulture),
+                        Label = employee.Name
+                    }).ToList()
+                })
+                <span asp-validation-for="EmployeeId" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="LeaveTypeId" class="form-label">@T["Leave Type"]</label>
+                <select asp-for="LeaveTypeId" class="form-select">
+                    <option value="">@T["Select Leave Type"]</option>
+                    @foreach (var leaveType in Model.LeaveTypes)
+                    {
+                        <option value="@leaveType.Id">@leaveType.Name</option>
+                    }
+                </select>
+                <span asp-validation-for="LeaveTypeId" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-6">
+                @await Component.InvokeAsync("FormDate", new FormDateViewModel
+                {
+                    Name = nameof(Model.StartDate),
+                    Id = Html.IdFor(x => x.StartDate).ToString(),
+                    Label = T["Start Date"],
+                    Value = Model.StartDate,
+                    IsRequired = true
+                })
+            </div>
+
+            <div class="col-md-6">
+                @await Component.InvokeAsync("FormDate", new FormDateViewModel
+                {
+                    Name = nameof(Model.EndDate),
+                    Id = Html.IdFor(x => x.EndDate).ToString(),
+                    Label = T["End Date"],
+                    Value = Model.EndDate,
+                    IsRequired = true
+                })
+            </div>
+
+            <div class="col-12">
+                <label asp-for="Reason" class="form-label">@T["Reason"]</label>
+                <textarea asp-for="Reason" class="form-control" rows="3"></textarea>
+            </div>
+
+            <div class="col-12 d-flex gap-2">
+                <button type="submit" class="btn btn-primary">@T["common.save"]</button>
+                <a asp-action="Index" class="btn btn-outline-secondary">@T["common.cancel"]</a>
+            </div>
+        </form>
+    </div>
+</div>

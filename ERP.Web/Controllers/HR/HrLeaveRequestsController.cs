@@ -85,7 +85,7 @@ public sealed class HrLeaveRequestsController(IHrApiClient hrApiClient) : Contro
         ViewData["Title"] = "Create Leave Request";
         ViewData["Breadcrumb"] = "HR / Leave / Requests / Create";
 
-        return View(new HrLeaveRequestCreateViewModel
+        return View(new HrLeaveRequestEditViewModel
         {
             Employees = options.Employees,
             LeaveTypes = options.LeaveTypes
@@ -94,7 +94,7 @@ public sealed class HrLeaveRequestsController(IHrApiClient hrApiClient) : Contro
 
     [HttpPost("create")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(HrLeaveRequestCreateViewModel model, CancellationToken ct = default)
+    public async Task<IActionResult> Create(HrLeaveRequestEditViewModel model, CancellationToken ct = default)
     {
         var accessToken = GetAccessToken();
         if (string.IsNullOrWhiteSpace(accessToken))
