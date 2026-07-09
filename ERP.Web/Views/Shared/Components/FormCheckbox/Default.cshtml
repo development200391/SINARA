@@ -61,8 +61,8 @@
         }
     </div>
 
-    @if (hasError)
-    {
-        <div id="@(inputId)-error" class="invalid-feedback d-block">@errorMessage</div>
-    }
+    <span class="@(hasError ? "text-danger field-validation-error" : "text-danger field-validation-valid")"
+          id="@(inputId)-error"
+          data-valmsg-for="@Model.Name"
+          data-valmsg-replace="true">@errorMessage</span>
 </div>
