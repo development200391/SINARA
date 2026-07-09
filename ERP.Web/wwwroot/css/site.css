@@ -58,6 +58,28 @@ body {
     box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.18);
 }
 
+.sinara-form-field .form-check.form-switch {
+    font-size: 1.75rem;
+    display: flex;
+    align-items: center;
+    min-height: 2rem;
+}
+
+.sinara-form-field .form-check.form-switch .form-check-input {
+    cursor: pointer;
+}
+
+.sinara-form-field .form-check.form-switch .form-check-input:checked {
+    background-color: var(--sinara-primary);
+    border-color: var(--sinara-primary);
+}
+
+.sinara-form-field .form-check.form-switch .form-check-label {
+    font-size: 1rem;
+    margin-left: 0.35rem;
+    cursor: pointer;
+}
+
 .login-page {
     min-height: 100vh;
     background: linear-gradient(135deg, #e2f7f4, #f9fbfc);

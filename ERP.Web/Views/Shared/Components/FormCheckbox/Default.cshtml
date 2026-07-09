@@ -15,6 +15,7 @@
     input.Attributes["id"] = inputId;
     input.Attributes["name"] = Model.Name;
     input.Attributes["value"] = "true";
+    input.Attributes["role"] = "switch";
     input.AddCssClass(hasError ? "form-check-input is-invalid" : "form-check-input");
     if (Model.Checked)
     {
@@ -46,7 +47,7 @@
 }
 
 <div class="sinara-form-field @(hasError ? "error" : "")">
-    <div class="form-check">
+    <div class="form-check form-switch">
         <input type="hidden" name="@Model.Name" value="false" />
         @Html.Raw(inputHtml)
         @if (!string.IsNullOrWhiteSpace(Model.Label))

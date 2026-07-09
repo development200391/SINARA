@@ -1,52 +1,6 @@
 @model ERP.Web.ViewModels.HR.HrLeaveTypeEditViewModel
 
-<div class="card border-0 shadow-sm">
-    <div class="card-body">
-        <h1 class="h5 mb-3">@T["Create Leave Type"]</h1>
-
-        <form method="post" class="row g-3">
-            @Html.AntiForgeryToken()
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-
-            <div class="col-md-6">
-                <label asp-for="Name" class="form-label"></label>
-                <input asp-for="Name" class="form-control" />
-                <span asp-validation-for="Name" class="text-danger"></span>
-            </div>
-
-            <div class="col-md-6">
-                <label asp-for="Code" class="form-label"></label>
-                <input asp-for="Code" class="form-control" />
-                <span asp-validation-for="Code" class="text-danger"></span>
-            </div>
-
-            <div class="col-md-4">
-                <label asp-for="MaxDaysPerYear" class="form-label"></label>
-                <input asp-for="MaxDaysPerYear" class="form-control" type="number" min="1" max="365" />
-                <span asp-validation-for="MaxDaysPerYear" class="text-danger"></span>
-            </div>
-
-            <div class="col-md-4 d-flex align-items-end">
-                <div class="form-check">
-                    <input asp-for="IsCarryOver" class="form-check-input" />
-                    <label asp-for="IsCarryOver" class="form-check-label"></label>
-                </div>
-            </div>
-
-            <div class="col-md-4 d-flex align-items-end">
-                <div class="form-check">
-                    <input asp-for="IsActive" class="form-check-input" />
-                    <label asp-for="IsActive" class="form-check-label"></label>
-                </div>
-            </div>
-
-            <div class="col-12 d-flex gap-2">
-                <button type="submit" class="btn btn-primary">@T["common.save"]</button>
-                <a asp-action="Index" class="btn btn-outline-secondary">@T["common.cancel"]</a>
-            </div>
-        </form>
-    </div>
-</div>
+<partial name="_Form" model="Model" />
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
