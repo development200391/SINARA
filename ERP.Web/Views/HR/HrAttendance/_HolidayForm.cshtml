@@ -1,0 +1,72 @@
+@model ERP.Web.ViewModels.HR.HrHolidayEditViewModel
+@using ERP.Domain.Enums
+
+@{
+    var isEdit = Model.Id > 0;
+}
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">@(isEdit ? T["Edit Holiday"] : T["Create Holiday"])</h1>
+
+        <form method="post" class="row g-3">
+            @Html.AntiForgeryToken()
+            @if (isEdit)
+            {
+                <input asp-for="Id" type="hidden" />
+            }
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="col-md-6">
+                <label asp-for="Name" class="form-label"></label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-3">
+                <label asp-for="HolidayDate" class="form-label"></label>
+                <input asp-for="HolidayDate" type="date" class="form-control" />
+                <span asp-validation-for="HolidayDate" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-3">
+                <label asp-for="HolidayType" class="form-label"></label>
+                <select asp-for="HolidayType" class="form-select">
+                    @foreach (var type in Enum.GetValues<HolidayType>())
+                    {
+                        <option value="@type" selected="@(Model.HolidayType == type)">@type</option>
+                    }
+                </select>
+                <span asp-validation-for="HolidayType" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="AppliesTo" class="form-label"></label>
+                <select asp-for="AppliesTo" class="form-select">
+                    <option value="all" selected="@(string.Equals(Model.AppliesTo, "all", StringComparison.OrdinalIgnoreCase))">@T["All"]</option>
+                    <option value="division_id" selected="@(string.Equals(Model.AppliesTo, "division_id", StringComparison.OrdinalIgnoreCase))">@T["Division"]</option>
+                    <option value="location_id" selected="@(string.Equals(Model.AppliesTo, "location_id", StringComparison.OrdinalIgnoreCase))">@T["Location"]</option>
+                </select>
+                <span asp-validation-for="AppliesTo" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-6 d-flex align-items-end">
+                <div class="form-check form-switch">
+                    <input asp-for="IsActive" class="form-check-input" type="checkbox" role="switch" />
+                    <label asp-for="IsActive" class="form-check-label"></label>
+                </div>
+            </div>
+
+            <div class="col-12">
+                <label asp-for="Description" class="form-label"></label>
+                <textarea asp-for="Description" class="form-control" rows="4"></textarea>
+                <span asp-validation-for="Description" class="text-danger"></span>
+            </div>
+
+            <div class="col-12 d-flex gap-2">
+                <button type="submit" class="btn btn-primary">@T["common.save"]</button>
+                <a asp-action="Holiday" class="btn btn-outline-secondary">@T["common.cancel"]</a>
+            </div>
+        </form>
+    </div>
+</div>
