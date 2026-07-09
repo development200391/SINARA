@@ -82,13 +82,24 @@
 
             <div class="col-md-4">
                 <label asp-for="PositionId" class="form-label">@T["Position"]</label>
-                <select asp-for="PositionId" class="form-select">
-                    <option value="">@T["Select Position"]</option>
-                    @foreach (var position in Model.Positions)
+                @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+                {
+                    Name = nameof(Model.PositionId),
+                    Id = Html.IdFor(x => x.PositionId).ToString(),
+                    CssClass = "form-select",
+                    SearchPlaceholder = T["Search"],
+                    EmptyOptionLabel = T["Select Position"],
+                    DependsOnElementId = Html.IdFor(x => x.DepartmentId).ToString(),
+                    SelectedValue = Model.PositionId > 0
+                        ? Model.PositionId.ToString(CultureInfo.InvariantCulture)
+                        : null,
+                    Options = Model.Positions.Select(position => new SearchableSelectOptionViewModel
                     {
-                        <option value="@position.Id" selected="@(Model.PositionId == position.Id)">@position.DepartmentName - @position.Name (L@position.Level)</option>
-                    }
-                </select>
+                        Value = position.Id.ToString(CultureInfo.InvariantCulture),
+                        Label = $"{position.DepartmentName} - {position.Name} (L{position.Level})",
+                        GroupValue = position.DepartmentId.ToString(CultureInfo.InvariantCulture)
+                    }).ToList()
+                })
                 <span asp-validation-for="PositionId" class="text-danger"></span>
             </div>
 

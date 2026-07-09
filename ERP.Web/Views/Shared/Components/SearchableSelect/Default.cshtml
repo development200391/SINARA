@@ -8,7 +8,7 @@
     var buttonClass = string.IsNullOrWhiteSpace(Model.CssClass) ? "form-select" : Model.CssClass;
 }
 
-<div class="dropdown sinara-searchable-select" data-searchable-select>
+<div class="dropdown sinara-searchable-select" data-searchable-select data-depends-on="@(string.IsNullOrWhiteSpace(Model.DependsOnElementId) ? null : Model.DependsOnElementId)">
     <input type="hidden"
            id="@normalizedId"
            name="@Model.Name"
@@ -54,6 +54,7 @@
                         data-value="@option.Value"
                         data-label="@option.Label"
                         data-filter="@option.Label.ToLowerInvariant()"
+                        data-group="@option.GroupValue"
                         aria-disabled="@option.IsDisabled"
                         tabindex="@(option.IsDisabled ? "-1" : "0")">
                     @option.Label
@@ -108,8 +109,19 @@
         }
     }
 
+    function getDependsOnValue(host) {
+        var dependsOnId = host.getAttribute('data-depends-on');
+        if (!dependsOnId) {
+            return null;
+        }
+
+        var parent = document.getElementById(dependsOnId);
+        return parent ? (parent.value || '') : '';
+    }
+
     function applyFilter(host, keyword) {
         var text = (keyword || '').trim().toLowerCase();
+        var groupValue = getDependsOnValue(host);
         var options = getOptions(host);
         var visibleCount = 0;
 
@@ -117,7 +129,11 @@
             var option = options[i];
             var alwaysVisible = option.getAttribute('data-always-visible') === 'true';
             var filterText = (option.getAttribute('data-filter') || option.textContent || '').toLowerCase();
-            var shouldShow = alwaysVisible || text.length === 0 || filterText.indexOf(text) !== -1;
+            var matchesSearch = text.length === 0 || filterText.indexOf(text) !== -1;
+            var matchesGroup = alwaysVisible
+                || !groupValue
+                || (option.getAttribute('data-group') || '') === groupValue;
+            var shouldShow = alwaysVisible || (matchesSearch && matchesGroup);
 
             option.classList.toggle('d-none', !shouldShow);
             if (shouldShow) {
@@ -129,6 +145,28 @@
         if (emptyNode) {
             emptyNode.classList.toggle('d-none', visibleCount > 0);
         }
+    }
+
+    function refreshForDependency(host) {
+        var groupValue = getDependsOnValue(host);
+        if (groupValue !== null) {
+            var hidden = host.querySelector('[data-searchable-select-value]');
+            var selectedValue = hidden instanceof HTMLInputElement ? hidden.value : '';
+            if (selectedValue) {
+                var selectedOption = getOptions(host).find(function (option) {
+                    return (option.getAttribute('data-value') || '') === selectedValue;
+                });
+                var stillValid = !groupValue || (selectedOption && (selectedOption.getAttribute('data-group') || '') === groupValue);
+                if (!stillValid) {
+                    var emptyOption = host.querySelector('[data-searchable-select-option][data-value=""]');
+                    var emptyLabel = emptyOption ? (emptyOption.getAttribute('data-label') || '') : '';
+                    setSelected(host, '', emptyLabel);
+                }
+            }
+        }
+
+        var input = host.querySelector('[data-searchable-select-input]');
+        applyFilter(host, input instanceof HTMLInputElement ? input.value : '');
     }
 
     document.addEventListener('input', function (event) {
@@ -192,6 +230,25 @@
                 input.focus();
                 input.select();
             }, 0);
+        }
+    });
+
+    document.addEventListener('change', function (event) {
+        var changed = event.target;
+        if (!(changed instanceof Element) || !changed.id) {
+            return;
+        }
+
+        var dependents = document.querySelectorAll('[data-searchable-select][data-depends-on="' + changed.id + '"]');
+        for (var i = 0; i < dependents.length; i++) {
+            refreshForDependency(dependents[i]);
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', function () {
+        var hosts = document.querySelectorAll('[data-searchable-select][data-depends-on]');
+        for (var i = 0; i < hosts.length; i++) {
+            refreshForDependency(hosts[i]);
         }
     });
 
