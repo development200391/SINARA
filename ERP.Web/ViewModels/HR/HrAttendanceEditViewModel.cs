@@ -15,10 +15,10 @@ public sealed class HrAttendanceEditViewModel
     public DateOnly Date { get; set; } = DateOnly.FromDateTime(DateTime.Today);
 
     [Display(Name = "Check In")]
-    public string? CheckInLocal { get; set; }
+    public DateTime? CheckInLocal { get; set; }
 
     [Display(Name = "Check Out")]
-    public string? CheckOutLocal { get; set; }
+    public DateTime? CheckOutLocal { get; set; }
 
     public AttendanceStatus Status { get; set; } = AttendanceStatus.Present;
 

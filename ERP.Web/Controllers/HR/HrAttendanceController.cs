@@ -19,7 +19,6 @@ public sealed class HrAttendanceController(IHrApiClient hrApiClient) : Controlle
     private const string DefaultSortBy = "date";
     private const string DefaultHolidaySortBy = "holidayDate";
     private const string DefaultReportSortBy = "employeeName";
-    private static readonly string[] DateTimeInputFormats = ["yyyy-MM-ddTHH:mm", "yyyy-MM-ddTHH:mm:ss"];
     private static readonly string[] TimeInputFormats = ["HH:mm", "HH:mm:ss"];
 
     [HttpGet("")]
@@ -615,8 +614,8 @@ public sealed class HrAttendanceController(IHrApiClient hrApiClient) : Controlle
 
         await PopulateFormOptionsAsync(accessToken, model, ct);
 
-        var checkIn = ParseLocalDateTime(model.CheckInLocal, nameof(model.CheckInLocal), ModelState);
-        var checkOut = ParseLocalDateTime(model.CheckOutLocal, nameof(model.CheckOutLocal), ModelState);
+        var checkIn = ToOffset(model.CheckInLocal);
+        var checkOut = ToOffset(model.CheckOutLocal);
 
         if (checkIn.HasValue && checkOut.HasValue && checkOut.Value < checkIn.Value)
         {
@@ -672,8 +671,8 @@ public sealed class HrAttendanceController(IHrApiClient hrApiClient) : Controlle
             Id = attendance.Id,
             EmployeeId = attendance.EmployeeId,
             Date = attendance.Date,
-            CheckInLocal = FormatDateTimeLocal(attendance.CheckIn),
-            CheckOutLocal = FormatDateTimeLocal(attendance.CheckOut),
+            CheckInLocal = ToLocalDateTime(attendance.CheckIn),
+            CheckOutLocal = ToLocalDateTime(attendance.CheckOut),
             Status = attendance.Status,
             Notes = attendance.Notes
         };
@@ -699,8 +698,8 @@ public sealed class HrAttendanceController(IHrApiClient hrApiClient) : Controlle
         model.Id = id;
         await PopulateFormOptionsAsync(accessToken, model, ct);
 
-        var checkIn = ParseLocalDateTime(model.CheckInLocal, nameof(model.CheckInLocal), ModelState);
-        var checkOut = ParseLocalDateTime(model.CheckOutLocal, nameof(model.CheckOutLocal), ModelState);
+        var checkIn = ToOffset(model.CheckInLocal);
+        var checkOut = ToOffset(model.CheckOutLocal);
 
         if (checkIn.HasValue && checkOut.HasValue && checkOut.Value < checkIn.Value)
         {
@@ -1043,36 +1042,25 @@ public sealed class HrAttendanceController(IHrApiClient hrApiClient) : Controlle
         return parsed;
     }
 
-    private static string? FormatDateTimeLocal(DateTimeOffset? value)
+    // This app has no per-user timezone setting, so "local" here means the server's local
+    // timezone (TimeZoneInfo.Local) - the same assumption FormDateTimeViewComponent documents.
+    private static DateTime? ToLocalDateTime(DateTimeOffset? value)
     {
-        if (!value.HasValue)
-        {
-            return null;
-        }
-
-        return value.Value.ToLocalTime().ToString("yyyy-MM-ddTHH:mm", CultureInfo.InvariantCulture);
+        return value?.LocalDateTime;
     }
 
-    private static DateTimeOffset? ParseLocalDateTime(string? value, string fieldName, ModelStateDictionary modelState)
+    private static DateTimeOffset? ToOffset(DateTime? localValue)
     {
-        if (string.IsNullOrWhiteSpace(value))
+        if (!localValue.HasValue)
         {
             return null;
         }
 
-        var normalized = value.Trim();
-        if (!DateTime.TryParseExact(normalized, DateTimeInputFormats, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out var parsed))
-        {
-            modelState.AddModelError(fieldName, "Invalid date-time format.");
-            return null;
-        }
+        var local = localValue.Value.Kind == DateTimeKind.Unspecified
+            ? DateTime.SpecifyKind(localValue.Value, DateTimeKind.Local)
+            : localValue.Value;
 
-        if (parsed.Kind == DateTimeKind.Unspecified)
-        {
-            parsed = DateTime.SpecifyKind(parsed, DateTimeKind.Local);
-        }
-
-        return new DateTimeOffset(parsed);
+        return new DateTimeOffset(local);
     }
 
     private static HolidayDto MapHolidayDto(HrHolidayEditViewModel model)

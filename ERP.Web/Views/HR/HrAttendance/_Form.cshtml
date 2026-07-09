@@ -53,15 +53,23 @@
             </div>
 
             <div class="col-md-6">
-                <label asp-for="CheckInLocal" class="form-label"></label>
-                <input asp-for="CheckInLocal" class="form-control" type="datetime-local" />
-                <span asp-validation-for="CheckInLocal" class="text-danger"></span>
+                @await Component.InvokeAsync("FormDateTime", new FormDateTimeViewModel
+                {
+                    Name = nameof(Model.CheckInLocal),
+                    Id = Html.IdFor(x => x.CheckInLocal).ToString(),
+                    Label = T["Check In"],
+                    Value = Model.CheckInLocal
+                })
             </div>
 
             <div class="col-md-6">
-                <label asp-for="CheckOutLocal" class="form-label"></label>
-                <input asp-for="CheckOutLocal" class="form-control" type="datetime-local" />
-                <span asp-validation-for="CheckOutLocal" class="text-danger"></span>
+                @await Component.InvokeAsync("FormDateTime", new FormDateTimeViewModel
+                {
+                    Name = nameof(Model.CheckOutLocal),
+                    Id = Html.IdFor(x => x.CheckOutLocal).ToString(),
+                    Label = T["Check Out"],
+                    Value = Model.CheckOutLocal
+                })
             </div>
 
             <div class="col-md-4">
