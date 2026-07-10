@@ -1,0 +1,66 @@
+@model ERP.Web.ViewModels.Shared.FormTimeViewModel
+@using Microsoft.AspNetCore.Mvc.Rendering
+
+@{
+    var inputId = string.IsNullOrWhiteSpace(Model.Id) ? Model.Name : Model.Id;
+    var modelState = ViewData.ModelState.ContainsKey(Model.Name) ? ViewData.ModelState[Model.Name] : null;
+    var modelStateError = modelState != null && modelState.Errors.Count > 0 ? modelState.Errors[0].ErrorMessage : null;
+    var errorMessage = !string.IsNullOrWhiteSpace(Model.Error) ? Model.Error : modelStateError;
+    var hasError = !string.IsNullOrWhiteSpace(errorMessage);
+    var requiredMessage = string.Format(T["{0} is required."], Model.Label);
+
+    var input = new TagBuilder("input");
+    input.TagRenderMode = TagRenderMode.SelfClosing;
+    input.Attributes["type"] = "time";
+    input.Attributes["step"] = "60";
+    input.Attributes["id"] = inputId;
+    input.Attributes["name"] = Model.Name;
+    input.AddCssClass(hasError ? "form-control is-invalid" : "form-control");
+    if (!string.IsNullOrWhiteSpace(Model.Value))
+    {
+        input.Attributes["value"] = Model.Value;
+    }
+    if (Model.IsRequired)
+    {
+        input.Attributes["required"] = "required";
+        input.Attributes["data-val"] = "true";
+        input.Attributes["data-val-required"] = requiredMessage;
+    }
+    input.Attributes["aria-label"] = Model.Label;
+    input.Attributes["aria-invalid"] = hasError ? "true" : "false";
+    if (hasError)
+    {
+        input.Attributes["aria-describedby"] = $"{inputId}-error";
+    }
+    if (Model.HtmlAttributes != null)
+    {
+        foreach (var attr in Model.HtmlAttributes)
+        {
+            input.Attributes[attr.Key] = attr.Value;
+        }
+    }
+
+    using var writer = new System.IO.StringWriter();
+    input.WriteTo(writer, System.Text.Encodings.Web.HtmlEncoder.Default);
+    var inputHtml = writer.ToString();
+}
+
+<div class="sinara-form-field @(hasError ? "error" : "")">
+    @if (!string.IsNullOrWhiteSpace(Model.Label))
+    {
+        <label for="@inputId" class="form-label">
+            @Model.Label
+            @if (Model.IsRequired)
+            {
+                <span class="text-danger">*</span>
+            }
+        </label>
+    }
+
+    @Html.Raw(inputHtml)
+
+    <span class="@(hasError ? "text-danger field-validation-error" : "text-danger field-validation-valid")"
+          id="@(inputId)-error"
+          data-valmsg-for="@Model.Name"
+          data-valmsg-replace="true">@errorMessage</span>
+</div>

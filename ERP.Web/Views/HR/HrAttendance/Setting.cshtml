@@ -1,4 +1,5 @@
 @model ERP.Web.ViewModels.HR.HrAttendanceSettingViewModel
+@using ERP.Web.ViewModels.Shared
 
 <div class="card border-0 shadow-sm">
     <div class="card-body">
@@ -15,9 +16,9 @@
             </div>
 
             <div class="col-md-3">
-                <label asp-for="AttendancePeriodEndDay" class="form-label">@T["Periode Attendance End Day"]</label>
-                <input asp-for="AttendancePeriodEndDay" class="form-control" type="number" min="1" max="31" />
-                <span asp-validation-for="AttendancePeriodEndDay" class="text-danger"></span>
+                <label class="form-label">@T["Periode Attendance End Day"]</label>
+                <div id="attendancePeriodEndDayPreview" class="form-control bg-light fw-semibold">@Model.AttendancePeriodEndDay</div>
+                <small class="text-muted">@T["Otomatis: 1 hari sebelum Start Day."]</small>
             </div>
 
             <div class="col-md-6">
@@ -33,27 +34,47 @@
             </div>
 
             <div class="col-md-3">
-                <label asp-for="WorkStart" class="form-label">@T["Work Start"]</label>
-                <input asp-for="WorkStart" class="form-control" type="time" step="60" />
-                <span asp-validation-for="WorkStart" class="text-danger"></span>
+                @await Component.InvokeAsync("FormTime", new FormTimeViewModel
+                {
+                    Name = nameof(Model.WorkStart),
+                    Id = Html.IdFor(x => x.WorkStart).ToString(),
+                    Label = T["Work Start"],
+                    Value = Model.WorkStart,
+                    IsRequired = true
+                })
             </div>
 
             <div class="col-md-3">
-                <label asp-for="WorkEnd" class="form-label">@T["Work End"]</label>
-                <input asp-for="WorkEnd" class="form-control" type="time" step="60" />
-                <span asp-validation-for="WorkEnd" class="text-danger"></span>
+                @await Component.InvokeAsync("FormTime", new FormTimeViewModel
+                {
+                    Name = nameof(Model.WorkEnd),
+                    Id = Html.IdFor(x => x.WorkEnd).ToString(),
+                    Label = T["Work End"],
+                    Value = Model.WorkEnd,
+                    IsRequired = true
+                })
             </div>
 
             <div class="col-md-3">
-                <label asp-for="BreakStart" class="form-label">@T["Break Start"]</label>
-                <input asp-for="BreakStart" class="form-control" type="time" step="60" />
-                <span asp-validation-for="BreakStart" class="text-danger"></span>
+                @await Component.InvokeAsync("FormTime", new FormTimeViewModel
+                {
+                    Name = nameof(Model.BreakStart),
+                    Id = Html.IdFor(x => x.BreakStart).ToString(),
+                    Label = T["Break Start"],
+                    Value = Model.BreakStart,
+                    IsRequired = true
+                })
             </div>
 
             <div class="col-md-3">
-                <label asp-for="BreakEnd" class="form-label">@T["Break End"]</label>
-                <input asp-for="BreakEnd" class="form-control" type="time" step="60" />
-                <span asp-validation-for="BreakEnd" class="text-danger"></span>
+                @await Component.InvokeAsync("FormTime", new FormTimeViewModel
+                {
+                    Name = nameof(Model.BreakEnd),
+                    Id = Html.IdFor(x => x.BreakEnd).ToString(),
+                    Label = T["Break End"],
+                    Value = Model.BreakEnd,
+                    IsRequired = true
+                })
             </div>
 
             <div class="col-md-3">
@@ -95,10 +116,10 @@
     <script>
         (() => {
             const startInput = document.getElementById("AttendancePeriodStartDay");
-            const endInput = document.getElementById("AttendancePeriodEndDay");
+            const endPreview = document.getElementById("attendancePeriodEndDayPreview");
             const preview = document.getElementById("attendancePeriodPreview");
 
-            if (!startInput || !endInput || !preview) {
+            if (!startInput || !endPreview || !preview) {
                 return;
             }
 
@@ -114,6 +135,8 @@
                 return Math.max(1, Math.min(31, parsed));
             };
 
+            const computeEndDay = (startDay) => (startDay === 1 ? 31 : startDay - 1);
+
             const createSafeDate = (year, monthIndex, day) => {
                 const maxDay = new Date(year, monthIndex + 1, 0).getDate();
                 return new Date(year, monthIndex, Math.min(day, maxDay));
@@ -126,7 +149,8 @@
 
             const refreshPreview = () => {
                 const startDay = clampDay(startInput.value);
-                const endDay = clampDay(endInput.value);
+                const endDay = computeEndDay(startDay);
+                endPreview.textContent = String(endDay);
 
                 const endDate = createSafeDate(today.getFullYear(), today.getMonth(), endDay);
                 let startDate;
@@ -142,7 +166,6 @@
             };
 
             startInput.addEventListener("input", refreshPreview);
-            endInput.addEventListener("input", refreshPreview);
             refreshPreview();
         })();
     </script>

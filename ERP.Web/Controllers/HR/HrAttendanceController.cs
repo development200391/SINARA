@@ -480,6 +480,7 @@ public sealed class HrAttendanceController(IHrApiClient hrApiClient) : Controlle
 
         var settings = await hrApiClient.GetAttendanceSettingAsync(accessToken, ct) ?? new AttendanceSettingDto();
         var model = MapSettingViewModel(settings);
+        model.AttendancePeriodEndDay = ComputeAttendancePeriodEndDay(model.AttendancePeriodStartDay);
         model.CurrentPeriodPreview = BuildAttendancePeriodPreview(
             model.AttendancePeriodStartDay,
             model.AttendancePeriodEndDay,
@@ -501,6 +502,8 @@ public sealed class HrAttendanceController(IHrApiClient hrApiClient) : Controlle
             return RedirectToAction("Login", "Auth", new { returnUrl = Request.Path + Request.QueryString });
         }
 
+        model.AttendancePeriodEndDay = ComputeAttendancePeriodEndDay(model.AttendancePeriodStartDay);
+        ModelState.Remove(nameof(model.AttendancePeriodEndDay));
         model.CurrentPeriodPreview = BuildAttendancePeriodPreview(
             model.AttendancePeriodStartDay,
             model.AttendancePeriodEndDay,
@@ -1022,6 +1025,12 @@ public sealed class HrAttendanceController(IHrApiClient hrApiClient) : Controlle
     {
         var maxDay = DateTime.DaysInMonth(year, month);
         return new DateOnly(year, month, Math.Min(day, maxDay));
+    }
+
+    private static int ComputeAttendancePeriodEndDay(int startDay)
+    {
+        var normalizedStartDay = Math.Clamp(startDay, 1, 31);
+        return normalizedStartDay == 1 ? 31 : normalizedStartDay - 1;
     }
 
     private static TimeOnly? ParseTimeOnly(string? value, string fieldName, ModelStateDictionary modelState)
