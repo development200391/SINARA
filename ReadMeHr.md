@@ -71,6 +71,9 @@ Kegunaan Tiap Menu
 - Master jabatan: name, code, departemen, level jabatan, status aktif.
 - Level jabatan dipakai sebagai basis perhitungan gaji pokok di modul Payroll.
 - CRUD lengkap dengan filter code/name/departemen/level/status aktif.
+- Form Create/Edit/Details memakai satu partial form (_Form.cshtml) yang sama;
+  halaman Details menampilkan form yang sama dalam mode disabled (read-only).
+- Checkbox "Aktif" (IsActive) pakai komponen FormCheckboxViewComponent.
 
 2. Daily Attendance (/hr/attendance)
 - Rekam absensi harian per karyawan per tanggal: check-in, check-out, status
@@ -89,11 +92,21 @@ Kegunaan Tiap Menu
 - Bisa difilter per departemen/karyawan/status dan disortir.
 
 2.3 Attendance Setting (/hr/attendance/setting)
-- Pengaturan global jam kerja: jam masuk/pulang, jam istirahat, toleransi
-  keterlambatan (menit), minimum menit lembur (overtime).
-- Pengaturan periode absensi/payroll (tanggal mulai s/d akhir periode, default 26-25).
+- Pengaturan global jam kerja: jam masuk/pulang, jam istirahat (pakai komponen
+  FormTimeViewComponent), toleransi keterlambatan (menit), minimum menit
+  lembur (overtime).
+- Pengaturan periode absensi/payroll: hanya "Start Day" yang diisi manual;
+  "End Day" dihitung otomatis (Start Day - 1, dan dibungkus ke 31 kalau
+  Start Day = 1), baik saat load maupun saat submit di server.
 - Dipakai sebagai basis perhitungan status "Late" pada laporan absensi dan
   periode perhitungan payroll.
+- Lokasi Kantor (untuk absen via HP): Latitude/Longitude/Radius sekarang
+  dipilih lewat peta interaktif (Leaflet + OpenStreetMap, tanpa API key),
+  dengan fitur klik-pada-peta, drag marker, search alamat (geocoding via
+  Nominatim), dan tombol "Lokasi Saya Sekarang" (geolocation browser).
+  Latitude/Longitude tetap bisa diisi manual dan otomatis sinkron ke peta,
+  dengan validasi rentang (-90..90 / -180..180) dan indikator error kalau
+  formatnya salah.
 
 3. Payroll Run (/hr/payroll)
 - Index: daftar histori payroll run per bulan/tahun beserta status
