@@ -102,10 +102,23 @@ public sealed class HrPositionsController(IHrApiClient hrApiClient) : Controller
             return NotFound();
         }
 
+        var model = new HrPositionEditViewModel
+        {
+            Id = position.Id,
+            Name = position.Name,
+            Code = position.Code,
+            DepartmentId = position.DepartmentId,
+            Level = position.Level,
+            IsActive = position.IsActive,
+            IsReadOnly = true
+        };
+
+        await PopulateFormOptionsAsync(accessToken, model, ct);
+
         ViewData["Title"] = "Position Details";
         ViewData["Breadcrumb"] = "HR / Positions / Details";
 
-        return View(position);
+        return View(model);
     }
 
     [HttpGet("create")]

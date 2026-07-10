@@ -23,5 +23,7 @@ public sealed class HrPositionEditViewModel
 
     public bool IsActive { get; set; } = true;
 
+    public bool IsReadOnly { get; set; }
+
     public IReadOnlyList<DepartmentDto> Departments { get; set; } = [];
 }
