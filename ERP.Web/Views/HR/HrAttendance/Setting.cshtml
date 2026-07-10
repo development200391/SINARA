@@ -1,6 +1,10 @@
 @model ERP.Web.ViewModels.HR.HrAttendanceSettingViewModel
 @using ERP.Web.ViewModels.Shared
 
+@section Styles {
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+}
+
 <div class="card border-0 shadow-sm">
     <div class="card-body">
         <h1 class="h5 mb-3">@T["Attendance Setting"]</h1>
@@ -85,19 +89,38 @@
 
             <div class="col-12"><hr /><h2 class="h6">@T["Lokasi Kantor (untuk absen via HP)"]</h2></div>
 
-            <div class="col-md-3">
+            <div class="col-12">
+                <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+                    <div class="position-relative flex-grow-1" style="min-width: 220px;">
+                        <input type="text" id="office-address-search" class="form-control" placeholder="@T["Cari alamat..."]" autocomplete="off" />
+                        <div id="office-address-results" class="list-group position-absolute w-100 shadow-sm" style="z-index: 1000; display: none; max-height: 240px; overflow-y: auto;"></div>
+                    </div>
+                    <button type="button" id="office-search-btn" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1">
+                        <i class="bi bi-search" aria-hidden="true"></i>
+                        <span>@T["Cari"]</span>
+                    </button>
+                    <button type="button" id="office-locate-btn" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1">
+                        <i class="bi bi-crosshair" aria-hidden="true"></i>
+                        <span>@T["Lokasi Saya Sekarang"]</span>
+                    </button>
+                </div>
+                <small class="text-muted d-block mb-2">@T["Cari alamat, klik pada peta / geser marker, atau isi Latitude & Longitude manual untuk menentukan lokasi kantor."]</small>
+                <div id="office-location-map" style="height: 380px; border-radius: 0.5rem;"></div>
+            </div>
+
+            <div class="col-md-4">
                 <label asp-for="OfficeLatitude" class="form-label">@T["Latitude"]</label>
                 <input asp-for="OfficeLatitude" class="form-control" type="number" step="0.000001" min="-90" max="90" />
                 <span asp-validation-for="OfficeLatitude" class="text-danger"></span>
             </div>
 
-            <div class="col-md-3">
+            <div class="col-md-4">
                 <label asp-for="OfficeLongitude" class="form-label">@T["Longitude"]</label>
                 <input asp-for="OfficeLongitude" class="form-control" type="number" step="0.000001" min="-180" max="180" />
                 <span asp-validation-for="OfficeLongitude" class="text-danger"></span>
             </div>
 
-            <div class="col-md-3">
+            <div class="col-md-4">
                 <label asp-for="RadiusMeters" class="form-label">@T["Radius (meter)"]</label>
                 <input asp-for="RadiusMeters" class="form-control" type="number" min="1" />
                 <span asp-validation-for="RadiusMeters" class="text-danger"></span>
@@ -113,6 +136,205 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script>
+        (() => {
+            const latInput = document.getElementById("OfficeLatitude");
+            const lngInput = document.getElementById("OfficeLongitude");
+            const radiusInput = document.getElementById("RadiusMeters");
+            const mapEl = document.getElementById("office-location-map");
+            const locateBtn = document.getElementById("office-locate-btn");
+
+            if (!latInput || !lngInput || !radiusInput || !mapEl || typeof L === "undefined") {
+                return;
+            }
+
+            const defaultCenter = [-6.200000, 106.816666];
+            const parsedLat = Number.parseFloat(latInput.value);
+            const parsedLng = Number.parseFloat(lngInput.value);
+            const hasInitialPosition = Number.isFinite(parsedLat) && Number.isFinite(parsedLng) && !(parsedLat === 0 && parsedLng === 0);
+            const initialCenter = hasInitialPosition ? [parsedLat, parsedLng] : defaultCenter;
+
+            const map = L.map(mapEl).setView(initialCenter, hasInitialPosition ? 17 : 12);
+
+            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+                maxZoom: 19,
+                attribution: "&copy; OpenStreetMap contributors"
+            }).addTo(map);
+
+            const getRadius = () => {
+                const parsed = Number.parseFloat(radiusInput.value);
+                return Number.isFinite(parsed) && parsed > 0 ? parsed : 100;
+            };
+
+            let marker = null;
+            let circle = null;
+
+            const ensureMarkers = (lat, lng) => {
+                if (!marker) {
+                    marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+                    marker.on("dragend", () => {
+                        const position = marker.getLatLng();
+                        setPosition(position.lat, position.lng);
+                    });
+                }
+                if (!circle) {
+                    circle = L.circle([lat, lng], { radius: getRadius(), color: "#0d6efd", fillColor: "#0d6efd", fillOpacity: 0.15 }).addTo(map);
+                }
+            };
+
+            const setPosition = (lat, lng) => {
+                latInput.value = lat.toFixed(6);
+                lngInput.value = lng.toFixed(6);
+                ensureMarkers(lat, lng);
+                marker.setLatLng([lat, lng]);
+                circle.setLatLng([lat, lng]);
+            };
+
+            if (hasInitialPosition) {
+                ensureMarkers(initialCenter[0], initialCenter[1]);
+            }
+
+            map.on("click", (event) => {
+                setPosition(event.latlng.lat, event.latlng.lng);
+            });
+
+            radiusInput.addEventListener("input", () => {
+                if (circle) {
+                    circle.setRadius(getRadius());
+                }
+            });
+
+            const isValidLat = (value) => Number.isFinite(value) && value >= -90 && value <= 90;
+            const isValidLng = (value) => Number.isFinite(value) && value >= -180 && value <= 180;
+
+            const syncMapFromInputs = () => {
+                const lat = Number.parseFloat(latInput.value);
+                const lng = Number.parseFloat(lngInput.value);
+                const latValid = isValidLat(lat);
+                const lngValid = isValidLng(lng);
+
+                latInput.classList.toggle("is-invalid", latInput.value.trim() !== "" && !latValid);
+                lngInput.classList.toggle("is-invalid", lngInput.value.trim() !== "" && !lngValid);
+
+                if (!latValid || !lngValid) {
+                    return;
+                }
+
+                ensureMarkers(lat, lng);
+                marker.setLatLng([lat, lng]);
+                circle.setLatLng([lat, lng]);
+                map.setView([lat, lng], Math.max(map.getZoom(), 15));
+            };
+
+            latInput.addEventListener("input", syncMapFromInputs);
+            lngInput.addEventListener("input", syncMapFromInputs);
+
+            if (locateBtn && navigator.geolocation) {
+                locateBtn.addEventListener("click", () => {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            const { latitude, longitude } = position.coords;
+                            setPosition(latitude, longitude);
+                            map.setView([latitude, longitude], 17);
+                        },
+                        () => {
+                            alert("@T["Gagal mengambil lokasi. Pastikan izin lokasi diaktifkan."]");
+                        },
+                        { enableHighAccuracy: true, timeout: 10000 }
+                    );
+                });
+            } else if (locateBtn) {
+                locateBtn.disabled = true;
+            }
+
+            const searchInput = document.getElementById("office-address-search");
+            const searchBtn = document.getElementById("office-search-btn");
+            const resultsEl = document.getElementById("office-address-results");
+
+            if (searchInput && searchBtn && resultsEl) {
+                let searchAbortController = null;
+
+                const hideResults = () => {
+                    resultsEl.style.display = "none";
+                    resultsEl.innerHTML = "";
+                };
+
+                const selectResult = (lat, lon, label) => {
+                    setPosition(lat, lon);
+                    map.setView([lat, lon], 17);
+                    searchInput.value = label;
+                    hideResults();
+                };
+
+                const renderResults = (results) => {
+                    if (!results.length) {
+                        resultsEl.innerHTML = `<div class="list-group-item text-muted small">@T["Alamat tidak ditemukan."]</div>`;
+                        resultsEl.style.display = "block";
+                        return;
+                    }
+
+                    resultsEl.innerHTML = "";
+                    results.forEach((result) => {
+                        const item = document.createElement("button");
+                        item.type = "button";
+                        item.className = "list-group-item list-group-item-action small";
+                        item.textContent = result.display_name;
+                        item.addEventListener("click", () => {
+                            selectResult(Number.parseFloat(result.lat), Number.parseFloat(result.lon), result.display_name);
+                        });
+                        resultsEl.appendChild(item);
+                    });
+                    resultsEl.style.display = "block";
+                };
+
+                const runSearch = async () => {
+                    const query = searchInput.value.trim();
+                    if (!query) {
+                        return;
+                    }
+
+                    if (searchAbortController) {
+                        searchAbortController.abort();
+                    }
+                    searchAbortController = new AbortController();
+
+                    resultsEl.innerHTML = `<div class="list-group-item text-muted small">@T["Mencari..."]</div>`;
+                    resultsEl.style.display = "block";
+
+                    try {
+                        const url = `https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(query)}`;
+                        const response = await fetch(url, { signal: searchAbortController.signal, headers: { Accept: "application/json" } });
+                        if (!response.ok) {
+                            throw new Error("Search failed");
+                        }
+                        const results = await response.json();
+                        renderResults(results);
+                    } catch (error) {
+                        if (error.name !== "AbortError") {
+                            resultsEl.innerHTML = `<div class="list-group-item text-danger small">@T["Gagal mencari alamat."]</div>`;
+                            resultsEl.style.display = "block";
+                        }
+                    }
+                };
+
+                searchBtn.addEventListener("click", runSearch);
+                searchInput.addEventListener("keydown", (event) => {
+                    if (event.key === "Enter") {
+                        event.preventDefault();
+                        runSearch();
+                    }
+                });
+                document.addEventListener("click", (event) => {
+                    if (!resultsEl.contains(event.target) && event.target !== searchInput) {
+                        hideResults();
+                    }
+                });
+            }
+
+            window.setTimeout(() => map.invalidateSize(), 200);
+        })();
+    </script>
     <script>
         (() => {
             const startInput = document.getElementById("AttendancePeriodStartDay");
