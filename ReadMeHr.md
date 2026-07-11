@@ -161,6 +161,32 @@ Kegunaan Tiap Menu
 5.1 Turnover Report (/hr/reports/turnover)
 - Menu sudah terdaftar di navigasi tapi belum ada implementasi controller/view.
 
+6. Self-Attendance (Mobile API only — tidak ada menu web)
+- Bukan menu ERP.Web, tapi endpoint API terpisah yang dipakai aplikasi mobile
+  karyawan (AbsenKu, Flutter) untuk absen sendiri lewat HP.
+  Route: /api/v1/hr/attendance/self/* (GetToday, GetHistory, CheckIn,
+  CheckOut, Mark).
+- CheckIn/CheckOut: karyawan kirim koordinat GPS, server yang menghitung
+  jarak ke titik kantor (rumus Haversine, lihat Attendance Setting di atas)
+  dan menolak kalau di luar radius. Jam dicatat pakai DateTimeOffset.UtcNow
+  di server, bukan jam yang dikirim dari HP.
+- CheckOut sekarang **boleh disubmit berkali-kali** dalam satu hari — submit
+  ulang akan menimpa CheckOut/CheckOutLatitude/CheckOutLongitude dengan yang
+  terbaru (perubahan dari sebelumnya yang menolak dengan pesan "You have
+  already checked out today."). Ini disengaja supaya karyawan yang salah
+  check-out kecepetan bisa merevisi sendiri tanpa lewat admin.
+- Mark (self-report Sick/Cuti/Absent/HalfDay untuk satu tanggal, dengan
+  catatan opsional): langsung tersimpan ke HrAttendanceRecord **tanpa proses
+  approval, tanpa validasi kuota, dan hanya untuk 1 hari** — lihat Catatan
+  Gap Implementasi di bawah, karena ini benar-benar terpisah dari modul
+  Leave Requests (poin 4).
+- Endpoint tambahan `GET /api/v1/diagnostics/server-time` (di
+  DiagnosticsController, bukan khusus HR) dipakai mobile app untuk
+  menampilkan jam berjalan yang tersinkron ke waktu server.
+- Acuan: ERP.API/Controllers/v1/HR/SelfAttendanceController.cs,
+  ERP.Application/Services/HR/AttendanceService.cs,
+  ERP.API/Controllers/v1/DiagnosticsController.cs.
+
 Catatan Permission
 - Semua controller HR memakai [Authorize] dan meneruskan access_token user ke API.
 - Hanya Departments yang sudah pakai permission granular per menu
@@ -172,6 +198,17 @@ Catatan Gap Implementasi (untuk backlog)
 - Salary Setup, Payslips (sebagai halaman list terpisah), Headcount Report,
   dan Turnover Report sudah terdaftar di seed menu database tapi belum
   memiliki controller/view, sehingga akan error/404 jika diklik dari sidebar.
+- Self-Attendance "Mark" (poin 6, self-report Sick/Cuti/Absent/HalfDay dari
+  mobile) sepenuhnya terpisah dari modul Leave Requests (poin 4): tidak ada
+  approval, tidak mengurangi Leave Balance/kuota, dan hanya mendukung 1 hari
+  per submit (Leave Requests mendukung rentang tanggal StartDate/EndDate).
+  Karyawan bisa menandai "Cuti" lewat mobile tanpa itu tercatat/mengurangi
+  kuota cuti resmi sama sekali. Perlu diputuskan: apakah Mark untuk
+  Sick/Cuti sebaiknya diarahkan ke alur Leave Requests (approval + kuota),
+  atau tetap dibiarkan sebagai jalan pintas sederhana khusus laporan
+  1-hari (Absent/HalfDay saja).
+- Tidak ada dukungan lampiran (mis. surat dokter untuk Sakit) di manapun —
+  baik di Self-Attendance Mark maupun di Leave Requests.
 
 Acuan Implementasi
 - Web controller HR:
