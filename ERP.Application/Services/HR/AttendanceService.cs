@@ -333,11 +333,6 @@ public sealed class AttendanceService(IUnitOfWork unitOfWork) : IAttendanceServi
             throw new InvalidOperationException("You must check in before checking out.");
         }
 
-        if (entity.CheckOut.HasValue)
-        {
-            throw new InvalidOperationException("You have already checked out today.");
-        }
-
         await ValidateWithinOfficeRadiusAsync(latitude, longitude, ct);
 
         var now = DateTimeOffset.UtcNow;

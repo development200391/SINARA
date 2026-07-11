@@ -19,4 +19,10 @@ public sealed class DiagnosticsController : ControllerBase
     {
         return NoContent();
     }
+
+    [HttpGet("server-time")]
+    public IActionResult ServerTime()
+    {
+        return Ok(new ServerTimeResponse { ServerTime = DateTimeOffset.UtcNow });
+    }
 }
