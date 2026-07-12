@@ -50,4 +50,6 @@ buat ReadMe[Modul].txt di D:\Projek\SINARA\SINARA berisi deskripsi setiap menu y
 
 
 
-Masih di employee, perfekin semua dulu
+Mau buat GeneralDocument
+yang nantinya di pasang di LeaveRequest, biar ada imputan dokument untuk evidence
+abis itu lanjut ke Approval
