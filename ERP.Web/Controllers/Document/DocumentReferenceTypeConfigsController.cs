@@ -49,7 +49,11 @@ public sealed class DocumentReferenceTypeConfigsController(IDocumentApiClient do
     {
         ViewData["Title"] = "Create Document Setting";
         ViewData["Breadcrumb"] = "General Document / Settings / Create";
-        return View(new DocumentReferenceTypeConfigEditViewModel { MaxFileCount = 1 });
+        return View(new DocumentReferenceTypeConfigEditViewModel
+        {
+            MaxFileCount = 1,
+            Details = [new DocumentReferenceTypeConfigDetailViewModel()]
+        });
     }
 
     [HttpPost("create")]
@@ -73,11 +77,10 @@ public sealed class DocumentReferenceTypeConfigsController(IDocumentApiClient do
         {
             ReferenceType = model.ReferenceType,
             DisplayName = model.DisplayName,
-            IsRequired = model.IsRequired,
-            MaxFileSizeBytes = model.MaxFileSizeBytes,
+            IsMultiple = model.IsMultiple,
             MaxFileCount = model.MaxFileCount,
-            AllowedExtensions = model.AllowedExtensions,
-            IsActive = model.IsActive
+            IsActive = model.IsActive,
+            Details = MapDetails(model.Details)
         }, ct);
 
         if (!created.IsSuccess)
@@ -115,11 +118,19 @@ public sealed class DocumentReferenceTypeConfigsController(IDocumentApiClient do
             Id = config.Id,
             ReferenceType = config.ReferenceType,
             DisplayName = config.DisplayName,
-            IsRequired = config.IsRequired,
-            MaxFileSizeBytes = config.MaxFileSizeBytes,
+            IsMultiple = config.IsMultiple,
             MaxFileCount = config.MaxFileCount,
-            AllowedExtensions = config.AllowedExtensions,
-            IsActive = config.IsActive
+            IsActive = config.IsActive,
+            Details = config.Details.Count > 0
+                ? config.Details.Select(d => new DocumentReferenceTypeConfigDetailViewModel
+                {
+                    Name = d.Name,
+                    MaxFileSizeBytes = d.MaxFileSizeBytes,
+                    IsRequired = d.IsRequired,
+                    IsActive = d.IsActive,
+                    AllowedExtensions = d.AllowedExtensions
+                }).ToList()
+                : [new DocumentReferenceTypeConfigDetailViewModel()]
         });
     }
 
@@ -145,11 +156,10 @@ public sealed class DocumentReferenceTypeConfigsController(IDocumentApiClient do
             Id = id,
             ReferenceType = model.ReferenceType,
             DisplayName = model.DisplayName,
-            IsRequired = model.IsRequired,
-            MaxFileSizeBytes = model.MaxFileSizeBytes,
+            IsMultiple = model.IsMultiple,
             MaxFileCount = model.MaxFileCount,
-            AllowedExtensions = model.AllowedExtensions,
-            IsActive = model.IsActive
+            IsActive = model.IsActive,
+            Details = MapDetails(model.Details)
         }, ct);
 
         if (!updated.IsSuccess)
@@ -180,6 +190,20 @@ public sealed class DocumentReferenceTypeConfigsController(IDocumentApiClient do
             : (string.IsNullOrWhiteSpace(deleted.ErrorMessage) ? "Failed to delete document setting." : deleted.ErrorMessage);
 
         return RedirectToAction(nameof(Index));
+    }
+
+    private static List<DocumentReferenceTypeConfigDetailDto> MapDetails(List<DocumentReferenceTypeConfigDetailViewModel> details)
+    {
+        return details
+            .Select(d => new DocumentReferenceTypeConfigDetailDto
+            {
+                Name = d.Name,
+                MaxFileSizeBytes = d.MaxFileSizeBytes,
+                IsRequired = d.IsRequired,
+                IsActive = d.IsActive,
+                AllowedExtensions = d.AllowedExtensions
+            })
+            .ToList();
     }
 
     private static int NormalizePageSize(int pageSize) => pageSize is 20 or 50 or 100 ? pageSize : 20;

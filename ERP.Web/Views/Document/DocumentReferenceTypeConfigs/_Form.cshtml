@@ -30,30 +30,23 @@
                 <span asp-validation-for="DisplayName" class="text-danger"></span>
             </div>
 
-            <div class="col-md-4 d-flex align-items-end">
+            <div class="col-md-2 d-flex align-items-end">
                 @await Component.InvokeAsync("FormCheckbox", new FormCheckboxViewModel
                 {
-                    Name = nameof(Model.IsRequired),
-                    Id = Html.IdFor(x => x.IsRequired).ToString(),
-                    Label = T["Attachment Required"],
-                    Checked = Model.IsRequired
+                    Name = nameof(Model.IsMultiple),
+                    Id = Html.IdFor(x => x.IsMultiple).ToString(),
+                    Label = T["Multiple"],
+                    Checked = Model.IsMultiple
                 })
             </div>
 
-            <div class="col-md-4">
-                <label asp-for="MaxFileSizeBytes" class="form-label"></label>
-                <input asp-for="MaxFileSizeBytes" type="number" min="1" class="form-control" />
-                <span asp-validation-for="MaxFileSizeBytes" class="text-danger"></span>
-                <div class="form-text">@T["Leave empty to use the global default."]</div>
-            </div>
-
-            <div class="col-md-4">
+            <div class="col-md-2">
                 <label asp-for="MaxFileCount" class="form-label"></label>
-                <input asp-for="MaxFileCount" type="number" min="1" max="100" class="form-control" />
+                <input asp-for="MaxFileCount" type="number" min="1" max="100" class="form-control" id="config-max-file-count" />
                 <span asp-validation-for="MaxFileCount" class="text-danger"></span>
             </div>
 
-            <div class="col-md-4 d-flex align-items-end">
+            <div class="col-md-2 d-flex align-items-end">
                 @await Component.InvokeAsync("FormCheckbox", new FormCheckboxViewModel
                 {
                     Name = nameof(Model.IsActive),
@@ -64,10 +57,45 @@
             </div>
 
             <div class="col-12">
-                <label asp-for="AllowedExtensions" class="form-label"></label>
-                <input asp-for="AllowedExtensions" class="form-control" placeholder=".pdf,.jpg,.jpeg,.png,.docx" />
-                <span asp-validation-for="AllowedExtensions" class="text-danger"></span>
-                <div class="form-text">@T["Comma-separated, including the leading dot. Leave empty to use the global default."]</div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h2 class="h6 mb-0">@T["Document Setting Detail"]</h2>
+                </div>
+                <p class="small text-muted">@T["One row per attachment slot. Uncheck \"Multiple\" for a single slot, or check it and set Max Files to generate that many rows."]</p>
+
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle">
+                        <thead>
+                            <tr>
+                                <th style="width:40px;">#</th>
+                                <th>@T["Name"]</th>
+                                <th style="width:140px;">@T["Max Size"]</th>
+                                <th style="width:90px;">@T["Required"]</th>
+                                <th style="width:80px;">@T["Active"]</th>
+                                <th>@T["Allowed Extensions"]</th>
+                            </tr>
+                        </thead>
+                        <tbody id="config-details-body">
+                            @for (var index = 0; index < Model.Details.Count; index++)
+                            {
+                                var detail = Model.Details[index];
+                                <tr class="config-detail-row">
+                                    <td class="line-no">@(index + 1)</td>
+                                    <td><input type="text" class="form-control form-control-sm" data-field="Name" value="@detail.Name" /></td>
+                                    <td><input type="number" class="form-control form-control-sm" data-field="MaxFileSizeBytes" min="1" value="@detail.MaxFileSizeBytes" /></td>
+                                    <td>
+                                        <input type="checkbox" class="form-check-input" data-field="IsRequired" value="true" checked="@(detail.IsRequired ? "checked" : null)" />
+                                        <input type="hidden" data-field-hidden="IsRequired" value="false" />
+                                    </td>
+                                    <td>
+                                        <input type="checkbox" class="form-check-input" data-field="IsActive" value="true" checked="@(detail.IsActive ? "checked" : null)" />
+                                        <input type="hidden" data-field-hidden="IsActive" value="false" />
+                                    </td>
+                                    <td><input type="text" class="form-control form-control-sm" data-field="AllowedExtensions" value="@detail.AllowedExtensions" placeholder=".pdf,.jpg,.jpeg,.png,.docx" /></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             <div class="col-12 d-flex gap-2">
@@ -77,3 +105,95 @@
         </form>
     </div>
 </div>
+
+<template id="config-detail-template">
+    <tr class="config-detail-row">
+        <td class="line-no"></td>
+        <td><input type="text" class="form-control form-control-sm" data-field="Name" /></td>
+        <td><input type="number" class="form-control form-control-sm" data-field="MaxFileSizeBytes" min="1" /></td>
+        <td>
+            <input type="checkbox" class="form-check-input" data-field="IsRequired" value="true" />
+            <input type="hidden" data-field-hidden="IsRequired" value="false" />
+        </td>
+        <td>
+            <input type="checkbox" class="form-check-input" data-field="IsActive" value="true" checked />
+            <input type="hidden" data-field-hidden="IsActive" value="false" />
+        </td>
+        <td><input type="text" class="form-control form-control-sm" data-field="AllowedExtensions" placeholder=".pdf,.jpg,.jpeg,.png,.docx" /></td>
+    </tr>
+</template>
+
+<script>
+    (() => {
+        const body = document.getElementById('config-details-body');
+        const template = document.getElementById('config-detail-template');
+        const isMultipleInput = document.getElementById('@Html.IdFor(x => x.IsMultiple)');
+        const maxFileCountInput = document.getElementById('config-max-file-count');
+        if (!body || !template || !isMultipleInput || !maxFileCountInput) return;
+
+        const rowCount = () => body.querySelectorAll('.config-detail-row').length;
+
+        const renumber = () => {
+            const rows = body.querySelectorAll('.config-detail-row');
+            rows.forEach((row, index) => {
+                const lineNo = row.querySelector('.line-no');
+                if (lineNo) lineNo.textContent = String(index + 1);
+
+                row.querySelectorAll('[data-field]').forEach((control) => {
+                    const field = control.getAttribute('data-field');
+                    if (!field) return;
+                    control.setAttribute('name', `Details[${index}].${field}`);
+                    control.setAttribute('id', `Details_${index}__${field}`);
+                });
+
+                row.querySelectorAll('[data-field-hidden]').forEach((control) => {
+                    const field = control.getAttribute('data-field-hidden');
+                    if (!field) return;
+                    control.setAttribute('name', `Details[${index}].${field}`);
+                });
+            });
+        };
+
+        const addRow = () => {
+            const row = template.content.firstElementChild?.cloneNode(true);
+            if (!row) return;
+            body.appendChild(row);
+        };
+
+        const removeLastRow = () => {
+            const rows = body.querySelectorAll('.config-detail-row');
+            if (rows.length > 0) {
+                rows[rows.length - 1].remove();
+            }
+        };
+
+        const syncRowCount = (targetCount) => {
+            const clamped = Math.max(1, Math.min(100, Number.isFinite(targetCount) ? targetCount : 1));
+            while (rowCount() < clamped) addRow();
+            while (rowCount() > clamped) removeLastRow();
+            renumber();
+        };
+
+        const applyIsMultipleState = () => {
+            if (isMultipleInput.checked) {
+                maxFileCountInput.removeAttribute('readonly');
+                syncRowCount(parseInt(maxFileCountInput.value, 10));
+            } else {
+                maxFileCountInput.value = '1';
+                maxFileCountInput.setAttribute('readonly', 'readonly');
+                syncRowCount(1);
+            }
+        };
+
+        maxFileCountInput.addEventListener('input', () => {
+            if (isMultipleInput.checked) {
+                syncRowCount(parseInt(maxFileCountInput.value, 10));
+            }
+        });
+
+        isMultipleInput.addEventListener('change', applyIsMultipleState);
+
+        applyIsMultipleState();
+        renumber();
+    })();
+</script>

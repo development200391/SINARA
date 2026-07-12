@@ -136,6 +136,7 @@ public sealed class DocumentService(IUnitOfWork unitOfWork, IDocumentStorageServ
         var query = unitOfWork.Repository<DocReferenceTypeConfig>()
             .Query()
             .AsNoTracking()
+            .Include(x => x.Details)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(request.Search))
@@ -146,12 +147,13 @@ public sealed class DocumentService(IUnitOfWork unitOfWork, IDocumentStorageServ
 
         var total = await query.CountAsync(ct);
 
-        var items = await query
+        var entities = await query
             .OrderBy(x => x.DisplayName)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(x => MapConfig(x))
             .ToListAsync(ct);
+
+        var items = entities.Select(MapConfig).ToList();
 
         return PagedResult<DocumentReferenceTypeConfigDto>.Create(items, total, page, pageSize);
     }
@@ -161,6 +163,7 @@ public sealed class DocumentService(IUnitOfWork unitOfWork, IDocumentStorageServ
         var entity = await unitOfWork.Repository<DocReferenceTypeConfig>()
             .Query()
             .AsNoTracking()
+            .Include(x => x.Details)
             .FirstOrDefaultAsync(x => x.Id == id, ct);
 
         return entity is null ? null : MapConfig(entity);
@@ -184,12 +187,11 @@ public sealed class DocumentService(IUnitOfWork unitOfWork, IDocumentStorageServ
         {
             ReferenceType = request.ReferenceType,
             DisplayName = request.DisplayName,
-            IsRequired = request.IsRequired,
-            MaxFileSizeBytes = request.MaxFileSizeBytes,
-            MaxFileCount = request.MaxFileCount,
-            AllowedExtensions = NormalizeText(request.AllowedExtensions),
+            IsMultiple = request.IsMultiple,
+            MaxFileCount = request.IsMultiple ? request.MaxFileCount : 1,
             IsActive = request.IsActive,
-            CreatedBy = "system"
+            CreatedBy = "system",
+            Details = BuildDetailEntities(request.Details)
         };
 
         await unitOfWork.Repository<DocReferenceTypeConfig>().AddAsync(entity, ct);
@@ -204,6 +206,7 @@ public sealed class DocumentService(IUnitOfWork unitOfWork, IDocumentStorageServ
 
         var entity = await unitOfWork.Repository<DocReferenceTypeConfig>()
             .Query()
+            .Include(x => x.Details)
             .FirstOrDefaultAsync(x => x.Id == id, ct);
 
         if (entity is null)
@@ -222,13 +225,19 @@ public sealed class DocumentService(IUnitOfWork unitOfWork, IDocumentStorageServ
 
         entity.ReferenceType = request.ReferenceType;
         entity.DisplayName = request.DisplayName;
-        entity.IsRequired = request.IsRequired;
-        entity.MaxFileSizeBytes = request.MaxFileSizeBytes;
-        entity.MaxFileCount = request.MaxFileCount;
-        entity.AllowedExtensions = NormalizeText(request.AllowedExtensions);
+        entity.IsMultiple = request.IsMultiple;
+        entity.MaxFileCount = request.IsMultiple ? request.MaxFileCount : 1;
         entity.IsActive = request.IsActive;
         entity.UpdatedBy = "system";
         entity.UpdatedAt = DateTimeOffset.UtcNow;
+
+        foreach (var detail in entity.Details.ToList())
+        {
+            unitOfWork.Repository<DocReferenceTypeConfigDetail>().Delete(detail);
+        }
+
+        entity.Details = BuildDetailEntities(request.Details);
+        await unitOfWork.Repository<DocReferenceTypeConfigDetail>().AddRangeAsync(entity.Details, ct);
 
         unitOfWork.Repository<DocReferenceTypeConfig>().Update(entity);
         await unitOfWork.SaveChangesAsync(ct);
@@ -274,15 +283,45 @@ public sealed class DocumentService(IUnitOfWork unitOfWork, IDocumentStorageServ
             throw new InvalidOperationException("Display name is required.");
         }
 
-        if (request.MaxFileCount < 1)
+        if (request.IsMultiple && request.MaxFileCount < 1)
         {
             throw new InvalidOperationException("Max file count must be at least 1.");
         }
 
-        if (request.MaxFileSizeBytes.HasValue && request.MaxFileSizeBytes.Value <= 0)
+        var expectedDetailCount = request.IsMultiple ? request.MaxFileCount : 1;
+        if (request.Details.Count != expectedDetailCount)
         {
-            throw new InvalidOperationException("Max file size must be greater than 0.");
+            throw new InvalidOperationException($"Expected {expectedDetailCount} document setting detail row(s), got {request.Details.Count}.");
         }
+
+        foreach (var detail in request.Details)
+        {
+            if (string.IsNullOrWhiteSpace(detail.Name))
+            {
+                throw new InvalidOperationException("Each document setting detail row requires a name.");
+            }
+
+            if (detail.MaxFileSizeBytes.HasValue && detail.MaxFileSizeBytes.Value <= 0)
+            {
+                throw new InvalidOperationException("Max file size must be greater than 0.");
+            }
+        }
+    }
+
+    private static List<DocReferenceTypeConfigDetail> BuildDetailEntities(List<DocumentReferenceTypeConfigDetailDto> details)
+    {
+        return details
+            .Select((detail, index) => new DocReferenceTypeConfigDetail
+            {
+                SortOrder = index,
+                Name = detail.Name.Trim(),
+                MaxFileSizeBytes = detail.MaxFileSizeBytes,
+                IsRequired = detail.IsRequired,
+                IsActive = detail.IsActive,
+                AllowedExtensions = NormalizeText(detail.AllowedExtensions),
+                CreatedBy = "system"
+            })
+            .ToList();
     }
 
     private async Task<DocReferenceTypeConfig?> GetActiveConfigEntityAsync(string referenceType, CancellationToken ct)
@@ -290,6 +329,7 @@ public sealed class DocumentService(IUnitOfWork unitOfWork, IDocumentStorageServ
         return await unitOfWork.Repository<DocReferenceTypeConfig>()
             .Query()
             .AsNoTracking()
+            .Include(x => x.Details)
             .FirstOrDefaultAsync(x => x.ReferenceType == referenceType && x.IsActive, ct);
     }
 
@@ -300,14 +340,20 @@ public sealed class DocumentService(IUnitOfWork unitOfWork, IDocumentStorageServ
             throw new InvalidOperationException("File is empty.");
         }
 
-        var maxSize = config.MaxFileSizeBytes ?? _settings.MaxFileSizeBytes;
+        // Interim proxy pending slot-aware upload UX (Web/mobile): the primary
+        // (lowest SortOrder) detail row's rules apply to every upload for this
+        // reference type until the caller can indicate which named slot a file
+        // belongs to. See ReadMeDocumentGeneral.md.
+        var primaryDetail = config.Details.OrderBy(d => d.SortOrder).FirstOrDefault();
+
+        var maxSize = primaryDetail?.MaxFileSizeBytes ?? _settings.MaxFileSizeBytes;
         if (fileSizeBytes > maxSize)
         {
             throw new InvalidOperationException($"File must be {maxSize / (1024 * 1024)} MB or smaller.");
         }
 
         var extension = Path.GetExtension(originalFileName)?.ToLowerInvariant();
-        var allowedExtensions = ParseAllowedExtensions(config.AllowedExtensions) ?? _settings.AllowedExtensions;
+        var allowedExtensions = ParseAllowedExtensions(primaryDetail?.AllowedExtensions) ?? _settings.AllowedExtensions;
         if (string.IsNullOrWhiteSpace(extension) || !allowedExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase))
         {
             throw new InvalidOperationException($"File type not allowed. Allowed: {string.Join(", ", allowedExtensions)}");
@@ -464,11 +510,22 @@ public sealed class DocumentService(IUnitOfWork unitOfWork, IDocumentStorageServ
         Id = x.Id,
         ReferenceType = x.ReferenceType,
         DisplayName = x.DisplayName,
-        IsRequired = x.IsRequired,
-        MaxFileSizeBytes = x.MaxFileSizeBytes,
+        IsMultiple = x.IsMultiple,
         MaxFileCount = x.MaxFileCount,
-        AllowedExtensions = x.AllowedExtensions,
-        IsActive = x.IsActive
+        IsActive = x.IsActive,
+        Details = x.Details
+            .OrderBy(d => d.SortOrder)
+            .Select(d => new DocumentReferenceTypeConfigDetailDto
+            {
+                Id = d.Id,
+                SortOrder = d.SortOrder,
+                Name = d.Name,
+                MaxFileSizeBytes = d.MaxFileSizeBytes,
+                IsRequired = d.IsRequired,
+                IsActive = d.IsActive,
+                AllowedExtensions = d.AllowedExtensions
+            })
+            .ToList()
     };
 
     private static string? NormalizeText(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();

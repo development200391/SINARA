@@ -35,32 +35,45 @@ Menu" di bawah untuk detail integrasinya.)
 Kegunaan Tiap Menu
 
 1. Document Settings (/document/reference-type-configs)
-- Master aturan validasi dokumen per modul (per reference_type). Satu baris =
-  satu reference_type, isinya:
-  * ReferenceType — kode unik yang dipakai modul asal (contoh:
-    hr_leave_requests), harus persis sama dengan string yang dikirim modul
-    saat panggil endpoint dokumen.
-  * DisplayName — label yang ditampilkan di UI (contoh: "Leave Request").
-  * IsRequired — apakah minimal 1 file wajib diupload sebelum record induk
-    boleh disimpan.
-  * MaxFileSizeBytes — batas ukuran per file (nullable — null berarti pakai
-    default global DocumentSettings.MaxFileSizeBytes, saat ini 5 MB).
-  * MaxFileCount — jumlah maksimal file per upload. 1 = single file,
-    lebih dari 1 = multi-file (UI otomatis kasih multi-picker & multi-slot).
-  * AllowedExtensions — daftar ekstensi diizinkan, comma-separated (nullable
-    — null berarti pakai default global DocumentSettings.AllowedExtensions:
-    .pdf, .jpg, .jpeg, .png, .docx).
-  * IsActive — kalau nonaktif, upload untuk reference_type itu ditolak.
+- Struktur master-detail (direstrukturisasi dari desain flat sebelumnya):
+  * doc_reference_type_configs (master) — satu baris per reference_type:
+    ReferenceType (kode unik dipakai modul asal, contoh: hr_leave_requests),
+    DisplayName (label UI), IsMultiple (single slot vs multi slot),
+    MaxFileCount (jumlah slot, cuma berlaku kalau IsMultiple=true — kalau
+    false dipaksa 1), IsActive (saklar hidup/mati seluruh reference_type).
+  * doc_reference_type_config_details (detail, child dari master via
+    config_id, cascade delete) — satu baris per SLOT lampiran: Name (label
+    slot, contoh "KTP"/"Slip Gaji"), MaxFileSizeBytes (nullable, fallback ke
+    DocumentSettings global), IsRequired (wajib per-slot), IsActive (slot ini
+    ditawarkan atau tidak), AllowedExtensions (nullable, fallback ke default
+    global .pdf/.jpg/.jpeg/.png/.docx).
+  * Jumlah baris detail SELALU harus sama dengan MaxFileCount efektif
+    (1 kalau IsMultiple=false, atau nilai MaxFileCount kalau true) —
+    ditegakkan di ValidateConfigRequest (DocumentService), bukan cuma di UI.
+- Form Create/Edit (_Form.cshtml) generate baris detail secara LIVE via
+  JavaScript begitu field Max File Count diketik (nambah/kurangi row tanpa
+  reload), pola `<template>` + renumber() yang sama dengan Journal Lines.
+  Checkbox Multiple mati → Max File Count jadi readonly (dipaksa ke 1) dan
+  tabel detail otomatis diciutkan ke 1 baris.
 - CRUD lengkap (Index/Create/Edit/Delete) dengan search, lewat
   DocumentReferenceTypeConfigsController (Web) yang manggil
   DocumentReferenceTypeConfigsController (API) di
   /api/v1/document-reference-type-configs.
 - Tidak bisa dihapus kalau reference_type itu sudah punya dokumen terupload
   (dicek lewat tabel doc_documents).
-- Seed default (dibuat otomatis oleh DataSeeder, idempotent):
-  * hr_leave_requests — "Leave Request", IsRequired=false, MaxFileSizeBytes=
-    null (pakai default 5 MB), MaxFileCount=3 (multi-file), AllowedExtensions
-    =null (pakai default global).
+- Seed default (dibuat otomatis oleh DataSeeder, idempotent, TAPI cuma insert
+  detail rows saat pertama kali dibuat — update berikutnya tidak menimpa
+  detail yang sudah diubah admin lewat UI):
+  * hr_leave_requests — "Leave Request", IsMultiple=true, MaxFileCount=3 →
+    3 baris detail ("Leave Request 1/2/3"), masing-masing IsRequired=false,
+    MaxFileSizeBytes=null, AllowedExtensions=null (semua fallback ke default
+    global).
+- Kompatibilitas mundur: DocumentReferenceTypeConfigDto (dipakai bersama oleh
+  endpoint GET /api/v1/documents/config yang dikonsumsi Leave Requests &
+  mobile) tetap punya IsRequired/MaxFileSizeBytes/AllowedExtensions sebagai
+  COMPUTED PROPERTY yang diambil dari baris detail pertama (SortOrder
+  terkecil) — supaya konsumen lama yang belum di-rework tetap jalan tanpa
+  perubahan kode.
 
 2. Upload/List/Download/Delete Dokumen (tidak ada menu sendiri)
 - Ini bukan halaman mandiri — selalu diakses dari halaman modul yang
@@ -129,10 +142,18 @@ lebih sederhana: tidak ada file yang tersimpan sebelum record induknya pasti
 tersimpan, jadi tidak ada orphan file yang perlu dibersihkan.
 
 Validasi File Saat Upload (DocumentService.ValidateFileAsync)
-- Ekstensi & ukuran: dicek terhadap config reference_type (atau fallback ke
-  DocumentSettings global kalau config-nya null di field tsb).
+- Ekstensi & ukuran: **sementara** dicek terhadap baris detail PERTAMA
+  (SortOrder terkecil) config reference_type-nya saja (atau fallback ke
+  DocumentSettings global kalau field itu null di baris tsb) — bukan
+  per-slot yang sebenarnya di-submit, karena endpoint upload backend
+  (DocumentService.UploadAsync, dipanggil dari LeaveRequestsController)
+  belum tahu file yang masuk itu untuk slot yang mana (DocDocument belum
+  punya kolom yang menunjuk ke detail/slot spesifik). Ini keputusan sadar
+  ("dibiarkan dulu" per arahan user) sambil integrasi Web/mobile per-slot
+  dikerjakan bertahap — lihat "Integrasi Web" di bawah untuk status
+  per-modul.
 - Jumlah file: ditolak kalau jumlah dokumen existing + yang baru diupload
-  melebihi MaxFileCount config.
+  melebihi MaxFileCount config (di level master, bukan per-slot).
 - Integrity/corruption check (ValidateFileIntegrityAsync), di luar sekadar
   cek ekstensi:
   * Gambar (.jpg/.jpeg/.png) — divalidasi lewat
@@ -163,15 +184,32 @@ Penyimpanan File
 
 Integrasi Web (ERP.Web)
 - Dua ViewComponent reusable di Views/Shared/Components/:
-  * GeneralDocumentUpload — widget upload (file input + note), dipasang DI
-    DALAM form utama Create/Edit modul (karena field-nya ikut ter-submit
-    bareng field form induk). Tampil kalau config untuk reference_type-nya
-    ada & aktif. Otomatis single/multi-file sesuai MaxFileCount, dan kasih
-    tanda "wajib" kalau IsRequired.
+  * GeneralDocumentUpload — SEKARANG slot-aware (mengikuti restrukturisasi
+    master-detail): menerima `Slots` (satu entry per baris detail aktif),
+    lalu render SATU file input per slot — masing-masing dengan label sesuai
+    Name slot-nya, tanda "wajib" (*) kalau slot itu IsRequired (dan belum ada
+    dokumen existing di record-nya), hint ukuran maks & ekstensi izinnya
+    sendiri-sendiri. Semua input WAJIB pakai `name` yang PERSIS SAMA
+    (`AttachmentFiles`, semuanya, tanpa index) — sempat salah ditulis pakai
+    nama terindeks (`AttachmentFiles[0]`, `[1]`, dst.) karena dikira ikut
+    konvensi collection binding ASP.NET Core biasa, padahal
+    `FormFileModelBinder` untuk `List<IFormFile>` itu SPESIAL: dia manggil
+    `Request.Form.Files.GetFiles(namaPersisIni)` langsung, BUKAN lewat
+    index-discovery seperti collection binder pada umumnya — jadi kalau
+    nama field-nya beda-beda (`[0]`, `[1]`, ...), semuanya gagal ke-bind dan
+    file yang dipilih user hilang tanpa error apapun (ini bug yang sempat
+    kejadian & sudah diperbaiki). Validasi "wajib" per-slot berjalan di CLIENT
+    (jQuery Unobtrusive Validation, `data-val-required` per input) — bukan di
+    server, karena endpoint upload backend belum menyimpan slot mana yang
+    dipakai tiap file (lihat catatan di "Validasi File Saat Upload" di atas).
+    Field Note tetap satu untuk seluruh submission (belum per-slot).
   * GeneralDocumentList — widget daftar dokumen yang sudah terupload (nama
     file, ukuran, siapa & kapan upload) + tombol Download opsional + tombol
     Delete opsional (per-dokumen, form kecil terpisah). Dirender DI LUAR form
-    utama karena HTML tidak boleh nested <form>.
+    utama karena HTML tidak boleh nested <form>. TIDAK diubah oleh
+    restrukturisasi master-detail — DocDocument belum punya kolom slot,
+    jadi daftar dokumen masih flat per reference_id, bukan dikelompokkan
+    per-slot.
 - Halaman Leave Request:
   * Create & Edit: GeneralDocumentUpload di dalam form utama (upload lampiran
     baru ikut ter-submit bareng field leave request), GeneralDocumentList di
@@ -179,8 +217,22 @@ Integrasi Web (ERP.Web)
     existing).
   * Details: cuma GeneralDocumentList tanpa Delete — halaman ini view-only,
     edit lampiran harus lewat halaman Edit.
+- **Belum dikerjakan** (langkah lanjutan setelah Web): DocDocument belum
+  dikaitkan ke baris detail spesifik, jadi daftar dokumen existing
+  (GeneralDocumentList) tidak bisa menunjukkan "file ini untuk slot yang
+  mana", dan enforcement required/size/extension di SERVER masih pakai proxy
+  baris detail pertama (bukan per-slot yang sesungguhnya disubmit). Kalau mau
+  ditutup penuh, perlu tambah kolom penunjuk slot di doc_documents plus ubah
+  DocumentService.UploadAsync/ValidateFileAsync supaya slot-aware.
 
-Integrasi Mobile (AbsenKu, Flutter)
+Integrasi Mobile (AbsenKu, Flutter) — BELUM di-rework ke master-detail
+Bagian ini masih mendeskripsikan integrasi versi LAMA (flat, sebelum
+doc_reference_type_configs dipecah jadi master+detail). Mobile masih jalan
+karena DocumentReferenceTypeConfigDto tetap expose IsRequired/
+MaxFileSizeBytes/MaxFileCount/AllowedExtensions secara flat (proxy dari baris
+detail pertama, lihat "Kompatibilitas mundur" di atas), tapi belum
+menampilkan slot-slot terpisah seperti Web. Rework mobile jadi langkah
+selanjutnya setelah Web selesai diverifikasi.
 - Form "Ajukan Cuti / Sakit" (leave_request_screen.dart) mengambil config
   validasi reference_type hr_leave_requests dari server saat layar dibuka
   (getAttachmentConfig), lalu render UI sesuai aturannya secara dinamis:
@@ -271,7 +323,8 @@ Acuan Implementasi
   karena butuh IWebHostEnvironment dari project hosting).
 - Domain entities:
   ERP.Domain/Entities/Document/DocDocument.cs,
-  ERP.Domain/Entities/Document/DocReferenceTypeConfig.cs
+  ERP.Domain/Entities/Document/DocReferenceTypeConfig.cs (master),
+  ERP.Domain/Entities/Document/DocReferenceTypeConfigDetail.cs (detail/slot)
 - Konfigurasi:
   ERP.Application/Options/DocumentSettings.cs,
   ERP.API/appsettings.json (section DocumentSettings)

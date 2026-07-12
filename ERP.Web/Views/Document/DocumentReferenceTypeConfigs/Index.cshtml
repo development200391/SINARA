@@ -5,7 +5,7 @@
 <div class="card border-0 shadow-sm">
     <div class="card-body">
         <h1 class="h5 mb-3">@T["Document Settings"]</h1>
-        <p class="text-muted small">@T["Controls which modules can accept attachments through General Document, and the rules for each: required or not, max file size, and how many files are allowed."]</p>
+        <p class="text-muted small">@T["Controls which modules can accept attachments through General Document. Each row below can be single or multi-file; open Edit to configure per-slot rules (name, required, max size, allowed extensions)."]</p>
 
         @{
             var gridModel = new PagedGridViewModel
@@ -14,9 +14,9 @@
                 [
                     new PagedGridColumnViewModel { Key = "referenceType", Title = T["Reference Type"] },
                     new PagedGridColumnViewModel { Key = "displayName", Title = T["Display Name"] },
-                    new PagedGridColumnViewModel { Key = "isRequired", Title = T["Required"] },
-                    new PagedGridColumnViewModel { Key = "maxFileSize", Title = T["Max Size"] },
+                    new PagedGridColumnViewModel { Key = "isMultiple", Title = T["Multiple"] },
                     new PagedGridColumnViewModel { Key = "maxFileCount", Title = T["Max Files"], CellClass = "text-end" },
+                    new PagedGridColumnViewModel { Key = "slots", Title = T["Detail Rows"], CellClass = "text-end" },
                     new PagedGridColumnViewModel { Key = "isActive", Title = T["Status"] }
                 ],
                 Rows = Model.Configs.Items.Select(item => new PagedGridRowViewModel
@@ -27,12 +27,12 @@
                         new PagedGridCellViewModel { Text = item.DisplayName },
                         new PagedGridCellViewModel
                         {
-                            Html = new HtmlString(item.IsRequired
-                                ? $"<span class=\"badge text-bg-warning\">{T["Required"]}</span>"
-                                : $"<span class=\"badge text-bg-secondary\">{T["Optional"]}</span>")
+                            Html = new HtmlString(item.IsMultiple
+                                ? $"<span class=\"badge text-bg-info\">{T["Yes"]}</span>"
+                                : $"<span class=\"badge text-bg-secondary\">{T["No"]}</span>")
                         },
-                        new PagedGridCellViewModel { Text = item.MaxFileSizeBytes.HasValue ? $"{item.MaxFileSizeBytes.Value / (1024 * 1024)} MB" : "-" },
                         new PagedGridCellViewModel { Text = item.MaxFileCount.ToString(), CellClass = "text-end" },
+                        new PagedGridCellViewModel { Text = item.Details.Count.ToString(), CellClass = "text-end" },
                         new PagedGridCellViewModel
                         {
                             Html = new HtmlString(item.IsActive

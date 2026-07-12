@@ -81,19 +81,24 @@
                 <textarea asp-for="Reason" class="form-control" rows="3"></textarea>
             </div>
 
-            @if (config is not null)
+            @if (config is not null && config.Details.Count > 0)
             {
                 @await Component.InvokeAsync("GeneralDocumentUpload", new GeneralDocumentUploadViewModel
                 {
                     FileFieldName = nameof(Model.AttachmentFiles),
                     NoteFieldName = nameof(Model.AttachmentNote),
                     NoteValue = Model.AttachmentNote,
-                    AllowMultiple = config.MaxFileCount > 1,
-                    IsRequired = config.IsRequired,
                     HasExistingDocuments = Model.Documents.Count > 0,
-                    MaxFileSizeBytes = config.MaxFileSizeBytes ?? 5 * 1024 * 1024,
-                    MaxFileCount = config.MaxFileCount,
-                    AllowedExtensions = (config.AllowedExtensions ?? ".pdf,.jpg,.jpeg,.png,.docx").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    Slots = config.Details
+                        .Where(d => d.IsActive)
+                        .Select(d => new GeneralDocumentUploadSlotViewModel
+                        {
+                            Name = d.Name,
+                            IsRequired = d.IsRequired,
+                            MaxFileSizeBytes = d.MaxFileSizeBytes ?? 5 * 1024 * 1024,
+                            AllowedExtensions = (d.AllowedExtensions ?? ".pdf,.jpg,.jpeg,.png,.docx").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                        })
+                        .ToList()
                 })
             }
 

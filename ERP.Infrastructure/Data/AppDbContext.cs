@@ -47,6 +47,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<HrPayrollDetail> HrPayrollDetails => Set<HrPayrollDetail>();
 
     public DbSet<DocReferenceTypeConfig> DocReferenceTypeConfigs => Set<DocReferenceTypeConfig>();
+    public DbSet<DocReferenceTypeConfigDetail> DocReferenceTypeConfigDetails => Set<DocReferenceTypeConfigDetail>();
     public DbSet<DocDocument> DocDocuments => Set<DocDocument>();
 
     public DbSet<FinAccountGroup> FinAccountGroups => Set<FinAccountGroup>();
@@ -163,6 +164,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         ConfigureHrPayrollDetail(modelBuilder.Entity<HrPayrollDetail>());
 
         ConfigureDocReferenceTypeConfig(modelBuilder.Entity<DocReferenceTypeConfig>());
+        ConfigureDocReferenceTypeConfigDetail(modelBuilder.Entity<DocReferenceTypeConfigDetail>());
         ConfigureDocDocument(modelBuilder.Entity<DocDocument>());
 
         ConfigureFinAccountGroup(modelBuilder.Entity<FinAccountGroup>());
@@ -729,13 +731,31 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
 
         builder.Property(x => x.ReferenceType).HasMaxLength(100).IsRequired();
         builder.Property(x => x.DisplayName).HasMaxLength(150).IsRequired();
-        builder.Property(x => x.IsRequired).HasDefaultValue(false).IsRequired();
-        builder.Property(x => x.MaxFileSizeBytes);
+        builder.Property(x => x.IsMultiple).HasDefaultValue(false).IsRequired();
         builder.Property(x => x.MaxFileCount).HasDefaultValue(1).IsRequired();
-        builder.Property(x => x.AllowedExtensions).HasMaxLength(500);
         builder.Property(x => x.IsActive).HasDefaultValue(true).IsRequired();
 
         builder.HasIndex(x => x.ReferenceType).IsUnique();
+    }
+
+    private static void ConfigureDocReferenceTypeConfigDetail(EntityTypeBuilder<DocReferenceTypeConfigDetail> builder)
+    {
+        builder.ToTable("doc_reference_type_config_details");
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.SortOrder).IsRequired();
+        builder.Property(x => x.Name).HasMaxLength(150).IsRequired();
+        builder.Property(x => x.MaxFileSizeBytes);
+        builder.Property(x => x.IsRequired).HasDefaultValue(false).IsRequired();
+        builder.Property(x => x.IsActive).HasDefaultValue(true).IsRequired();
+        builder.Property(x => x.AllowedExtensions).HasMaxLength(500);
+
+        builder.HasOne(x => x.Config)
+            .WithMany(x => x.Details)
+            .HasForeignKey(x => x.ConfigId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasIndex(x => x.ConfigId);
     }
 
     private static void ConfigureDocDocument(EntityTypeBuilder<DocDocument> builder)

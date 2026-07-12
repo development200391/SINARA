@@ -142,9 +142,10 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         await EnsureDocumentReferenceTypeConfigAsync(
             referenceType: "hr_leave_requests",
             displayName: "Leave Request",
+            isMultiple: true,
+            maxFileCount: 3,
             isRequired: false,
             maxFileSizeBytes: null,
-            maxFileCount: 3,
             allowedExtensions: null,
             now,
             ct);
@@ -4122,9 +4123,10 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
     private async Task EnsureDocumentReferenceTypeConfigAsync(
         string referenceType,
         string displayName,
+        bool isMultiple,
+        int maxFileCount,
         bool isRequired,
         long? maxFileSizeBytes,
-        int maxFileCount,
         string? allowedExtensions,
         DateTimeOffset now,
         CancellationToken ct)
@@ -4135,11 +4137,10 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
 
         if (existing is not null)
         {
+            // Details are left untouched here so admin edits made via the Document
+            // Settings screen survive app restarts, unlike the master row's own
+            // fields which the seeder keeps authoritative like everywhere else.
             existing.DisplayName = displayName;
-            existing.IsRequired = isRequired;
-            existing.MaxFileSizeBytes = maxFileSizeBytes;
-            existing.MaxFileCount = maxFileCount;
-            existing.AllowedExtensions = allowedExtensions;
             existing.IsActive = true;
             existing.UpdatedBy = "system";
             existing.UpdatedAt = now;
@@ -4147,17 +4148,32 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
             return;
         }
 
+        var effectiveMaxFileCount = isMultiple ? maxFileCount : 1;
+
+        var details = Enumerable.Range(1, effectiveMaxFileCount)
+            .Select(index => new DocReferenceTypeConfigDetail
+            {
+                SortOrder = index - 1,
+                Name = effectiveMaxFileCount == 1 ? displayName : $"{displayName} {index}",
+                MaxFileSizeBytes = maxFileSizeBytes,
+                IsRequired = isRequired,
+                IsActive = true,
+                AllowedExtensions = allowedExtensions,
+                CreatedBy = "system",
+                CreatedAt = now
+            })
+            .ToList();
+
         dbContext.DocReferenceTypeConfigs.Add(new DocReferenceTypeConfig
         {
             ReferenceType = referenceType,
             DisplayName = displayName,
-            IsRequired = isRequired,
-            MaxFileSizeBytes = maxFileSizeBytes,
-            MaxFileCount = maxFileCount,
-            AllowedExtensions = allowedExtensions,
+            IsMultiple = isMultiple,
+            MaxFileCount = effectiveMaxFileCount,
             IsActive = true,
             CreatedBy = "system",
-            CreatedAt = now
+            CreatedAt = now,
+            Details = details
         });
 
         await dbContext.SaveChangesAsync(ct);
