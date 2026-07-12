@@ -74,12 +74,21 @@
 
             <div class="col-md-4">
                 <label asp-for="Status" class="form-label">@T["Status"]</label>
-                <select asp-for="Status" class="form-select">
-                    @foreach (var status in Enum.GetValues<AttendanceStatus>())
-                    {
-                        <option value="@status" selected="@(Model.Status == status)">@status</option>
-                    }
-                </select>
+                @if (Model.Status is AttendanceStatus.Sick or AttendanceStatus.Cuti)
+                {
+                    <input type="text" class="form-control" value="@Model.Status" disabled />
+                    <input asp-for="Status" type="hidden" />
+                    <div class="form-text text-warning">@T["This record's status is managed by an approved leave request and cannot be changed here."]</div>
+                }
+                else
+                {
+                    <select asp-for="Status" class="form-select">
+                        @foreach (var status in Enum.GetValues<AttendanceStatus>().Where(s => s is not (AttendanceStatus.Sick or AttendanceStatus.Cuti)))
+                        {
+                            <option value="@status" selected="@(Model.Status == status)">@status</option>
+                        }
+                    </select>
+                }
             </div>
 
             <div class="col-md-8">

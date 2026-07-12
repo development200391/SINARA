@@ -28,7 +28,9 @@
                 new() { Value = ((int)AttendanceStatus.Present).ToString(CultureInfo.InvariantCulture), Label = T["Present"] },
                 new() { Value = ((int)AttendanceStatus.Absent).ToString(CultureInfo.InvariantCulture), Label = T["Absent"] },
                 new() { Value = ((int)AttendanceStatus.Late).ToString(CultureInfo.InvariantCulture), Label = T["Late"] },
-                new() { Value = ((int)AttendanceStatus.HalfDay).ToString(CultureInfo.InvariantCulture), Label = T["Half Day"] }
+                new() { Value = ((int)AttendanceStatus.HalfDay).ToString(CultureInfo.InvariantCulture), Label = T["Half Day"] },
+                new() { Value = ((int)AttendanceStatus.Sick).ToString(CultureInfo.InvariantCulture), Label = T["Sick"] },
+                new() { Value = ((int)AttendanceStatus.Cuti).ToString(CultureInfo.InvariantCulture), Label = T["Cuti"] }
             };
 
             var gridModel = new PagedGridViewModel
@@ -163,6 +165,8 @@
                                 AttendanceStatus.Absent => "<span class=\"badge text-bg-danger\">Absent</span>",
                                 AttendanceStatus.Late => "<span class=\"badge text-bg-warning\">Late</span>",
                                 AttendanceStatus.HalfDay => "<span class=\"badge text-bg-info\">Half Day</span>",
+                                AttendanceStatus.Sick => "<span class=\"badge text-bg-primary\">Sick</span>",
+                                AttendanceStatus.Cuti => "<span class=\"badge text-bg-primary\">Cuti</span>",
                                 _ => "<span class=\"badge text-bg-secondary\">Unknown</span>"
                             })
                         },

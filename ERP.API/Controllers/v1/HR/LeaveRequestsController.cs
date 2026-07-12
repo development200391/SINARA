@@ -5,8 +5,57 @@ using Microsoft.AspNetCore.Mvc;
 namespace ERP.API.Controllers.v1.HR;
 
 [Route("api/v1/hr/leave-requests")]
-public sealed class LeaveRequestsController(ILeaveService leaveService) : HrControllerBase
+public sealed class LeaveRequestsController(ILeaveService leaveService, IEmployeeService employeeService) : HrControllerBase
 {
+    [HttpGet("self/leave-types")]
+    public async Task<IActionResult> GetSelfLeaveTypes(CancellationToken ct)
+    {
+        var leaveTypes = await leaveService.GetLeaveTypeOptionsAsync(ct);
+        return Ok(leaveTypes);
+    }
+
+    [HttpGet("self")]
+    public async Task<IActionResult> GetSelf([FromQuery] LeaveRequestPagedRequest request, CancellationToken ct)
+    {
+        var employeeId = await ResolveEmployeeIdAsync(employeeService, ct);
+        if (employeeId is null)
+        {
+            return BadRequest(new { message = "No employee profile is linked to this account." });
+        }
+
+        request.EmployeeId = employeeId.Value;
+        var result = await leaveService.GetRequestsAsync(request, ct);
+        return Ok(result);
+    }
+
+    [HttpPost("self")]
+    public async Task<IActionResult> SubmitSelf([FromBody] SubmitSelfLeaveRequest request, CancellationToken ct)
+    {
+        var employeeId = await ResolveEmployeeIdAsync(employeeService, ct);
+        if (employeeId is null)
+        {
+            return BadRequest(new { message = "No employee profile is linked to this account." });
+        }
+
+        try
+        {
+            var created = await leaveService.SubmitAsync(new SubmitLeaveRequest
+            {
+                EmployeeId = employeeId.Value,
+                LeaveTypeId = request.LeaveTypeId,
+                StartDate = request.StartDate,
+                EndDate = request.EndDate,
+                Reason = request.Reason
+            }, ct);
+
+            return Ok(created);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     [HttpGet]
     public async Task<IActionResult> Get([FromQuery] LeaveRequestPagedRequest request, CancellationToken ct)
     {

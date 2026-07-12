@@ -14,9 +14,13 @@ public sealed class AttendanceService(IUnitOfWork unitOfWork) : IAttendanceServi
     private static readonly AttendanceStatus[] SelfReportableStatuses =
     [
         AttendanceStatus.HalfDay,
-        AttendanceStatus.Sick,
-        AttendanceStatus.Cuti,
         AttendanceStatus.Absent
+    ];
+
+    private static readonly AttendanceStatus[] LeaveManagedStatuses =
+    [
+        AttendanceStatus.Sick,
+        AttendanceStatus.Cuti
     ];
 
     public async Task<PagedResult<AttendanceReportDto>> GetPagedAsync(AttendanceReportRequest request, CancellationToken ct = default)
@@ -171,6 +175,11 @@ public sealed class AttendanceService(IUnitOfWork unitOfWork) : IAttendanceServi
 
     public async Task<AttendanceDto> CreateAsync(AttendanceRecordRequest request, CancellationToken ct = default)
     {
+        if (LeaveManagedStatuses.Contains(request.Status))
+        {
+            throw new InvalidOperationException("Sick and Cuti status can only be set through an approved leave request.");
+        }
+
         await ValidateEmployeeAsync(request.EmployeeId, ct);
         ValidateCheckInOut(request.CheckIn, request.CheckOut);
 
@@ -211,6 +220,11 @@ public sealed class AttendanceService(IUnitOfWork unitOfWork) : IAttendanceServi
         if (entity is null)
         {
             return null;
+        }
+
+        if (LeaveManagedStatuses.Contains(request.Status) && entity.Status != request.Status)
+        {
+            throw new InvalidOperationException("Sick and Cuti status can only be set through an approved leave request.");
         }
 
         await ValidateEmployeeAsync(request.EmployeeId, ct);

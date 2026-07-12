@@ -120,6 +120,23 @@ public sealed class LeaveService(IUnitOfWork unitOfWork) : ILeaveService
 
         var totalDays = request.EndDate.DayNumber - request.StartDate.DayNumber + 1;
 
+        var usedDays = await unitOfWork.Repository<HrLeaveRequest>()
+            .Query()
+            .AsNoTracking()
+            .Where(x =>
+                x.EmployeeId == request.EmployeeId &&
+                x.LeaveTypeId == request.LeaveTypeId &&
+                x.StartDate.Year == request.StartDate.Year &&
+                (x.Status == LeaveStatus.Approved || x.Status == LeaveStatus.Pending))
+            .SumAsync(x => x.TotalDays, ct);
+
+        if (usedDays + totalDays > leaveType.MaxDaysPerYear)
+        {
+            var remaining = leaveType.MaxDaysPerYear - usedDays;
+            throw new InvalidOperationException(
+                $"Leave quota exceeded. {leaveType.Name} has {(remaining < 0 ? 0 : remaining)} day(s) remaining for {request.StartDate.Year}.");
+        }
+
         var entity = new HrLeaveRequest
         {
             EmployeeId = request.EmployeeId,
@@ -261,9 +278,50 @@ public sealed class LeaveService(IUnitOfWork unitOfWork) : ILeaveService
         request.UpdatedAt = DateTimeOffset.UtcNow;
 
         unitOfWork.Repository<HrLeaveRequest>().Update(request);
+        await SyncApprovedLeaveToAttendanceAsync(request, ct);
         await unitOfWork.SaveChangesAsync(ct);
 
         return true;
+    }
+
+    private async Task SyncApprovedLeaveToAttendanceAsync(HrLeaveRequest request, CancellationToken ct)
+    {
+        var attendanceRepository = unitOfWork.Repository<HrAttendanceRecord>();
+        var existingRecords = await attendanceRepository
+            .Query()
+            .Where(x =>
+                x.EmployeeId == request.EmployeeId &&
+                x.Date >= request.StartDate &&
+                x.Date <= request.EndDate)
+            .ToListAsync(ct);
+
+        for (var date = request.StartDate; date <= request.EndDate; date = date.AddDays(1))
+        {
+            var existing = existingRecords.FirstOrDefault(x => x.Date == date);
+            if (existing is not null)
+            {
+                if (existing.CheckIn.HasValue || existing.CheckOut.HasValue)
+                {
+                    continue;
+                }
+
+                existing.Status = AttendanceStatus.Cuti;
+                existing.Notes = request.Reason;
+                existing.UpdatedBy = "system";
+                existing.UpdatedAt = DateTimeOffset.UtcNow;
+                attendanceRepository.Update(existing);
+                continue;
+            }
+
+            await attendanceRepository.AddAsync(new HrAttendanceRecord
+            {
+                EmployeeId = request.EmployeeId,
+                Date = date,
+                Status = AttendanceStatus.Cuti,
+                Notes = request.Reason,
+                CreatedBy = "system"
+            }, ct);
+        }
     }
 
     public async Task<bool> RejectAsync(int leaveRequestId, int approverUserId, CancellationToken ct = default)

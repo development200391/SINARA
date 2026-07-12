@@ -32,6 +32,14 @@ public sealed class SubmitLeaveRequest
     public string? Reason { get; set; }
 }
 
+public sealed class SubmitSelfLeaveRequest
+{
+    public int LeaveTypeId { get; set; }
+    public DateOnly StartDate { get; set; }
+    public DateOnly EndDate { get; set; }
+    public string? Reason { get; set; }
+}
+
 public sealed class LeaveRequestPagedRequest : PagedRequest
 {
     public LeaveStatus? Status { get; set; }

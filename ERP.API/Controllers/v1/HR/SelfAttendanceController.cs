@@ -10,7 +10,7 @@ public sealed class SelfAttendanceController(IAttendanceService attendanceServic
     [HttpGet("today")]
     public async Task<IActionResult> GetToday(CancellationToken ct)
     {
-        var employeeId = await ResolveEmployeeIdAsync(ct);
+        var employeeId = await ResolveEmployeeIdAsync(employeeService, ct);
         if (employeeId is null)
         {
             return BadRequest(new { message = "No employee profile is linked to this account." });
@@ -23,7 +23,7 @@ public sealed class SelfAttendanceController(IAttendanceService attendanceServic
     [HttpGet("history")]
     public async Task<IActionResult> GetHistory([FromQuery] DateOnly? from, [FromQuery] DateOnly? to, CancellationToken ct)
     {
-        var employeeId = await ResolveEmployeeIdAsync(ct);
+        var employeeId = await ResolveEmployeeIdAsync(employeeService, ct);
         if (employeeId is null)
         {
             return BadRequest(new { message = "No employee profile is linked to this account." });
@@ -47,7 +47,7 @@ public sealed class SelfAttendanceController(IAttendanceService attendanceServic
     [HttpPost("check-in")]
     public async Task<IActionResult> CheckIn([FromBody] CheckInOutRequest request, CancellationToken ct)
     {
-        var employeeId = await ResolveEmployeeIdAsync(ct);
+        var employeeId = await ResolveEmployeeIdAsync(employeeService, ct);
         if (employeeId is null)
         {
             return BadRequest(new { message = "No employee profile is linked to this account." });
@@ -67,7 +67,7 @@ public sealed class SelfAttendanceController(IAttendanceService attendanceServic
     [HttpPost("check-out")]
     public async Task<IActionResult> CheckOut([FromBody] CheckInOutRequest request, CancellationToken ct)
     {
-        var employeeId = await ResolveEmployeeIdAsync(ct);
+        var employeeId = await ResolveEmployeeIdAsync(employeeService, ct);
         if (employeeId is null)
         {
             return BadRequest(new { message = "No employee profile is linked to this account." });
@@ -87,7 +87,7 @@ public sealed class SelfAttendanceController(IAttendanceService attendanceServic
     [HttpPost("mark")]
     public async Task<IActionResult> Mark([FromBody] MarkAttendanceStatusRequest request, CancellationToken ct)
     {
-        var employeeId = await ResolveEmployeeIdAsync(ct);
+        var employeeId = await ResolveEmployeeIdAsync(employeeService, ct);
         if (employeeId is null)
         {
             return BadRequest(new { message = "No employee profile is linked to this account." });
@@ -104,15 +104,4 @@ public sealed class SelfAttendanceController(IAttendanceService attendanceServic
         }
     }
 
-    private async Task<int?> ResolveEmployeeIdAsync(CancellationToken ct)
-    {
-        var userId = GetCurrentUserId();
-        if (userId is null)
-        {
-            return null;
-        }
-
-        var employee = await employeeService.GetByUserIdAsync(userId.Value, ct);
-        return employee?.Id;
-    }
 }

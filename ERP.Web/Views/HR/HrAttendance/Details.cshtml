@@ -46,9 +46,17 @@
                     {
                         <span class="badge text-bg-warning">Late</span>
                     }
-                    else
+                    else if (Model.Status == AttendanceStatus.HalfDay)
                     {
                         <span class="badge text-bg-info">Half Day</span>
+                    }
+                    else if (Model.Status == AttendanceStatus.Sick)
+                    {
+                        <span class="badge text-bg-primary">Sick</span>
+                    }
+                    else
+                    {
+                        <span class="badge text-bg-primary">Cuti</span>
                     }
                 </div>
             </div>
