@@ -69,9 +69,13 @@ public sealed class AuthController(IAuthApiClient authApiClient, ITextLocalizer 
         var properties = new AuthenticationProperties
         {
             IsPersistent = model.RememberMe,
-            ExpiresUtc = result.ExpiresAt,
             AllowRefresh = true
         };
+
+        if (model.RememberMe)
+        {
+            properties.ExpiresUtc = result.RefreshTokenExpiresAt;
+        }
 
         await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal, properties);
 
