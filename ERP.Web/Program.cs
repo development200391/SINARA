@@ -19,6 +19,7 @@ builder.Services
         options.ViewLocationFormats.Insert(0, "/Views/HR/{1}/{0}.cshtml");
         options.ViewLocationFormats.Insert(0, "/Views/Config/{1}/{0}.cshtml");
         options.ViewLocationFormats.Insert(0, "/Views/Inventory/{1}/{0}.cshtml");
+        options.ViewLocationFormats.Insert(0, "/Views/Document/{1}/{0}.cshtml");
     });
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddMemoryCache();
@@ -97,6 +98,13 @@ builder.Services.AddHttpClient<IApprovalApiClient, ApprovalApiClient>((servicePr
 }).AddHttpMessageHandler<CorrelationIdHandler>();
 
 builder.Services.AddHttpClient<IFixedAssetsApiClient, FixedAssetsApiClient>((serviceProvider, client) =>
+{
+    var options = serviceProvider.GetRequiredService<IOptions<ApiSettings>>().Value;
+    var baseUrl = options.BaseUrl?.TrimEnd('/') ?? "http://localhost:8081";
+    client.BaseAddress = new Uri($"{baseUrl}/");
+}).AddHttpMessageHandler<CorrelationIdHandler>();
+
+builder.Services.AddHttpClient<IDocumentApiClient, DocumentApiClient>((serviceProvider, client) =>
 {
     var options = serviceProvider.GetRequiredService<IOptions<ApiSettings>>().Value;
     var baseUrl = options.BaseUrl?.TrimEnd('/') ?? "http://localhost:8081";

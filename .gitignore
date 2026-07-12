@@ -366,3 +366,6 @@ FodyWeavers.xsd
 
 # Uploaded employee photos (runtime files)
 ERP.Web/wwwroot/uploads/
+
+# Uploaded General Document files (runtime files)
+ERP.API/App_Data/uploads/

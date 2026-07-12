@@ -1,6 +1,7 @@
 using ERP.Application.Options;
 using ERP.Application.Services;
 using ERP.Application.Services.Config;
+using ERP.Application.Services.Document;
 using ERP.Application.Services.HR;
 using ERP.Domain.Entities.System;
 using Microsoft.AspNetCore.Identity;
@@ -14,6 +15,7 @@ public static class DependencyInjection
     public static IServiceCollection AddApplication(this IServiceCollection services, IConfiguration configuration)
     {
         services.Configure<JwtSettings>(configuration.GetSection(JwtSettings.SectionName));
+        services.Configure<DocumentSettings>(configuration.GetSection(DocumentSettings.SectionName));
 
         services.AddScoped<IPasswordHasher<SysUser>, PasswordHasher<SysUser>>();
 
@@ -34,6 +36,8 @@ public static class DependencyInjection
         services.AddScoped<IHolidayService, HolidayService>();
         services.AddScoped<ILeaveService, LeaveService>();
         services.AddScoped<IPayrollService, PayrollService>();
+
+        services.AddScoped<IDocumentService, DocumentService>();
 
         return services;
     }

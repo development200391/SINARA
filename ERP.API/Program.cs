@@ -1,7 +1,9 @@
 using System.Text;
+using ERP.API.Services;
 using ERP.Application;
 using ERP.Application.Options;
 using ERP.Application.Services;
+using ERP.Application.Services.Document;
 using ERP.Infrastructure;
 using ERP.Infrastructure.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -17,6 +19,7 @@ builder.Services.AddEndpointsApiExplorer();
 
 builder.Services.AddApplication(builder.Configuration);
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddScoped<IDocumentStorageService, DocumentStorageService>();
 
 var jwtSettings = builder.Configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>() ?? new JwtSettings();
 if (string.IsNullOrWhiteSpace(jwtSettings.SigningKey) || jwtSettings.SigningKey.Length < 32)

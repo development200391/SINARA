@@ -172,6 +172,10 @@ Kegunaan Tiap Menu
     admin web, supaya mobile app tidak perlu akses direktori staff).
 - Acuan: ERP.API/Controllers/v1/HR/LeaveRequestsController.cs,
   ERP.Application/Services/HR/LeaveService.cs.
+- **Lampiran (evidence)**: Leave Request sekarang bisa dilampiri file (mis. surat
+  dokter) lewat modul General Document — lihat bagian tersendiri di bawah.
+  Upload/download/delete lampiran cuma bisa dilakukan selama status masih
+  Pending; halaman Details (ERP.Web) menampilkan daftar lampiran + form upload.
 
 4.1 Leave Balance (/hr/leave/balance)
 - Laporan saldo cuti per karyawan per jenis cuti per tahun.
@@ -220,6 +224,58 @@ Kegunaan Tiap Menu
   ERP.Application/Services/HR/AttendanceService.cs,
   ERP.API/Controllers/v1/DiagnosticsController.cs.
 
+7. General Document (modul lintas HR, bukan menu HR tersendiri)
+- Infrastruktur lampiran file terpusat (lihat
+  SINARA_ERP_GeneralDocument_Panduan_Detail.docx untuk rencana lengkapnya),
+  dipasang pertama kali di Leave Requests untuk lampiran evidence (mis. surat
+  dokter). Modul lain bisa pakai tabel/endpoint yang sama nanti tinggal
+  ditambah ke whitelist reference_type.
+- Endpoint: `GET/POST /api/v1/documents` (list per reference / upload),
+  `GET /api/v1/documents/{id}/download`, `DELETE /api/v1/documents/{id}`,
+  `GET /api/v1/documents/categories`.
+- File fisik disimpan di ERP.API/App_Data/uploads/documents/{referenceType}/{referenceId}/
+  (bukan wwwroot — tidak bisa diakses langsung lewat URL statis, cuma lewat
+  endpoint download yang ber-otorisasi). Nama file di disk selalu GUID, nama
+  asli cuma disimpan sebagai metadata.
+- Batas default: 5 MB, ekstensi .pdf/.jpg/.jpeg/.png/.docx (appsettings
+  DocumentSettings). Cuma reference_type yang di-whitelist server yang bisa
+  dipakai — sekarang baru `hr_leave_requests`.
+- Web (ERP.Web): sudah terpasang di halaman Details Leave Request — upload,
+  list, download, delete lampiran (delete/upload dibatasi status Pending).
+- Mobile (AbsenKu, Flutter): form "Ajukan Cuti / Sakit" punya field lampiran
+  opsional (file_picker, maks 5 MB, .pdf/.jpg/.jpeg/.png/.docx). Karena
+  reference_id leave request baru ada setelah submit sukses, alurnya dua
+  langkah: submit dulu, baru upload lampiran pakai id yang baru dibuat. Kalau
+  upload lampiran gagal setelah leave request sukses tersimpan, layar tetap
+  menampilkan pesan bahwa cutinya sudah tersimpan (bukan gagal total) dengan
+  warning terpisah. Layar Riwayat Cuti juga punya tombol lihat lampiran
+  per pengajuan (bottom sheet, lazy-load saat diklik).
+- Kategori dokumen (doc_document_categories) sekarang punya CRUD admin penuh
+  di ERP.Web: /document/categories (list/create/edit/delete), lewat
+  DocumentCategoriesController (Web & API) + DocumentApiClient. Modul
+  "General Document" (kode DOC) juga terdaftar sebagai module & menu sendiri
+  di navigasi (bukan submenu HR), konsisten dengan sifatnya yang lintas modul.
+- Migration: 20260712180000_AddGeneralDocument. Ditulis manual (bukan hasil
+  `dotnet ef migrations add`) karena tooling scaffolding di project ini
+  sedang crash (NullReferenceException di EF Core migrations differ) untuk
+  SEMUA migration baru, termasuk yang tidak menyentuh modul ini sama sekali
+  — root cause-nya AppDbContextModelSnapshot.cs yang sudah lama tidak sinkron
+  (cuma mencakup entity Config/HR/System, modul Finance/Inventory/Purchasing/
+  Sales/Manufacturing/FixedAssets tidak pernah masuk snapshot). Ini bug/utang
+  teknis pra-existing, bukan sesuatu yang ditimbulkan oleh modul Document —
+  migration sebelumnya (AddAttendanceGpsSelfService) juga sudah ditulis
+  manual dengan alasan yang sama. Migration AddGeneralDocument sudah
+  diverifikasi lewat `dotnet ef migrations script` (jalur berbeda yang tidak
+  kena bug differ) dan menghasilkan SQL yang bersih. **Belum diselesaikan**:
+  snapshot besar itu sendiri belum direkonstruksi — kalau mau `dotnet ef
+  migrations add` bisa dipakai normal lagi ke depannya, snapshot perlu
+  disinkronkan ulang (pekerjaan terpisah, besar, di luar scope modul ini).
+- Acuan: ERP.API/Controllers/v1/Document/DocumentsController.cs,
+  ERP.API/Controllers/v1/Document/DocumentCategoriesController.cs,
+  ERP.Application/Services/Document/DocumentService.cs,
+  ERP.Domain/Entities/Document/*.cs,
+  D:\Flutter\AbsenKu\lib\features\leave\.
+
 Catatan Permission
 - Semua controller HR memakai [Authorize] dan meneruskan access_token user ke API.
 - Hanya Departments yang sudah pakai permission granular per menu
@@ -231,8 +287,9 @@ Catatan Gap Implementasi (untuk backlog)
 - Salary Setup, Payslips (sebagai halaman list terpisah), Headcount Report,
   dan Turnover Report sudah terdaftar di seed menu database tapi belum
   memiliki controller/view, sehingga akan error/404 jika diklik dari sidebar.
-- Tidak ada dukungan lampiran (mis. surat dokter untuk Sakit) di manapun —
-  baik di self-service Leave Requests maupun di form Leave Requests web.
+- Lampiran dokumen (modul General Document, lihat bagian tersendiri di bawah)
+  baru terpasang di Leave Requests (web), belum di mobile AbsenKu, dan belum
+  ada halaman admin untuk kelola kategori dokumen (CRUD-nya baru lewat seed).
 
 Riwayat Perbaikan: Integrasi Self-Attendance Mark & Leave Requests
 - Sampai dengan awal Juli 2026, Self-Attendance "Mark" (poin 6) dan Leave

@@ -1,0 +1,62 @@
+@model ERP.Web.ViewModels.Document.DocumentCategoriesIndexViewModel
+@using ERP.Web.ViewModels.Shared
+@using Microsoft.AspNetCore.Html
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">@T["Document Categories"]</h1>
+
+        @{
+            var gridModel = new PagedGridViewModel
+            {
+                Columns =
+                [
+                    new PagedGridColumnViewModel { Key = "code", Title = T["Code"] },
+                    new PagedGridColumnViewModel { Key = "name", Title = T["Name"] },
+                    new PagedGridColumnViewModel { Key = "module", Title = T["Module"] },
+                    new PagedGridColumnViewModel { Key = "isActive", Title = T["Status"] }
+                ],
+                Rows = Model.Categories.Items.Select(item => new PagedGridRowViewModel
+                {
+                    Cells =
+                    [
+                        new PagedGridCellViewModel { Text = item.Code },
+                        new PagedGridCellViewModel { Text = item.Name },
+                        new PagedGridCellViewModel { Text = string.IsNullOrWhiteSpace(item.Module) ? "-" : item.Module },
+                        new PagedGridCellViewModel
+                        {
+                            Html = new HtmlString(item.IsActive
+                                ? "<span class=\"badge text-bg-success\">Active</span>"
+                                : "<span class=\"badge text-bg-secondary\">Inactive</span>")
+                        }
+                    ],
+                    Actions = new PagedGridRowActionViewModel
+                    {
+                        EditUrl = Url.Action("Edit", "DocumentCategories", new { id = item.Id }),
+                        DeleteUrl = Url.Action("Delete", "DocumentCategories", new { id = item.Id }),
+                        DeleteConfirmMessage = T["Delete this document category?"]
+                    }
+                }).ToList(),
+                EmptyMessage = T["msg.no_data"],
+                Page = Model.Categories.Page,
+                TotalPages = Model.Categories.TotalPages,
+                PageSize = Model.PageSize,
+                EnableSearch = true,
+                SearchValue = Model.Search,
+                SearchPlaceholder = T["Search document categories"],
+                SearchButtonText = T["common.search"],
+                Actions = new PagedGridActionConfigViewModel
+                {
+                    ActionColumnTitle = T["Action"],
+                    AddUrl = Url.Action("Create", "DocumentCategories"),
+                    AddButtonText = T["common.add_new"],
+                    EditButtonText = T["common.edit"],
+                    DeleteButtonText = T["common.delete"],
+                    DeleteConfirmMessage = T["Delete this document category?"]
+                }
+            };
+        }
+
+        @await Component.InvokeAsync("PagedGrid", gridModel)
+    </div>
+</div>

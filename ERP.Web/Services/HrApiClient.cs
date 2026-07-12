@@ -1,5 +1,7 @@
 using ERP.Application.DTOs.Common;
+using ERP.Application.DTOs.Document;
 using ERP.Application.DTOs.HR;
+using Microsoft.AspNetCore.Http;
 
 namespace ERP.Web.Services;
 
@@ -514,6 +516,48 @@ public sealed class HrApiClient(HttpClient httpClient, ILogger<HrApiClient> logg
     public Task<PayslipDto?> GetPayslipAsync(string accessToken, int runId, int employeeId, CancellationToken ct = default)
     {
         return SendWithResultAsync<PayslipDto>(HttpMethod.Get, $"api/v1/hr/payroll/{runId}/payslip/{employeeId}", accessToken, null, ct).ToDataAsync();
+    }
+
+    public async Task<IReadOnlyList<DocumentDto>> GetDocumentsAsync(string accessToken, string referenceType, int referenceId, CancellationToken ct = default)
+    {
+        var query = $"api/v1/documents?referenceType={Uri.EscapeDataString(referenceType)}&referenceId={referenceId}";
+        return await SendWithResultAsync<IReadOnlyList<DocumentDto>>(HttpMethod.Get, query, accessToken, null, ct).ToDataAsync() ?? [];
+    }
+
+    public async Task<IReadOnlyList<DocumentCategoryDto>> GetDocumentCategoriesAsync(string accessToken, CancellationToken ct = default)
+    {
+        return await SendWithResultAsync<IReadOnlyList<DocumentCategoryDto>>(HttpMethod.Get, "api/v1/documents/categories", accessToken, null, ct).ToDataAsync() ?? [];
+    }
+
+    public async Task<ApiCallResult<DocumentDto>> UploadDocumentAsync(string accessToken, IFormFile file, string referenceType, int referenceId, int? categoryId, string? description, CancellationToken ct = default)
+    {
+        using var content = new MultipartFormDataContent();
+        await using var fileStream = file.OpenReadStream();
+        using var streamContent = new StreamContent(fileStream);
+        streamContent.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse(string.IsNullOrWhiteSpace(file.ContentType) ? "application/octet-stream" : file.ContentType);
+        content.Add(streamContent, "file", file.FileName);
+        content.Add(new StringContent(referenceType), "referenceType");
+        content.Add(new StringContent(referenceId.ToString()), "referenceId");
+        if (categoryId.HasValue)
+        {
+            content.Add(new StringContent(categoryId.Value.ToString()), "categoryId");
+        }
+        if (!string.IsNullOrWhiteSpace(description))
+        {
+            content.Add(new StringContent(description), "description");
+        }
+
+        return await SendMultipartAsync<DocumentDto>("api/v1/documents", accessToken, content, ct);
+    }
+
+    public Task<DownloadResult?> DownloadDocumentAsync(string accessToken, int documentId, CancellationToken ct = default)
+    {
+        return DownloadAsync($"api/v1/documents/{documentId}/download", accessToken, ct);
+    }
+
+    public Task<ApiCallResult<object?>> DeleteDocumentAsync(string accessToken, int documentId, CancellationToken ct = default)
+    {
+        return SendWithResultAsync<object?>(HttpMethod.Delete, $"api/v1/documents/{documentId}", accessToken, null, ct);
     }
 
     private static void AddPagedParameters(List<string> parameters, PagedRequest request)

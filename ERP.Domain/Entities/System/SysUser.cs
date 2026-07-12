@@ -1,4 +1,5 @@
 using ERP.Domain.Entities.Config;
+using ERP.Domain.Entities.Document;
 using ERP.Domain.Entities.HR;
 using ERP.Domain.Entities.Finance;
 
@@ -21,4 +22,5 @@ public sealed class SysUser : BaseEntity
     public ICollection<HrLeaveRequest> ApprovedLeaveRequests { get; set; } = new List<HrLeaveRequest>();
     public ICollection<HrPayrollRun> ProcessedPayrollRuns { get; set; } = new List<HrPayrollRun>();
     public ICollection<FinJournalEntry> PostedFinanceJournals { get; set; } = new List<FinJournalEntry>();
+    public ICollection<DocDocument> UploadedDocuments { get; set; } = new List<DocDocument>();
 }

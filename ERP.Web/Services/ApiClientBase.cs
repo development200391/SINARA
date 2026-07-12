@@ -44,6 +44,57 @@ public abstract class ApiClientBase(HttpClient httpClient, ILogger logger, strin
         }
     }
 
+    protected async Task<ApiCallResult<T>> SendMultipartAsync<T>(string uri, string accessToken, MultipartFormDataContent content, CancellationToken ct)
+    {
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, uri) { Content = content };
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+            using var response = await httpClient.SendAsync(request, ct);
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                throw new ApiUnauthorizedException(uri);
+            }
+
+            var statusCode = (int)response.StatusCode;
+            if (!response.IsSuccessStatusCode)
+            {
+                var apiErrorMessage = await ReadApiErrorMessageAsync(response, ct);
+                var errorMessage = string.IsNullOrWhiteSpace(apiErrorMessage)
+                    ? $"{serviceName} API returned status {statusCode} ({response.StatusCode})."
+                    : $"{serviceName} API returned status {statusCode} ({response.StatusCode}): {apiErrorMessage}";
+
+                return ApiCallResult<T>.Failure(errorMessage, statusCode);
+            }
+
+            var responseBody = await response.Content.ReadFromJsonAsync<T>(cancellationToken: ct);
+            return ApiCallResult<T>.Success(responseBody, statusCode);
+        }
+        catch (HttpRequestException ex)
+        {
+            logger.LogWarning(ex, "Failed to call {ServiceName} API endpoint {Uri}", serviceName, uri);
+            return ApiCallResult<T>.Failure($"Failed to call {serviceName} API endpoint {uri}.");
+        }
+    }
+
+    protected async Task<DownloadResult?> DownloadAsync(string uri, string accessToken, CancellationToken ct)
+    {
+        using var response = await SendRawAsync(HttpMethod.Get, uri, accessToken, null, ct);
+        if (response is null || !response.IsSuccessStatusCode)
+        {
+            return null;
+        }
+
+        var bytes = await response.Content.ReadAsByteArrayAsync(ct);
+        var contentType = response.Content.Headers.ContentType?.ToString() ?? "application/octet-stream";
+        var fileName = response.Content.Headers.ContentDisposition?.FileNameStar
+            ?? response.Content.Headers.ContentDisposition?.FileName
+            ?? "download";
+
+        return new DownloadResult(bytes, contentType, fileName.Trim('"'));
+    }
+
     protected async Task<HttpResponseMessage?> SendRawAsync(HttpMethod method, string uri, string accessToken, object? body, CancellationToken ct)
     {
         try
@@ -163,3 +214,5 @@ public abstract class ApiClientBase(HttpClient httpClient, ILogger logger, strin
         }
     }
 }
+
+public sealed record DownloadResult(byte[] Content, string ContentType, string FileName);

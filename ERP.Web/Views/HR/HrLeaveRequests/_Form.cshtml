@@ -10,7 +10,7 @@
     <div class="card-body">
         <h1 class="h5 mb-3">@(isEdit ? T["Edit Leave Request"] : T["Create Leave Request"])</h1>
 
-        <form method="post" class="row g-3">
+        <form method="post" enctype="multipart/form-data" class="row g-3">
             @Html.AntiForgeryToken()
             @if (isEdit)
             {
@@ -79,6 +79,31 @@
                 <textarea asp-for="Reason" class="form-control" rows="3"></textarea>
             </div>
 
+            <div class="col-12">
+                <hr />
+                <h2 class="h6">@T["Attachment"]</h2>
+            </div>
+
+            <div class="col-md-4">
+                <label asp-for="AttachmentFile" class="form-label">@T["File"]</label>
+                <input asp-for="AttachmentFile" type="file" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.docx" />
+                <span asp-validation-for="AttachmentFile" class="text-danger"></span>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="AttachmentCategoryId" class="form-label">@T["Category"]</label>
+                <select asp-for="AttachmentCategoryId" class="form-select">
+                    <option value="">-</option>
+                    @foreach (var category in Model.AttachmentCategories)
+                    {
+                        <option value="@category.Id">@category.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-5">
+                <label asp-for="AttachmentDescription" class="form-label">@T["Description"]</label>
+                <input asp-for="AttachmentDescription" class="form-control" />
+            </div>
+
             <div class="col-12 d-flex gap-2">
                 <button type="submit" class="btn btn-primary">@T["common.save"]</button>
                 <a asp-action="Index" class="btn btn-outline-secondary">@T["common.cancel"]</a>
@@ -86,3 +111,36 @@
         </form>
     </div>
 </div>
+
+@if (isEdit && Model.Documents.Count > 0)
+{
+    <div class="card border-0 shadow-sm mt-3">
+        <div class="card-body">
+            <h2 class="h6 mb-3">@T["Uploaded Attachments"]</h2>
+            <ul class="list-group">
+                @foreach (var doc in Model.Documents)
+                {
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <a asp-controller="HrLeaveRequests" asp-action="DownloadDocument" asp-route-id="@doc.Id">@doc.OriginalFileName</a>
+                            <div class="small text-muted">
+                                @(doc.CategoryName ?? "-") &middot; @((doc.FileSizeBytes / 1024.0).ToString("N0")) KB &middot;
+                                @doc.UploadedByName, @doc.UploadedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+                                @if (!string.IsNullOrWhiteSpace(doc.Description))
+                                {
+                                    <text> &middot; @doc.Description</text>
+                                }
+                            </div>
+                        </div>
+                        <form asp-controller="HrLeaveRequests" asp-action="DeleteDocument" asp-route-leaveRequestId="@Model.Id" asp-route-id="@doc.Id" method="post" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this document?')">
+                                <i class="bi bi-trash" aria-hidden="true"></i>
+                            </button>
+                        </form>
+                    </li>
+                }
+            </ul>
+        </div>
+    </div>
+}

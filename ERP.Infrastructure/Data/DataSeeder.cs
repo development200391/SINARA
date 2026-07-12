@@ -1,5 +1,6 @@
 using ERP.Application.Services;
 using ERP.Domain.Entities.Config;
+using ERP.Domain.Entities.Document;
 using ERP.Domain.Entities.HR;
 using ERP.Domain.Entities.Finance;
 using ERP.Domain.Entities.Inventory;
@@ -30,6 +31,7 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         await SeedHrMasterDataAsync(now, ct);
         await SeedLeaveTypesAsync(now, ct);
         await SeedAttendanceSettingAsync(now, ct);
+        await SeedDocumentCategoriesAsync(now, ct);
         await SeedFinanceMasterDataAsync(now, ct);
         await SeedInventoryMasterDataAsync(now, ct);
         await SeedSalesMasterDataAsync(now, ct);
@@ -53,6 +55,7 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         await EnsureModuleAsync("General Approval", "APV", "bi-shield-check", 7, now, ct);
         await EnsureModuleAsync("Sales", "SAL", "bi-graph-up-arrow", 8, now, ct);
         await EnsureModuleAsync("Manufacturing", "MFG", "bi-gear-wide-connected", 9, now, ct);
+        await EnsureModuleAsync("General Document", "DOC", "bi-file-earmark-text", 10, now, ct);
     }
 
     private async Task SeedRolesAsync(DateTimeOffset now, CancellationToken ct)
@@ -132,6 +135,13 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         await EnsureLeaveTypeAsync("Cuti Tahunan", "ANNUAL", 12, true, true, now, ct);
         await EnsureLeaveTypeAsync("Cuti Sakit", "SICK", 12, false, true, now, ct);
         await EnsureLeaveTypeAsync("Cuti Tanpa Bayar", "UNPAID", 30, false, true, now, ct);
+    }
+
+    private async Task SeedDocumentCategoriesAsync(DateTimeOffset now, CancellationToken ct)
+    {
+        await EnsureDocumentCategoryAsync("LEAVE_EVIDENCE", "Bukti/Lampiran Pengajuan Cuti", "HR", now, ct);
+        await EnsureDocumentCategoryAsync("SICK_NOTE", "Surat Keterangan Sakit", "HR", now, ct);
+        await EnsureDocumentCategoryAsync("GENERAL", "Dokumen Umum", null, now, ct);
     }
 
     private async Task SeedAttendanceSettingAsync(DateTimeOffset now, CancellationToken ct)
@@ -3325,6 +3335,9 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         var apvModule = await dbContext.CfgModules
             .IgnoreQueryFilters()
             .FirstAsync(x => x.Code == "APV", ct);
+        var docModule = await dbContext.CfgModules
+            .IgnoreQueryFilters()
+            .FirstAsync(x => x.Code == "DOC", ct);
         var hrEmployees = await EnsureMenuAsync(hrModule.Id, null, "Employees", null, "bi-people", 1, now, ct);
         await EnsureMenuAsync(hrModule.Id, hrEmployees.Id, "All Employees", "/hr/employees", "bi-list", 1, now, ct);
         await EnsureMenuAsync(hrModule.Id, hrEmployees.Id, "Add Employee", "/hr/employees/create", "bi-plus-circle", 2, now, ct);
@@ -3502,6 +3515,8 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         await EnsureMenuAsync(apvModule.Id, apvReports.Id, "SLA Report", "/approval/reports/sla", "bi-stopwatch", 1, now, ct);
         await EnsureMenuAsync(apvModule.Id, apvReports.Id, "By Template Report", "/approval/reports/by-template", "bi-grid-3x3-gap", 2, now, ct);
         await EnsureMenuAsync(apvModule.Id, apvReports.Id, "Audit Trail", "/approval/reports/audit", "bi-journal-text", 3, now, ct);
+
+        await EnsureMenuAsync(docModule.Id, null, "Document Categories", "/document/categories", "bi-tags", 1, now, ct);
     }
 
     private async Task SeedSuperAdminPermissionsAsync(CancellationToken ct)
@@ -4091,6 +4106,41 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
             MaxDaysPerYear = maxDaysPerYear,
             IsCarryOver = isCarryOver,
             IsActive = isActive,
+            CreatedBy = "system",
+            CreatedAt = now
+        });
+
+        await dbContext.SaveChangesAsync(ct);
+    }
+
+    private async Task EnsureDocumentCategoryAsync(
+        string code,
+        string name,
+        string? module,
+        DateTimeOffset now,
+        CancellationToken ct)
+    {
+        var existing = await dbContext.DocDocumentCategories
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(x => x.Code == code, ct);
+
+        if (existing is not null)
+        {
+            existing.Name = name;
+            existing.Module = module;
+            existing.IsActive = true;
+            existing.UpdatedBy = "system";
+            existing.UpdatedAt = now;
+            await dbContext.SaveChangesAsync(ct);
+            return;
+        }
+
+        dbContext.DocDocumentCategories.Add(new DocDocumentCategory
+        {
+            Code = code,
+            Name = name,
+            Module = module,
+            IsActive = true,
             CreatedBy = "system",
             CreatedAt = now
         });

@@ -1,5 +1,7 @@
 using ERP.Application.DTOs.Common;
+using ERP.Application.DTOs.Document;
 using ERP.Application.DTOs.HR;
+using Microsoft.AspNetCore.Http;
 
 namespace ERP.Web.Services;
 
@@ -62,4 +64,10 @@ public interface IHrApiClient
     Task<ApiCallResult<PayrollRunDto>> RunPayrollAsync(string accessToken, PayrollRunRequest request, CancellationToken ct = default);
     Task<IReadOnlyList<PayrollRunDetailDto>> GetPayrollRunDetailsAsync(string accessToken, int runId, CancellationToken ct = default);
     Task<PayslipDto?> GetPayslipAsync(string accessToken, int runId, int employeeId, CancellationToken ct = default);
+
+    Task<IReadOnlyList<DocumentDto>> GetDocumentsAsync(string accessToken, string referenceType, int referenceId, CancellationToken ct = default);
+    Task<IReadOnlyList<DocumentCategoryDto>> GetDocumentCategoriesAsync(string accessToken, CancellationToken ct = default);
+    Task<ApiCallResult<DocumentDto>> UploadDocumentAsync(string accessToken, IFormFile file, string referenceType, int referenceId, int? categoryId, string? description, CancellationToken ct = default);
+    Task<DownloadResult?> DownloadDocumentAsync(string accessToken, int documentId, CancellationToken ct = default);
+    Task<ApiCallResult<object?>> DeleteDocumentAsync(string accessToken, int documentId, CancellationToken ct = default);
 }

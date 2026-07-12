@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
 using ERP.Domain.Entities;
 using ERP.Domain.Entities.Config;
+using ERP.Domain.Entities.Document;
 using ERP.Domain.Entities.HR;
 using ERP.Domain.Entities.Finance;
 using ERP.Domain.Entities.System;
@@ -44,6 +45,9 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<HrLeaveRequest> HrLeaveRequests => Set<HrLeaveRequest>();
     public DbSet<HrPayrollRun> HrPayrollRuns => Set<HrPayrollRun>();
     public DbSet<HrPayrollDetail> HrPayrollDetails => Set<HrPayrollDetail>();
+
+    public DbSet<DocDocumentCategory> DocDocumentCategories => Set<DocDocumentCategory>();
+    public DbSet<DocDocument> DocDocuments => Set<DocDocument>();
 
     public DbSet<FinAccountGroup> FinAccountGroups => Set<FinAccountGroup>();
     public DbSet<FinAccount> FinAccounts => Set<FinAccount>();
@@ -157,6 +161,9 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         ConfigureHrLeaveRequest(modelBuilder.Entity<HrLeaveRequest>());
         ConfigureHrPayrollRun(modelBuilder.Entity<HrPayrollRun>());
         ConfigureHrPayrollDetail(modelBuilder.Entity<HrPayrollDetail>());
+
+        ConfigureDocDocumentCategory(modelBuilder.Entity<DocDocumentCategory>());
+        ConfigureDocDocument(modelBuilder.Entity<DocDocument>());
 
         ConfigureFinAccountGroup(modelBuilder.Entity<FinAccountGroup>());
         ConfigureFinAccount(modelBuilder.Entity<FinAccount>());
@@ -713,6 +720,50 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         builder.HasIndex(x => x.PayrollRunId);
         builder.HasIndex(x => x.EmployeeId);
         builder.HasIndex(x => new { x.PayrollRunId, x.EmployeeId }).IsUnique();
+    }
+
+    private static void ConfigureDocDocumentCategory(EntityTypeBuilder<DocDocumentCategory> builder)
+    {
+        builder.ToTable("doc_document_categories");
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.Code).HasMaxLength(50).IsRequired();
+        builder.Property(x => x.Name).HasMaxLength(150).IsRequired();
+        builder.Property(x => x.Module).HasMaxLength(50);
+        builder.Property(x => x.IsActive).HasDefaultValue(true).IsRequired();
+
+        builder.HasIndex(x => x.Code).IsUnique();
+    }
+
+    private static void ConfigureDocDocument(EntityTypeBuilder<DocDocument> builder)
+    {
+        builder.ToTable("doc_documents");
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.ReferenceType).HasMaxLength(100).IsRequired();
+        builder.Property(x => x.ReferenceId).IsRequired();
+        builder.Property(x => x.OriginalFileName).HasMaxLength(255).IsRequired();
+        builder.Property(x => x.StoredFileName).HasMaxLength(255).IsRequired();
+        builder.Property(x => x.FileExtension).HasMaxLength(20).IsRequired();
+        builder.Property(x => x.ContentType).HasMaxLength(100).IsRequired();
+        builder.Property(x => x.FileSizeBytes).IsRequired();
+        builder.Property(x => x.StoragePath).HasColumnType("text").IsRequired();
+        builder.Property(x => x.Description).HasMaxLength(500);
+        builder.Property(x => x.UploadedAt).HasColumnType("timestamptz").IsRequired();
+
+        builder.HasOne(x => x.Category)
+            .WithMany(x => x.Documents)
+            .HasForeignKey(x => x.CategoryId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.UploadedByUser)
+            .WithMany(x => x.UploadedDocuments)
+            .HasForeignKey(x => x.UploadedBy)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(x => new { x.ReferenceType, x.ReferenceId });
+        builder.HasIndex(x => x.CategoryId);
+        builder.HasIndex(x => x.UploadedBy);
     }
 
     private static void ConfigureFinAccountGroup(EntityTypeBuilder<FinAccountGroup> builder)
