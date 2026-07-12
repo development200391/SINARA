@@ -423,14 +423,50 @@ public sealed class HrApiClient(HttpClient httpClient, ILogger<HrApiClient> logg
         return SendWithResultAsync<LeaveRequestOptionsDto>(HttpMethod.Get, "api/v1/hr/leave-requests/options", accessToken, null, ct).ToDataAsync();
     }
 
-    public Task<ApiCallResult<LeaveRequestDto>> SubmitLeaveRequestAsync(string accessToken, SubmitLeaveRequest request, CancellationToken ct = default)
+    public async Task<ApiCallResult<SubmitLeaveRequestResult>> SubmitLeaveRequestAsync(string accessToken, SubmitLeaveRequest request, IReadOnlyList<IFormFile>? files, string? note, CancellationToken ct = default)
     {
-        return SendWithResultAsync<LeaveRequestDto>(HttpMethod.Post, "api/v1/hr/leave-requests", accessToken, request, ct);
+        using var content = BuildLeaveRequestForm(request, files, note);
+        return await SendMultipartAsync<SubmitLeaveRequestResult>(HttpMethod.Post, "api/v1/hr/leave-requests", accessToken, content, ct);
     }
 
-    public Task<ApiCallResult<LeaveRequestDto>> UpdateLeaveRequestAsync(string accessToken, int id, SubmitLeaveRequest request, CancellationToken ct = default)
+    public async Task<ApiCallResult<SubmitLeaveRequestResult>> UpdateLeaveRequestAsync(string accessToken, int id, SubmitLeaveRequest request, IReadOnlyList<IFormFile>? files, string? note, CancellationToken ct = default)
     {
-        return SendWithResultAsync<LeaveRequestDto>(HttpMethod.Put, $"api/v1/hr/leave-requests/{id}", accessToken, request, ct);
+        using var content = BuildLeaveRequestForm(request, files, note);
+        return await SendMultipartAsync<SubmitLeaveRequestResult>(HttpMethod.Put, $"api/v1/hr/leave-requests/{id}", accessToken, content, ct);
+    }
+
+    private static MultipartFormDataContent BuildLeaveRequestForm(SubmitLeaveRequest request, IReadOnlyList<IFormFile>? files, string? note)
+    {
+        var content = new MultipartFormDataContent
+        {
+            { new StringContent(request.EmployeeId.ToString()), "EmployeeId" },
+            { new StringContent(request.LeaveTypeId.ToString()), "LeaveTypeId" },
+            { new StringContent(request.StartDate.ToString("yyyy-MM-dd")), "StartDate" },
+            { new StringContent(request.EndDate.ToString("yyyy-MM-dd")), "EndDate" }
+        };
+
+        if (!string.IsNullOrWhiteSpace(request.Reason))
+        {
+            content.Add(new StringContent(request.Reason), "Reason");
+        }
+
+        if (!string.IsNullOrWhiteSpace(note))
+        {
+            content.Add(new StringContent(note), "Note");
+        }
+
+        if (files is not null)
+        {
+            foreach (var file in files.Where(f => f.Length > 0))
+            {
+                var streamContent = new StreamContent(file.OpenReadStream());
+                streamContent.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse(
+                    string.IsNullOrWhiteSpace(file.ContentType) ? "application/octet-stream" : file.ContentType);
+                content.Add(streamContent, "Files", file.FileName);
+            }
+        }
+
+        return content;
     }
 
     public Task<ApiCallResult<object?>> DeleteLeaveRequestAsync(string accessToken, int id, CancellationToken ct = default)
@@ -524,30 +560,10 @@ public sealed class HrApiClient(HttpClient httpClient, ILogger<HrApiClient> logg
         return await SendWithResultAsync<IReadOnlyList<DocumentDto>>(HttpMethod.Get, query, accessToken, null, ct).ToDataAsync() ?? [];
     }
 
-    public async Task<IReadOnlyList<DocumentCategoryDto>> GetDocumentCategoriesAsync(string accessToken, CancellationToken ct = default)
+    public Task<DocumentReferenceTypeConfigDto?> GetDocumentConfigAsync(string accessToken, string referenceType, CancellationToken ct = default)
     {
-        return await SendWithResultAsync<IReadOnlyList<DocumentCategoryDto>>(HttpMethod.Get, "api/v1/documents/categories", accessToken, null, ct).ToDataAsync() ?? [];
-    }
-
-    public async Task<ApiCallResult<DocumentDto>> UploadDocumentAsync(string accessToken, IFormFile file, string referenceType, int referenceId, int? categoryId, string? description, CancellationToken ct = default)
-    {
-        using var content = new MultipartFormDataContent();
-        await using var fileStream = file.OpenReadStream();
-        using var streamContent = new StreamContent(fileStream);
-        streamContent.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse(string.IsNullOrWhiteSpace(file.ContentType) ? "application/octet-stream" : file.ContentType);
-        content.Add(streamContent, "file", file.FileName);
-        content.Add(new StringContent(referenceType), "referenceType");
-        content.Add(new StringContent(referenceId.ToString()), "referenceId");
-        if (categoryId.HasValue)
-        {
-            content.Add(new StringContent(categoryId.Value.ToString()), "categoryId");
-        }
-        if (!string.IsNullOrWhiteSpace(description))
-        {
-            content.Add(new StringContent(description), "description");
-        }
-
-        return await SendMultipartAsync<DocumentDto>("api/v1/documents", accessToken, content, ct);
+        var query = $"api/v1/documents/config?referenceType={Uri.EscapeDataString(referenceType)}";
+        return SendWithResultAsync<DocumentReferenceTypeConfigDto>(HttpMethod.Get, query, accessToken, null, ct).ToDataAsync();
     }
 
     public Task<DownloadResult?> DownloadDocumentAsync(string accessToken, int documentId, CancellationToken ct = default)

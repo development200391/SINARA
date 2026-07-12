@@ -31,7 +31,7 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         await SeedHrMasterDataAsync(now, ct);
         await SeedLeaveTypesAsync(now, ct);
         await SeedAttendanceSettingAsync(now, ct);
-        await SeedDocumentCategoriesAsync(now, ct);
+        await SeedDocumentReferenceTypeConfigsAsync(now, ct);
         await SeedFinanceMasterDataAsync(now, ct);
         await SeedInventoryMasterDataAsync(now, ct);
         await SeedSalesMasterDataAsync(now, ct);
@@ -137,11 +137,17 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         await EnsureLeaveTypeAsync("Cuti Tanpa Bayar", "UNPAID", 30, false, true, now, ct);
     }
 
-    private async Task SeedDocumentCategoriesAsync(DateTimeOffset now, CancellationToken ct)
+    private async Task SeedDocumentReferenceTypeConfigsAsync(DateTimeOffset now, CancellationToken ct)
     {
-        await EnsureDocumentCategoryAsync("LEAVE_EVIDENCE", "Bukti/Lampiran Pengajuan Cuti", "HR", now, ct);
-        await EnsureDocumentCategoryAsync("SICK_NOTE", "Surat Keterangan Sakit", "HR", now, ct);
-        await EnsureDocumentCategoryAsync("GENERAL", "Dokumen Umum", null, now, ct);
+        await EnsureDocumentReferenceTypeConfigAsync(
+            referenceType: "hr_leave_requests",
+            displayName: "Leave Request",
+            isRequired: false,
+            maxFileSizeBytes: null,
+            maxFileCount: 3,
+            allowedExtensions: null,
+            now,
+            ct);
     }
 
     private async Task SeedAttendanceSettingAsync(DateTimeOffset now, CancellationToken ct)
@@ -3516,7 +3522,7 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         await EnsureMenuAsync(apvModule.Id, apvReports.Id, "By Template Report", "/approval/reports/by-template", "bi-grid-3x3-gap", 2, now, ct);
         await EnsureMenuAsync(apvModule.Id, apvReports.Id, "Audit Trail", "/approval/reports/audit", "bi-journal-text", 3, now, ct);
 
-        await EnsureMenuAsync(docModule.Id, null, "Document Categories", "/document/categories", "bi-tags", 1, now, ct);
+        await EnsureMenuAsync(docModule.Id, null, "Document Settings", "/document/reference-type-configs", "bi-sliders", 1, now, ct);
     }
 
     private async Task SeedSuperAdminPermissionsAsync(CancellationToken ct)
@@ -4113,21 +4119,27 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         await dbContext.SaveChangesAsync(ct);
     }
 
-    private async Task EnsureDocumentCategoryAsync(
-        string code,
-        string name,
-        string? module,
+    private async Task EnsureDocumentReferenceTypeConfigAsync(
+        string referenceType,
+        string displayName,
+        bool isRequired,
+        long? maxFileSizeBytes,
+        int maxFileCount,
+        string? allowedExtensions,
         DateTimeOffset now,
         CancellationToken ct)
     {
-        var existing = await dbContext.DocDocumentCategories
+        var existing = await dbContext.DocReferenceTypeConfigs
             .IgnoreQueryFilters()
-            .FirstOrDefaultAsync(x => x.Code == code, ct);
+            .FirstOrDefaultAsync(x => x.ReferenceType == referenceType, ct);
 
         if (existing is not null)
         {
-            existing.Name = name;
-            existing.Module = module;
+            existing.DisplayName = displayName;
+            existing.IsRequired = isRequired;
+            existing.MaxFileSizeBytes = maxFileSizeBytes;
+            existing.MaxFileCount = maxFileCount;
+            existing.AllowedExtensions = allowedExtensions;
             existing.IsActive = true;
             existing.UpdatedBy = "system";
             existing.UpdatedAt = now;
@@ -4135,11 +4147,14 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
             return;
         }
 
-        dbContext.DocDocumentCategories.Add(new DocDocumentCategory
+        dbContext.DocReferenceTypeConfigs.Add(new DocReferenceTypeConfig
         {
-            Code = code,
-            Name = name,
-            Module = module,
+            ReferenceType = referenceType,
+            DisplayName = displayName,
+            IsRequired = isRequired,
+            MaxFileSizeBytes = maxFileSizeBytes,
+            MaxFileCount = maxFileCount,
+            AllowedExtensions = allowedExtensions,
             IsActive = true,
             CreatedBy = "system",
             CreatedAt = now

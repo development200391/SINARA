@@ -9,11 +9,13 @@ public interface IDocumentService
     Task<DocumentDto> UploadAsync(UploadDocumentRequest request, int currentUserId, CancellationToken ct = default);
     Task<DocumentDownloadResult> DownloadAsync(int documentId, int currentUserId, CancellationToken ct = default);
     Task<bool> DeleteAsync(int documentId, int currentUserId, CancellationToken ct = default);
-    Task<IReadOnlyList<DocumentCategoryDto>> GetCategoryOptionsAsync(CancellationToken ct = default);
 
-    Task<PagedResult<DocumentCategoryDto>> GetCategoriesPagedAsync(PagedRequest request, CancellationToken ct = default);
-    Task<DocumentCategoryDto?> GetCategoryByIdAsync(int id, CancellationToken ct = default);
-    Task<DocumentCategoryDto> CreateCategoryAsync(DocumentCategoryDto request, CancellationToken ct = default);
-    Task<DocumentCategoryDto?> UpdateCategoryAsync(int id, DocumentCategoryDto request, CancellationToken ct = default);
-    Task<bool> DeleteCategoryAsync(int id, CancellationToken ct = default);
+    /// <summary>Active config for a reference type, or null if the reference type is unknown/inactive.</summary>
+    Task<DocumentReferenceTypeConfigDto?> GetConfigAsync(string referenceType, CancellationToken ct = default);
+
+    Task<PagedResult<DocumentReferenceTypeConfigDto>> GetConfigsPagedAsync(PagedRequest request, CancellationToken ct = default);
+    Task<DocumentReferenceTypeConfigDto?> GetConfigByIdAsync(int id, CancellationToken ct = default);
+    Task<DocumentReferenceTypeConfigDto> CreateConfigAsync(DocumentReferenceTypeConfigDto request, CancellationToken ct = default);
+    Task<DocumentReferenceTypeConfigDto?> UpdateConfigAsync(int id, DocumentReferenceTypeConfigDto request, CancellationToken ct = default);
+    Task<bool> DeleteConfigAsync(int id, CancellationToken ct = default);
 }

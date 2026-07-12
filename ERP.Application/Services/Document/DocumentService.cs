@@ -1,3 +1,4 @@
+using System.Text;
 using ERP.Application.DTOs.Common;
 using ERP.Application.DTOs.Document;
 using ERP.Application.Options;
@@ -7,6 +8,8 @@ using ERP.Domain.Enums;
 using ERP.Domain.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats;
 
 namespace ERP.Application.Services.Document;
 
@@ -14,19 +17,15 @@ public sealed class DocumentService(IUnitOfWork unitOfWork, IDocumentStorageServ
 {
     private readonly DocumentSettings _settings = options.Value;
 
-    private static readonly HashSet<string> AllowedReferenceTypes = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "hr_leave_requests"
-    };
+    private static readonly HashSet<string> ImageExtensions = new(StringComparer.OrdinalIgnoreCase) { ".jpg", ".jpeg", ".png" };
 
     public async Task<IReadOnlyList<DocumentDto>> GetByReferenceAsync(string referenceType, int referenceId, int currentUserId, CancellationToken ct = default)
     {
-        await EnsureReferenceAccessAsync(referenceType, referenceId, currentUserId, requireMutable: false, ct);
+        await EnsureAuthorizationAsync(referenceType, referenceId, currentUserId, requireMutable: false, ct);
 
         return await unitOfWork.Repository<DocDocument>()
             .Query()
             .AsNoTracking()
-            .Include(x => x.Category)
             .Include(x => x.UploadedByUser)
             .Where(x => x.ReferenceType == referenceType && x.ReferenceId == referenceId)
             .OrderByDescending(x => x.UploadedAt)
@@ -36,43 +35,29 @@ public sealed class DocumentService(IUnitOfWork unitOfWork, IDocumentStorageServ
 
     public async Task<DocumentDto> UploadAsync(UploadDocumentRequest request, int currentUserId, CancellationToken ct = default)
     {
-        if (request.FileSizeBytes <= 0)
+        var config = await GetActiveConfigEntityAsync(request.ReferenceType, ct)
+            ?? throw new InvalidOperationException($"Reference type '{request.ReferenceType}' is not supported for documents.");
+
+        await ValidateFileAsync(request.OriginalFileName, request.FileSizeBytes, request.Content, config, ct);
+
+        await EnsureAuthorizationAsync(request.ReferenceType, request.ReferenceId, currentUserId, requireMutable: true, ct);
+
+        var existingCount = await unitOfWork.Repository<DocDocument>()
+            .Query()
+            .CountAsync(x => x.ReferenceType == request.ReferenceType && x.ReferenceId == request.ReferenceId, ct);
+
+        if (existingCount >= config.MaxFileCount)
         {
-            throw new InvalidOperationException("File is empty.");
+            throw new InvalidOperationException($"Maximum of {config.MaxFileCount} attachment(s) allowed for this record.");
         }
 
-        if (request.FileSizeBytes > _settings.MaxFileSizeBytes)
-        {
-            throw new InvalidOperationException($"File must be {_settings.MaxFileSizeBytes / (1024 * 1024)} MB or smaller.");
-        }
-
-        var extension = Path.GetExtension(request.OriginalFileName)?.ToLowerInvariant();
-        if (string.IsNullOrWhiteSpace(extension) || !_settings.AllowedExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase))
-        {
-            throw new InvalidOperationException($"File type not allowed. Allowed: {string.Join(", ", _settings.AllowedExtensions)}");
-        }
-
-        await EnsureReferenceAccessAsync(request.ReferenceType, request.ReferenceId, currentUserId, requireMutable: true, ct);
-
-        if (request.CategoryId.HasValue)
-        {
-            var categoryExists = await unitOfWork.Repository<DocDocumentCategory>()
-                .Query()
-                .AnyAsync(x => x.Id == request.CategoryId.Value && x.IsActive, ct);
-
-            if (!categoryExists)
-            {
-                throw new InvalidOperationException("Document category not found or inactive.");
-            }
-        }
-
+        var extension = Path.GetExtension(request.OriginalFileName).ToLowerInvariant();
         var storagePath = await storageService.SaveAsync(request.Content, extension, request.ReferenceType, request.ReferenceId, ct);
 
         var entity = new DocDocument
         {
             ReferenceType = request.ReferenceType,
             ReferenceId = request.ReferenceId,
-            CategoryId = request.CategoryId,
             OriginalFileName = request.OriginalFileName,
             StoredFileName = Path.GetFileName(storagePath),
             FileExtension = extension,
@@ -104,7 +89,7 @@ public sealed class DocumentService(IUnitOfWork unitOfWork, IDocumentStorageServ
             throw new InvalidOperationException("Document not found.");
         }
 
-        await EnsureReferenceAccessAsync(entity.ReferenceType, entity.ReferenceId, currentUserId, requireMutable: false, ct);
+        await EnsureAuthorizationAsync(entity.ReferenceType, entity.ReferenceId, currentUserId, requireMutable: false, ct);
 
         var stream = await storageService.OpenReadStreamAsync(entity.StoragePath, ct);
 
@@ -127,7 +112,7 @@ public sealed class DocumentService(IUnitOfWork unitOfWork, IDocumentStorageServ
             return false;
         }
 
-        await EnsureReferenceAccessAsync(entity.ReferenceType, entity.ReferenceId, currentUserId, requireMutable: true, ct);
+        await EnsureAuthorizationAsync(entity.ReferenceType, entity.ReferenceId, currentUserId, requireMutable: true, ct);
 
         unitOfWork.Repository<DocDocument>().Delete(entity);
         await unitOfWork.SaveChangesAsync(ct);
@@ -137,30 +122,18 @@ public sealed class DocumentService(IUnitOfWork unitOfWork, IDocumentStorageServ
         return true;
     }
 
-    public async Task<IReadOnlyList<DocumentCategoryDto>> GetCategoryOptionsAsync(CancellationToken ct = default)
+    public async Task<DocumentReferenceTypeConfigDto?> GetConfigAsync(string referenceType, CancellationToken ct = default)
     {
-        return await unitOfWork.Repository<DocDocumentCategory>()
-            .Query()
-            .AsNoTracking()
-            .Where(x => x.IsActive)
-            .OrderBy(x => x.Name)
-            .Select(x => new DocumentCategoryDto
-            {
-                Id = x.Id,
-                Code = x.Code,
-                Name = x.Name,
-                Module = x.Module,
-                IsActive = x.IsActive
-            })
-            .ToListAsync(ct);
+        var entity = await GetActiveConfigEntityAsync(referenceType, ct);
+        return entity is null ? null : MapConfig(entity);
     }
 
-    public async Task<PagedResult<DocumentCategoryDto>> GetCategoriesPagedAsync(PagedRequest request, CancellationToken ct = default)
+    public async Task<PagedResult<DocumentReferenceTypeConfigDto>> GetConfigsPagedAsync(PagedRequest request, CancellationToken ct = default)
     {
         var page = request.Page <= 0 ? 1 : request.Page;
         var pageSize = request.PageSize <= 0 ? 20 : request.PageSize;
 
-        var query = unitOfWork.Repository<DocDocumentCategory>()
+        var query = unitOfWork.Repository<DocReferenceTypeConfig>()
             .Query()
             .AsNoTracking()
             .AsQueryable();
@@ -168,76 +141,68 @@ public sealed class DocumentService(IUnitOfWork unitOfWork, IDocumentStorageServ
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
             var search = request.Search.Trim().ToLowerInvariant();
-            query = query.Where(x => x.Name.ToLower().Contains(search) || x.Code.ToLower().Contains(search));
+            query = query.Where(x => x.DisplayName.ToLower().Contains(search) || x.ReferenceType.ToLower().Contains(search));
         }
 
         var total = await query.CountAsync(ct);
 
         var items = await query
-            .OrderBy(x => x.Name)
+            .OrderBy(x => x.DisplayName)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(x => new DocumentCategoryDto
-            {
-                Id = x.Id,
-                Code = x.Code,
-                Name = x.Name,
-                Module = x.Module,
-                IsActive = x.IsActive
-            })
+            .Select(x => MapConfig(x))
             .ToListAsync(ct);
 
-        return PagedResult<DocumentCategoryDto>.Create(items, total, page, pageSize);
+        return PagedResult<DocumentReferenceTypeConfigDto>.Create(items, total, page, pageSize);
     }
 
-    public async Task<DocumentCategoryDto?> GetCategoryByIdAsync(int id, CancellationToken ct = default)
+    public async Task<DocumentReferenceTypeConfigDto?> GetConfigByIdAsync(int id, CancellationToken ct = default)
     {
-        return await unitOfWork.Repository<DocDocumentCategory>()
+        var entity = await unitOfWork.Repository<DocReferenceTypeConfig>()
             .Query()
             .AsNoTracking()
-            .Where(x => x.Id == id)
-            .Select(x => new DocumentCategoryDto
-            {
-                Id = x.Id,
-                Code = x.Code,
-                Name = x.Name,
-                Module = x.Module,
-                IsActive = x.IsActive
-            })
-            .FirstOrDefaultAsync(ct);
+            .FirstOrDefaultAsync(x => x.Id == id, ct);
+
+        return entity is null ? null : MapConfig(entity);
     }
 
-    public async Task<DocumentCategoryDto> CreateCategoryAsync(DocumentCategoryDto request, CancellationToken ct = default)
+    public async Task<DocumentReferenceTypeConfigDto> CreateConfigAsync(DocumentReferenceTypeConfigDto request, CancellationToken ct = default)
     {
-        var exists = await unitOfWork.Repository<DocDocumentCategory>()
+        ValidateConfigRequest(request);
+
+        var exists = await unitOfWork.Repository<DocReferenceTypeConfig>()
             .Query()
             .IgnoreQueryFilters()
-            .AnyAsync(x => x.Code == request.Code, ct);
+            .AnyAsync(x => x.ReferenceType == request.ReferenceType, ct);
 
         if (exists)
         {
-            throw new InvalidOperationException("Document category code already exists.");
+            throw new InvalidOperationException("This reference type already has a configuration.");
         }
 
-        var entity = new DocDocumentCategory
+        var entity = new DocReferenceTypeConfig
         {
-            Code = request.Code,
-            Name = request.Name,
-            Module = NormalizeText(request.Module),
+            ReferenceType = request.ReferenceType,
+            DisplayName = request.DisplayName,
+            IsRequired = request.IsRequired,
+            MaxFileSizeBytes = request.MaxFileSizeBytes,
+            MaxFileCount = request.MaxFileCount,
+            AllowedExtensions = NormalizeText(request.AllowedExtensions),
             IsActive = request.IsActive,
             CreatedBy = "system"
         };
 
-        await unitOfWork.Repository<DocDocumentCategory>().AddAsync(entity, ct);
+        await unitOfWork.Repository<DocReferenceTypeConfig>().AddAsync(entity, ct);
         await unitOfWork.SaveChangesAsync(ct);
 
-        return await GetCategoryByIdAsync(entity.Id, ct)
-            ?? throw new InvalidOperationException("Failed to load created document category.");
+        return MapConfig(entity);
     }
 
-    public async Task<DocumentCategoryDto?> UpdateCategoryAsync(int id, DocumentCategoryDto request, CancellationToken ct = default)
+    public async Task<DocumentReferenceTypeConfigDto?> UpdateConfigAsync(int id, DocumentReferenceTypeConfigDto request, CancellationToken ct = default)
     {
-        var entity = await unitOfWork.Repository<DocDocumentCategory>()
+        ValidateConfigRequest(request);
+
+        var entity = await unitOfWork.Repository<DocReferenceTypeConfig>()
             .Query()
             .FirstOrDefaultAsync(x => x.Id == id, ct);
 
@@ -246,31 +211,34 @@ public sealed class DocumentService(IUnitOfWork unitOfWork, IDocumentStorageServ
             return null;
         }
 
-        var duplicateCode = await unitOfWork.Repository<DocDocumentCategory>()
+        var duplicateType = await unitOfWork.Repository<DocReferenceTypeConfig>()
             .Query()
-            .AnyAsync(x => x.Id != id && x.Code == request.Code, ct);
+            .AnyAsync(x => x.Id != id && x.ReferenceType == request.ReferenceType, ct);
 
-        if (duplicateCode)
+        if (duplicateType)
         {
-            throw new InvalidOperationException("Document category code already exists.");
+            throw new InvalidOperationException("This reference type already has a configuration.");
         }
 
-        entity.Code = request.Code;
-        entity.Name = request.Name;
-        entity.Module = NormalizeText(request.Module);
+        entity.ReferenceType = request.ReferenceType;
+        entity.DisplayName = request.DisplayName;
+        entity.IsRequired = request.IsRequired;
+        entity.MaxFileSizeBytes = request.MaxFileSizeBytes;
+        entity.MaxFileCount = request.MaxFileCount;
+        entity.AllowedExtensions = NormalizeText(request.AllowedExtensions);
         entity.IsActive = request.IsActive;
         entity.UpdatedBy = "system";
         entity.UpdatedAt = DateTimeOffset.UtcNow;
 
-        unitOfWork.Repository<DocDocumentCategory>().Update(entity);
+        unitOfWork.Repository<DocReferenceTypeConfig>().Update(entity);
         await unitOfWork.SaveChangesAsync(ct);
 
-        return await GetCategoryByIdAsync(entity.Id, ct);
+        return MapConfig(entity);
     }
 
-    public async Task<bool> DeleteCategoryAsync(int id, CancellationToken ct = default)
+    public async Task<bool> DeleteConfigAsync(int id, CancellationToken ct = default)
     {
-        var entity = await unitOfWork.Repository<DocDocumentCategory>()
+        var entity = await unitOfWork.Repository<DocReferenceTypeConfig>()
             .Query()
             .FirstOrDefaultAsync(x => x.Id == id, ct);
 
@@ -279,28 +247,149 @@ public sealed class DocumentService(IUnitOfWork unitOfWork, IDocumentStorageServ
             return false;
         }
 
-        var isUsed = await unitOfWork.Repository<DocDocument>()
+        var hasDocuments = await unitOfWork.Repository<DocDocument>()
             .Query()
-            .AnyAsync(x => x.CategoryId == id, ct);
+            .AnyAsync(x => x.ReferenceType == entity.ReferenceType, ct);
 
-        if (isUsed)
+        if (hasDocuments)
         {
-            throw new InvalidOperationException("Document category cannot be deleted because it is already used by uploaded documents.");
+            throw new InvalidOperationException("This configuration cannot be deleted because documents already use this reference type.");
         }
 
-        unitOfWork.Repository<DocDocumentCategory>().Delete(entity);
+        unitOfWork.Repository<DocReferenceTypeConfig>().Delete(entity);
         await unitOfWork.SaveChangesAsync(ct);
 
         return true;
     }
 
-    private async Task EnsureReferenceAccessAsync(string referenceType, int referenceId, int currentUserId, bool requireMutable, CancellationToken ct)
+    private static void ValidateConfigRequest(DocumentReferenceTypeConfigDto request)
     {
-        if (!AllowedReferenceTypes.Contains(referenceType))
+        if (string.IsNullOrWhiteSpace(request.ReferenceType))
         {
-            throw new InvalidOperationException($"Reference type '{referenceType}' is not supported for documents.");
+            throw new InvalidOperationException("Reference type is required.");
         }
 
+        if (string.IsNullOrWhiteSpace(request.DisplayName))
+        {
+            throw new InvalidOperationException("Display name is required.");
+        }
+
+        if (request.MaxFileCount < 1)
+        {
+            throw new InvalidOperationException("Max file count must be at least 1.");
+        }
+
+        if (request.MaxFileSizeBytes.HasValue && request.MaxFileSizeBytes.Value <= 0)
+        {
+            throw new InvalidOperationException("Max file size must be greater than 0.");
+        }
+    }
+
+    private async Task<DocReferenceTypeConfig?> GetActiveConfigEntityAsync(string referenceType, CancellationToken ct)
+    {
+        return await unitOfWork.Repository<DocReferenceTypeConfig>()
+            .Query()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.ReferenceType == referenceType && x.IsActive, ct);
+    }
+
+    private async Task ValidateFileAsync(string originalFileName, long fileSizeBytes, Stream content, DocReferenceTypeConfig config, CancellationToken ct)
+    {
+        if (fileSizeBytes <= 0)
+        {
+            throw new InvalidOperationException("File is empty.");
+        }
+
+        var maxSize = config.MaxFileSizeBytes ?? _settings.MaxFileSizeBytes;
+        if (fileSizeBytes > maxSize)
+        {
+            throw new InvalidOperationException($"File must be {maxSize / (1024 * 1024)} MB or smaller.");
+        }
+
+        var extension = Path.GetExtension(originalFileName)?.ToLowerInvariant();
+        var allowedExtensions = ParseAllowedExtensions(config.AllowedExtensions) ?? _settings.AllowedExtensions;
+        if (string.IsNullOrWhiteSpace(extension) || !allowedExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException($"File type not allowed. Allowed: {string.Join(", ", allowedExtensions)}");
+        }
+
+        await ValidateFileIntegrityAsync(extension, content, ct);
+    }
+
+    private static string[]? ParseAllowedExtensions(string? commaSeparated)
+    {
+        if (string.IsNullOrWhiteSpace(commaSeparated))
+        {
+            return null;
+        }
+
+        return commaSeparated
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .ToArray();
+    }
+
+    private static async Task ValidateFileIntegrityAsync(string extension, Stream content, CancellationToken ct)
+    {
+        if (!content.CanSeek)
+        {
+            // Can't rewind a non-seekable stream to re-use it for the actual save afterward,
+            // so skip the deep integrity check defensively rather than consume the stream here.
+            return;
+        }
+
+        var originalPosition = content.Position;
+        try
+        {
+            if (ImageExtensions.Contains(extension))
+            {
+                IImageFormat? format;
+                try
+                {
+                    format = await Image.DetectFormatAsync(content, ct);
+                }
+                catch
+                {
+                    format = null;
+                }
+
+                if (format is null)
+                {
+                    throw new InvalidOperationException("The uploaded image file appears to be corrupted or is not a valid image.");
+                }
+            }
+            else if (extension == ".pdf")
+            {
+                var header = new byte[5];
+                var read = await content.ReadAsync(header.AsMemory(0, 5), ct);
+                if (read < 5 || Encoding.ASCII.GetString(header) != "%PDF-")
+                {
+                    throw new InvalidOperationException("The uploaded PDF file appears to be corrupted or is not a valid PDF.");
+                }
+            }
+            else if (extension == ".docx")
+            {
+                try
+                {
+                    using var archive = new System.IO.Compression.ZipArchive(content, System.IO.Compression.ZipArchiveMode.Read, leaveOpen: true);
+                    if (archive.GetEntry("[Content_Types].xml") is null)
+                    {
+                        throw new InvalidOperationException("The uploaded DOCX file appears to be corrupted or is not a valid Word document.");
+                    }
+                }
+                catch (InvalidDataException)
+                {
+                    throw new InvalidOperationException("The uploaded DOCX file appears to be corrupted or is not a valid Word document.");
+                }
+            }
+        }
+        finally
+        {
+            content.Position = originalPosition;
+        }
+    }
+
+    private async Task EnsureAuthorizationAsync(string referenceType, int referenceId, int currentUserId, bool requireMutable, CancellationToken ct)
+    {
         if (string.Equals(referenceType, "hr_leave_requests", StringComparison.OrdinalIgnoreCase))
         {
             await EnsureLeaveRequestAccessAsync(referenceId, currentUserId, requireMutable, ct);
@@ -349,7 +438,6 @@ public sealed class DocumentService(IUnitOfWork unitOfWork, IDocumentStorageServ
         return await unitOfWork.Repository<DocDocument>()
             .Query()
             .AsNoTracking()
-            .Include(x => x.Category)
             .Include(x => x.UploadedByUser)
             .Where(x => x.Id == id)
             .Select(x => MapDocument(x))
@@ -361,8 +449,6 @@ public sealed class DocumentService(IUnitOfWork unitOfWork, IDocumentStorageServ
         Id = x.Id,
         ReferenceType = x.ReferenceType,
         ReferenceId = x.ReferenceId,
-        CategoryId = x.CategoryId,
-        CategoryName = x.Category != null ? x.Category.Name : null,
         OriginalFileName = x.OriginalFileName,
         FileExtension = x.FileExtension,
         ContentType = x.ContentType,
@@ -371,6 +457,18 @@ public sealed class DocumentService(IUnitOfWork unitOfWork, IDocumentStorageServ
         UploadedBy = x.UploadedBy,
         UploadedByName = x.UploadedByUser.FullName,
         UploadedAt = x.UploadedAt
+    };
+
+    private static DocumentReferenceTypeConfigDto MapConfig(DocReferenceTypeConfig x) => new()
+    {
+        Id = x.Id,
+        ReferenceType = x.ReferenceType,
+        DisplayName = x.DisplayName,
+        IsRequired = x.IsRequired,
+        MaxFileSizeBytes = x.MaxFileSizeBytes,
+        MaxFileCount = x.MaxFileCount,
+        AllowedExtensions = x.AllowedExtensions,
+        IsActive = x.IsActive
     };
 
     private static string? NormalizeText(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();

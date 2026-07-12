@@ -40,6 +40,12 @@ public sealed class SubmitSelfLeaveRequest
     public string? Reason { get; set; }
 }
 
+public sealed class SubmitLeaveRequestResult
+{
+    public LeaveRequestDto LeaveRequest { get; set; } = null!;
+    public IReadOnlyList<string> AttachmentWarnings { get; set; } = [];
+}
+
 public sealed class LeaveRequestPagedRequest : PagedRequest
 {
     public LeaveStatus? Status { get; set; }

@@ -44,11 +44,14 @@ public abstract class ApiClientBase(HttpClient httpClient, ILogger logger, strin
         }
     }
 
-    protected async Task<ApiCallResult<T>> SendMultipartAsync<T>(string uri, string accessToken, MultipartFormDataContent content, CancellationToken ct)
+    protected Task<ApiCallResult<T>> SendMultipartAsync<T>(string uri, string accessToken, MultipartFormDataContent content, CancellationToken ct)
+        => SendMultipartAsync<T>(HttpMethod.Post, uri, accessToken, content, ct);
+
+    protected async Task<ApiCallResult<T>> SendMultipartAsync<T>(HttpMethod method, string uri, string accessToken, MultipartFormDataContent content, CancellationToken ct)
     {
         try
         {
-            using var request = new HttpRequestMessage(HttpMethod.Post, uri) { Content = content };
+            using var request = new HttpRequestMessage(method, uri) { Content = content };
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
             using var response = await httpClient.SendAsync(request, ct);

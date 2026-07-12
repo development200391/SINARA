@@ -1,5 +1,6 @@
 @model ERP.Web.ViewModels.HR.HrLeaveRequestDetailsViewModel
 @using ERP.Domain.Enums
+@using ERP.Web.ViewModels.Document
 @{
     var request = Model.Request;
 }
@@ -78,29 +79,12 @@
     <div class="card-body">
         <h2 class="h6 mb-3">@T["Attachments"]</h2>
 
-        @if (Model.Documents.Count == 0)
+        @await Component.InvokeAsync("GeneralDocumentList", new GeneralDocumentListViewModel
         {
-            <p class="text-muted mb-0">@T["No documents attached yet."]</p>
-        }
-        else
-        {
-            <ul class="list-group">
-                @foreach (var doc in Model.Documents)
-                {
-                    <li class="list-group-item">
-                        <a asp-action="DownloadDocument" asp-route-id="@doc.Id">@doc.OriginalFileName</a>
-                        <div class="small text-muted">
-                            @(doc.CategoryName ?? "-") &middot; @((doc.FileSizeBytes / 1024.0).ToString("N0")) KB &middot;
-                            @doc.UploadedByName, @doc.UploadedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
-                            @if (!string.IsNullOrWhiteSpace(doc.Description))
-                            {
-                                <text> &middot; @doc.Description</text>
-                            }
-                        </div>
-                    </li>
-                }
-            </ul>
-        }
+            Documents = Model.Documents,
+            DownloadUrl = id => Url.Action("DownloadDocument", "HrLeaveRequests", new { id })!
+        })
+
         @if (request.Status == LeaveStatus.Pending)
         {
             <p class="small text-muted mt-3 mb-0">@T["To add or remove attachments, use the Edit page."]</p>

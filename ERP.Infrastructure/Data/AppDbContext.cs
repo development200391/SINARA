@@ -46,7 +46,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<HrPayrollRun> HrPayrollRuns => Set<HrPayrollRun>();
     public DbSet<HrPayrollDetail> HrPayrollDetails => Set<HrPayrollDetail>();
 
-    public DbSet<DocDocumentCategory> DocDocumentCategories => Set<DocDocumentCategory>();
+    public DbSet<DocReferenceTypeConfig> DocReferenceTypeConfigs => Set<DocReferenceTypeConfig>();
     public DbSet<DocDocument> DocDocuments => Set<DocDocument>();
 
     public DbSet<FinAccountGroup> FinAccountGroups => Set<FinAccountGroup>();
@@ -162,7 +162,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         ConfigureHrPayrollRun(modelBuilder.Entity<HrPayrollRun>());
         ConfigureHrPayrollDetail(modelBuilder.Entity<HrPayrollDetail>());
 
-        ConfigureDocDocumentCategory(modelBuilder.Entity<DocDocumentCategory>());
+        ConfigureDocReferenceTypeConfig(modelBuilder.Entity<DocReferenceTypeConfig>());
         ConfigureDocDocument(modelBuilder.Entity<DocDocument>());
 
         ConfigureFinAccountGroup(modelBuilder.Entity<FinAccountGroup>());
@@ -722,17 +722,20 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         builder.HasIndex(x => new { x.PayrollRunId, x.EmployeeId }).IsUnique();
     }
 
-    private static void ConfigureDocDocumentCategory(EntityTypeBuilder<DocDocumentCategory> builder)
+    private static void ConfigureDocReferenceTypeConfig(EntityTypeBuilder<DocReferenceTypeConfig> builder)
     {
-        builder.ToTable("doc_document_categories");
+        builder.ToTable("doc_reference_type_configs");
         ConfigureAuditEntity(builder);
 
-        builder.Property(x => x.Code).HasMaxLength(50).IsRequired();
-        builder.Property(x => x.Name).HasMaxLength(150).IsRequired();
-        builder.Property(x => x.Module).HasMaxLength(50);
+        builder.Property(x => x.ReferenceType).HasMaxLength(100).IsRequired();
+        builder.Property(x => x.DisplayName).HasMaxLength(150).IsRequired();
+        builder.Property(x => x.IsRequired).HasDefaultValue(false).IsRequired();
+        builder.Property(x => x.MaxFileSizeBytes);
+        builder.Property(x => x.MaxFileCount).HasDefaultValue(1).IsRequired();
+        builder.Property(x => x.AllowedExtensions).HasMaxLength(500);
         builder.Property(x => x.IsActive).HasDefaultValue(true).IsRequired();
 
-        builder.HasIndex(x => x.Code).IsUnique();
+        builder.HasIndex(x => x.ReferenceType).IsUnique();
     }
 
     private static void ConfigureDocDocument(EntityTypeBuilder<DocDocument> builder)
@@ -751,18 +754,12 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         builder.Property(x => x.Description).HasMaxLength(500);
         builder.Property(x => x.UploadedAt).HasColumnType("timestamptz").IsRequired();
 
-        builder.HasOne(x => x.Category)
-            .WithMany(x => x.Documents)
-            .HasForeignKey(x => x.CategoryId)
-            .OnDelete(DeleteBehavior.SetNull);
-
         builder.HasOne(x => x.UploadedByUser)
             .WithMany(x => x.UploadedDocuments)
             .HasForeignKey(x => x.UploadedBy)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(x => new { x.ReferenceType, x.ReferenceId });
-        builder.HasIndex(x => x.CategoryId);
         builder.HasIndex(x => x.UploadedBy);
     }
 

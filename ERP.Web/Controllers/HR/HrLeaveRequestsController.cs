@@ -77,30 +77,6 @@ public sealed class HrLeaveRequestsController(IHrApiClient hrApiClient) : Contro
         });
     }
 
-    [HttpPost("{leaveRequestId:int}/documents")]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> UploadDocument(int leaveRequestId, IFormFile? file, int? categoryId, string? description, CancellationToken ct = default)
-    {
-        var accessToken = GetAccessToken();
-        if (string.IsNullOrWhiteSpace(accessToken))
-        {
-            return RedirectToAction("Login", "Auth");
-        }
-
-        if (file is null || file.Length == 0)
-        {
-            TempData["ErrorMessage"] = "Please choose a file to upload.";
-            return RedirectToAction(nameof(Edit), new { id = leaveRequestId });
-        }
-
-        var uploaded = await hrApiClient.UploadDocumentAsync(accessToken, file, DocumentReferenceType, leaveRequestId, categoryId, description, ct);
-        TempData[uploaded.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = uploaded.IsSuccess
-            ? "Document uploaded."
-            : (string.IsNullOrWhiteSpace(uploaded.ErrorMessage) ? "Failed to upload document." : uploaded.ErrorMessage);
-
-        return RedirectToAction(nameof(Edit), new { id = leaveRequestId });
-    }
-
     [HttpGet("documents/{id:int}/download")]
     public async Task<IActionResult> DownloadDocument(int id, CancellationToken ct = default)
     {
@@ -147,8 +123,8 @@ public sealed class HrLeaveRequestsController(IHrApiClient hrApiClient) : Contro
         }
 
         var optionsTask = hrApiClient.GetLeaveRequestOptionsAsync(accessToken, ct);
-        var categoriesTask = hrApiClient.GetDocumentCategoriesAsync(accessToken, ct);
-        await Task.WhenAll(optionsTask, categoriesTask);
+        var configTask = hrApiClient.GetDocumentConfigAsync(accessToken, DocumentReferenceType, ct);
+        await Task.WhenAll(optionsTask, configTask);
         var options = await optionsTask ?? new LeaveRequestOptionsDto();
 
         ViewData["Title"] = "Create Leave Request";
@@ -158,7 +134,7 @@ public sealed class HrLeaveRequestsController(IHrApiClient hrApiClient) : Contro
         {
             Employees = options.Employees,
             LeaveTypes = options.LeaveTypes,
-            AttachmentCategories = await categoriesTask
+            AttachmentConfig = await configTask
         });
     }
 
@@ -175,7 +151,7 @@ public sealed class HrLeaveRequestsController(IHrApiClient hrApiClient) : Contro
         var options = await hrApiClient.GetLeaveRequestOptionsAsync(accessToken, ct) ?? new LeaveRequestOptionsDto();
         model.Employees = options.Employees;
         model.LeaveTypes = options.LeaveTypes;
-        model.AttachmentCategories = await hrApiClient.GetDocumentCategoriesAsync(accessToken, ct);
+        model.AttachmentConfig = await hrApiClient.GetDocumentConfigAsync(accessToken, DocumentReferenceType, ct);
 
         if (!ModelState.IsValid)
         {
@@ -191,7 +167,7 @@ public sealed class HrLeaveRequestsController(IHrApiClient hrApiClient) : Contro
             StartDate = model.StartDate,
             EndDate = model.EndDate,
             Reason = model.Reason
-        }, ct);
+        }, model.AttachmentFiles, model.AttachmentNote, ct);
 
         if (!created.IsSuccess)
         {
@@ -201,25 +177,7 @@ public sealed class HrLeaveRequestsController(IHrApiClient hrApiClient) : Contro
             return View(model);
         }
 
-        if (model.AttachmentFile is not null && model.AttachmentFile.Length > 0)
-        {
-            var uploaded = await hrApiClient.UploadDocumentAsync(
-                accessToken, model.AttachmentFile, DocumentReferenceType, created.Data!.Id, model.AttachmentCategoryId, model.AttachmentDescription, ct);
-
-            if (uploaded.IsSuccess)
-            {
-                TempData["SuccessMessage"] = "Leave request submitted and attachment uploaded.";
-            }
-            else
-            {
-                TempData["ErrorMessage"] = $"Leave request submitted, but the attachment failed to upload: {(string.IsNullOrWhiteSpace(uploaded.ErrorMessage) ? "unknown error." : uploaded.ErrorMessage)} You can retry from the Edit page.";
-            }
-        }
-        else
-        {
-            TempData["SuccessMessage"] = "Leave request submitted.";
-        }
-
+        SetSubmitResultMessage(created.Data, "Leave request submitted.");
         return RedirectToAction(nameof(Index));
     }
 
@@ -245,9 +203,9 @@ public sealed class HrLeaveRequestsController(IHrApiClient hrApiClient) : Contro
         }
 
         var optionsTask = hrApiClient.GetLeaveRequestOptionsAsync(accessToken, ct);
-        var categoriesTask = hrApiClient.GetDocumentCategoriesAsync(accessToken, ct);
+        var configTask = hrApiClient.GetDocumentConfigAsync(accessToken, DocumentReferenceType, ct);
         var documentsTask = hrApiClient.GetDocumentsAsync(accessToken, DocumentReferenceType, id, ct);
-        await Task.WhenAll(optionsTask, categoriesTask, documentsTask);
+        await Task.WhenAll(optionsTask, configTask, documentsTask);
         var options = await optionsTask ?? new LeaveRequestOptionsDto();
 
         ViewData["Title"] = "Edit Leave Request";
@@ -263,7 +221,7 @@ public sealed class HrLeaveRequestsController(IHrApiClient hrApiClient) : Contro
             Reason = leaveRequest.Reason,
             Employees = options.Employees,
             LeaveTypes = options.LeaveTypes,
-            AttachmentCategories = await categoriesTask,
+            AttachmentConfig = await configTask,
             Documents = await documentsTask
         });
     }
@@ -283,7 +241,7 @@ public sealed class HrLeaveRequestsController(IHrApiClient hrApiClient) : Contro
         var options = await hrApiClient.GetLeaveRequestOptionsAsync(accessToken, ct) ?? new LeaveRequestOptionsDto();
         model.Employees = options.Employees;
         model.LeaveTypes = options.LeaveTypes;
-        model.AttachmentCategories = await hrApiClient.GetDocumentCategoriesAsync(accessToken, ct);
+        model.AttachmentConfig = await hrApiClient.GetDocumentConfigAsync(accessToken, DocumentReferenceType, ct);
         model.Documents = await hrApiClient.GetDocumentsAsync(accessToken, DocumentReferenceType, id, ct);
 
         if (!ModelState.IsValid)
@@ -300,7 +258,7 @@ public sealed class HrLeaveRequestsController(IHrApiClient hrApiClient) : Contro
             StartDate = model.StartDate,
             EndDate = model.EndDate,
             Reason = model.Reason
-        }, ct);
+        }, model.AttachmentFiles, model.AttachmentNote, ct);
 
         if (!updated.IsSuccess)
         {
@@ -310,25 +268,7 @@ public sealed class HrLeaveRequestsController(IHrApiClient hrApiClient) : Contro
             return View(model);
         }
 
-        if (model.AttachmentFile is not null && model.AttachmentFile.Length > 0)
-        {
-            var uploaded = await hrApiClient.UploadDocumentAsync(
-                accessToken, model.AttachmentFile, DocumentReferenceType, id, model.AttachmentCategoryId, model.AttachmentDescription, ct);
-
-            if (uploaded.IsSuccess)
-            {
-                TempData["SuccessMessage"] = "Leave request updated and attachment uploaded.";
-            }
-            else
-            {
-                TempData["ErrorMessage"] = $"Leave request updated, but the attachment failed to upload: {(string.IsNullOrWhiteSpace(uploaded.ErrorMessage) ? "unknown error." : uploaded.ErrorMessage)}";
-            }
-        }
-        else
-        {
-            TempData["SuccessMessage"] = "Leave request updated.";
-        }
-
+        SetSubmitResultMessage(updated.Data, "Leave request updated.");
         return RedirectToAction(nameof(Index));
     }
 
@@ -378,6 +318,17 @@ public sealed class HrLeaveRequestsController(IHrApiClient hrApiClient) : Contro
         TempData[ok.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = ok.IsSuccess ? "Leave request rejected." : (string.IsNullOrWhiteSpace(ok.ErrorMessage) ? "Failed to reject leave request." : ok.ErrorMessage);
 
         return RedirectToAction(nameof(Index));
+    }
+
+    private void SetSubmitResultMessage(SubmitLeaveRequestResult? result, string baseMessage)
+    {
+        if (result is null || result.AttachmentWarnings.Count == 0)
+        {
+            TempData["SuccessMessage"] = baseMessage;
+            return;
+        }
+
+        TempData["ErrorMessage"] = $"{baseMessage} Some attachments failed: {string.Join(" | ", result.AttachmentWarnings)}";
     }
 
     private static int NormalizePageSize(int pageSize) => pageSize is 20 or 50 or 100 ? pageSize : 20;

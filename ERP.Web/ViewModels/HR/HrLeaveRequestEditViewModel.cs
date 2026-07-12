@@ -24,14 +24,13 @@ public sealed class HrLeaveRequestEditViewModel
     [MaxLength(500)]
     public string? Reason { get; set; }
 
-    public IFormFile? AttachmentFile { get; set; }
-    public int? AttachmentCategoryId { get; set; }
+    public List<IFormFile>? AttachmentFiles { get; set; }
 
     [MaxLength(500)]
-    public string? AttachmentDescription { get; set; }
+    public string? AttachmentNote { get; set; }
 
     public IReadOnlyList<LookupDto> Employees { get; set; } = [];
     public IReadOnlyList<LookupDto> LeaveTypes { get; set; } = [];
-    public IReadOnlyList<DocumentCategoryDto> AttachmentCategories { get; set; } = [];
     public IReadOnlyList<DocumentDto> Documents { get; set; } = [];
+    public DocumentReferenceTypeConfigDto? AttachmentConfig { get; set; }
 }

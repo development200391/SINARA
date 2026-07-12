@@ -46,8 +46,8 @@ public interface IHrApiClient
     Task<PagedResult<LeaveRequestDto>?> GetLeaveRequestsAsync(string accessToken, LeaveRequestPagedRequest request, CancellationToken ct = default);
     Task<LeaveRequestDto?> GetLeaveRequestByIdAsync(string accessToken, int id, CancellationToken ct = default);
     Task<LeaveRequestOptionsDto?> GetLeaveRequestOptionsAsync(string accessToken, CancellationToken ct = default);
-    Task<ApiCallResult<LeaveRequestDto>> SubmitLeaveRequestAsync(string accessToken, SubmitLeaveRequest request, CancellationToken ct = default);
-    Task<ApiCallResult<LeaveRequestDto>> UpdateLeaveRequestAsync(string accessToken, int id, SubmitLeaveRequest request, CancellationToken ct = default);
+    Task<ApiCallResult<SubmitLeaveRequestResult>> SubmitLeaveRequestAsync(string accessToken, SubmitLeaveRequest request, IReadOnlyList<IFormFile>? files, string? note, CancellationToken ct = default);
+    Task<ApiCallResult<SubmitLeaveRequestResult>> UpdateLeaveRequestAsync(string accessToken, int id, SubmitLeaveRequest request, IReadOnlyList<IFormFile>? files, string? note, CancellationToken ct = default);
     Task<ApiCallResult<object?>> DeleteLeaveRequestAsync(string accessToken, int id, CancellationToken ct = default);
     Task<ApiCallResult<object?>> ApproveLeaveRequestAsync(string accessToken, int id, CancellationToken ct = default);
     Task<ApiCallResult<object?>> RejectLeaveRequestAsync(string accessToken, int id, CancellationToken ct = default);
@@ -66,8 +66,7 @@ public interface IHrApiClient
     Task<PayslipDto?> GetPayslipAsync(string accessToken, int runId, int employeeId, CancellationToken ct = default);
 
     Task<IReadOnlyList<DocumentDto>> GetDocumentsAsync(string accessToken, string referenceType, int referenceId, CancellationToken ct = default);
-    Task<IReadOnlyList<DocumentCategoryDto>> GetDocumentCategoriesAsync(string accessToken, CancellationToken ct = default);
-    Task<ApiCallResult<DocumentDto>> UploadDocumentAsync(string accessToken, IFormFile file, string referenceType, int referenceId, int? categoryId, string? description, CancellationToken ct = default);
+    Task<DocumentReferenceTypeConfigDto?> GetDocumentConfigAsync(string accessToken, string referenceType, CancellationToken ct = default);
     Task<DownloadResult?> DownloadDocumentAsync(string accessToken, int documentId, CancellationToken ct = default);
     Task<ApiCallResult<object?>> DeleteDocumentAsync(string accessToken, int documentId, CancellationToken ct = default);
 }

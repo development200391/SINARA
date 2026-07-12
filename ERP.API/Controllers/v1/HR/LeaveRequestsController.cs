@@ -1,12 +1,16 @@
+using ERP.Application.DTOs.Document;
 using ERP.Application.DTOs.HR;
+using ERP.Application.Services.Document;
 using ERP.Application.Services.HR;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ERP.API.Controllers.v1.HR;
 
 [Route("api/v1/hr/leave-requests")]
-public sealed class LeaveRequestsController(ILeaveService leaveService, IEmployeeService employeeService) : HrControllerBase
+public sealed class LeaveRequestsController(ILeaveService leaveService, IEmployeeService employeeService, IDocumentService documentService) : HrControllerBase
 {
+    private const string DocumentReferenceType = "hr_leave_requests";
+
     [HttpGet("self/leave-types")]
     public async Task<IActionResult> GetSelfLeaveTypes(CancellationToken ct)
     {
@@ -29,7 +33,9 @@ public sealed class LeaveRequestsController(ILeaveService leaveService, IEmploye
     }
 
     [HttpPost("self")]
-    public async Task<IActionResult> SubmitSelf([FromBody] SubmitSelfLeaveRequest request, CancellationToken ct)
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(30 * 1024 * 1024)]
+    public async Task<IActionResult> SubmitSelf([FromForm] SubmitSelfLeaveRequestForm form, CancellationToken ct)
     {
         var employeeId = await ResolveEmployeeIdAsync(employeeService, ct);
         if (employeeId is null)
@@ -37,18 +43,31 @@ public sealed class LeaveRequestsController(ILeaveService leaveService, IEmploye
             return BadRequest(new { message = "No employee profile is linked to this account." });
         }
 
+        var userId = GetCurrentUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
+
+        var validationError = await ValidateAttachmentRequirementAsync(form.Files, ct);
+        if (validationError is not null)
+        {
+            return validationError;
+        }
+
         try
         {
             var created = await leaveService.SubmitAsync(new SubmitLeaveRequest
             {
                 EmployeeId = employeeId.Value,
-                LeaveTypeId = request.LeaveTypeId,
-                StartDate = request.StartDate,
-                EndDate = request.EndDate,
-                Reason = request.Reason
+                LeaveTypeId = form.LeaveTypeId,
+                StartDate = form.StartDate,
+                EndDate = form.EndDate,
+                Reason = form.Reason
             }, ct);
 
-            return Ok(created);
+            var warnings = await UploadAttachmentsAsync(form.Files, form.Note, created.Id, userId.Value, ct);
+            return Ok(new SubmitLeaveRequestResult { LeaveRequest = created, AttachmentWarnings = warnings });
         }
         catch (InvalidOperationException ex)
         {
@@ -84,12 +103,35 @@ public sealed class LeaveRequestsController(ILeaveService leaveService, IEmploye
     }
 
     [HttpPost]
-    public async Task<IActionResult> Submit([FromBody] SubmitLeaveRequest request, CancellationToken ct)
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(30 * 1024 * 1024)]
+    public async Task<IActionResult> Submit([FromForm] SubmitLeaveRequestForm form, CancellationToken ct)
     {
+        var userId = GetCurrentUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
+
+        var validationError = await ValidateAttachmentRequirementAsync(form.Files, ct);
+        if (validationError is not null)
+        {
+            return validationError;
+        }
+
         try
         {
-            var created = await leaveService.SubmitAsync(request, ct);
-            return Ok(created);
+            var created = await leaveService.SubmitAsync(new SubmitLeaveRequest
+            {
+                EmployeeId = form.EmployeeId,
+                LeaveTypeId = form.LeaveTypeId,
+                StartDate = form.StartDate,
+                EndDate = form.EndDate,
+                Reason = form.Reason
+            }, ct);
+
+            var warnings = await UploadAttachmentsAsync(form.Files, form.Note, created.Id, userId.Value, ct);
+            return Ok(new SubmitLeaveRequestResult { LeaveRequest = created, AttachmentWarnings = warnings });
         }
         catch (InvalidOperationException ex)
         {
@@ -98,12 +140,34 @@ public sealed class LeaveRequestsController(ILeaveService leaveService, IEmploye
     }
 
     [HttpPut("{id:int}")]
-    public async Task<IActionResult> Update(int id, [FromBody] SubmitLeaveRequest request, CancellationToken ct)
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(30 * 1024 * 1024)]
+    public async Task<IActionResult> Update(int id, [FromForm] SubmitLeaveRequestForm form, CancellationToken ct)
     {
+        var userId = GetCurrentUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
+
         try
         {
-            var updated = await leaveService.UpdateAsync(id, request, ct);
-            return updated is null ? NotFound() : Ok(updated);
+            var updated = await leaveService.UpdateAsync(id, new SubmitLeaveRequest
+            {
+                EmployeeId = form.EmployeeId,
+                LeaveTypeId = form.LeaveTypeId,
+                StartDate = form.StartDate,
+                EndDate = form.EndDate,
+                Reason = form.Reason
+            }, ct);
+
+            if (updated is null)
+            {
+                return NotFound();
+            }
+
+            var warnings = await UploadAttachmentsAsync(form.Files, form.Note, id, userId.Value, ct);
+            return Ok(new SubmitLeaveRequestResult { LeaveRequest = updated, AttachmentWarnings = warnings });
         }
         catch (InvalidOperationException ex)
         {
@@ -149,5 +213,82 @@ public sealed class LeaveRequestsController(ILeaveService leaveService, IEmploye
 
         var rejected = await leaveService.RejectAsync(id, userId.Value, ct);
         return rejected ? NoContent() : NotFound();
+    }
+
+    private async Task<IActionResult?> ValidateAttachmentRequirementAsync(List<IFormFile>? files, CancellationToken ct)
+    {
+        var config = await documentService.GetConfigAsync(DocumentReferenceType, ct);
+        if (config is null)
+        {
+            return null;
+        }
+
+        var fileCount = files?.Count(f => f.Length > 0) ?? 0;
+
+        if (config.IsRequired && fileCount == 0)
+        {
+            return BadRequest(new { message = $"At least one attachment is required for {config.DisplayName}." });
+        }
+
+        if (fileCount > config.MaxFileCount)
+        {
+            return BadRequest(new { message = $"Maximum of {config.MaxFileCount} attachment(s) allowed." });
+        }
+
+        return null;
+    }
+
+    private async Task<List<string>> UploadAttachmentsAsync(List<IFormFile>? files, string? note, int leaveRequestId, int currentUserId, CancellationToken ct)
+    {
+        var warnings = new List<string>();
+        if (files is null || files.Count == 0)
+        {
+            return warnings;
+        }
+
+        foreach (var file in files.Where(f => f.Length > 0))
+        {
+            try
+            {
+                await using var stream = file.OpenReadStream();
+                await documentService.UploadAsync(new UploadDocumentRequest
+                {
+                    Content = stream,
+                    OriginalFileName = file.FileName,
+                    ContentType = file.ContentType,
+                    FileSizeBytes = file.Length,
+                    ReferenceType = DocumentReferenceType,
+                    ReferenceId = leaveRequestId,
+                    Description = note
+                }, currentUserId, ct);
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException)
+            {
+                warnings.Add($"{file.FileName}: {ex.Message}");
+            }
+        }
+
+        return warnings;
+    }
+
+    public sealed class SubmitLeaveRequestForm
+    {
+        public int EmployeeId { get; set; }
+        public int LeaveTypeId { get; set; }
+        public DateOnly StartDate { get; set; }
+        public DateOnly EndDate { get; set; }
+        public string? Reason { get; set; }
+        public string? Note { get; set; }
+        public List<IFormFile>? Files { get; set; }
+    }
+
+    public sealed class SubmitSelfLeaveRequestForm
+    {
+        public int LeaveTypeId { get; set; }
+        public DateOnly StartDate { get; set; }
+        public DateOnly EndDate { get; set; }
+        public string? Reason { get; set; }
+        public string? Note { get; set; }
+        public List<IFormFile>? Files { get; set; }
     }
 }

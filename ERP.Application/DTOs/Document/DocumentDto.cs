@@ -5,8 +5,6 @@ public sealed class DocumentDto
     public int Id { get; set; }
     public string ReferenceType { get; set; } = string.Empty;
     public int ReferenceId { get; set; }
-    public int? CategoryId { get; set; }
-    public string? CategoryName { get; set; }
     public string OriginalFileName { get; set; } = string.Empty;
     public string FileExtension { get; set; } = string.Empty;
     public string ContentType { get; set; } = string.Empty;
@@ -25,7 +23,6 @@ public sealed class UploadDocumentRequest
     public long FileSizeBytes { get; set; }
     public string ReferenceType { get; set; } = string.Empty;
     public int ReferenceId { get; set; }
-    public int? CategoryId { get; set; }
     public string? Description { get; set; }
 }
 

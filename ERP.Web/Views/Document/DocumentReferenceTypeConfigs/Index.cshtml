@@ -1,0 +1,72 @@
+@model ERP.Web.ViewModels.Document.DocumentReferenceTypeConfigsIndexViewModel
+@using ERP.Web.ViewModels.Shared
+@using Microsoft.AspNetCore.Html
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">@T["Document Settings"]</h1>
+        <p class="text-muted small">@T["Controls which modules can accept attachments through General Document, and the rules for each: required or not, max file size, and how many files are allowed."]</p>
+
+        @{
+            var gridModel = new PagedGridViewModel
+            {
+                Columns =
+                [
+                    new PagedGridColumnViewModel { Key = "referenceType", Title = T["Reference Type"] },
+                    new PagedGridColumnViewModel { Key = "displayName", Title = T["Display Name"] },
+                    new PagedGridColumnViewModel { Key = "isRequired", Title = T["Required"] },
+                    new PagedGridColumnViewModel { Key = "maxFileSize", Title = T["Max Size"] },
+                    new PagedGridColumnViewModel { Key = "maxFileCount", Title = T["Max Files"], CellClass = "text-end" },
+                    new PagedGridColumnViewModel { Key = "isActive", Title = T["Status"] }
+                ],
+                Rows = Model.Configs.Items.Select(item => new PagedGridRowViewModel
+                {
+                    Cells =
+                    [
+                        new PagedGridCellViewModel { Text = item.ReferenceType },
+                        new PagedGridCellViewModel { Text = item.DisplayName },
+                        new PagedGridCellViewModel
+                        {
+                            Html = new HtmlString(item.IsRequired
+                                ? "<span class=\"badge text-bg-warning\">Required</span>"
+                                : "<span class=\"badge text-bg-secondary\">Optional</span>")
+                        },
+                        new PagedGridCellViewModel { Text = item.MaxFileSizeBytes.HasValue ? $"{item.MaxFileSizeBytes.Value / (1024 * 1024)} MB" : "-" },
+                        new PagedGridCellViewModel { Text = item.MaxFileCount.ToString(), CellClass = "text-end" },
+                        new PagedGridCellViewModel
+                        {
+                            Html = new HtmlString(item.IsActive
+                                ? "<span class=\"badge text-bg-success\">Active</span>"
+                                : "<span class=\"badge text-bg-secondary\">Inactive</span>")
+                        }
+                    ],
+                    Actions = new PagedGridRowActionViewModel
+                    {
+                        EditUrl = Url.Action("Edit", "DocumentReferenceTypeConfigs", new { id = item.Id }),
+                        DeleteUrl = Url.Action("Delete", "DocumentReferenceTypeConfigs", new { id = item.Id }),
+                        DeleteConfirmMessage = T["Delete this document setting?"]
+                    }
+                }).ToList(),
+                EmptyMessage = T["msg.no_data"],
+                Page = Model.Configs.Page,
+                TotalPages = Model.Configs.TotalPages,
+                PageSize = Model.PageSize,
+                EnableSearch = true,
+                SearchValue = Model.Search,
+                SearchPlaceholder = T["Search document settings"],
+                SearchButtonText = T["common.search"],
+                Actions = new PagedGridActionConfigViewModel
+                {
+                    ActionColumnTitle = T["Action"],
+                    AddUrl = Url.Action("Create", "DocumentReferenceTypeConfigs"),
+                    AddButtonText = T["common.add_new"],
+                    EditButtonText = T["common.edit"],
+                    DeleteButtonText = T["common.delete"],
+                    DeleteConfirmMessage = T["Delete this document setting?"]
+                }
+            };
+        }
+
+        @await Component.InvokeAsync("PagedGrid", gridModel)
+    </div>
+</div>

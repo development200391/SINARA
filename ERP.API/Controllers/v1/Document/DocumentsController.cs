@@ -31,11 +31,11 @@ public sealed class DocumentsController(IDocumentService documentService) : Docu
         }
     }
 
-    [HttpGet("categories")]
-    public async Task<IActionResult> GetCategories(CancellationToken ct)
+    [HttpGet("config")]
+    public async Task<IActionResult> GetConfig([FromQuery] string referenceType, CancellationToken ct)
     {
-        var categories = await documentService.GetCategoryOptionsAsync(ct);
-        return Ok(categories);
+        var config = await documentService.GetConfigAsync(referenceType, ct);
+        return config is null ? NotFound() : Ok(config);
     }
 
     [HttpPost]
@@ -45,7 +45,6 @@ public sealed class DocumentsController(IDocumentService documentService) : Docu
         [FromForm] IFormFile file,
         [FromForm] string referenceType,
         [FromForm] int referenceId,
-        [FromForm] int? categoryId,
         [FromForm] string? description,
         CancellationToken ct)
     {
@@ -66,7 +65,6 @@ public sealed class DocumentsController(IDocumentService documentService) : Docu
                 FileSizeBytes = file.Length,
                 ReferenceType = referenceType,
                 ReferenceId = referenceId,
-                CategoryId = categoryId,
                 Description = description
             }, userId.Value, ct);
 

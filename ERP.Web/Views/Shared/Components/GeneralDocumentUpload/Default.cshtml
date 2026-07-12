@@ -1,0 +1,41 @@
+@model ERP.Web.ViewModels.Document.GeneralDocumentUploadViewModel
+
+@{
+    var accept = string.Join(",", Model.AllowedExtensions);
+    var maxSizeMb = Model.MaxFileSizeBytes / (1024 * 1024);
+    var isFieldRequired = Model.IsRequired && !Model.HasExistingDocuments;
+}
+
+<div class="col-12">
+    <hr />
+    <h2 class="h6">@T["Attachment"]</h2>
+</div>
+
+<div class="col-md-7">
+    <label class="form-label">
+        @(Model.AllowMultiple ? T["Files"] : T["File"])
+        @if (isFieldRequired)
+        {
+            <span class="text-danger">*</span>
+        }
+    </label>
+    <input type="file"
+           name="@Model.FileFieldName"
+           class="form-control"
+           multiple="@(Model.AllowMultiple ? "multiple" : null)"
+           accept="@accept"
+           required="@(isFieldRequired ? "required" : null)" />
+    <div class="form-text">
+        @T["Max"] @maxSizeMb MB
+        @if (Model.AllowMultiple)
+        {
+            <text>&middot; @T["up to"] @Model.MaxFileCount @T["file(s)"]</text>
+        }
+        &middot; @accept
+    </div>
+</div>
+
+<div class="col-md-5">
+    <label class="form-label">@T["Note"]</label>
+    <input type="text" name="@Model.NoteFieldName" class="form-control" value="@Model.NoteValue" maxlength="500" />
+</div>
