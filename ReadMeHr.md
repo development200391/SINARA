@@ -79,6 +79,14 @@ Kegunaan Tiap Menu
 - Rekam absensi harian per karyawan per tanggal: check-in, check-out, status
   (Present/Late/Absent/HalfDay, dll), catatan.
 - CRUD lengkap dengan filter karyawan, departemen, rentang tanggal, status.
+- Status **Sick** dan **Cuti** tidak lagi bisa dipilih manual dari form
+  Create/Edit di sini — dua status itu sekarang murni dikelola otomatis lewat
+  approval Leave Requests (poin 4). Kalau sebuah record hasil sync leave
+  dibuka untuk diedit, field Status ditampilkan read-only dengan keterangan
+  bahwa statusnya dikelola lewat leave request; field lain (mis. Notes) tetap
+  bisa diedit seperti biasa. Percobaan set Status ke Sick/Cuti lewat API
+  (Create atau ganti ke status baru saat Update) ditolak dengan error
+  "Sick and Cuti status can only be set through an approved leave request."
 
 2.1 Holiday Master (/hr/attendance/holiday)
 - Master hari libur: nama, tanggal, tipe libur (contoh: National), deskripsi,
@@ -142,6 +150,28 @@ Kegunaan Tiap Menu
 - Pengajuan cuti karyawan: karyawan, jenis cuti, tanggal mulai/selesai, alasan.
 - Hanya request berstatus Pending yang bisa diedit.
 - Ada aksi Approve dan Reject yang mengubah status cuti dan mencatat approver.
+- Submit (baik dari web maupun self-service) sekarang **menolak** kalau total hari
+  (Approved + Pending yang sudah ada + hari yang baru diajukan) melebihi
+  MaxDaysPerYear jenis cuti tersebut, untuk employee/leaveType/tahun yang sama.
+- Saat di-**Approve**, sistem otomatis membuat/mengupdate HrAttendanceRecord
+  untuk setiap tanggal dalam rentang StartDate..EndDate dengan Status = Cuti,
+  kecuali kalau tanggal itu sudah punya CheckIn/CheckOut (data absensi asli
+  tidak akan ditimpa). Ini membuat Attendance Report & Payroll otomatis
+  konsisten dengan cuti yang sudah disetujui, tanpa langkah manual tambahan.
+- Reject/Delete hanya bisa dilakukan selama status masih Pending — begitu
+  Approved, tidak ada jalur di API untuk membatalkannya (kalau perlu revisi,
+  request baru yang perlu diajukan).
+- **Self-service (mobile)**: ada endpoint terpisah khusus dipakai app AbsenKu
+  (karyawan mengajukan & melihat cuti sendiri), employeeId di-resolve dari
+  token login, tidak dipercaya dari body request:
+  * `GET /api/v1/hr/leave-requests/self` — riwayat pengajuan milik sendiri.
+  * `POST /api/v1/hr/leave-requests/self` — submit pengajuan baru
+    (leaveTypeId, startDate, endDate, reason).
+  * `GET /api/v1/hr/leave-requests/self/leave-types` — daftar jenis cuti aktif
+    saja (tanpa daftar karyawan, beda dari endpoint /options yang dipakai
+    admin web, supaya mobile app tidak perlu akses direktori staff).
+- Acuan: ERP.API/Controllers/v1/HR/LeaveRequestsController.cs,
+  ERP.Application/Services/HR/LeaveService.cs.
 
 4.1 Leave Balance (/hr/leave/balance)
 - Laporan saldo cuti per karyawan per jenis cuti per tahun.
@@ -175,11 +205,14 @@ Kegunaan Tiap Menu
   terbaru (perubahan dari sebelumnya yang menolak dengan pesan "You have
   already checked out today."). Ini disengaja supaya karyawan yang salah
   check-out kecepetan bisa merevisi sendiri tanpa lewat admin.
-- Mark (self-report Sick/Cuti/Absent/HalfDay untuk satu tanggal, dengan
-  catatan opsional): langsung tersimpan ke HrAttendanceRecord **tanpa proses
-  approval, tanpa validasi kuota, dan hanya untuk 1 hari** — lihat Catatan
-  Gap Implementasi di bawah, karena ini benar-benar terpisah dari modul
-  Leave Requests (poin 4).
+- Mark (self-report untuk satu tanggal, dengan catatan opsional): langsung
+  tersimpan ke HrAttendanceRecord tanpa approval — **sekarang dibatasi hanya
+  untuk status Absent dan HalfDay** (dulu juga menerima Sick/Cuti, tapi itu
+  memungkinkan karyawan menandai "Cuti" tanpa approval/kuota sama sekali).
+  Sick dan Cuti sekarang wajib lewat alur Leave Requests self-service (poin 4
+  di atas: `POST /api/v1/hr/leave-requests/self`), yang mendukung rentang
+  tanggal, approval, dan validasi kuota. Percobaan Mark dengan Status
+  Sick/Cuti ditolak dengan error "Status is not self-reportable."
 - Endpoint tambahan `GET /api/v1/diagnostics/server-time` (di
   DiagnosticsController, bukan khusus HR) dipakai mobile app untuk
   menampilkan jam berjalan yang tersinkron ke waktu server.
@@ -198,17 +231,21 @@ Catatan Gap Implementasi (untuk backlog)
 - Salary Setup, Payslips (sebagai halaman list terpisah), Headcount Report,
   dan Turnover Report sudah terdaftar di seed menu database tapi belum
   memiliki controller/view, sehingga akan error/404 jika diklik dari sidebar.
-- Self-Attendance "Mark" (poin 6, self-report Sick/Cuti/Absent/HalfDay dari
-  mobile) sepenuhnya terpisah dari modul Leave Requests (poin 4): tidak ada
-  approval, tidak mengurangi Leave Balance/kuota, dan hanya mendukung 1 hari
-  per submit (Leave Requests mendukung rentang tanggal StartDate/EndDate).
-  Karyawan bisa menandai "Cuti" lewat mobile tanpa itu tercatat/mengurangi
-  kuota cuti resmi sama sekali. Perlu diputuskan: apakah Mark untuk
-  Sick/Cuti sebaiknya diarahkan ke alur Leave Requests (approval + kuota),
-  atau tetap dibiarkan sebagai jalan pintas sederhana khusus laporan
-  1-hari (Absent/HalfDay saja).
 - Tidak ada dukungan lampiran (mis. surat dokter untuk Sakit) di manapun —
-  baik di Self-Attendance Mark maupun di Leave Requests.
+  baik di self-service Leave Requests maupun di form Leave Requests web.
+
+Riwayat Perbaikan: Integrasi Self-Attendance Mark & Leave Requests
+- Sampai dengan awal Juli 2026, Self-Attendance "Mark" (poin 6) dan Leave
+  Requests (poin 4) berjalan sepenuhnya terpisah: karyawan bisa menandai
+  "Cuti"/"Sakit" lewat mobile tanpa approval maupun potong kuota resmi sama
+  sekali, dan form admin Create/Edit Attendance juga bisa set Status
+  Sick/Cuti manual lewat pintu yang sama tanpa lewat Leave Requests.
+- Sudah diperbaiki: Mark sekarang hanya menerima Absent/HalfDay, form admin
+  Attendance juga tidak bisa set Sick/Cuti manual, kuota MaxDaysPerYear
+  divalidasi saat submit Leave Request, dan approval Leave Request otomatis
+  sync ke HrAttendanceRecord (lihat detail masing-masing di poin 2, 4, dan 6
+  di atas). Mobile app (AbsenKu) sudah disesuaikan juga — lihat
+  D:\Flutter\AbsenKu\README.md.
 
 Acuan Implementasi
 - Web controller HR:
