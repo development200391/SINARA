@@ -32,7 +32,7 @@ else
                 {
                     <form action="@Model.DeleteUrl(doc.Id)" method="post" class="d-inline">
                         @Html.AntiForgeryToken()
-                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('@Model.DeleteConfirmMessage')">
+                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('@T[Model.DeleteConfirmMessage]')">
                             <i class="bi bi-trash" aria-hidden="true"></i>
                         </button>
                     </form>

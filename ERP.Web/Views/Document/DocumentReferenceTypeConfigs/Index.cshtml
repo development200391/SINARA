@@ -28,16 +28,16 @@
                         new PagedGridCellViewModel
                         {
                             Html = new HtmlString(item.IsRequired
-                                ? "<span class=\"badge text-bg-warning\">Required</span>"
-                                : "<span class=\"badge text-bg-secondary\">Optional</span>")
+                                ? $"<span class=\"badge text-bg-warning\">{T["Required"]}</span>"
+                                : $"<span class=\"badge text-bg-secondary\">{T["Optional"]}</span>")
                         },
                         new PagedGridCellViewModel { Text = item.MaxFileSizeBytes.HasValue ? $"{item.MaxFileSizeBytes.Value / (1024 * 1024)} MB" : "-" },
                         new PagedGridCellViewModel { Text = item.MaxFileCount.ToString(), CellClass = "text-end" },
                         new PagedGridCellViewModel
                         {
                             Html = new HtmlString(item.IsActive
-                                ? "<span class=\"badge text-bg-success\">Active</span>"
-                                : "<span class=\"badge text-bg-secondary\">Inactive</span>")
+                                ? $"<span class=\"badge text-bg-success\">{T["Active"]}</span>"
+                                : $"<span class=\"badge text-bg-secondary\">{T["Inactive"]}</span>")
                         }
                     ],
                     Actions = new PagedGridRowActionViewModel

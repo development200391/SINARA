@@ -48,8 +48,8 @@
 
 <div class="sinara-form-field @(hasError ? "error" : "")">
     <div class="form-check form-switch">
-        <input type="hidden" name="@Model.Name" value="false" />
         @Html.Raw(inputHtml)
+        <input type="hidden" name="@Model.Name" value="false" />
         @if (!string.IsNullOrWhiteSpace(Model.Label))
         {
             <label for="@inputId" class="form-check-label">
