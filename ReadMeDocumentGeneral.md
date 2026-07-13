@@ -267,36 +267,40 @@ Integrasi Web (ERP.Web)
   DocumentService.UploadAsync/ValidateFileAsync supaya slot-aware
   sungguhan.
 
-Integrasi Mobile (AbsenKu, Flutter) — BELUM di-rework ke master-detail
-Bagian ini masih mendeskripsikan integrasi versi LAMA (flat, sebelum
-doc_reference_type_configs dipecah jadi master+detail). Mobile masih jalan
-karena DocumentReferenceTypeConfigDto tetap expose IsRequired/
-MaxFileSizeBytes/MaxFileCount/AllowedExtensions secara flat (proxy dari baris
-detail pertama, lihat "Kompatibilitas mundur" di atas), tapi belum
-menampilkan slot-slot terpisah seperti Web. Rework mobile jadi langkah
-selanjutnya setelah Web selesai diverifikasi.
+Integrasi Mobile (AbsenKu, Flutter)
+Sudah di-rework ke master-detail, menyusul Web (arsitekturnya sengaja
+disamakan sedapat mungkin, meski Flutter tidak punya Delete/existing-file
+karena layar ini CREATE-only — tidak ada alur edit leave request di mobile).
+- `DocumentReferenceTypeConfig` (leave_models.dart) sekarang punya field
+  `details` (`List<DocumentReferenceTypeConfigDetail>`, cuma yang
+  `isActive`), bukan IsRequired/MaxFileSizeBytes/AllowedExtensions flat lagi
+  — persis mengikuti struktur doc_reference_type_config_details di server.
 - Form "Ajukan Cuti / Sakit" (leave_request_screen.dart) mengambil config
-  validasi reference_type hr_leave_requests dari server saat layar dibuka
-  (getAttachmentConfig), lalu render UI sesuai aturannya secara dinamis:
-  label "wajib"/"opsional", multi-file picker kalau MaxFileCount > 1 (dengan
-  slot "+ Add File" sampai batas tercapai), validasi ukuran/ekstensi dari
-  config (fallback ke default kalau config null/belum ada).
-- Submit pakai SATU request multipart (leave_repository.dart method submit())
-  berisi field leave request + note + daftar file sekaligus ke
-  POST /hr/leave-requests/self — sama persis dengan pola combined-submit di
-  atas, bukan dua langkah terpisah lagi.
+  saat layar dibuka (getAttachmentConfig), lalu render SATU baris per slot
+  detail — nama slot, tag "Wajib"/"Opsional", file picker single-file milik
+  slot itu sendiri, dan note TextField sendiri per slot (bukan satu note
+  gabungan lagi). Validasi "wajib" dicek per slot sebelum submit.
+- Submit pakai SATU request multipart (leave_repository.dart method
+  `submit()`) — parameter `slots` (satu entry per slot config, berisi
+  bytes/fileName/note) dikirim ke POST /hr/leave-requests/self. Sama seperti
+  Web: SETIAP slot WAJIB mengirim bagian `Files` (kosong kalau slot itu tidak
+  diisi user — `MultipartFile.fromBytes(const [])`) supaya urutan/posisi
+  entry `Files[i]` di server tidak bergeser buat slot-slot sesudahnya, dan
+  note dikirim terindeks (`Notes[0]`, `Notes[1]`, dst.) sejajar posisinya
+  dengan Files — lihat catatan alignment yang sama di "Integrasi Web".
 - Response submit (SubmitLeaveRequestResult) bisa membawa attachmentWarnings
   kalau ada file yang gagal diupload meski leave request-nya sendiri sukses
   tersimpan — ditampilkan lewat dialog peringatan sebelum layar ditutup,
   bukan disembunyikan.
-- Layar Riwayat Cuti punya ikon lampiran per pengajuan (bottom sheet,
-  lazy-loaded saat diklik, tampilkan nama file + ukuran) — tidak berubah dari
-  desain sebelumnya, cuma field categoryName yang sudah tidak ada lagi di
-  model LeaveDocument (karena kategori sudah dihapus).
+- Layar Riwayat Cuti (leave_history_screen.dart) tidak berubah — masih
+  menampilkan daftar dokumen flat per pengajuan (bottom sheet, lazy-loaded),
+  karena ini cuma VIEW dokumen yang sudah ada, tidak terpengaruh
+  restrukturisasi config.
 - Acuan: D:\Flutter\AbsenKu\lib\features\leave\ (models/leave_models.dart —
-  class LeaveDocument, SubmitLeaveRequestResult, DocumentReferenceTypeConfig;
-  data/leave_repository.dart — getAttachmentConfig & submit gabungan;
-  presentation/leave_request_screen.dart; presentation/leave_history_screen.dart).
+  class LeaveDocument, SubmitLeaveRequestResult,
+  DocumentReferenceTypeConfig(Detail); data/leave_repository.dart —
+  getAttachmentConfig & submit per-slot; presentation/leave_request_screen.dart
+  — _AttachmentSlot state per baris; presentation/leave_history_screen.dart).
 
 Catatan Permission
 - Semua controller Document memakai [Authorize] umum (belum granular per
