@@ -51,5 +51,8 @@ buat ReadMe[Modul].txt di D:\Projek\SINARA\SINARA berisi deskripsi setiap menu y
 
 
 Mau buat GeneralDocument
-yang nantinya di pasang di LeaveRequest, biar ada imputan dokument untuk evidence
-abis itu lanjut ke Approval
+Di web udh, tapi VIewComponetnya butuh perbaikan, belum sesuai
+Setelah itu ke Android
+
+Selesai ke dokument, lalu ke Approval
+untuk leave Request
