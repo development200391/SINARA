@@ -1,5 +1,6 @@
 using ERP.Application.Options;
 using ERP.Application.Services;
+using ERP.Application.Services.Approval;
 using ERP.Application.Services.Config;
 using ERP.Application.Services.Document;
 using ERP.Application.Services.HR;
@@ -38,6 +39,11 @@ public static class DependencyInjection
         services.AddScoped<IPayrollService, PayrollService>();
 
         services.AddScoped<IDocumentService, DocumentService>();
+
+        services.AddScoped<IApprovalTemplateService, ApprovalTemplateService>();
+        services.AddScoped<IApprovalDelegationService, ApprovalDelegationService>();
+        services.AddScoped<IApprovalRequestService, ApprovalRequestService>();
+        services.AddScoped<IApprovalReportService, ApprovalReportService>();
 
         return services;
     }

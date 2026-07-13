@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using ERP.Domain.Entities;
+using ERP.Domain.Entities.Approval;
 using ERP.Domain.Entities.Config;
 using ERP.Domain.Entities.Document;
 using ERP.Domain.Entities.HR;
@@ -12,6 +13,7 @@ using ERP.Domain.Entities.FixedAssets;
 using ERP.Domain.Entities.Manufacturing;
 using ERP.Domain.Interfaces;
 using ERP.Domain.Enums;
+using ERP.Domain.Enums.Approval;
 using ERP.Domain.Enums.Inventory;
 using ERP.Domain.Enums.Purchasing;
 using ERP.Domain.Enums.Sales;
@@ -49,6 +51,14 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<DocReferenceTypeConfig> DocReferenceTypeConfigs => Set<DocReferenceTypeConfig>();
     public DbSet<DocReferenceTypeConfigDetail> DocReferenceTypeConfigDetails => Set<DocReferenceTypeConfigDetail>();
     public DbSet<DocDocument> DocDocuments => Set<DocDocument>();
+
+    public DbSet<ApprovalTemplate> ApprovalTemplates => Set<ApprovalTemplate>();
+    public DbSet<ApprovalLevel> ApprovalLevels => Set<ApprovalLevel>();
+    public DbSet<ApprovalDelegation> ApprovalDelegations => Set<ApprovalDelegation>();
+    public DbSet<ApprovalRequest> ApprovalRequests => Set<ApprovalRequest>();
+    public DbSet<ApprovalStep> ApprovalSteps => Set<ApprovalStep>();
+    public DbSet<ApprovalNotification> ApprovalNotifications => Set<ApprovalNotification>();
+    public DbSet<ApprovalAuditLog> ApprovalAuditLogs => Set<ApprovalAuditLog>();
 
     public DbSet<FinAccountGroup> FinAccountGroups => Set<FinAccountGroup>();
     public DbSet<FinAccount> FinAccounts => Set<FinAccount>();
@@ -166,6 +176,14 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         ConfigureDocReferenceTypeConfig(modelBuilder.Entity<DocReferenceTypeConfig>());
         ConfigureDocReferenceTypeConfigDetail(modelBuilder.Entity<DocReferenceTypeConfigDetail>());
         ConfigureDocDocument(modelBuilder.Entity<DocDocument>());
+
+        ConfigureApprovalTemplate(modelBuilder.Entity<ApprovalTemplate>());
+        ConfigureApprovalLevel(modelBuilder.Entity<ApprovalLevel>());
+        ConfigureApprovalDelegation(modelBuilder.Entity<ApprovalDelegation>());
+        ConfigureApprovalRequest(modelBuilder.Entity<ApprovalRequest>());
+        ConfigureApprovalStep(modelBuilder.Entity<ApprovalStep>());
+        ConfigureApprovalNotification(modelBuilder.Entity<ApprovalNotification>());
+        ConfigureApprovalAuditLog(modelBuilder.Entity<ApprovalAuditLog>());
 
         ConfigureFinAccountGroup(modelBuilder.Entity<FinAccountGroup>());
         ConfigureFinAccount(modelBuilder.Entity<FinAccount>());
@@ -781,6 +799,237 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
 
         builder.HasIndex(x => new { x.ReferenceType, x.ReferenceId });
         builder.HasIndex(x => x.UploadedBy);
+    }
+
+    private static void ConfigureApprovalTemplate(EntityTypeBuilder<ApprovalTemplate> builder)
+    {
+        builder.ToTable("apv_approval_templates");
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.Code).HasMaxLength(50).IsRequired();
+        builder.Property(x => x.Name).HasMaxLength(150).IsRequired();
+        builder.Property(x => x.Module).HasMaxLength(50).IsRequired();
+        builder.Property(x => x.ReferenceType).HasMaxLength(100).IsRequired();
+        builder.Property(x => x.ApprovalType).HasConversion<int>().HasDefaultValue(ApprovalType.Sequential).IsRequired();
+        builder.Property(x => x.MinAmount).HasColumnType("numeric(18,4)");
+        builder.Property(x => x.MaxAmount).HasColumnType("numeric(18,4)");
+        builder.Property(x => x.AutoApproveBelow).HasColumnType("numeric(18,4)");
+        builder.Property(x => x.SlaHours).HasDefaultValue(24).IsRequired();
+        builder.Property(x => x.AllowDelegation).HasDefaultValue(true).IsRequired();
+        builder.Property(x => x.RequireCommentOnReject).HasDefaultValue(true).IsRequired();
+        builder.Property(x => x.IsActive).HasDefaultValue(true).IsRequired();
+
+        builder.HasIndex(x => x.Code).IsUnique();
+        builder.HasIndex(x => x.ReferenceType);
+    }
+
+    private static void ConfigureApprovalLevel(EntityTypeBuilder<ApprovalLevel> builder)
+    {
+        builder.ToTable("apv_approval_levels");
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.LevelOrder).IsRequired();
+        builder.Property(x => x.LevelName).HasMaxLength(150).IsRequired();
+        builder.Property(x => x.ApproverType).HasConversion<int>().HasDefaultValue(ApprovalApproverType.Role).IsRequired();
+        builder.Property(x => x.MinApproversRequired).HasDefaultValue(1).IsRequired();
+        builder.Property(x => x.IsActive).HasDefaultValue(true).IsRequired();
+
+        builder.HasOne(x => x.Template)
+            .WithMany(x => x.Levels)
+            .HasForeignKey(x => x.TemplateId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(x => x.ApproverRole)
+            .WithMany()
+            .HasForeignKey(x => x.ApproverRoleId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.ApproverPosition)
+            .WithMany()
+            .HasForeignKey(x => x.ApproverPositionId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.ApproverUser)
+            .WithMany()
+            .HasForeignKey(x => x.ApproverUserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.EscalateToLevel)
+            .WithMany()
+            .HasForeignKey(x => x.EscalateToLevelId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(x => new { x.TemplateId, x.LevelOrder }).IsUnique();
+    }
+
+    private static void ConfigureApprovalDelegation(EntityTypeBuilder<ApprovalDelegation> builder)
+    {
+        builder.ToTable("apv_delegations");
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.StartDate).IsRequired();
+        builder.Property(x => x.EndDate).IsRequired();
+        builder.Property(x => x.Reason).HasMaxLength(500);
+        builder.Property(x => x.IsActive).HasDefaultValue(true).IsRequired();
+
+        builder.HasOne(x => x.DelegatorUser)
+            .WithMany()
+            .HasForeignKey(x => x.DelegatorUserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.DelegateUser)
+            .WithMany()
+            .HasForeignKey(x => x.DelegateUserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.Template)
+            .WithMany(x => x.Delegations)
+            .HasForeignKey(x => x.TemplateId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasIndex(x => x.DelegatorUserId);
+        builder.HasIndex(x => x.DelegateUserId);
+        builder.HasIndex(x => new { x.StartDate, x.EndDate });
+    }
+
+    private static void ConfigureApprovalRequest(EntityTypeBuilder<ApprovalRequest> builder)
+    {
+        builder.ToTable("apv_approval_requests");
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.RequestNo).HasMaxLength(30).IsRequired();
+        builder.Property(x => x.Module).HasMaxLength(50).IsRequired();
+        builder.Property(x => x.ReferenceType).HasMaxLength(100).IsRequired();
+        builder.Property(x => x.ReferenceId).IsRequired();
+        builder.Property(x => x.Subject).HasMaxLength(255).IsRequired();
+        builder.Property(x => x.Amount).HasColumnType("numeric(18,4)");
+        builder.Property(x => x.RequestedAt).HasColumnType("timestamptz").IsRequired();
+        builder.Property(x => x.DueAt).HasColumnType("timestamptz");
+        builder.Property(x => x.Status).HasConversion<int>().HasDefaultValue(ApprovalRequestStatus.Pending).IsRequired();
+        builder.Property(x => x.FinalActionAt).HasColumnType("timestamptz");
+        builder.Property(x => x.Notes).HasMaxLength(1000);
+
+        builder.HasOne(x => x.Template)
+            .WithMany(x => x.Requests)
+            .HasForeignKey(x => x.TemplateId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.CurrentLevel)
+            .WithMany()
+            .HasForeignKey(x => x.CurrentLevelId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.RequestedByUser)
+            .WithMany()
+            .HasForeignKey(x => x.RequestedBy)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.FinalActionByUser)
+            .WithMany()
+            .HasForeignKey(x => x.FinalActionBy)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(x => x.RequestNo).IsUnique();
+        builder.HasIndex(x => new { x.ReferenceType, x.ReferenceId });
+        builder.HasIndex(x => x.RequestedBy);
+        builder.HasIndex(x => x.Status);
+        builder.HasIndex(x => x.DueAt);
+    }
+
+    private static void ConfigureApprovalStep(EntityTypeBuilder<ApprovalStep> builder)
+    {
+        builder.ToTable("apv_approval_steps");
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.LevelOrder).IsRequired();
+        builder.Property(x => x.IsDelegated).HasDefaultValue(false).IsRequired();
+        builder.Property(x => x.Action).HasConversion<int?>();
+        builder.Property(x => x.ActionAt).HasColumnType("timestamptz");
+        builder.Property(x => x.Comment).HasMaxLength(1000);
+        builder.Property(x => x.DueAt).HasColumnType("timestamptz").IsRequired();
+        builder.Property(x => x.NotifiedAt).HasColumnType("timestamptz");
+        builder.Property(x => x.ReminderCount).HasDefaultValue(0).IsRequired();
+        builder.Property(x => x.IsActive).HasDefaultValue(true).IsRequired();
+
+        builder.HasOne(x => x.Request)
+            .WithMany(x => x.Steps)
+            .HasForeignKey(x => x.RequestId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(x => x.Level)
+            .WithMany()
+            .HasForeignKey(x => x.LevelId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.ApproverUser)
+            .WithMany()
+            .HasForeignKey(x => x.ApproverUserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.DelegatedFromUser)
+            .WithMany()
+            .HasForeignKey(x => x.DelegatedFromUserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(x => x.RequestId);
+        builder.HasIndex(x => x.ApproverUserId);
+        builder.HasIndex(x => x.IsActive);
+        builder.HasIndex(x => x.DueAt);
+    }
+
+    private static void ConfigureApprovalNotification(EntityTypeBuilder<ApprovalNotification> builder)
+    {
+        builder.ToTable("apv_notifications");
+        ConfigureAuditEntity(builder);
+
+        builder.Property(x => x.NotificationType).HasConversion<int>().HasDefaultValue(ApprovalNotificationType.NewRequest).IsRequired();
+        builder.Property(x => x.Channel).HasConversion<int>().HasDefaultValue(ApprovalNotificationChannel.InApp).IsRequired();
+        builder.Property(x => x.Subject).HasMaxLength(255).IsRequired();
+        builder.Property(x => x.Body).HasColumnType("text").IsRequired();
+        builder.Property(x => x.IsRead).HasDefaultValue(false).IsRequired();
+        builder.Property(x => x.ReadAt).HasColumnType("timestamptz");
+        builder.Property(x => x.SentAt).HasColumnType("timestamptz");
+        builder.Property(x => x.FailedAt).HasColumnType("timestamptz");
+        builder.Property(x => x.RetryCount).HasDefaultValue(0).IsRequired();
+
+        builder.HasOne(x => x.Request)
+            .WithMany(x => x.Notifications)
+            .HasForeignKey(x => x.RequestId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(x => x.Step)
+            .WithMany()
+            .HasForeignKey(x => x.StepId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(x => x.RecipientUser)
+            .WithMany()
+            .HasForeignKey(x => x.RecipientUserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(x => x.RecipientUserId);
+        builder.HasIndex(x => x.IsRead);
+    }
+
+    private static void ConfigureApprovalAuditLog(EntityTypeBuilder<ApprovalAuditLog> builder)
+    {
+        builder.ToTable("apv_approval_audit_logs");
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.Id).UseIdentityAlwaysColumn();
+        builder.Property(x => x.RequestId).IsRequired();
+        builder.Property(x => x.ActorUserId).IsRequired();
+        builder.Property(x => x.Action).HasMaxLength(50).IsRequired();
+        builder.Property(x => x.Module).HasMaxLength(50).IsRequired();
+        builder.Property(x => x.OldStatus).HasConversion<int?>();
+        builder.Property(x => x.NewStatus).HasConversion<int?>();
+        builder.Property(x => x.IpAddress).HasMaxLength(64);
+        builder.Property(x => x.UserAgent).HasMaxLength(500);
+        builder.Property(x => x.Comment).HasMaxLength(1000);
+        builder.Property(x => x.CreatedAt).HasColumnType("timestamptz").IsRequired();
+
+        builder.HasIndex(x => x.RequestId);
+        builder.HasIndex(x => x.ActorUserId);
+        builder.HasIndex(x => x.CreatedAt);
     }
 
     private static void ConfigureFinAccountGroup(EntityTypeBuilder<FinAccountGroup> builder)

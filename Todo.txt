@@ -50,9 +50,6 @@ buat ReadMe[Modul].txt di D:\Projek\SINARA\SINARA berisi deskripsi setiap menu y
 
 
 
-Mau buat GeneralDocument
-Di web udh, tapi VIewComponetnya butuh perbaikan, belum sesuai
-Setelah itu ke Android
-
-Selesai ke dokument, lalu ke Approval
-untuk leave Request
+Approval
+di leave Request ada approval, tapi dia belum terkoneksi sama general approval
+kita harus buat ini

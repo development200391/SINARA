@@ -1,4 +1,5 @@
 using ERP.Application.Services;
+using ERP.Domain.Entities.Approval;
 using ERP.Domain.Entities.Config;
 using ERP.Domain.Entities.Document;
 using ERP.Domain.Entities.HR;
@@ -10,6 +11,7 @@ using ERP.Domain.Entities.System;
 using ERP.Domain.Entities.Sales;
 using ERP.Domain.Entities.Manufacturing;
 using ERP.Domain.Enums;
+using ERP.Domain.Enums.Approval;
 using ERP.Domain.Enums.Sales;
 using ERP.Domain.Enums.Inventory;
 using ERP.Domain.Enums.Purchasing;
@@ -38,6 +40,7 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         await SeedManufacturingMasterDataAsync(now, ct);
         await SeedPurchasingMasterDataAsync(now, ct);
         await SeedFixedAssetsMasterDataAsync(now, ct);
+        await SeedApprovalTemplatesAsync(now, ct);
         await SeedAdminUserAsync(now, ct);
         await SeedMenusAsync(now, ct);
         await SeedSuperAdminPermissionsAsync(ct);
@@ -3258,6 +3261,120 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
 
         await dbContext.SaveChangesAsync(ct);
     }
+
+    private async Task SeedApprovalTemplatesAsync(DateTimeOffset now, CancellationToken ct)
+    {
+        var roleIds = await dbContext.CfgRoles
+            .IgnoreQueryFilters()
+            .Where(x => x.Name == "HR Manager" || x.Name == "Finance Staff" || x.Name == "Inventory Manager")
+            .ToDictionaryAsync(x => x.Name, x => x.Id, ct);
+
+        if (!roleIds.TryGetValue("HR Manager", out var hrManagerRoleId) ||
+            !roleIds.TryGetValue("Finance Staff", out var financeStaffRoleId) ||
+            !roleIds.TryGetValue("Inventory Manager", out var inventoryManagerRoleId))
+        {
+            return;
+        }
+
+        var faTransfer = await EnsureApprovalTemplateAsync("FA_TRANSFER", "Fixed Asset Transfer Approval", "Fixed Assets", "fa_asset_transfers",
+            ApprovalType.Sequential, null, null, null, 24, now, ct);
+        await EnsureApprovalLevelAsync(faTransfer.Id, 1, "Department Approval", ApprovalApproverType.DirectSuperior, null, 1, now, ct);
+        await EnsureApprovalLevelAsync(faTransfer.Id, 2, "Finance Approval", ApprovalApproverType.Role, financeStaffRoleId, 1, now, ct);
+
+        var faDisposal = await EnsureApprovalTemplateAsync("FA_DISPOSAL", "Fixed Asset Disposal Approval", "Fixed Assets", "fa_disposals",
+            ApprovalType.Sequential, null, null, null, 48, now, ct);
+        await EnsureApprovalLevelAsync(faDisposal.Id, 1, "Department Approval", ApprovalApproverType.DirectSuperior, null, 1, now, ct);
+        await EnsureApprovalLevelAsync(faDisposal.Id, 2, "Finance Approval", ApprovalApproverType.Role, financeStaffRoleId, 1, now, ct);
+
+        var faMaintenance = await EnsureApprovalTemplateAsync("FA_MAINTENANCE", "Fixed Asset Maintenance Approval", "Fixed Assets", "fa_maintenance_orders",
+            ApprovalType.AnyOne, null, null, 1_000_000m, 24, now, ct);
+        await EnsureApprovalLevelAsync(faMaintenance.Id, 1, "Maintenance Approval", ApprovalApproverType.Role, inventoryManagerRoleId, 1, now, ct);
+
+        var payroll = await EnsureApprovalTemplateAsync("PRL_PAYROLL", "Payroll Run Approval", "Payroll", "hr_payroll_runs",
+            ApprovalType.Sequential, null, null, null, 24, now, ct);
+        await EnsureApprovalLevelAsync(payroll.Id, 1, "HR Approval", ApprovalApproverType.Role, hrManagerRoleId, 1, now, ct);
+        await EnsureApprovalLevelAsync(payroll.Id, 2, "Finance Approval", ApprovalApproverType.Role, financeStaffRoleId, 1, now, ct);
+
+        // Purchasing has no purchase order entity yet (see ReadMeGeneralApproval.md); the template is
+        // seeded ahead of time so a future PO module only needs to call SubmitAsync, no APV config work.
+        // 5,000,000 is an assumed low/high split — the docx only specifies the auto-approve threshold.
+        var poLow = await EnsureApprovalTemplateAsync("PRC_PO_LOW", "Purchase Order Approval (Low Value)", "Purchasing", "pur_purchase_orders",
+            ApprovalType.AnyOne, null, 5_000_000m, 500_000m, 8, now, ct);
+        await EnsureApprovalLevelAsync(poLow.Id, 1, "Purchasing Approval", ApprovalApproverType.Role, financeStaffRoleId, 1, now, ct);
+
+        var poHigh = await EnsureApprovalTemplateAsync("PRC_PO_HIGH", "Purchase Order Approval (High Value)", "Purchasing", "pur_purchase_orders",
+            ApprovalType.Sequential, 5_000_000m, null, null, 24, now, ct);
+        await EnsureApprovalLevelAsync(poHigh.Id, 1, "Department Approval", ApprovalApproverType.DirectSuperior, null, 1, now, ct);
+        await EnsureApprovalLevelAsync(poHigh.Id, 2, "Finance Approval", ApprovalApproverType.Role, financeStaffRoleId, 1, now, ct);
+
+        var finJournal = await EnsureApprovalTemplateAsync("FIN_JOURNAL", "Journal Entry Approval", "Finance", "fin_journal_entries",
+            ApprovalType.Sequential, null, null, null, 24, now, ct);
+        await EnsureApprovalLevelAsync(finJournal.Id, 1, "Finance Approval", ApprovalApproverType.Role, financeStaffRoleId, 1, now, ct);
+    }
+
+    private async Task<ApprovalTemplate> EnsureApprovalTemplateAsync(
+        string code, string name, string module, string referenceType, ApprovalType approvalType,
+        decimal? minAmount, decimal? maxAmount, decimal? autoApproveBelow, int slaHours,
+        DateTimeOffset now, CancellationToken ct)
+    {
+        var existing = await dbContext.ApprovalTemplates.IgnoreQueryFilters().FirstOrDefaultAsync(x => x.Code == code, ct);
+        if (existing is not null)
+        {
+            return existing;
+        }
+
+        var template = new ApprovalTemplate
+        {
+            Code = code,
+            Name = name,
+            Module = module,
+            ReferenceType = referenceType,
+            ApprovalType = approvalType,
+            MinAmount = minAmount,
+            MaxAmount = maxAmount,
+            AutoApproveBelow = autoApproveBelow,
+            SlaHours = slaHours,
+            AllowDelegation = true,
+            RequireCommentOnReject = true,
+            IsActive = true,
+            CreatedBy = "system",
+            CreatedAt = now
+        };
+
+        dbContext.ApprovalTemplates.Add(template);
+        await dbContext.SaveChangesAsync(ct);
+
+        return template;
+    }
+
+    private async Task EnsureApprovalLevelAsync(
+        int templateId, int levelOrder, string levelName, ApprovalApproverType approverType,
+        int? approverRoleId, int minApproversRequired,
+        DateTimeOffset now, CancellationToken ct)
+    {
+        var exists = await dbContext.ApprovalLevels.IgnoreQueryFilters()
+            .AnyAsync(x => x.TemplateId == templateId && x.LevelOrder == levelOrder, ct);
+        if (exists)
+        {
+            return;
+        }
+
+        dbContext.ApprovalLevels.Add(new ApprovalLevel
+        {
+            TemplateId = templateId,
+            LevelOrder = levelOrder,
+            LevelName = levelName,
+            ApproverType = approverType,
+            ApproverRoleId = approverRoleId,
+            MinApproversRequired = minApproversRequired,
+            IsActive = true,
+            CreatedBy = "system",
+            CreatedAt = now
+        });
+
+        await dbContext.SaveChangesAsync(ct);
+    }
+
     private async Task SeedAdminUserAsync(DateTimeOffset now, CancellationToken ct)
     {
         var adminUser = await dbContext.SysUsers
