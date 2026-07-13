@@ -52,4 +52,4 @@ buat ReadMe[Modul].txt di D:\Projek\SINARA\SINARA berisi deskripsi setiap menu y
 
 Approval
 di leave Request ada approval, tapi dia belum terkoneksi sama general approval
-kita harus buat ini
+general apprval sudah di build, tapi belum di test karena token habis
