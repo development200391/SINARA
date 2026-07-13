@@ -423,19 +423,28 @@ public sealed class HrApiClient(HttpClient httpClient, ILogger<HrApiClient> logg
         return SendWithResultAsync<LeaveRequestOptionsDto>(HttpMethod.Get, "api/v1/hr/leave-requests/options", accessToken, null, ct).ToDataAsync();
     }
 
-    public async Task<ApiCallResult<SubmitLeaveRequestResult>> SubmitLeaveRequestAsync(string accessToken, SubmitLeaveRequest request, IReadOnlyList<IFormFile>? files, string? note, CancellationToken ct = default)
+    public async Task<ApiCallResult<SubmitLeaveRequestResult>> SubmitLeaveRequestAsync(string accessToken, SubmitLeaveRequest request, IReadOnlyList<IFormFile>? files, IReadOnlyList<string?>? notes, CancellationToken ct = default)
     {
-        using var content = BuildLeaveRequestForm(request, files, note);
+        using var content = BuildLeaveRequestForm(request, files, notes);
         return await SendMultipartAsync<SubmitLeaveRequestResult>(HttpMethod.Post, "api/v1/hr/leave-requests", accessToken, content, ct);
     }
 
-    public async Task<ApiCallResult<SubmitLeaveRequestResult>> UpdateLeaveRequestAsync(string accessToken, int id, SubmitLeaveRequest request, IReadOnlyList<IFormFile>? files, string? note, CancellationToken ct = default)
+    public async Task<ApiCallResult<SubmitLeaveRequestResult>> UpdateLeaveRequestAsync(string accessToken, int id, SubmitLeaveRequest request, IReadOnlyList<IFormFile>? files, IReadOnlyList<string?>? notes, CancellationToken ct = default)
     {
-        using var content = BuildLeaveRequestForm(request, files, note);
+        using var content = BuildLeaveRequestForm(request, files, notes);
         return await SendMultipartAsync<SubmitLeaveRequestResult>(HttpMethod.Put, $"api/v1/hr/leave-requests/{id}", accessToken, content, ct);
     }
 
-    private static MultipartFormDataContent BuildLeaveRequestForm(SubmitLeaveRequest request, IReadOnlyList<IFormFile>? files, string? note)
+    /// <summary>
+    /// Files and notes are positionally matched to attachment slots one-to-one
+    /// (slot i's file is Files[i], slot i's note is Notes[i]) all the way through
+    /// to the API, which needs that alignment to tell "no new file for this slot"
+    /// apart from "this slot has no attachment at all". So every slot's file part
+    /// is forwarded here even when empty (an unselected &lt;input type="file"&gt;
+    /// still posts an empty part from the browser) — do NOT filter empty files out
+    /// before this point, that would shift every note after it out of alignment.
+    /// </summary>
+    private static MultipartFormDataContent BuildLeaveRequestForm(SubmitLeaveRequest request, IReadOnlyList<IFormFile>? files, IReadOnlyList<string?>? notes)
     {
         var content = new MultipartFormDataContent
         {
@@ -450,19 +459,22 @@ public sealed class HrApiClient(HttpClient httpClient, ILogger<HrApiClient> logg
             content.Add(new StringContent(request.Reason), "Reason");
         }
 
-        if (!string.IsNullOrWhiteSpace(note))
-        {
-            content.Add(new StringContent(note), "Note");
-        }
-
         if (files is not null)
         {
-            foreach (var file in files.Where(f => f.Length > 0))
+            foreach (var file in files)
             {
                 var streamContent = new StreamContent(file.OpenReadStream());
                 streamContent.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse(
                     string.IsNullOrWhiteSpace(file.ContentType) ? "application/octet-stream" : file.ContentType);
                 content.Add(streamContent, "Files", file.FileName);
+            }
+        }
+
+        if (notes is not null)
+        {
+            for (var i = 0; i < notes.Count; i++)
+            {
+                content.Add(new StringContent(notes[i] ?? string.Empty), $"Notes[{i}]");
             }
         }
 

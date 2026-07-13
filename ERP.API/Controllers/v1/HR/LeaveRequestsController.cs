@@ -66,7 +66,7 @@ public sealed class LeaveRequestsController(ILeaveService leaveService, IEmploye
                 Reason = form.Reason
             }, ct);
 
-            var warnings = await UploadAttachmentsAsync(form.Files, form.Note, created.Id, userId.Value, ct);
+            var warnings = await UploadAttachmentsAsync(form.Files, form.Notes, created.Id, userId.Value, ct);
             return Ok(new SubmitLeaveRequestResult { LeaveRequest = created, AttachmentWarnings = warnings });
         }
         catch (InvalidOperationException ex)
@@ -130,7 +130,7 @@ public sealed class LeaveRequestsController(ILeaveService leaveService, IEmploye
                 Reason = form.Reason
             }, ct);
 
-            var warnings = await UploadAttachmentsAsync(form.Files, form.Note, created.Id, userId.Value, ct);
+            var warnings = await UploadAttachmentsAsync(form.Files, form.Notes, created.Id, userId.Value, ct);
             return Ok(new SubmitLeaveRequestResult { LeaveRequest = created, AttachmentWarnings = warnings });
         }
         catch (InvalidOperationException ex)
@@ -166,7 +166,7 @@ public sealed class LeaveRequestsController(ILeaveService leaveService, IEmploye
                 return NotFound();
             }
 
-            var warnings = await UploadAttachmentsAsync(form.Files, form.Note, id, userId.Value, ct);
+            var warnings = await ProcessAttachmentsAsync(form.Files, form.Notes, id, userId.Value, ct);
             return Ok(new SubmitLeaveRequestResult { LeaveRequest = updated, AttachmentWarnings = warnings });
         }
         catch (InvalidOperationException ex)
@@ -238,7 +238,13 @@ public sealed class LeaveRequestsController(ILeaveService leaveService, IEmploye
         return null;
     }
 
-    private async Task<List<string>> UploadAttachmentsAsync(List<IFormFile>? files, string? note, int leaveRequestId, int currentUserId, CancellationToken ct)
+    /// <summary>
+    /// Create-time upload: the record was just made, so there are no existing
+    /// documents to reconcile against yet — every non-empty file is a new
+    /// upload. Notes are matched to files positionally (same slot order the
+    /// Web form renders them in).
+    /// </summary>
+    private async Task<List<string>> UploadAttachmentsAsync(List<IFormFile>? files, List<string?>? notes, int leaveRequestId, int currentUserId, CancellationToken ct)
     {
         var warnings = new List<string>();
         if (files is null || files.Count == 0)
@@ -246,8 +252,14 @@ public sealed class LeaveRequestsController(ILeaveService leaveService, IEmploye
             return warnings;
         }
 
-        foreach (var file in files.Where(f => f.Length > 0))
+        for (var i = 0; i < files.Count; i++)
         {
+            var file = files[i];
+            if (file.Length == 0)
+            {
+                continue;
+            }
+
             try
             {
                 await using var stream = file.OpenReadStream();
@@ -259,12 +271,84 @@ public sealed class LeaveRequestsController(ILeaveService leaveService, IEmploye
                     FileSizeBytes = file.Length,
                     ReferenceType = DocumentReferenceType,
                     ReferenceId = leaveRequestId,
-                    Description = note
+                    Description = notes?.ElementAtOrDefault(i)
                 }, currentUserId, ct);
             }
             catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException)
             {
                 warnings.Add($"{file.FileName}: {ex.Message}");
+            }
+        }
+
+        return warnings;
+    }
+
+    /// <summary>
+    /// Edit-time upload: files/notes are positionally matched to slots the same
+    /// way the Web form renders them. A slot with a newly-picked file uploads
+    /// it as a new document; a slot with no new file but an existing document
+    /// (matched by upload order — DocDocument has no slot column yet, see
+    /// ReadMeDocumentGeneral.md) gets its note updated in place instead.
+    /// </summary>
+    private async Task<List<string>> ProcessAttachmentsAsync(List<IFormFile>? files, List<string?>? notes, int leaveRequestId, int currentUserId, CancellationToken ct)
+    {
+        var warnings = new List<string>();
+        var slotCount = Math.Max(files?.Count ?? 0, notes?.Count ?? 0);
+        if (slotCount == 0)
+        {
+            return warnings;
+        }
+
+        var existingBySlot = (await documentService.GetByReferenceAsync(DocumentReferenceType, leaveRequestId, currentUserId, ct))
+            .OrderBy(d => d.UploadedAt)
+            .ToList();
+
+        for (var i = 0; i < slotCount; i++)
+        {
+            var file = files?.ElementAtOrDefault(i);
+            var note = notes?.ElementAtOrDefault(i);
+
+            if (file is not null && file.Length > 0)
+            {
+                try
+                {
+                    await using var stream = file.OpenReadStream();
+                    await documentService.UploadAsync(new UploadDocumentRequest
+                    {
+                        Content = stream,
+                        OriginalFileName = file.FileName,
+                        ContentType = file.ContentType,
+                        FileSizeBytes = file.Length,
+                        ReferenceType = DocumentReferenceType,
+                        ReferenceId = leaveRequestId,
+                        Description = note
+                    }, currentUserId, ct);
+                }
+                catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException)
+                {
+                    warnings.Add($"{file.FileName}: {ex.Message}");
+                }
+                continue;
+            }
+
+            if (i >= existingBySlot.Count)
+            {
+                continue;
+            }
+
+            var existing = existingBySlot[i];
+            if (string.Equals(existing.Description, note, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            try
+            {
+                await documentService.UpdateDescriptionAsync(existing.Id, note, currentUserId, ct);
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException)
+            {
+                warnings.Add($"{existing.OriginalFileName}: {ex.Message}");
             }
         }
 
@@ -278,7 +362,7 @@ public sealed class LeaveRequestsController(ILeaveService leaveService, IEmploye
         public DateOnly StartDate { get; set; }
         public DateOnly EndDate { get; set; }
         public string? Reason { get; set; }
-        public string? Note { get; set; }
+        public List<string?>? Notes { get; set; }
         public List<IFormFile>? Files { get; set; }
     }
 
@@ -288,7 +372,7 @@ public sealed class LeaveRequestsController(ILeaveService leaveService, IEmploye
         public DateOnly StartDate { get; set; }
         public DateOnly EndDate { get; set; }
         public string? Reason { get; set; }
-        public string? Note { get; set; }
+        public List<string?>? Notes { get; set; }
         public List<IFormFile>? Files { get; set; }
     }
 }

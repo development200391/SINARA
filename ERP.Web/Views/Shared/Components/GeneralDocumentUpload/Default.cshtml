@@ -1,44 +1,92 @@
 @model ERP.Web.ViewModels.Document.GeneralDocumentUploadViewModel
 
-<div class="col-12">
-    <hr />
-    <h2 class="h6">@T["Attachment"]</h2>
-</div>
-
 @for (var i = 0; i < Model.Slots.Count; i++)
 {
     var slot = Model.Slots[i];
-    var isFieldRequired = slot.IsRequired && !Model.HasExistingDocuments;
+    var hasFile = slot.ExistingFile is not null;
+    var isFieldRequired = slot.IsRequired && !hasFile;
     var accept = string.Join(",", slot.AllowedExtensions);
     var maxSizeMb = slot.MaxFileSizeBytes / (1024 * 1024);
-    var inputId = $"{Model.FileFieldName}_{i}";
+    var noteFieldName = $"{Model.NoteFieldName}[{i}]";
     var requiredMessage = string.Format(T["{0} is required."], slot.Name);
 
-    <div class="col-md-7">
-        <label class="form-label" for="@inputId">
-            @slot.Name
-            @if (isFieldRequired)
+    var borderClass = hasFile ? "border-success" : (isFieldRequired ? "border-warning" : "border-secondary-subtle");
+
+    <div class="col-12 border rounded-3 p-2 mb-2 sinara-doc-slot @borderClass">
+        <div class="d-flex justify-content-between align-items-baseline gap-2 mb-1">
+            <span class="sinara-doc-name fw-semibold">@slot.Name</span>
+            <span class="sinara-doc-tag @(slot.IsRequired ? "text-warning" : "text-body-secondary")">
+                @(slot.IsRequired ? T["Required"] : T["Optional"])
+            </span>
+        </div>
+
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <div class="flex-grow-1" style="min-width: 200px;">
+                @if (hasFile)
+                {
+                    <div class="sinara-doc-file bg-success-subtle border border-success-subtle">
+                        <i class="bi bi-file-earmark-check"></i>
+                        @if (!string.IsNullOrWhiteSpace(slot.ExistingFile!.DownloadUrl))
+                        {
+                            <a href="@slot.ExistingFile.DownloadUrl" class="sinara-doc-file-name text-decoration-none" title="@slot.ExistingFile.FileName">@slot.ExistingFile.FileName</a>
+                        }
+                        else
+                        {
+                            <span class="sinara-doc-file-name" title="@slot.ExistingFile.FileName">@slot.ExistingFile.FileName</span>
+                        }
+                        <span class="sinara-doc-file-size">@((slot.ExistingFile.FileSizeBytes / 1024.0).ToString("N0")) KB</span>
+                        @if (!Model.ReadOnly && !string.IsNullOrWhiteSpace(slot.ExistingFile.DeleteFormId))
+                        {
+                            <span class="sinara-doc-file-actions">
+                                <button type="submit" form="@slot.ExistingFile.DeleteFormId" class="sinara-doc-icon-btn text-danger" title="@T["common.delete"]" onclick="return confirm('@T["Delete this document?"]')">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </span>
+                        }
+                    </div>
+                    @* An inert file input still has to occupy this slot's position so Files[i]
+                       on the server keeps lining up with Notes[i] for every other slot — see
+                       the alignment note on HrApiClient.BuildLeaveRequestForm. Deleting the
+                       existing document (separate form) is required before this slot can accept
+                       a new file; there is no inline "replace". *@
+                    @if (!Model.ReadOnly)
+                    {
+                        <input type="file" name="@Model.FileFieldName" class="d-none" tabindex="-1" aria-hidden="true" />
+                    }
+                }
+                else if (Model.ReadOnly)
+                {
+                    <span class="text-body-secondary small">@T["No documents attached yet."]</span>
+                }
+                else
+                {
+                    <label class="sinara-doc-dropzone">
+                        <i class="bi bi-cloud-upload"></i>
+                        <span>@T["Choose File"]</span>
+                        <span class="sinara-doc-hint">@accept &middot; @T["Max"] @maxSizeMb MB</span>
+                        <input type="file"
+                               name="@Model.FileFieldName"
+                               class="d-none"
+                               accept="@accept"
+                               data-val="@(isFieldRequired ? "true" : null)"
+                               data-val-required="@(isFieldRequired ? requiredMessage : null)" />
+                    </label>
+                    <span class="text-danger small field-validation-valid" data-valmsg-for="@Model.FileFieldName" data-valmsg-replace="true"></span>
+                }
+            </div>
+
+            @if (!Model.ReadOnly)
             {
-                <span class="text-danger">*</span>
+                <div class="sinara-doc-note">
+                    <input type="text" name="@noteFieldName" class="form-control" placeholder="@T["Note"]" value="@slot.NoteValue" maxlength="500" />
+                </div>
             }
-        </label>
-        @* IFormFile-collection binding (FormFileModelBinder) matches parts by the
-           exact literal field name, not by indexed "Name[i]" like other collection
-           types — every slot input must share this same name to actually bind into
-           List<IFormFile> AttachmentFiles server-side. *@
-        <input type="file"
-               id="@inputId"
-               name="@Model.FileFieldName"
-               class="form-control"
-               accept="@accept"
-               data-val="@(isFieldRequired ? "true" : null)"
-               data-val-required="@(isFieldRequired ? requiredMessage : null)" />
-        <span class="text-danger field-validation-valid" data-valmsg-for="@Model.FileFieldName" data-valmsg-replace="true"></span>
-        <div class="form-text">@T["Max"] @maxSizeMb MB &middot; @accept</div>
+            else if (!string.IsNullOrWhiteSpace(slot.NoteValue))
+            {
+                <div class="sinara-doc-note">
+                    <span class="text-body-secondary small fst-italic">@slot.NoteValue</span>
+                </div>
+            }
+        </div>
     </div>
 }
-
-<div class="col-md-5">
-    <label class="form-label">@T["Note"]</label>
-    <input type="text" name="@Model.NoteFieldName" class="form-control" value="@Model.NoteValue" maxlength="500" />
-</div>

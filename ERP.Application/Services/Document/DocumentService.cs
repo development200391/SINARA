@@ -122,6 +122,29 @@ public sealed class DocumentService(IUnitOfWork unitOfWork, IDocumentStorageServ
         return true;
     }
 
+    public async Task<DocumentDto?> UpdateDescriptionAsync(int documentId, string? description, int currentUserId, CancellationToken ct = default)
+    {
+        var entity = await unitOfWork.Repository<DocDocument>()
+            .Query()
+            .FirstOrDefaultAsync(x => x.Id == documentId, ct);
+
+        if (entity is null)
+        {
+            return null;
+        }
+
+        await EnsureAuthorizationAsync(entity.ReferenceType, entity.ReferenceId, currentUserId, requireMutable: true, ct);
+
+        entity.Description = NormalizeText(description);
+        entity.UpdatedBy = "system";
+        entity.UpdatedAt = DateTimeOffset.UtcNow;
+
+        unitOfWork.Repository<DocDocument>().Update(entity);
+        await unitOfWork.SaveChangesAsync(ct);
+
+        return await GetByIdInternalAsync(entity.Id, ct);
+    }
+
     public async Task<DocumentReferenceTypeConfigDto?> GetConfigAsync(string referenceType, CancellationToken ct = default)
     {
         var entity = await GetActiveConfigEntityAsync(referenceType, ct);

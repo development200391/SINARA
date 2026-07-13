@@ -3,6 +3,30 @@
 @using ERP.Web.ViewModels.Document
 @{
     var request = Model.Request;
+
+    var activeDetails = Model.AttachmentConfig?.Details
+        .Where(d => d.IsActive)
+        .OrderBy(d => d.SortOrder)
+        .ToList() ?? [];
+    var existingDocsBySlot = Model.Documents.OrderBy(d => d.UploadedAt).ToList();
+
+    var slots = activeDetails.Select((detail, i) =>
+    {
+        var existingDoc = i < existingDocsBySlot.Count ? existingDocsBySlot[i] : null;
+        return new GeneralDocumentUploadSlotViewModel
+        {
+            Name = detail.Name,
+            IsRequired = detail.IsRequired,
+            NoteValue = existingDoc?.Description,
+            ExistingFile = existingDoc is null ? null : new GeneralDocumentExistingFileViewModel
+            {
+                DocumentId = existingDoc.Id,
+                FileName = existingDoc.OriginalFileName,
+                FileSizeBytes = existingDoc.FileSizeBytes,
+                DownloadUrl = Url.Action("DownloadDocument", "HrLeaveRequests", new { id = existingDoc.Id })
+            }
+        };
+    }).ToList();
 }
 
 <div class="card border-0 shadow-sm">
@@ -79,11 +103,18 @@
     <div class="card-body">
         <h2 class="h6 mb-3">@T["Attachments"]</h2>
 
-        @await Component.InvokeAsync("GeneralDocumentList", new GeneralDocumentListViewModel
+        @if (slots.Count > 0)
         {
-            Documents = Model.Documents,
-            DownloadUrl = id => Url.Action("DownloadDocument", "HrLeaveRequests", new { id })!
-        })
+            @await Component.InvokeAsync("GeneralDocumentUpload", new GeneralDocumentUploadViewModel
+            {
+                ReadOnly = true,
+                Slots = slots
+            })
+        }
+        else
+        {
+            <p class="text-body-secondary small mb-0">@T["No documents attached yet."]</p>
+        }
 
         @if (request.Status == LeaveStatus.Pending)
         {

@@ -46,8 +46,8 @@ public interface IHrApiClient
     Task<PagedResult<LeaveRequestDto>?> GetLeaveRequestsAsync(string accessToken, LeaveRequestPagedRequest request, CancellationToken ct = default);
     Task<LeaveRequestDto?> GetLeaveRequestByIdAsync(string accessToken, int id, CancellationToken ct = default);
     Task<LeaveRequestOptionsDto?> GetLeaveRequestOptionsAsync(string accessToken, CancellationToken ct = default);
-    Task<ApiCallResult<SubmitLeaveRequestResult>> SubmitLeaveRequestAsync(string accessToken, SubmitLeaveRequest request, IReadOnlyList<IFormFile>? files, string? note, CancellationToken ct = default);
-    Task<ApiCallResult<SubmitLeaveRequestResult>> UpdateLeaveRequestAsync(string accessToken, int id, SubmitLeaveRequest request, IReadOnlyList<IFormFile>? files, string? note, CancellationToken ct = default);
+    Task<ApiCallResult<SubmitLeaveRequestResult>> SubmitLeaveRequestAsync(string accessToken, SubmitLeaveRequest request, IReadOnlyList<IFormFile>? files, IReadOnlyList<string?>? notes, CancellationToken ct = default);
+    Task<ApiCallResult<SubmitLeaveRequestResult>> UpdateLeaveRequestAsync(string accessToken, int id, SubmitLeaveRequest request, IReadOnlyList<IFormFile>? files, IReadOnlyList<string?>? notes, CancellationToken ct = default);
     Task<ApiCallResult<object?>> DeleteLeaveRequestAsync(string accessToken, int id, CancellationToken ct = default);
     Task<ApiCallResult<object?>> ApproveLeaveRequestAsync(string accessToken, int id, CancellationToken ct = default);
     Task<ApiCallResult<object?>> RejectLeaveRequestAsync(string accessToken, int id, CancellationToken ct = default);

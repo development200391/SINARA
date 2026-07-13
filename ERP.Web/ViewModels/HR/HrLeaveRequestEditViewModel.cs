@@ -26,8 +26,7 @@ public sealed class HrLeaveRequestEditViewModel
 
     public List<IFormFile>? AttachmentFiles { get; set; }
 
-    [MaxLength(500)]
-    public string? AttachmentNote { get; set; }
+    public List<string?>? AttachmentNotes { get; set; }
 
     public IReadOnlyList<LookupDto> Employees { get; set; } = [];
     public IReadOnlyList<LookupDto> LeaveTypes { get; set; } = [];

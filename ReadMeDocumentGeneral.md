@@ -103,32 +103,42 @@ yang butuh "field form + lampiran wajib/opsional" dalam satu form:
 1. Controller endpoint create/update modul (bukan DocumentsController) yang
    menerima [FromForm] gabungan: field-field record induk (contoh
    LeaveTypeId, StartDate, EndDate, Reason) DITAMBAH `List<IFormFile>? Files`
-   dan `string? Note`, dengan [Consumes("multipart/form-data")] dan
-   [RequestSizeLimit(...)].
+   dan `List<string?>? Notes` (satu note per slot, index-nya harus sejajar
+   dengan Files — lihat "Integrasi Web" di bawah untuk detail alignment-nya),
+   dengan [Consumes("multipart/form-data")] dan [RequestSizeLimit(...)].
 2. Sebelum record induk dibuat: validasi dulu required/max-count terhadap
    config reference_type-nya (ValidateAttachmentRequirementAsync di
    LeaveRequestsController jadi contoh pola ini) — supaya record TIDAK
    pernah tersimpan kalau lampiran wajib tidak ada.
-3. Setelah record induk berhasil dibuat/disimpan (dan reference_id-nya sudah
-   ada), baru loop upload tiap file lewat DocumentService.UploadAsync —
+3. CREATE (record baru, belum ada dokumen sama sekali): loop upload tiap file
+   lewat DocumentService.UploadAsync (Description = Notes[i] yang sejajar) —
    validasi per-file (ekstensi, ukuran, dan corruption check) dilakukan di
    sini.
-4. Kegagalan per-file (misal satu dari tiga file korup) TIDAK membatalkan
+4. UPDATE (record sudah ada, mungkin sudah punya dokumen dari submit
+   sebelumnya): untuk tiap slot index i — kalau Files[i] ada isinya, upload
+   sebagai dokumen BARU (Description = Notes[i]); kalau Files[i] kosong TAPI
+   ada dokumen existing yang "menempati" slot itu (dicocokkan lewat urutan
+   UploadedAt, lihat "Integrasi Web"), update Description dokumen existing
+   itu ke Notes[i] lewat DocumentService.UpdateDescriptionAsync — supaya user
+   bisa edit note dokumen yang sudah diupload tanpa perlu upload ulang
+   file-nya. Contoh implementasinya: ProcessAttachmentsAsync di
+   LeaveRequestsController.
+5. Kegagalan per-file (misal satu dari tiga file korup) TIDAK membatalkan
    keseluruhan request — record induk yang sudah tersimpan tetap dianggap
    sukses, file yang gagal cuma dilaporkan lewat AttachmentWarnings di
    response (lihat SubmitLeaveRequestResult di LeaveDto.cs sebagai contoh
    DTO-nya: { LeaveRequest, AttachmentWarnings[] }). Klien (Web/mobile) wajib
    menampilkan warning ini ke user, bukan diam-diam diabaikan.
-5. Tambahkan reference_type baru (nama tabel snake_case, contoh:
+6. Tambahkan reference_type baru (nama tabel snake_case, contoh:
    fa_asset_transfers) ke whitelist AllowedReferenceTypes di
    DocumentService.cs (server-side, tidak boleh terima string bebas dari
    client demi keamanan).
-6. Tambahkan rule otorisasi untuk reference_type itu di
+7. Tambahkan rule otorisasi untuk reference_type itu di
    EnsureAuthorizationAsync (siapa yang boleh lihat/upload/hapus dokumen
    untuk record tsb).
-7. Insert 1 baris di doc_reference_type_configs (lewat menu Document
-   Settings atau seed) buat set aturan validasinya.
-8. Tidak perlu bikin tabel/migration baru untuk dokumennya sendiri —
+8. Insert 1 baris di doc_reference_type_configs + baris detailnya (lewat
+   menu Document Settings atau seed) buat set aturan validasinya.
+9. Tidak perlu bikin tabel/migration baru untuk dokumennya sendiri —
    doc_documents dipakai bersama oleh semua modul.
 
 Kenapa Combined-Submit, Bukan Staged-Upload?
@@ -183,47 +193,79 @@ Penyimpanan File
   * StorageDirectory: App_Data/uploads/documents
 
 Integrasi Web (ERP.Web)
-- Dua ViewComponent reusable di Views/Shared/Components/:
-  * GeneralDocumentUpload — SEKARANG slot-aware (mengikuti restrukturisasi
-    master-detail): menerima `Slots` (satu entry per baris detail aktif),
-    lalu render SATU file input per slot — masing-masing dengan label sesuai
-    Name slot-nya, tanda "wajib" (*) kalau slot itu IsRequired (dan belum ada
-    dokumen existing di record-nya), hint ukuran maks & ekstensi izinnya
-    sendiri-sendiri. Semua input WAJIB pakai `name` yang PERSIS SAMA
-    (`AttachmentFiles`, semuanya, tanpa index) — sempat salah ditulis pakai
-    nama terindeks (`AttachmentFiles[0]`, `[1]`, dst.) karena dikira ikut
-    konvensi collection binding ASP.NET Core biasa, padahal
-    `FormFileModelBinder` untuk `List<IFormFile>` itu SPESIAL: dia manggil
-    `Request.Form.Files.GetFiles(namaPersisIni)` langsung, BUKAN lewat
-    index-discovery seperti collection binder pada umumnya — jadi kalau
-    nama field-nya beda-beda (`[0]`, `[1]`, ...), semuanya gagal ke-bind dan
-    file yang dipilih user hilang tanpa error apapun (ini bug yang sempat
-    kejadian & sudah diperbaiki). Validasi "wajib" per-slot berjalan di CLIENT
-    (jQuery Unobtrusive Validation, `data-val-required` per input) — bukan di
-    server, karena endpoint upload backend belum menyimpan slot mana yang
-    dipakai tiap file (lihat catatan di "Validasi File Saat Upload" di atas).
-    Field Note tetap satu untuk seluruh submission (belum per-slot).
-  * GeneralDocumentList — widget daftar dokumen yang sudah terupload (nama
-    file, ukuran, siapa & kapan upload) + tombol Download opsional + tombol
-    Delete opsional (per-dokumen, form kecil terpisah). Dirender DI LUAR form
-    utama karena HTML tidak boleh nested <form>. TIDAK diubah oleh
-    restrukturisasi master-detail — DocDocument belum punya kolom slot,
-    jadi daftar dokumen masih flat per reference_id, bukan dikelompokkan
-    per-slot.
+- GeneralDocumentList SUDAH DIHAPUS TOTAL (ViewComponent, view, ViewModel).
+  Semua tampilan dokumen — upload baru, file yang sudah ada, dan note-nya —
+  sekarang cuma lewat SATU ViewComponent: GeneralDocumentUpload.
+- GeneralDocumentUpload sekarang slot-aware & self-contained. Menerima
+  `Slots` (satu entry per baris detail aktif di doc_reference_type_config_details).
+  Tiap slot dirender sebagai satu blok: nama slot (baris atas, lebar penuh,
+  tidak pernah kepotong) + tag "Wajib"/"Opsional" rata kanan, lalu di baris
+  bawahnya file control + note SENDIRI-SENDIRI per slot (bukan satu note
+  gabungan lagi):
+  * Slot yang SUDAH punya dokumen: tampilkan info file (nama, ukuran) +
+    tombol Download + tombol Delete, bukan file picker lagi. Tidak ada
+    "Ganti file" inline — untuk upload ulang, hapus dulu baru slot itu balik
+    jadi file picker (menghindari MaxFileCount ke-exceed di server kalau
+    upload baru ditambahkan tanpa hapus yang lama dulu).
+  * Slot yang BELUM ada dokumen: file picker (dropzone), dengan validasi
+    "wajib" client-side (jQuery Unobtrusive Validation, `data-val-required`)
+    kalau slot itu IsRequired.
+  * `ReadOnly = true` (dipakai di halaman Details) mematikan file picker,
+    note jadi teks statis, dan tombol Delete disembunyikan — jadi komponen
+    yang SAMA dipakai baik di form Create/Edit (edit-time) maupun Details
+    (view-only), bukan dua komponen terpisah.
+- Positional slot matching (keterbatasan yang disengaja, lihat "Belum
+  Ditutup" di bawah): DocDocument belum punya kolom yang menunjuk ke baris
+  detail/slot tertentu, jadi Web mencocokkan dokumen existing ke slot lewat
+  URUTAN UploadedAt — dokumen pertama yang diupload otomatis dianggap milik
+  slot pertama (SortOrder terkecil), dst. Ini konsisten dari sisi tampil
+  (Details) maupun submit (Create/Edit), tapi tetap heuristik, bukan
+  pengait sungguhan.
+- Note per-slot & delete lintas-form: karena tiap slot butuh input Note-nya
+  sendiri DAN tombol Delete-nya sendiri, sementara GeneralDocumentUpload
+  dirender DI DALAM form utama Create/Edit (field-nya harus ikut ter-submit
+  bareng), dua trik dipakai:
+  * File input SEMUA slot WAJIB pakai `name` yang PERSIS SAMA
+    (`AttachmentFiles`, tanpa index) meski render-nya banyak input terpisah
+    — sempat salah ditulis pakai nama terindeks (`AttachmentFiles[0]`,
+    `[1]`, dst., mengira ikut konvensi collection binding ASP.NET Core
+    biasa), padahal `FormFileModelBinder` untuk `List<IFormFile>` itu
+    SPESIAL: dia manggil `Request.Form.Files.GetFiles(namaPersisIni)`
+    langsung, BUKAN lewat index-discovery — jadi kalau nama field-nya
+    beda-beda per slot, semuanya gagal ke-bind dan file yang dipilih user
+    hilang tanpa error apapun (bug yang sempat kejadian & sudah
+    diperbaiki). Slot yang sudah punya file tetap merender file input
+    TERSEMBUNYI (kosong, `tabindex="-1"`) supaya urutan/posisi entry di
+    `Files[i]` sisi server tidak bergeser buat slot-slot sesudahnya.
+  * Note per-slot dikirim terindeks (`AttachmentNotes[0]`, `[1]`, dst. —
+    `List<string?>` biasa, TIDAK kena aturan spesial file binder di atas)
+    dan HARUS selalu dikirim untuk SEMUA slot (walau slot itu tidak dapat
+    file baru), supaya server tahu note mana yang harus dipakai untuk
+    UPDATE dokumen existing (lihat "Pola Combined-Submit" di atas).
+  * Tombol Delete per slot dirender DI DALAM form utama (lewat
+    GeneralDocumentUpload), tapi `<form>` sesungguhnya yang dia submit
+    dirender OUTSIDE form utama (oleh _Form.cshtml, setelah `</form>`) —
+    dihubungkan lewat atribut HTML5 `form="id-form-tsb"` pada tombolnya
+    (`<button type="submit" form="gdu-delete-42">`). Ini valid HTML5 (tombol
+    boleh submit form MANAPUN di halaman via atribut `form`, tidak harus
+    row leluhurnya) dan menghindari nested `<form>` yang otomatis di-drop
+    browser.
 - Halaman Leave Request:
-  * Create & Edit: GeneralDocumentUpload di dalam form utama (upload lampiran
-    baru ikut ter-submit bareng field leave request), GeneralDocumentList di
-    bawahnya dengan Delete aktif (Edit only — Create belum ada dokumen
-    existing).
-  * Details: cuma GeneralDocumentList tanpa Delete — halaman ini view-only,
-    edit lampiran harus lewat halaman Edit.
-- **Belum dikerjakan** (langkah lanjutan setelah Web): DocDocument belum
-  dikaitkan ke baris detail spesifik, jadi daftar dokumen existing
-  (GeneralDocumentList) tidak bisa menunjukkan "file ini untuk slot yang
-  mana", dan enforcement required/size/extension di SERVER masih pakai proxy
-  baris detail pertama (bukan per-slot yang sesungguhnya disubmit). Kalau mau
-  ditutup penuh, perlu tambah kolom penunjuk slot di doc_documents plus ubah
-  DocumentService.UploadAsync/ValidateFileAsync supaya slot-aware.
+  * Create & Edit: satu GeneralDocumentUpload di dalam form utama, isinya
+    semua slot (file + note per slot). Slot yang sudah ada dokumennya (Edit)
+    otomatis tampil dengan tombol Download/Delete.
+  * Details: GeneralDocumentUpload yang SAMA, dipanggil dengan `ReadOnly =
+    true` — tidak ada form sama sekali di halaman ini untuk urusan dokumen.
+- **Belum Ditutup** (backlog): DocDocument belum benar-benar dikaitkan ke
+  baris detail spesifik (masih heuristik "urutan upload" seperti dijelaskan
+  di atas), dan enforcement required/size/extension di SERVER
+  (DocumentService.ValidateFileAsync) masih pakai proxy baris detail
+  PERTAMA saja untuk semua file dalam satu submission, bukan aturan
+  per-slot yang sesungguhnya disubmit — client-side sudah benar per-slot,
+  tapi server belum. Kalau mau ditutup penuh, perlu tambah kolom penunjuk
+  slot eksplisit di doc_documents (bukan cuma urutan upload) plus ubah
+  DocumentService.UploadAsync/ValidateFileAsync supaya slot-aware
+  sungguhan.
 
 Integrasi Mobile (AbsenKu, Flutter) — BELUM di-rework ke master-detail
 Bagian ini masih mendeskripsikan integrasi versi LAMA (flat, sebelum
@@ -303,11 +345,12 @@ Acuan Implementasi
   Requests).
 - Web views:
   ERP.Web/Views/Document/DocumentReferenceTypeConfigs/*,
-  ERP.Web/Views/Shared/Components/GeneralDocumentUpload/Default.cshtml,
-  ERP.Web/Views/Shared/Components/GeneralDocumentList/Default.cshtml
+  ERP.Web/Views/Shared/Components/GeneralDocumentUpload/Default.cshtml
+  (satu-satunya komponen tampilan dokumen — GeneralDocumentList sudah
+  dihapus), ERP.Web/wwwroot/css/site.css (kelas `.sinara-doc-*` untuk
+  styling slot)
 - Web ViewComponents:
-  ERP.Web/ViewComponents/GeneralDocumentUploadViewComponent.cs,
-  ERP.Web/ViewComponents/GeneralDocumentListViewComponent.cs
+  ERP.Web/ViewComponents/GeneralDocumentUploadViewComponent.cs
 - Web API client:
   ERP.Web/Services/DocumentApiClient.cs (CRUD config admin),
   ERP.Web/Services/HrApiClient.cs (combined-submit + list/download/delete

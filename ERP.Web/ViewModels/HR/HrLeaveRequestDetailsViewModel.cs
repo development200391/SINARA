@@ -7,4 +7,5 @@ public sealed class HrLeaveRequestDetailsViewModel
 {
     public LeaveRequestDto Request { get; set; } = new();
     public IReadOnlyList<DocumentDto> Documents { get; set; } = [];
+    public DocumentReferenceTypeConfigDto? AttachmentConfig { get; set; }
 }

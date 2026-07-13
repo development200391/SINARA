@@ -70,10 +70,15 @@ public sealed class HrLeaveRequestsController(IHrApiClient hrApiClient) : Contro
         ViewData["Title"] = "Leave Request Details";
         ViewData["Breadcrumb"] = "HR / Leave / Requests / Details";
 
+        var documentsTask = hrApiClient.GetDocumentsAsync(accessToken, DocumentReferenceType, id, ct);
+        var configTask = hrApiClient.GetDocumentConfigAsync(accessToken, DocumentReferenceType, ct);
+        await Task.WhenAll(documentsTask, configTask);
+
         return View(new HrLeaveRequestDetailsViewModel
         {
             Request = leaveRequest,
-            Documents = await hrApiClient.GetDocumentsAsync(accessToken, DocumentReferenceType, id, ct)
+            Documents = await documentsTask,
+            AttachmentConfig = await configTask
         });
     }
 
@@ -167,7 +172,7 @@ public sealed class HrLeaveRequestsController(IHrApiClient hrApiClient) : Contro
             StartDate = model.StartDate,
             EndDate = model.EndDate,
             Reason = model.Reason
-        }, model.AttachmentFiles, model.AttachmentNote, ct);
+        }, model.AttachmentFiles, model.AttachmentNotes, ct);
 
         if (!created.IsSuccess)
         {
@@ -258,7 +263,7 @@ public sealed class HrLeaveRequestsController(IHrApiClient hrApiClient) : Contro
             StartDate = model.StartDate,
             EndDate = model.EndDate,
             Reason = model.Reason
-        }, model.AttachmentFiles, model.AttachmentNote, ct);
+        }, model.AttachmentFiles, model.AttachmentNotes, ct);
 
         if (!updated.IsSuccess)
         {

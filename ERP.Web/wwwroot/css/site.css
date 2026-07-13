@@ -748,3 +748,120 @@ body {
     padding: 0.5rem 0.25rem 0.1rem;
 }
 
+/* GeneralDocumentUpload: one slot = name row on top, file + note side by side below. */
+.sinara-doc-slot {
+    border-left-width: 3px !important;
+}
+
+.sinara-doc-slot .sinara-doc-name {
+    font-size: 0.8125rem;
+}
+
+.sinara-doc-slot .sinara-doc-tag {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+}
+
+.sinara-doc-dropzone {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    height: 32px;
+    padding: 0 0.6rem;
+    border: 1.5px dashed var(--bs-border-color);
+    border-radius: 0.5rem;
+    background: var(--bs-body-bg);
+    cursor: pointer;
+    font-size: 0.8125rem;
+    color: var(--sinara-text);
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.sinara-doc-dropzone:hover,
+.sinara-doc-dropzone:focus-within {
+    border-color: var(--sinara-primary);
+    background: var(--sinara-bg-accent);
+}
+
+.sinara-doc-dropzone .bi {
+    color: var(--sinara-primary);
+}
+
+.sinara-doc-dropzone .sinara-doc-hint {
+    margin-left: auto;
+    font-size: 0.6875rem;
+    color: #6b7480;
+    white-space: nowrap;
+}
+
+.sinara-doc-file {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    height: 32px;
+    padding: 0 0.25rem 0 0.5rem;
+    border-radius: 0.5rem;
+}
+
+.sinara-doc-file .sinara-doc-file-name {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+
+.sinara-doc-file .sinara-doc-file-size {
+    font-size: 0.6875rem;
+    color: #6b7480;
+    flex-shrink: 0;
+}
+
+.sinara-doc-file-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 0.125rem;
+    flex-shrink: 0;
+}
+
+.sinara-doc-icon-btn {
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: none;
+    border-radius: 0.375rem;
+    background: transparent;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--sinara-text);
+}
+
+.sinara-doc-icon-btn:hover {
+    background: rgba(0, 0, 0, 0.06);
+}
+
+.sinara-doc-icon-btn.text-danger:hover {
+    background: rgba(220, 53, 69, 0.12);
+}
+
+.sinara-doc-note {
+    width: 190px;
+    flex-shrink: 0;
+}
+
+.sinara-doc-note .form-control {
+    height: 32px;
+    font-size: 0.8125rem;
+}
+
+@media (max-width: 560px) {
+    .sinara-doc-note {
+        width: 100%;
+    }
+}
+

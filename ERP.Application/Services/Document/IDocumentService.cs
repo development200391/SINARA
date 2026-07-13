@@ -9,6 +9,7 @@ public interface IDocumentService
     Task<DocumentDto> UploadAsync(UploadDocumentRequest request, int currentUserId, CancellationToken ct = default);
     Task<DocumentDownloadResult> DownloadAsync(int documentId, int currentUserId, CancellationToken ct = default);
     Task<bool> DeleteAsync(int documentId, int currentUserId, CancellationToken ct = default);
+    Task<DocumentDto?> UpdateDescriptionAsync(int documentId, string? description, int currentUserId, CancellationToken ct = default);
 
     /// <summary>Active config for a reference type, or null if the reference type is unknown/inactive.</summary>
     Task<DocumentReferenceTypeConfigDto?> GetConfigAsync(string referenceType, CancellationToken ct = default);

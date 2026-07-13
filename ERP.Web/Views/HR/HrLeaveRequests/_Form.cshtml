@@ -5,7 +5,33 @@
 
 @{
     var isEdit = Model.Id > 0;
-    var config = Model.AttachmentConfig;
+    var activeDetails = Model.AttachmentConfig?.Details
+        .Where(d => d.IsActive)
+        .OrderBy(d => d.SortOrder)
+        .ToList() ?? [];
+    var existingDocsBySlot = Model.Documents.OrderBy(d => d.UploadedAt).ToList();
+
+    var slots = activeDetails.Select((detail, i) =>
+    {
+        var existingDoc = i < existingDocsBySlot.Count ? existingDocsBySlot[i] : null;
+        return new GeneralDocumentUploadSlotViewModel
+        {
+            Name = detail.Name,
+            IsRequired = detail.IsRequired,
+            MaxFileSizeBytes = detail.MaxFileSizeBytes ?? 5 * 1024 * 1024,
+            AllowedExtensions = (detail.AllowedExtensions ?? ".pdf,.jpg,.jpeg,.png,.docx")
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
+            NoteValue = Model.AttachmentNotes?.ElementAtOrDefault(i) ?? existingDoc?.Description,
+            ExistingFile = existingDoc is null ? null : new GeneralDocumentExistingFileViewModel
+            {
+                DocumentId = existingDoc.Id,
+                FileName = existingDoc.OriginalFileName,
+                FileSizeBytes = existingDoc.FileSizeBytes,
+                DownloadUrl = Url.Action("DownloadDocument", "HrLeaveRequests", new { id = existingDoc.Id }),
+                DeleteFormId = $"gdu-delete-{existingDoc.Id}"
+            }
+        };
+    }).ToList();
 }
 
 <div class="card border-0 shadow-sm">
@@ -81,24 +107,17 @@
                 <textarea asp-for="Reason" class="form-control" rows="3"></textarea>
             </div>
 
-            @if (config is not null && config.Details.Count > 0)
+            @if (slots.Count > 0)
             {
+                <div class="col-12">
+                    <hr />
+                    <h2 class="h6">@T["Attachment"]</h2>
+                </div>
                 @await Component.InvokeAsync("GeneralDocumentUpload", new GeneralDocumentUploadViewModel
                 {
                     FileFieldName = nameof(Model.AttachmentFiles),
-                    NoteFieldName = nameof(Model.AttachmentNote),
-                    NoteValue = Model.AttachmentNote,
-                    HasExistingDocuments = Model.Documents.Count > 0,
-                    Slots = config.Details
-                        .Where(d => d.IsActive)
-                        .Select(d => new GeneralDocumentUploadSlotViewModel
-                        {
-                            Name = d.Name,
-                            IsRequired = d.IsRequired,
-                            MaxFileSizeBytes = d.MaxFileSizeBytes ?? 5 * 1024 * 1024,
-                            AllowedExtensions = (d.AllowedExtensions ?? ".pdf,.jpg,.jpeg,.png,.docx").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                        })
-                        .ToList()
+                    NoteFieldName = nameof(Model.AttachmentNotes),
+                    Slots = slots
                 })
             }
 
@@ -112,16 +131,13 @@
 
 @if (isEdit)
 {
-    <div class="card border-0 shadow-sm mt-3">
-        <div class="card-body">
-            <h2 class="h6 mb-3">@T["Uploaded Attachments"]</h2>
-            @await Component.InvokeAsync("GeneralDocumentList", new GeneralDocumentListViewModel
-            {
-                Documents = Model.Documents,
-                DownloadUrl = id => Url.Action("DownloadDocument", "HrLeaveRequests", new { id })!,
-                DeleteUrl = id => Url.Action("DeleteDocument", "HrLeaveRequests", new { leaveRequestId = Model.Id, id })!,
-                DeleteConfirmMessage = "Delete this document?"
-            })
-        </div>
-    </div>
+    @* Delete buttons live inside GeneralDocumentUpload (inside the main form above), but HTML
+       forbids nested <form> elements, so each document gets its own standalone form here and
+       the button references it remotely via the form="" attribute. *@
+    foreach (var doc in existingDocsBySlot)
+    {
+        <form id="gdu-delete-@doc.Id" method="post" action="@Url.Action("DeleteDocument", "HrLeaveRequests", new { leaveRequestId = Model.Id, id = doc.Id })">
+            @Html.AntiForgeryToken()
+        </form>
+    }
 }

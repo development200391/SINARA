@@ -914,13 +914,10 @@ public sealed class TextLocalizer(IHttpContextAccessor httpContextAccessor) : IT
         ["Attachments"] = "Lampiran",
         ["Uploaded Attachments"] = "Lampiran Terupload",
         ["To add or remove attachments, use the Edit page."] = "Untuk menambah atau menghapus lampiran, gunakan halaman Edit.",
-        ["File"] = "File",
-        ["Files"] = "File",
-        ["up to"] = "hingga",
-        ["file(s)"] = "file",
         ["Note"] = "Catatan",
         ["Delete this document?"] = "Hapus dokumen ini?",
         ["No documents attached yet."] = "Belum ada dokumen terlampir.",
+        ["Choose File"] = "Pilih File",
     };
 
     private static readonly Dictionary<string, string> EnglishPhrases = new(StringComparer.OrdinalIgnoreCase)
