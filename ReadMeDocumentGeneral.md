@@ -319,21 +319,31 @@ Catatan Gap Implementasi (untuk backlog)
 - Belum ada halaman admin untuk melihat/mencari semua dokumen lintas modul
   (cuma bisa dilihat dari halaman modul asalnya).
 - Baru satu reference_type yang terdaftar (hr_leave_requests). Rencana
-  lanjutan: Fixed Assets (transfer/disposal), Purchasing (PO), General
-  Approval.
+  lanjutan: Fixed Assets (transfer/disposal), Purchasing (PO). General
+  Approval sendiri SUDAH terhubung — lihat ReadMeGeneralApproval.md bagian
+  "Integrasi Modul HR Leave Request" (modul APV bukan pemakai
+  doc_reference_type_configs, cuma numpang reference_type string yang
+  sama dengan modul ini untuk hr_leave_requests).
 - Tidak ada preview file di browser/app (PDF/gambar) — download langsung ke
   device, belum ada inline viewer.
 - Tidak ada antivirus/malware scanning untuk file yang diupload — validasi
   cuma dari ekstensi, ukuran, dan format/magic-header, bukan pemindaian
   malware sesungguhnya.
-- EnsureLeaveRequestAccessAsync cuma cek `isOwner || isBackOffice` (user
-  tanpa profil karyawan dianggap back-office/HR admin). Ini berarti seorang
-  HR admin yang KEBETULAN juga punya profil HrEmployee sendiri bisa salah
-  ditolak (403) saat mengelola dokumen leave request milik karyawan LAIN
-  lewat panel admin, karena dia bukan owner record tsb dan bukan
-  "tanpa-profil". Belum diperbaiki di iterasi ini (diterima sebagai
-  trade-off scope), perlu rule tambahan (misal cek role/permission admin
-  eksplisit) di iterasi berikutnya.
+- ~~EnsureLeaveRequestAccessAsync cuma cek `isOwner || isBackOffice`...~~
+  **SUDAH DIPERBAIKI**: fallback tambahan sekarang cek role — Super
+  Admin/HR Manager/HR Staff selalu boleh akses lampiran leave request
+  siapapun, jadi akun yang kebetulan juga punya profil `HrEmployee` (mis.
+  admin yang jadi manager departemen) tidak lagi salah ditolak (403) saat
+  mengelola dokumen leave request milik karyawan lain. Ditemukan &
+  diperbaiki bareng integrasi General Approval (lihat
+  ReadMeGeneralApproval.md).
+- **GeneralDocumentUploadViewComponent — bug UI (SUDAH DIPERBAIKI)**:
+  dulu tidak ada feedback visual sama sekali setelah klik "Choose File"
+  dan pilih file — label tetap menampilkan teks "Choose File" walau file-
+  nya sudah terpasang, kelihatan seperti tombolnya tidak berfungsi. Fix:
+  tambah JS kecil di `Default.cshtml` yang update teks label jadi nama
+  file terpilih + toggle class `sinara-doc-dropzone-has-file` (border/bg
+  hijau, mirip tampilan file yang sudah ada) begitu ada file dipilih.
 - Migration 20260712180000_AddGeneralDocument ditulis manual (bukan hasil
   dotnet ef migrations add) karena tooling migration scaffolding di project
   ini crash untuk SEMUA migration baru — root cause pra-existing

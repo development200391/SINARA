@@ -66,6 +66,20 @@ Kegunaan Tiap Menu
 - CRUD lengkap dengan filter code/name/manager/parent/status aktif.
 - Satu-satunya controller HR yang sudah menerapkan permission granular
   (View/Create/Edit/Delete) per menu.
+- Form Create/Edit/Details memakai satu partial form (_Form.cshtml) yang sama
+  (pola sama seperti Positions di 1.3); halaman Details menampilkan form yang
+  sama dalam mode disabled (read-only), tapi kalau manager/parent department-
+  nya sudah tidak aktif tetap ditampilkan apa adanya (tidak di-null-kan
+  seperti di Create/Edit, lewat helper terpisah `PopulateReadOnlyOptionsAsync`
+  di `HrDepartmentsController.cs`).
+- Field Manager pakai `SearchableSelectViewComponent` (dropdown dengan
+  pencarian), sama seperti field Position/UserId di form Employee.
+- **Manager departemen sekarang load-bearing untuk approval** — General
+  Approval (lihat poin 4 di bawah & `ReadMeGeneralApproval.md`) resolve
+  approver cuti karyawan lewat `HrDepartment.ManagerId`. Departemen aktif
+  tanpa manager akan bikin pengajuan cuti staf-nya GAGAL submit, bukan cuma
+  gagal ditampilkan di UI — pastikan tiap departemen aktif punya manager
+  ter-set.
 
 1.3 Positions / Jabatan (/hr/positions)
 - Master jabatan: name, code, departemen, level jabatan, status aktif.
@@ -149,7 +163,24 @@ Kegunaan Tiap Menu
 4. Leave Requests (/hr/leave/requests)
 - Pengajuan cuti karyawan: karyawan, jenis cuti, tanggal mulai/selesai, alasan.
 - Hanya request berstatus Pending yang bisa diedit.
-- Ada aksi Approve dan Reject yang mengubah status cuti dan mencatat approver.
+- **Approve/Reject sekarang lewat mesin General Approval** (lihat
+  `ReadMeGeneralApproval.md` bagian "Integrasi Modul HR Leave Request" untuk
+  detail lengkap) — bukan flip status langsung lagi:
+  * Submit otomatis bikin `ApprovalRequest` (template `HR_LEAVE`,
+    1 level: `DirectSuperior`) — approver-nya HANYA manager departemen
+    karyawan yang bersangkutan (`HrDepartment.ManagerId`, lihat poin 1.2),
+    bukan siapapun dengan akses menu ini seperti dulu.
+  * Karyawan pemohon HARUS punya akun user (`HrEmployee.UserId`) ter-link,
+    kalau tidak submit-nya GAGAL dengan pesan jelas — ini pembatasan baru.
+  * Tombol Approve/Reject di grid (`Index.cshtml`) & halaman Details
+    sekarang cuma muncul kalau user yang login benar-benar approver aktif
+    utk request itu (`LeaveRequestDto.CanApprove`) — bukan lagi selalu
+    tampil untuk semua Pending request.
+  * Approver juga bisa bertindak lewat Approval Inbox (`/approval/inbox`),
+    tidak harus dari halaman Leave Requests ini.
+  * Leave request Pending yang dibuat SEBELUM integrasi ini di-backfill
+    otomatis saat startup API (`DataSeeder.BackfillLeaveRequestApprovalsAsync`)
+    supaya ikut aturan baru juga, bukan tetap longgar selamanya.
 - Submit (baik dari web maupun self-service) sekarang **menolak** kalau total hari
   (Approved + Pending yang sudah ada + hari yang baru diajukan) melebihi
   MaxDaysPerYear jenis cuti tersebut, untuk employee/leaveType/tahun yang sama.
@@ -158,6 +189,8 @@ Kegunaan Tiap Menu
   kecuali kalau tanggal itu sudah punya CheckIn/CheckOut (data absensi asli
   tidak akan ditimpa). Ini membuat Attendance Report & Payroll otomatis
   konsisten dengan cuti yang sudah disetujui, tanpa langkah manual tambahan.
+  Logika ini sekarang di `LeaveAttendanceSyncHelper` (dipakai bersama oleh
+  jalur approval baru maupun fallback lama, lihat `ReadMeGeneralApproval.md`).
 - Reject/Delete hanya bisa dilakukan selama status masih Pending — begitu
   Approved, tidak ada jalur di API untuk membatalkannya (kalau perlu revisi,
   request baru yang perlu diajukan).
@@ -171,14 +204,26 @@ Kegunaan Tiap Menu
     saja (tanpa daftar karyawan, beda dari endpoint /options yang dipakai
     admin web, supaya mobile app tidak perlu akses direktori staff).
 - Acuan: ERP.API/Controllers/v1/HR/LeaveRequestsController.cs,
-  ERP.Application/Services/HR/LeaveService.cs.
+  ERP.Application/Services/HR/LeaveService.cs,
+  ERP.Application/Services/HR/LeaveRequestApprovalCallbackService.cs,
+  ERP.Application/Services/HR/LeaveAttendanceSyncHelper.cs.
 - **Lampiran (evidence)**: Leave Request sekarang bisa dilampiri file (mis. surat
   dokter) lewat modul General Document — lihat bagian tersendiri di bawah.
   Upload lampiran digabung dalam SATU request bareng field leave request-nya
   sendiri (create/update, "combined-submit"), bukan langkah terpisah; Delete
   lampiran cuma bisa dilakukan selama status masih Pending. Halaman
   Create/Edit (ERP.Web) menampilkan form upload, halaman Details cuma
-  menampilkan daftar lampiran (view-only, tanpa upload/delete).
+  menampilkan daftar lampiran (view-only, tanpa upload/delete). Widget
+  upload-nya (`GeneralDocumentUploadViewComponent`) sekarang update label
+  jadi nama file begitu dipilih (dulu tidak ada feedback visual sama
+  sekali setelah klik "Choose File", kelihatan seperti tidak ngapa-ngapain
+  padahal file-nya sudah terpasang) — lihat `ReadMeDocumentGeneral.md`.
+- **Akses lampiran (bug fix)**: sebelumnya user yang KEBETULAN punya profil
+  `HrEmployee` sendiri (mis. akun admin yang juga terdaftar sebagai
+  manager departemen) bisa 500 error saat coba edit lampiran leave request
+  milik karyawan LAIN. Fix di `DocumentService.EnsureLeaveRequestAccessAsync`:
+  role Super Admin/HR Manager/HR Staff sekarang selalu boleh akses lampiran
+  leave request siapapun. Detail di `ReadMeDocumentGeneral.md`.
 
 4.1 Leave Balance (/hr/leave/balance)
 - Laporan saldo cuti per karyawan per jenis cuti per tahun.

@@ -65,6 +65,14 @@ Yang SUDAH ada dan jalan:
 - Web layer penuh: controller (`ApprovalController` + 7 partial class),
   ViewModel, Razor view, `ApprovalApiClient`/`IApprovalApiClient` — tidak
   berubah dari sebelumnya, sekarang benar-benar terhubung ke API asli.
+- Approval Inbox (`/approval/inbox`) punya tombol "Detail" per baris yang
+  langsung buka halaman detail record sumbernya (bukan cuma kolom generik
+  Template/Amount/Requester) — lewat `ApprovalReferenceLinkResolver`
+  (`ERP.Web/Services/ApprovalReferenceLinkResolver.cs`), registry kecil
+  `ReferenceType` → URL template. Baru ada satu entry (`hr_leave_requests`
+  → `/hr/leave/requests/details/{id}`); tinggal tambah satu baris per
+  modul baru yang connect ke APV. Belum dipasang di `/approval/my-requests`
+  (gampang ditambah kalau perlu, reuse resolver yang sama).
 - Menu & modul sudah di-seed di database (module "APV", 8 item menu), dan
   Super Admin otomatis dapat izin penuh ke menu-menu itu lewat
   `SeedSuperAdminPermissionsAsync` (yang men-generate izin untuk SEMUA
@@ -127,9 +135,11 @@ Integrasi Modul HR Leave Request (SUDAH JALAN — integrasi pertama)
 ======================================================================
 `hr/leave/requests` (menu HR → Leave Requests) sekarang memakai General
 Approval sebagai mesin approval-nya, menggantikan flip status
-langsung yang dipakai sebelumnya. UI/UX di halaman HR Leave Requests
-TIDAK BERUBAH (tombol Approve/Reject, konfirmasi `confirm()` polos, tanpa
-kolom alasan reject) — yang berubah cuma apa yang terjadi DI BALIK LAYAR.
+langsung yang dipakai sebelumnya. Tombol Approve/Reject & konfirmasi
+`confirm()` polos di halaman itu TIDAK BERUBAH BENTUKNYA, tapi sekarang
+CUMA MUNCUL kalau user yang login benar-benar boleh bertindak (lihat
+"CanApprove" di bawah) — sebelumnya tombolnya selalu tampil untuk semua
+Pending request tanpa peduli siapa yang login.
 
 - **Submit** — `LeaveService.SubmitAsync`
   (`ERP.Application/Services/HR/LeaveService.cs`) sekarang, setelah
@@ -186,6 +196,35 @@ kolom alasan reject) — yang berubah cuma apa yang terjadi DI BALIK LAYAR.
 - Approver JUGA bisa bertindak lewat Approval Inbox (`/approval/inbox`)
   selain lewat tombol di halaman HR Leave Requests — dua-duanya memanggil
   engine yang sama, jadi hasilnya konsisten dari sisi manapun diambil.
+- **`LeaveRequestDto.CanApprove`** (bool) — dihitung server-side lewat
+  `IApprovalRequestService.GetActionablePermissionsAsync(referenceType,
+  referenceIds, userId)`: true kalau belum ada `ApprovalRequest` aktif
+  utk record itu (fallback legacy, siapapun boleh) ATAU user yang login
+  punya step aktif di request itu. Dipakai `LeaveService.GetRequestsAsync`/
+  `GetByIdAsync` (parameter `currentUserId` opsional — kalau tidak diisi,
+  default `false`/tersembunyi) untuk menyembunyikan tombol Approve/Reject
+  di `Index.cshtml` & `Details.cshtml` SEBELUM user klik, bukan menunggu
+  gagal 403 setelah klik.
+- **Bug ditemukan & diperbaiki**: leave request Pending yang dibuat
+  SEBELUM integrasi ini ada tidak punya `ApprovalRequest` terkait, jadi
+  approve/reject-nya selalu jatuh ke jalur fallback lama (unrestricted —
+  siapapun bisa approve, bukan cuma manajer). Fix: `DataSeeder` sekarang
+  punya `BackfillLeaveRequestApprovalsAsync` (jalan tiap startup, no-op
+  kalau sudah lengkap) yang bikinkan `ApprovalRequest` utk leave request
+  Pending lama yang belum punya, dengan logika resolve manajer yang sama
+  seperti submit normal. Employee tanpa akun user ter-link dilewati
+  (di-log sebagai warning, tidak menghentikan startup).
+- **Bug terkait ditemukan & diperbaiki (di modul General Document, bukan
+  APV, tapi ditemukan lewat alur ini)**: `DocumentService.
+  EnsureLeaveRequestAccessAsync` sebelumnya cuma izinkan akses lampiran
+  kalau user adalah pemilik record ATAU user itu SAMA SEKALI tidak punya
+  profil `HrEmployee` (dianggap "back-office"). Akun `admin` yang
+  kebetulan juga terhubung ke `HrEmployee` (jadi manajer semua departemen
+  di data seed) gagal lolos dua-duanya saat coba edit lampiran leave
+  request milik karyawan lain → 500 `UnauthorizedAccessException`. Fix:
+  tambah fallback cek role — Super Admin/HR Manager/HR Staff tetap boleh
+  akses lampiran leave request siapapun. Detail lengkap & sisa gap-nya ada
+  di `ReadMeDocumentGeneral.md`.
 
 Struktur Menu General Approval (sudah ter-seed, tapi isinya belum jalan)
 =========================================================================
@@ -519,17 +558,29 @@ Acuan Implementasi
   `ERP.Web/ViewModels/Approval/ApprovalViewModels.cs`,
   `ERP.Web/Views/Approval/**/*.cshtml`,
   `ERP.Web/Services/ApprovalApiClient.cs` + `IApprovalApiClient.cs`
-- Seed module, menu, template, level:
+- Seed module, menu, template, level, backfill:
   `ERP.Infrastructure/Data/DataSeeder.cs` — module "General
   Approval"/"APV", menu tree, `SeedApprovalTemplatesAsync` (template +
-  level default), permission ikut `SeedSuperAdminPermissionsAsync` yang
-  generik untuk semua menu.
+  level default), `BackfillLeaveRequestApprovalsAsync` (catch-up utk leave
+  request Pending dari sebelum integrasi ini ada), permission ikut
+  `SeedSuperAdminPermissionsAsync` yang generik untuk semua menu.
 - Integrasi HR Leave Request (lihat bagian "Integrasi Modul HR Leave
   Request" di atas untuk detail):
-  `ERP.Application/Services/HR/LeaveService.cs` (`SubmitAsync`),
+  `ERP.Application/Services/HR/LeaveService.cs` (`SubmitAsync`,
+  `GetRequestsAsync`/`GetByIdAsync` param `currentUserId` → `CanApprove`),
   `ERP.Application/Services/HR/LeaveRequestApprovalCallbackService.cs`,
   `ERP.Application/Services/HR/LeaveAttendanceSyncHelper.cs`,
-  `ERP.API/Controllers/v1/HR/LeaveRequestsController.cs` (`Approve`/`Reject`).
+  `ERP.Application/Services/Approval/ApprovalRequestService.cs`
+  (`FindActiveRequestIdAsync`, `GetActionablePermissionsAsync`),
+  `ERP.API/Controllers/v1/HR/LeaveRequestsController.cs` (`Approve`/`Reject`/
+  `Get`/`GetSelf`/`GetById`),
+  `ERP.Web/Views/HR/HrLeaveRequests/Index.cshtml` + `Details.cshtml`
+  (gating tombol lewat `CanApprove`),
+  `ERP.Web/Services/ApprovalReferenceLinkResolver.cs` (link Inbox → detail
+  leave request),
+  `ERP.Application/Services/Document/DocumentService.cs`
+  (`EnsureLeaveRequestAccessAsync` — fix akses Super Admin/HR Manager/HR
+  Staff, lihat `ReadMeDocumentGeneral.md` untuk detail).
 - Entitas approval-matrix TIDAK TERKAIT (jangan disangka bagian APV):
   `ERP.Domain/Entities/Purchasing/PurApprovalConfig.cs`,
   `ERP.Domain/Entities/Sales/SalApprovalConfig.cs`,
