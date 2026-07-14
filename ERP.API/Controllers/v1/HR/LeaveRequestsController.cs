@@ -34,7 +34,7 @@ public sealed class LeaveRequestsController(
         }
 
         request.EmployeeId = employeeId.Value;
-        var result = await leaveService.GetRequestsAsync(request, ct);
+        var result = await leaveService.GetRequestsAsync(request, GetCurrentUserId(), ct);
         return Ok(result);
     }
 
@@ -84,14 +84,14 @@ public sealed class LeaveRequestsController(
     [HttpGet]
     public async Task<IActionResult> Get([FromQuery] LeaveRequestPagedRequest request, CancellationToken ct)
     {
-        var result = await leaveService.GetRequestsAsync(request, ct);
+        var result = await leaveService.GetRequestsAsync(request, GetCurrentUserId(), ct);
         return Ok(result);
     }
 
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id, CancellationToken ct)
     {
-        var result = await leaveService.GetByIdAsync(id, ct);
+        var result = await leaveService.GetByIdAsync(id, GetCurrentUserId(), ct);
         return result is null ? NotFound() : Ok(result);
     }
 

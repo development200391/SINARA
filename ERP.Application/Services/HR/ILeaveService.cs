@@ -5,8 +5,13 @@ namespace ERP.Application.Services.HR;
 
 public interface ILeaveService
 {
-    Task<PagedResult<LeaveRequestDto>> GetRequestsAsync(LeaveRequestPagedRequest request, CancellationToken ct = default);
-    Task<LeaveRequestDto?> GetByIdAsync(int id, CancellationToken ct = default);
+    /// <summary>
+    /// <paramref name="currentUserId"/> is optional and only used to populate <see cref="LeaveRequestDto.CanApprove"/>
+    /// per row (see ApprovalRequestService.GetActionablePermissionsAsync) — omit it when the caller doesn't
+    /// need that field (e.g. internal reuse right after Submit/Update).
+    /// </summary>
+    Task<PagedResult<LeaveRequestDto>> GetRequestsAsync(LeaveRequestPagedRequest request, int? currentUserId = null, CancellationToken ct = default);
+    Task<LeaveRequestDto?> GetByIdAsync(int id, int? currentUserId = null, CancellationToken ct = default);
     Task<LeaveRequestDto> SubmitAsync(SubmitLeaveRequest request, CancellationToken ct = default);
     Task<LeaveRequestDto?> UpdateAsync(int id, SubmitLeaveRequest request, CancellationToken ct = default);
     Task<bool> DeleteAsync(int id, CancellationToken ct = default);

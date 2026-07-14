@@ -298,6 +298,41 @@ public sealed class ApprovalRequestService(
             .FirstOrDefaultAsync(ct);
     }
 
+    public async Task<IReadOnlyDictionary<int, bool>> GetActionablePermissionsAsync(string referenceType, IReadOnlyCollection<int> referenceIds, int userId, CancellationToken ct = default)
+    {
+        if (referenceIds.Count == 0)
+        {
+            return new Dictionary<int, bool>();
+        }
+
+        var activeRequests = await unitOfWork.Repository<ApprovalRequest>().Query().AsNoTracking()
+            .Where(x => x.ReferenceType == referenceType && referenceIds.Contains(x.ReferenceId) &&
+                (x.Status == ApprovalRequestStatus.Pending || x.Status == ApprovalRequestStatus.InProgress))
+            .Select(x => new { x.Id, x.ReferenceId })
+            .ToListAsync(ct);
+
+        var requestIds = activeRequests.Select(x => x.Id).ToList();
+
+        var userStepRequestIds = requestIds.Count == 0
+            ? []
+            : await unitOfWork.Repository<ApprovalStep>().Query().AsNoTracking()
+                .Where(x => requestIds.Contains(x.RequestId) && x.ApproverUserId == userId && x.IsActive && x.Action == null)
+                .Select(x => x.RequestId)
+                .Distinct()
+                .ToListAsync(ct);
+
+        var userStepRequestIdSet = userStepRequestIds.ToHashSet();
+
+        var result = new Dictionary<int, bool>();
+        foreach (var referenceId in referenceIds)
+        {
+            var activeRequest = activeRequests.FirstOrDefault(x => x.ReferenceId == referenceId);
+            result[referenceId] = activeRequest is null || userStepRequestIdSet.Contains(activeRequest.Id);
+        }
+
+        return result;
+    }
+
     public async Task ProcessEscalationsAndRemindersAsync(CancellationToken ct = default)
     {
         var now = DateTimeOffset.UtcNow;

@@ -79,6 +79,7 @@
                 Rows = Model.Requests.Items.Select(item =>
                 {
                     var isPending = item.Status == LeaveStatus.Pending;
+                    var canApprove = isPending && item.CanApprove;
 
                     return new PagedGridRowViewModel
                     {
@@ -105,8 +106,8 @@
                             DetailUrl = Url.Action("Details", "HrLeaveRequests", new { id = item.Id }),
                             EditUrl = isPending ? Url.Action("Edit", "HrLeaveRequests", new { id = item.Id }) : null,
                             DeleteUrl = isPending ? Url.Action("Delete", "HrLeaveRequests", new { id = item.Id }) : null,
-                            ApproveUrl = isPending ? Url.Action("Approve", "HrLeaveRequests", new { id = item.Id }) : null,
-                            RejectUrl = isPending ? Url.Action("Reject", "HrLeaveRequests", new { id = item.Id }) : null,
+                            ApproveUrl = canApprove ? Url.Action("Approve", "HrLeaveRequests", new { id = item.Id }) : null,
+                            RejectUrl = canApprove ? Url.Action("Reject", "HrLeaveRequests", new { id = item.Id }) : null,
                             DeleteConfirmMessage = T["Delete leave request ini?"],
                             ApproveConfirmMessage = T["Approve request ini?"],
                             RejectConfirmMessage = T["Reject request ini?"]

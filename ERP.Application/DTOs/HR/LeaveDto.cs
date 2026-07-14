@@ -21,6 +21,13 @@ public sealed class LeaveRequestDto
     public string? ApprovedByName { get; set; }
     public DateTimeOffset? ApprovedAt { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
+
+    /// <summary>
+    /// Whether the caller who requested this DTO is allowed to approve/reject this specific request
+    /// right now. Only populated when the service is asked to compute it (see LeaveService); otherwise
+    /// defaults to false so callers that don't ask default to hiding the buttons.
+    /// </summary>
+    public bool CanApprove { get; set; }
 }
 
 public sealed class SubmitLeaveRequest

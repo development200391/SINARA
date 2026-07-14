@@ -37,6 +37,15 @@ public interface IApprovalRequestService
     Task<int?> FindActiveRequestIdAsync(string referenceType, int referenceId, CancellationToken ct = default);
 
     /// <summary>
+    /// For a batch of source records, reports whether <paramref name="userId"/> may act (approve/reject)
+    /// on each one right now — true if there's no linked approval request at all (legacy fallback, still
+    /// open to anyone per <see cref="FindActiveRequestIdAsync"/>'s caller), or if the user holds the
+    /// currently active step. Lets a source module's list/detail views hide Approve/Reject up front
+    /// instead of showing them and letting the action fail with 403.
+    /// </summary>
+    Task<IReadOnlyDictionary<int, bool>> GetActionablePermissionsAsync(string referenceType, IReadOnlyCollection<int> referenceIds, int userId, CancellationToken ct = default);
+
+    /// <summary>
     /// Invoked by the Hangfire recurring job every 30 minutes: sends SLA reminders, escalates overdue
     /// steps to their configured EscalateToLevelId (if any), and alerts on unescalatable overdue steps.
     /// </summary>

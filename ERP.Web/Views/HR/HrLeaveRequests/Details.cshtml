@@ -71,21 +71,24 @@
             {
                 <a asp-action="Edit" asp-route-id="@request.Id" class="btn btn-outline-primary">@T["common.edit"]</a>
 
-                <form asp-action="Approve" asp-route-id="@request.Id" method="post" class="d-inline">
-                    @Html.AntiForgeryToken()
-                    <button type="submit" class="btn btn-outline-success" onclick="return confirm('Approve request ini?')">
-                        <i class="bi bi-check2-circle me-1" aria-hidden="true"></i>
-                        <span>Approve</span>
-                    </button>
-                </form>
+                if (request.CanApprove)
+                {
+                    <form asp-action="Approve" asp-route-id="@request.Id" method="post" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-outline-success" onclick="return confirm('Approve request ini?')">
+                            <i class="bi bi-check2-circle me-1" aria-hidden="true"></i>
+                            <span>Approve</span>
+                        </button>
+                    </form>
 
-                <form asp-action="Reject" asp-route-id="@request.Id" method="post" class="d-inline">
-                    @Html.AntiForgeryToken()
-                    <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Reject request ini?')">
-                        <i class="bi bi-x-circle me-1" aria-hidden="true"></i>
-                        <span>Reject</span>
-                    </button>
-                </form>
+                    <form asp-action="Reject" asp-route-id="@request.Id" method="post" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Reject request ini?')">
+                            <i class="bi bi-x-circle me-1" aria-hidden="true"></i>
+                            <span>Reject</span>
+                        </button>
+                    </form>
+                }
 
                 <form asp-action="Delete" asp-route-id="@request.Id" method="post" class="d-inline">
                     @Html.AntiForgeryToken()

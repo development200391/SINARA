@@ -10,7 +10,7 @@ namespace ERP.Application.Services.HR;
 
 public sealed class LeaveService(IUnitOfWork unitOfWork, IApprovalRequestService approvalRequestService) : ILeaveService
 {
-    public async Task<PagedResult<LeaveRequestDto>> GetRequestsAsync(LeaveRequestPagedRequest request, CancellationToken ct = default)
+    public async Task<PagedResult<LeaveRequestDto>> GetRequestsAsync(LeaveRequestPagedRequest request, int? currentUserId = null, CancellationToken ct = default)
     {
         var page = request.Page <= 0 ? 1 : request.Page;
         var pageSize = request.PageSize <= 0 ? 20 : request.PageSize;
@@ -52,12 +52,14 @@ public sealed class LeaveService(IUnitOfWork unitOfWork, IApprovalRequestService
             .Select(x => MapLeaveRequest(x))
             .ToListAsync(ct);
 
+        await PopulateCanApproveAsync(items, currentUserId, ct);
+
         return PagedResult<LeaveRequestDto>.Create(items, total, page, pageSize);
     }
 
-    public async Task<LeaveRequestDto?> GetByIdAsync(int id, CancellationToken ct = default)
+    public async Task<LeaveRequestDto?> GetByIdAsync(int id, int? currentUserId = null, CancellationToken ct = default)
     {
-        return await unitOfWork.Repository<HrLeaveRequest>()
+        var item = await unitOfWork.Repository<HrLeaveRequest>()
             .Query()
             .AsNoTracking()
             .Include(x => x.Employee)
@@ -66,6 +68,36 @@ public sealed class LeaveService(IUnitOfWork unitOfWork, IApprovalRequestService
             .Where(x => x.Id == id)
             .Select(x => MapLeaveRequest(x))
             .FirstOrDefaultAsync(ct);
+
+        if (item is not null)
+        {
+            await PopulateCanApproveAsync([item], currentUserId, ct);
+        }
+
+        return item;
+    }
+
+    private async Task PopulateCanApproveAsync(IReadOnlyList<LeaveRequestDto> items, int? currentUserId, CancellationToken ct)
+    {
+        if (!currentUserId.HasValue)
+        {
+            return;
+        }
+
+        var pendingIds = items.Where(x => x.Status == LeaveStatus.Pending).Select(x => x.Id).ToList();
+        if (pendingIds.Count == 0)
+        {
+            return;
+        }
+
+        var permissions = await approvalRequestService.GetActionablePermissionsAsync("hr_leave_requests", pendingIds, currentUserId.Value, ct);
+        foreach (var item in items)
+        {
+            if (permissions.TryGetValue(item.Id, out var canApprove))
+            {
+                item.CanApprove = canApprove;
+            }
+        }
     }
 
     public async Task<LeaveRequestDto> SubmitAsync(SubmitLeaveRequest request, CancellationToken ct = default)
@@ -169,7 +201,7 @@ public sealed class LeaveService(IUnitOfWork unitOfWork, IApprovalRequestService
             throw;
         }
 
-        return await GetByIdAsync(entity.Id, ct)
+        return await GetByIdAsync(entity.Id, currentUserId: null, ct)
             ?? throw new InvalidOperationException("Failed to load submitted leave request.");
     }
 
@@ -253,7 +285,7 @@ public sealed class LeaveService(IUnitOfWork unitOfWork, IApprovalRequestService
         unitOfWork.Repository<HrLeaveRequest>().Update(entity);
         await unitOfWork.SaveChangesAsync(ct);
 
-        return await GetByIdAsync(entity.Id, ct);
+        return await GetByIdAsync(entity.Id, currentUserId: null, ct);
     }
 
     public async Task<bool> DeleteAsync(int id, CancellationToken ct = default)
