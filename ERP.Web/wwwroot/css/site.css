@@ -786,6 +786,16 @@ body {
     background: var(--sinara-bg-accent);
 }
 
+.sinara-doc-dropzone-has-file {
+    border-style: solid;
+    border-color: var(--bs-success-border-subtle);
+    background: var(--bs-success-bg-subtle);
+}
+
+.sinara-doc-dropzone-has-file .bi {
+    color: var(--bs-success);
+}
+
 .sinara-doc-dropzone .bi {
     color: var(--sinara-primary);
 }

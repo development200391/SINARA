@@ -4,6 +4,7 @@ using ERP.Application.DTOs.Document;
 using ERP.Application.Options;
 using ERP.Domain.Entities.Document;
 using ERP.Domain.Entities.HR;
+using ERP.Domain.Entities.System;
 using ERP.Domain.Enums;
 using ERP.Domain.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -493,7 +494,20 @@ public sealed class DocumentService(IUnitOfWork unitOfWork, IDocumentStorageServ
 
         if (!isOwner && !isBackOffice)
         {
-            throw new UnauthorizedAccessException("You are not allowed to access documents for this leave request.");
+            // The "no employee profile = back office" heuristic above misses accounts that ARE also
+            // linked to an employee (e.g. a Super Admin who happens to be seeded as a department
+            // manager) — fall back to role membership so those accounts can still manage leave
+            // requests submitted on behalf of other employees.
+            var isHrOrAdmin = await unitOfWork.Repository<SysUserRole>()
+                .Query()
+                .AsNoTracking()
+                .AnyAsync(x => x.UserId == currentUserId &&
+                    (x.Role.Name == "Super Admin" || x.Role.Name == "HR Manager" || x.Role.Name == "HR Staff"), ct);
+
+            if (!isHrOrAdmin)
+            {
+                throw new UnauthorizedAccessException("You are not allowed to access documents for this leave request.");
+            }
         }
 
         if (requireMutable && leaveRequest.Status != LeaveStatus.Pending)

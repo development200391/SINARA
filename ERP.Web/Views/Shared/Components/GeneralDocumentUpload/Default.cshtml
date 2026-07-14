@@ -60,14 +60,15 @@
                 }
                 else
                 {
-                    <label class="sinara-doc-dropzone">
-                        <i class="bi bi-cloud-upload"></i>
-                        <span>@T["Choose File"]</span>
-                        <span class="sinara-doc-hint">@accept &middot; @T["Max"] @maxSizeMb MB</span>
+                    <label class="sinara-doc-dropzone" data-doc-dropzone>
+                        <i class="bi bi-cloud-upload" data-doc-dropzone-icon></i>
+                        <span data-doc-dropzone-label data-doc-dropzone-default="@T["Choose File"]">@T["Choose File"]</span>
+                        <span class="sinara-doc-hint" data-doc-dropzone-hint>@accept &middot; @T["Max"] @maxSizeMb MB</span>
                         <input type="file"
                                name="@Model.FileFieldName"
                                class="d-none"
                                accept="@accept"
+                               data-doc-dropzone-input
                                data-val="@(isFieldRequired ? "true" : null)"
                                data-val-required="@(isFieldRequired ? requiredMessage : null)" />
                     </label>
@@ -90,3 +91,35 @@
         </div>
     </div>
 }
+
+<script>
+(function () {
+    if (window.sinaraDocDropzoneBound) {
+        return;
+    }
+
+    window.sinaraDocDropzoneBound = true;
+
+    document.addEventListener('change', function (event) {
+        var input = event.target;
+        if (!(input instanceof HTMLInputElement) || !input.hasAttribute('data-doc-dropzone-input')) {
+            return;
+        }
+
+        var dropzone = input.closest('[data-doc-dropzone]');
+        if (!dropzone) {
+            return;
+        }
+
+        var label = dropzone.querySelector('[data-doc-dropzone-label]');
+        var file = input.files && input.files.length > 0 ? input.files[0] : null;
+
+        if (label) {
+            var defaultText = label.getAttribute('data-doc-dropzone-default') || '';
+            label.textContent = file ? file.name : defaultText;
+        }
+
+        dropzone.classList.toggle('sinara-doc-dropzone-has-file', !!file);
+    });
+})();
+</script>
