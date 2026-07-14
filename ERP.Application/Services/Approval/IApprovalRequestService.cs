@@ -31,6 +31,12 @@ public interface IApprovalRequestService
     Task<ApprovalRequestDto> CancelAsync(int requestId, int actorUserId, string? notes, CancellationToken ct = default);
 
     /// <summary>
+    /// Looks up the currently open (Pending/InProgress) approval request for a source record, if any.
+    /// Lets a source module's own approve/reject action delegate into the APV engine when one exists.
+    /// </summary>
+    Task<int?> FindActiveRequestIdAsync(string referenceType, int referenceId, CancellationToken ct = default);
+
+    /// <summary>
     /// Invoked by the Hangfire recurring job every 30 minutes: sends SLA reminders, escalates overdue
     /// steps to their configured EscalateToLevelId (if any), and alerts on unescalatable overdue steps.
     /// </summary>

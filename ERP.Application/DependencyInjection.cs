@@ -44,6 +44,7 @@ public static class DependencyInjection
         services.AddScoped<IApprovalDelegationService, ApprovalDelegationService>();
         services.AddScoped<IApprovalRequestService, ApprovalRequestService>();
         services.AddScoped<IApprovalReportService, ApprovalReportService>();
+        services.AddScoped<IApprovalCallbackService, LeaveRequestApprovalCallbackService>();
 
         return services;
     }

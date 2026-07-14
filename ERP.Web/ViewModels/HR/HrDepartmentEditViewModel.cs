@@ -19,6 +19,8 @@ public sealed class HrDepartmentEditViewModel
     public int? ParentDepartmentId { get; set; }
     public bool IsActive { get; set; } = true;
 
+    public bool IsReadOnly { get; set; }
+
     public IReadOnlyList<LookupDto> Managers { get; set; } = [];
     public IReadOnlyList<DepartmentDto> ParentDepartments { get; set; } = [];
 }

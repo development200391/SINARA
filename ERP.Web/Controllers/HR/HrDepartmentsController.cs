@@ -102,10 +102,23 @@ public sealed class HrDepartmentsController(IHrApiClient hrApiClient, IMenuPermi
             return NotFound();
         }
 
+        var model = new HrDepartmentEditViewModel
+        {
+            Id = department.Id,
+            Name = department.Name,
+            Code = department.Code,
+            ManagerId = department.ManagerId,
+            ParentDepartmentId = department.ParentDepartmentId,
+            IsActive = department.IsActive,
+            IsReadOnly = true
+        };
+
+        await PopulateReadOnlyOptionsAsync(accessToken, model, department, ct);
+
         ViewData["Title"] = "Department Details";
         ViewData["Breadcrumb"] = "HR / Departments / Details";
 
-        return View(department);
+        return View(model);
     }
 
     [HttpGet("create")]
@@ -270,6 +283,35 @@ public sealed class HrDepartmentsController(IHrApiClient hrApiClient, IMenuPermi
         if (model.ManagerId.HasValue && managers.All(x => x.Id != model.ManagerId.Value))
         {
             model.ManagerId = null;
+        }
+
+        model.Managers = managers;
+        model.ParentDepartments = parentDepartments;
+    }
+
+    /// <summary>
+    /// Unlike <see cref="PopulateFormOptionsAsync"/> (used by Create/Edit), this never clears a stale
+    /// ManagerId/ParentDepartmentId that fell out of the active options list — a Details page must keep
+    /// showing the department's actual data (e.g. a manager who's since gone inactive), not silently
+    /// blank it out. Missing options are appended using the names already returned on the DTO.
+    /// </summary>
+    private async Task PopulateReadOnlyOptionsAsync(string accessToken, HrDepartmentEditViewModel model, DepartmentDto department, CancellationToken ct)
+    {
+        var managersTask = hrApiClient.GetEmployeeOptionsAsync(accessToken, ct);
+        var departmentsTask = hrApiClient.GetDepartmentOptionsAsync(accessToken, ct);
+
+        await Task.WhenAll(managersTask, departmentsTask);
+
+        var managers = await managersTask;
+        if (department.ManagerId.HasValue && managers.All(x => x.Id != department.ManagerId.Value))
+        {
+            managers = [.. managers, new LookupDto { Id = department.ManagerId.Value, Name = department.ManagerName ?? $"#{department.ManagerId.Value}" }];
+        }
+
+        var parentDepartments = await departmentsTask;
+        if (department.ParentDepartmentId.HasValue && parentDepartments.All(x => x.Id != department.ParentDepartmentId.Value))
+        {
+            parentDepartments = [.. parentDepartments, new DepartmentDto { Id = department.ParentDepartmentId.Value, Code = string.Empty, Name = department.ParentDepartmentName ?? $"#{department.ParentDepartmentId.Value}" }];
         }
 
         model.Managers = managers;

@@ -1,5 +1,7 @@
+using ERP.Application.DTOs.Approval;
 using ERP.Application.DTOs.Document;
 using ERP.Application.DTOs.HR;
+using ERP.Application.Services.Approval;
 using ERP.Application.Services.Document;
 using ERP.Application.Services.HR;
 using Microsoft.AspNetCore.Mvc;
@@ -7,7 +9,11 @@ using Microsoft.AspNetCore.Mvc;
 namespace ERP.API.Controllers.v1.HR;
 
 [Route("api/v1/hr/leave-requests")]
-public sealed class LeaveRequestsController(ILeaveService leaveService, IEmployeeService employeeService, IDocumentService documentService) : HrControllerBase
+public sealed class LeaveRequestsController(
+    ILeaveService leaveService,
+    IEmployeeService employeeService,
+    IDocumentService documentService,
+    IApprovalRequestService approvalRequestService) : HrControllerBase
 {
     private const string DocumentReferenceType = "hr_leave_requests";
 
@@ -198,6 +204,24 @@ public sealed class LeaveRequestsController(ILeaveService leaveService, IEmploye
             return Unauthorized();
         }
 
+        var approvalRequestId = await approvalRequestService.FindActiveRequestIdAsync(DocumentReferenceType, id, ct);
+        if (approvalRequestId is not null)
+        {
+            try
+            {
+                await approvalRequestService.ApproveAsync(approvalRequestId.Value, userId.Value, new TakeApprovalActionRequest(), ct);
+                return NoContent();
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
         var approved = await leaveService.ApproveAsync(id, userId.Value, ct);
         return approved ? NoContent() : NotFound();
     }
@@ -209,6 +233,24 @@ public sealed class LeaveRequestsController(ILeaveService leaveService, IEmploye
         if (userId is null)
         {
             return Unauthorized();
+        }
+
+        var approvalRequestId = await approvalRequestService.FindActiveRequestIdAsync(DocumentReferenceType, id, ct);
+        if (approvalRequestId is not null)
+        {
+            try
+            {
+                await approvalRequestService.RejectAsync(approvalRequestId.Value, userId.Value, new TakeApprovalActionRequest(), ct);
+                return NoContent();
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         var rejected = await leaveService.RejectAsync(id, userId.Value, ct);

@@ -1,0 +1,87 @@
+@model ERP.Web.ViewModels.HR.HrDepartmentEditViewModel
+@using ERP.Web.ViewModels.Shared
+@using System.Globalization
+
+@{
+    var isEdit = Model.Id > 0;
+    var title = Model.IsReadOnly ? T["Department Details"] : (isEdit ? T["Edit Department"] : T["Create Department"]);
+}
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">@title</h1>
+
+        <form method="post" class="row g-3">
+            @Html.AntiForgeryToken()
+            @if (isEdit)
+            {
+                <input asp-for="Id" type="hidden" />
+            }
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="col-md-6">
+                <label asp-for="Code" class="form-label"></label>
+                <input asp-for="Code" class="form-control" disabled="@(Model.IsReadOnly ? "disabled" : null)" />
+                <span asp-validation-for="Code" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="Name" class="form-label"></label>
+                <input asp-for="Name" class="form-control" disabled="@(Model.IsReadOnly ? "disabled" : null)" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="ManagerId" class="form-label">@T["Manager"]</label>
+                @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+                {
+                    Name = nameof(Model.ManagerId),
+                    Id = Html.IdFor(x => x.ManagerId).ToString(),
+                    CssClass = "form-select",
+                    SearchPlaceholder = T["Search"],
+                    EmptyOptionLabel = T["No Manager"],
+                    IsDisabled = Model.IsReadOnly,
+                    SelectedValue = Model.ManagerId.HasValue
+                        ? Model.ManagerId.Value.ToString(CultureInfo.InvariantCulture)
+                        : null,
+                    Options = Model.Managers.Select(manager => new SearchableSelectOptionViewModel
+                    {
+                        Value = manager.Id.ToString(CultureInfo.InvariantCulture),
+                        Label = manager.Name
+                    }).ToList()
+                })
+                <span asp-validation-for="ManagerId" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="ParentDepartmentId" class="form-label">@T["Parent Department"]</label>
+                <select asp-for="ParentDepartmentId" class="form-select" disabled="@(Model.IsReadOnly ? "disabled" : null)">
+                    <option value="">@T["No Parent"]</option>
+                    @foreach (var department in Model.ParentDepartments)
+                    {
+                        <option value="@department.Id" selected="@(Model.ParentDepartmentId == department.Id)">@department.Code - @department.Name</option>
+                    }
+                </select>
+                <span asp-validation-for="ParentDepartmentId" class="text-danger"></span>
+            </div>
+
+            <div class="col-12 form-check mt-2">
+                <input asp-for="IsActive" class="form-check-input" disabled="@(Model.IsReadOnly ? "disabled" : null)" />
+                <label asp-for="IsActive" class="form-check-label"></label>
+            </div>
+
+            <div class="col-12 d-flex gap-2">
+                @if (Model.IsReadOnly)
+                {
+                    <a class="btn btn-primary" asp-action="Edit" asp-route-id="@Model.Id">@T["common.edit"]</a>
+                    <a class="btn btn-outline-secondary" asp-action="Index">@T["common.cancel"]</a>
+                }
+                else
+                {
+                    <button type="submit" class="btn btn-primary">@T["common.save"]</button>
+                    <a asp-action="Index" class="btn btn-outline-secondary">@T["common.cancel"]</a>
+                }
+            </div>
+        </form>
+    </div>
+</div>

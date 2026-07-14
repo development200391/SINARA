@@ -1,5 +1,6 @@
 using ERP.Application.DTOs.Common;
 using ERP.Application.DTOs.HR;
+using ERP.Application.Services.Approval;
 using ERP.Domain.Entities.HR;
 using ERP.Domain.Enums;
 using ERP.Domain.Interfaces;
@@ -7,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ERP.Application.Services.HR;
 
-public sealed class LeaveService(IUnitOfWork unitOfWork) : ILeaveService
+public sealed class LeaveService(IUnitOfWork unitOfWork, IApprovalRequestService approvalRequestService) : ILeaveService
 {
     public async Task<PagedResult<LeaveRequestDto>> GetRequestsAsync(LeaveRequestPagedRequest request, CancellationToken ct = default)
     {
@@ -152,6 +153,22 @@ public sealed class LeaveService(IUnitOfWork unitOfWork) : ILeaveService
         await unitOfWork.Repository<HrLeaveRequest>().AddAsync(entity, ct);
         await unitOfWork.SaveChangesAsync(ct);
 
+        try
+        {
+            var requestedByUserId = employee.UserId
+                ?? throw new InvalidOperationException($"Cannot submit for approval: '{employee.FullName}' has no linked user account.");
+
+            var subject = $"{leaveType.Name} - {employee.FullName} ({request.StartDate:yyyy-MM-dd} s/d {request.EndDate:yyyy-MM-dd})";
+
+            await approvalRequestService.SubmitAsync("HR", "hr_leave_requests", entity.Id, subject, null, requestedByUserId, request.Reason, ct);
+        }
+        catch
+        {
+            unitOfWork.Repository<HrLeaveRequest>().Delete(entity);
+            await unitOfWork.SaveChangesAsync(ct);
+            throw;
+        }
+
         return await GetByIdAsync(entity.Id, ct)
             ?? throw new InvalidOperationException("Failed to load submitted leave request.");
     }
@@ -278,50 +295,10 @@ public sealed class LeaveService(IUnitOfWork unitOfWork) : ILeaveService
         request.UpdatedAt = DateTimeOffset.UtcNow;
 
         unitOfWork.Repository<HrLeaveRequest>().Update(request);
-        await SyncApprovedLeaveToAttendanceAsync(request, ct);
+        await LeaveAttendanceSyncHelper.SyncApprovedLeaveToAttendanceAsync(unitOfWork, request, ct);
         await unitOfWork.SaveChangesAsync(ct);
 
         return true;
-    }
-
-    private async Task SyncApprovedLeaveToAttendanceAsync(HrLeaveRequest request, CancellationToken ct)
-    {
-        var attendanceRepository = unitOfWork.Repository<HrAttendanceRecord>();
-        var existingRecords = await attendanceRepository
-            .Query()
-            .Where(x =>
-                x.EmployeeId == request.EmployeeId &&
-                x.Date >= request.StartDate &&
-                x.Date <= request.EndDate)
-            .ToListAsync(ct);
-
-        for (var date = request.StartDate; date <= request.EndDate; date = date.AddDays(1))
-        {
-            var existing = existingRecords.FirstOrDefault(x => x.Date == date);
-            if (existing is not null)
-            {
-                if (existing.CheckIn.HasValue || existing.CheckOut.HasValue)
-                {
-                    continue;
-                }
-
-                existing.Status = AttendanceStatus.Cuti;
-                existing.Notes = request.Reason;
-                existing.UpdatedBy = "system";
-                existing.UpdatedAt = DateTimeOffset.UtcNow;
-                attendanceRepository.Update(existing);
-                continue;
-            }
-
-            await attendanceRepository.AddAsync(new HrAttendanceRecord
-            {
-                EmployeeId = request.EmployeeId,
-                Date = date,
-                Status = AttendanceStatus.Cuti,
-                Notes = request.Reason,
-                CreatedBy = "system"
-            }, ct);
-        }
     }
 
     public async Task<bool> RejectAsync(int leaveRequestId, int approverUserId, CancellationToken ct = default)

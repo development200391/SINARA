@@ -289,6 +289,15 @@ public sealed class ApprovalRequestService(
         return await LoadRequestDtoAsync(requestId, ct);
     }
 
+    public async Task<int?> FindActiveRequestIdAsync(string referenceType, int referenceId, CancellationToken ct = default)
+    {
+        return await unitOfWork.Repository<ApprovalRequest>().Query().AsNoTracking()
+            .Where(x => x.ReferenceType == referenceType && x.ReferenceId == referenceId &&
+                (x.Status == ApprovalRequestStatus.Pending || x.Status == ApprovalRequestStatus.InProgress))
+            .Select(x => (int?)x.Id)
+            .FirstOrDefaultAsync(ct);
+    }
+
     public async Task ProcessEscalationsAndRemindersAsync(CancellationToken ct = default)
     {
         var now = DateTimeOffset.UtcNow;

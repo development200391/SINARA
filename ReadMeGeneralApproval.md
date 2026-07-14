@@ -39,10 +39,11 @@ Yang SUDAH ada dan jalan:
   `ApprovalReportService` (dashboard, SLA report, by-template report,
   audit log). `IApprovalCallbackService` adalah registry pattern
   (`IEnumerable<IApprovalCallbackService>` di-inject ke
-  `ApprovalRequestService`, dicari lewat `ReferenceType`) — **belum ada
-  implementasi konkret terpasang** karena belum ada modul sumber
-  (Fixed Assets/Payroll/Purchasing/Finance) yang benar-benar memanggil
-  `SubmitAsync`; lihat bagian "Integrasi ke modul lain" di bawah.
+  `ApprovalRequestService`, dicari lewat `ReferenceType`) — implementasi
+  konkret pertama sudah terpasang untuk `hr_leave_requests`
+  (`LeaveRequestApprovalCallbackService`); Fixed Assets/Payroll/
+  Purchasing/Finance belum. Lihat bagian "Integrasi Modul HR Leave
+  Request" di bawah.
 - `IApprovalNotificationService` (`ERP.API/Services/ApprovalNotificationService.cs`)
   — tulis baris `apv_notifications`, push in-app lewat SignalR
   (`ERP.API/Hubs/ApprovalHub.cs`, endpoint `/hubs/approval`), kirim email
@@ -76,14 +77,16 @@ Yang SUDAH ada dan jalan:
   template, termasuk penyesuaian dari rencana awal docx).
 
 Yang BELUM ada / catatan penting:
-- **Integrasi ke modul lain** — TIDAK ADA satupun modul (Fixed Assets,
-  Purchasing, Payroll, Finance) yang memanggil
+- **Integrasi ke modul lain** — **HR Leave Request SUDAH terhubung**
+  (integrasi pertama, lihat bagian "Integrasi Modul HR Leave Request" di
+  bawah). Fixed Assets, Purchasing, Payroll, Finance MASIH belum — tidak
+  ada satupun dari modul-modul itu yang memanggil
   `IApprovalRequestService.SubmitAsync` atau mengimplementasikan
   `IApprovalCallbackService`. Engine-nya sudah lengkap dan bisa dipanggil
-  API-nya langsung (`POST` ke endpoint terkait lewat service, bukan lewat
-  controller HTTP publik — `SubmitAsync` sengaja tidak diekspos sebagai
-  endpoint API karena hanya dipanggil modul lain secara in-process), tapi
-  belum ada "tombol Submit for Approval" di modul manapun. Sebagian juga
+  langsung secara in-process (`SubmitAsync` sengaja tidak diekspos sebagai
+  endpoint API publik — hanya dipanggil modul sumber lewat Application
+  layer, persis seperti `LeaveService.SubmitAsync` memanggilnya), tapi
+  belum ada "tombol Submit for Approval" di modul-modul itu. Sebagian juga
   karena entity transaksional sumbernya sendiri (PR/PO, Payroll Run yang
   bisa "diajukan", dst.) belum lengkap dibangun di modul-modul itu — lihat
   detail per template di bagian 7.
@@ -119,6 +122,70 @@ Yang BELUM ada / catatan penting:
   (bisa daftar lebih dari satu — routing engine resolve otomatis lewat
   `ReferenceType`), lalu implementasikan efek samping approve/reject/
   cancel-nya di sana (README bagian 6 masih relevan untuk pola ini).
+
+Integrasi Modul HR Leave Request (SUDAH JALAN — integrasi pertama)
+======================================================================
+`hr/leave/requests` (menu HR → Leave Requests) sekarang memakai General
+Approval sebagai mesin approval-nya, menggantikan flip status
+langsung yang dipakai sebelumnya. UI/UX di halaman HR Leave Requests
+TIDAK BERUBAH (tombol Approve/Reject, konfirmasi `confirm()` polos, tanpa
+kolom alasan reject) — yang berubah cuma apa yang terjadi DI BALIK LAYAR.
+
+- **Submit** — `LeaveService.SubmitAsync`
+  (`ERP.Application/Services/HR/LeaveService.cs`) sekarang, setelah
+  `HrLeaveRequest` tersimpan, memanggil
+  `IApprovalRequestService.SubmitAsync("HR", "hr_leave_requests",
+  entity.Id, subject, amount: null, requestedByUserId, notes)`.
+  `requestedByUserId` diambil dari `HrEmployee.UserId` milik karyawan yang
+  mengajukan cuti — **kalau karyawan itu tidak punya akun user (SysUser)
+  yang ter-link, pengajuan cuti akan GAGAL** dengan pesan
+  "Cannot submit for approval: '{nama}' has no linked user account."
+  (baris `HrLeaveRequest` yang sudah sempat tersimpan otomatis di-rollback
+  lewat soft-delete supaya tidak jadi baris hantu yang mengganggu
+  pengecekan cuti overlap/kuota di pengajuan berikutnya). Ini perubahan
+  perilaku baru dibanding sebelumnya (dulu karyawan tanpa akun user tetap
+  bisa diajukan cuti-nya oleh HR admin) — kalau ada karyawan begitu, link
+  dulu akun user-nya sebelum mengajukan cuti.
+- **Approve/Reject** — endpoint API `PUT .../approve` dan `.../reject`
+  (`ERP.API/Controllers/v1/HR/LeaveRequestsController.cs`) sekarang cek
+  dulu lewat `IApprovalRequestService.FindActiveRequestIdAsync
+  ("hr_leave_requests", id)`: kalau ada `ApprovalRequest` yang masih
+  Pending/InProgress untuk leave request itu, aksi didelegasikan ke
+  `IApprovalRequestService.ApproveAsync`/`RejectAsync` (lewat mesin APV,
+  lengkap dengan audit log, notifikasi, dan enforcement siapa yang boleh
+  bertindak). Kalau TIDAK ada (mis. data lama dari sebelum fitur ini ada),
+  fallback ke `LeaveService.ApproveAsync`/`RejectAsync` yang lama (flip
+  status langsung) — jadi data lama tetap bisa diproses tanpa error.
+- **Efek samping approve/reject** — `LeaveRequestApprovalCallbackService`
+  (`ERP.Application/Services/HR/LeaveRequestApprovalCallbackService.cs`,
+  `ReferenceType = "hr_leave_requests"`) dipanggil routing engine saat
+  keputusan final: set `HrLeaveRequest.Status`/`ApprovedBy`/`ApprovedAt`,
+  dan kalau Approved, sinkronkan ke `HrAttendanceRecord` (persis logika
+  `SyncApprovedLeaveToAttendanceAsync` yang lama, sekarang diekstrak ke
+  `LeaveAttendanceSyncHelper` supaya dipakai bersama oleh alur baru DAN
+  alur fallback lama tanpa duplikasi kode). Cancel dari APV (lewat
+  `/approval/my-requests`) diperlakukan sama seperti Reject (`LeaveStatus`
+  tidak punya nilai `Cancelled` tersendiri) — pilihan pragmatis supaya
+  tidak perlu ubah skema/enum.
+- **Siapa yang bisa approve sekarang** — template `HR_LEAVE` (lihat tabel
+  di bagian 7) cuma punya 1 level: `ApproverType = DirectSuperior`, jadi
+  **HANYA manajer department karyawan yang bersangkutan** (`HrDepartment.
+  ManagerId`) yang punya step aktif untuk di-approve/reject. Ini LEBIH
+  KETAT dari sebelumnya (dulu siapapun dengan izin menu Leave Requests
+  bisa approve/reject siapapun, tanpa cek hubungan manajerial) — perilaku
+  baru ini konsekuensi wajar dari pindah ke mesin approval generik; kalau
+  departemen karyawan belum punya `ManagerId` ter-set, submit-nya akan
+  gagal dengan pesan "Cannot resolve direct superior: the requester's
+  department has no manager assigned." — pastikan semua department yang
+  aktif sudah punya manajer sebelum staf-nya mengajukan cuti.
+- **RequireCommentOnReject = false** khusus untuk `HR_LEAVE` (beda dari
+  template lain yang defaultnya `true`) — supaya perilaku reject-tanpa-
+  alasan yang sudah ada sebelumnya di halaman Leave Requests tetap sama.
+  Kalau nanti mau mewajibkan alasan reject, ubah field ini lewat halaman
+  Approval → Templates (tidak perlu ubah kode).
+- Approver JUGA bisa bertindak lewat Approval Inbox (`/approval/inbox`)
+  selain lewat tombol di halaman HR Leave Requests — dua-duanya memanggil
+  engine yang sama, jadi hasilnya konsisten dari sisi manapun diambil.
 
 Struktur Menu General Approval (sudah ter-seed, tapi isinya belum jalan)
 =========================================================================
@@ -301,6 +368,7 @@ Konsep Desain (dari docx — belum tentu sama persis dengan kode final nanti)
 | PRC_PO_LOW | Purchasing | `pur_purchase_orders` | AnyOne | 8 jam | 1) Role "Finance Staff" | Auto-approve di bawah Rp500.000; berlaku utk jumlah ≤ Rp5.000.000 (asumsi seeder); tabel sumber belum ada |
 | PRC_PO_HIGH | Purchasing | `pur_purchase_orders` | Sequential | 24 jam | 1) DirectSuperior 2) Role "Finance Staff" | Berlaku utk jumlah > Rp5.000.000 (asumsi seeder); tabel sumber belum ada |
 | FIN_JOURNAL | Finance | `fin_journal_entries` | Sequential | 24 jam | 1) Role "Finance Staff" | — |
+| HR_LEAVE | HR | `hr_leave_requests` | Sequential | 24 jam | 1) DirectSuperior | RequireCommentOnReject=false; **satu-satunya template yang sudah benar-benar dipanggil** oleh modul sumbernya (`LeaveService.SubmitAsync`) — lihat bagian "Integrasi Modul HR Leave Request" |
 
 Role yang dipakai di atas (`HR Manager`, `Finance Staff`, `Inventory
 Manager`) adalah role yang SUDAH ada di `DataSeeder.SeedRolesAsync` —
@@ -418,7 +486,7 @@ Catatan Gap Implementasi (Rencana vs Kenyataan)
 | MailKit (email) | Kirim email approval | **Lengkap**, pakai config `Smtp` yang sudah ada (dipakai bersama fitur lupa-password) |
 | SignalR (push real-time) | Notifikasi real-time | **Server lengkap** (`ApprovalHub` di `/hubs/approval`); **client JS di Razor belum dipasang** |
 | DataSeeder | Module + menu + permission + seed template/level | **Lengkap** — permission ikut mekanisme `CfgRoleMenuPermission` yang sudah ada (bukan seed `apv.*` terpisah seperti rencana docx), 7 template + level default ter-seed |
-| Integrasi ke modul lain | Callback pattern via `IApprovalCallbackService` per reference_type | Kerangkanya (registry pattern) **sudah ada dan bisa dipakai**, tapi **belum ada implementasi konkret** — belum ada modul (Fixed Assets/Payroll/Purchasing/Finance) yang memanggil `SubmitAsync` atau mendaftarkan `IApprovalCallbackService` |
+| Integrasi ke modul lain | Callback pattern via `IApprovalCallbackService` per reference_type | **HR Leave Request sudah terintegrasi penuh** (`LeaveRequestApprovalCallbackService`) — integrasi pertama & satu-satunya sejauh ini. Fixed Assets/Payroll/Purchasing/Finance belum memanggil `SubmitAsync` atau mendaftarkan `IApprovalCallbackService` |
 
 Acuan Implementasi
 =====================
@@ -456,6 +524,12 @@ Acuan Implementasi
   Approval"/"APV", menu tree, `SeedApprovalTemplatesAsync` (template +
   level default), permission ikut `SeedSuperAdminPermissionsAsync` yang
   generik untuk semua menu.
+- Integrasi HR Leave Request (lihat bagian "Integrasi Modul HR Leave
+  Request" di atas untuk detail):
+  `ERP.Application/Services/HR/LeaveService.cs` (`SubmitAsync`),
+  `ERP.Application/Services/HR/LeaveRequestApprovalCallbackService.cs`,
+  `ERP.Application/Services/HR/LeaveAttendanceSyncHelper.cs`,
+  `ERP.API/Controllers/v1/HR/LeaveRequestsController.cs` (`Approve`/`Reject`).
 - Entitas approval-matrix TIDAK TERKAIT (jangan disangka bagian APV):
   `ERP.Domain/Entities/Purchasing/PurApprovalConfig.cs`,
   `ERP.Domain/Entities/Sales/SalApprovalConfig.cs`,

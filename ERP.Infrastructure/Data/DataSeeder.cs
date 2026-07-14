@@ -1,4 +1,5 @@
 using ERP.Application.Services;
+using ERP.Application.Services.Approval;
 using ERP.Domain.Entities.Approval;
 using ERP.Domain.Entities.Config;
 using ERP.Domain.Entities.Document;
@@ -19,10 +20,11 @@ using ERP.Domain.Enums.FixedAssets;
 using ERP.Domain.Enums.Manufacturing;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace ERP.Infrastructure.Data;
 
-public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
+public sealed class DataSeeder(AppDbContext dbContext, IApprovalRequestService approvalRequestService, ILogger<DataSeeder> logger) : IDataSeeder
 {
     public async Task SeedAsync(CancellationToken ct = default)
     {
@@ -45,6 +47,7 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         await SeedMenusAsync(now, ct);
         await SeedSuperAdminPermissionsAsync(ct);
         await SeedInventoryRolePermissionsAsync(ct);
+        await BackfillLeaveRequestApprovalsAsync(ct);
     }
 
     private async Task SeedModulesAsync(DateTimeOffset now, CancellationToken ct)
@@ -3310,12 +3313,18 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         var finJournal = await EnsureApprovalTemplateAsync("FIN_JOURNAL", "Journal Entry Approval", "Finance", "fin_journal_entries",
             ApprovalType.Sequential, null, null, null, 24, now, ct);
         await EnsureApprovalLevelAsync(finJournal.Id, 1, "Finance Approval", ApprovalApproverType.Role, financeStaffRoleId, 1, now, ct);
+
+        // No comment required on reject here, to match the leave module's pre-existing plain-confirm UX
+        // (see LeaveRequestApprovalCallbackService / ReadMeGeneralApproval.md "Integrasi ke modul lain").
+        var hrLeave = await EnsureApprovalTemplateAsync("HR_LEAVE", "Leave Request Approval", "HR", "hr_leave_requests",
+            ApprovalType.Sequential, null, null, null, 24, now, ct, requireCommentOnReject: false);
+        await EnsureApprovalLevelAsync(hrLeave.Id, 1, "Manager Approval", ApprovalApproverType.DirectSuperior, null, 1, now, ct);
     }
 
     private async Task<ApprovalTemplate> EnsureApprovalTemplateAsync(
         string code, string name, string module, string referenceType, ApprovalType approvalType,
         decimal? minAmount, decimal? maxAmount, decimal? autoApproveBelow, int slaHours,
-        DateTimeOffset now, CancellationToken ct)
+        DateTimeOffset now, CancellationToken ct, bool requireCommentOnReject = true)
     {
         var existing = await dbContext.ApprovalTemplates.IgnoreQueryFilters().FirstOrDefaultAsync(x => x.Code == code, ct);
         if (existing is not null)
@@ -3335,7 +3344,7 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
             AutoApproveBelow = autoApproveBelow,
             SlaHours = slaHours,
             AllowDelegation = true,
-            RequireCommentOnReject = true,
+            RequireCommentOnReject = requireCommentOnReject,
             IsActive = true,
             CreatedBy = "system",
             CreatedAt = now
@@ -3373,6 +3382,59 @@ public sealed class DataSeeder(AppDbContext dbContext) : IDataSeeder
         });
 
         await dbContext.SaveChangesAsync(ct);
+    }
+
+    /// <summary>
+    /// One-time catch-up for HrLeaveRequest rows still Pending from before the APV integration existed
+    /// (see ReadMeGeneralApproval.md "Integrasi Modul HR Leave Request") — without this, those requests
+    /// have no linked ApprovalRequest, so LeaveRequestsController.Approve/Reject falls back to the old
+    /// unrestricted flow (anyone with menu access can act, not just the requester's direct manager).
+    /// Runs every startup but is a no-op once every eligible request has been backfilled.
+    /// </summary>
+    private async Task BackfillLeaveRequestApprovalsAsync(CancellationToken ct)
+    {
+        var pendingRequests = await dbContext.HrLeaveRequests
+            .Include(x => x.Employee)
+            .Include(x => x.LeaveType)
+            .Where(x => x.Status == LeaveStatus.Pending)
+            .ToListAsync(ct);
+
+        if (pendingRequests.Count == 0)
+        {
+            return;
+        }
+
+        var linkedReferenceIds = await dbContext.ApprovalRequests
+            .Where(x => x.ReferenceType == "hr_leave_requests")
+            .Select(x => x.ReferenceId)
+            .ToListAsync(ct);
+        var linkedSet = linkedReferenceIds.ToHashSet();
+
+        foreach (var request in pendingRequests)
+        {
+            if (linkedSet.Contains(request.Id))
+            {
+                continue;
+            }
+
+            if (request.Employee?.UserId is not int requestedByUserId)
+            {
+                logger.LogWarning(
+                    "Skipped approval backfill for leave request {LeaveRequestId}: employee '{EmployeeName}' has no linked user account.",
+                    request.Id, request.Employee?.FullName);
+                continue;
+            }
+
+            try
+            {
+                var subject = $"{request.LeaveType?.Name} - {request.Employee?.FullName} ({request.StartDate:yyyy-MM-dd} s/d {request.EndDate:yyyy-MM-dd})";
+                await approvalRequestService.SubmitAsync("HR", "hr_leave_requests", request.Id, subject, null, requestedByUserId, request.Reason, ct);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Skipped approval backfill for leave request {LeaveRequestId}.", request.Id);
+            }
+        }
     }
 
     private async Task SeedAdminUserAsync(DateTimeOffset now, CancellationToken ct)
