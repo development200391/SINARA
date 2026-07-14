@@ -1,5 +1,6 @@
 @model ERP.Web.ViewModels.Approval.ApprovalInboxIndexViewModel
 @using ERP.Domain.Enums.Approval
+@using ERP.Web.Services
 @using ERP.Web.ViewModels.Shared
 @using Microsoft.AspNetCore.Html
 @using System.Globalization
@@ -68,6 +69,7 @@
                     : await Component.InvokeAsync("TextNumber", new { text = "-", cssClass = "sinara-text-number-null" });
 
                 var canTakeAction = item.Status is ApprovalRequestStatus.Pending or ApprovalRequestStatus.InProgress;
+                var sourceUrl = ApprovalReferenceLinkResolver.Resolve(item.ReferenceType, item.ReferenceId);
 
                 rows.Add(new PagedGridRowViewModel
                 {
@@ -90,6 +92,7 @@
                     ],
                     Actions = new PagedGridRowActionViewModel
                     {
+                        DetailUrl = sourceUrl,
                         ApproveUrl = canTakeAction ? Url.Action("ApproveRequest", "Approval", new { id = item.RequestId }) : null,
                         RejectUrl = canTakeAction ? Url.Action("RejectRequest", "Approval", new { id = item.RequestId }) : null,
                         ApproveConfirmMessage = T["Approve this request?"],
