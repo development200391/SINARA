@@ -336,7 +336,13 @@ Catatan Gap Implementasi (untuk backlog)
   admin yang jadi manager departemen) tidak lagi salah ditolak (403) saat
   mengelola dokumen leave request milik karyawan lain. Ditemukan &
   diperbaiki bareng integrasi General Approval (lihat
-  ReadMeGeneralApproval.md).
+  ReadMeGeneralApproval.md). **Ditambal lagi**: fix di atas belum menutup
+  kasus paling umum (approver sesungguhnya — manajer departemen biasa via
+  `DirectSuperior` — bukan Super Admin/HR Manager/HR Staff), ketemu saat
+  bangun fitur Approval Inbox di app mobile AbsenKu. Sekarang ada kondisi
+  tambahan: siapapun yang punya approval step aktif untuk leave request
+  itu juga diizinkan akses lampirannya, lepas dari role apa yang dia
+  pegang.
 - **GeneralDocumentUploadViewComponent — bug UI (SUDAH DIPERBAIKI)**:
   dulu tidak ada feedback visual sama sekali setelah klik "Choose File"
   dan pilih file — label tetap menampilkan teks "Choose File" walau file-

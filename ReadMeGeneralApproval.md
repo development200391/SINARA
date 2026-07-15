@@ -225,6 +225,17 @@ Pending request tanpa peduli siapa yang login.
   tambah fallback cek role — Super Admin/HR Manager/HR Staff tetap boleh
   akses lampiran leave request siapapun. Detail lengkap & sisa gap-nya ada
   di `ReadMeDocumentGeneral.md`.
+- **Bug terkait #2 (ditemukan lewat fitur Approval Inbox di AbsenKu,
+  mobile)**: fix di atas masih belum menutup kasus paling umum — approver
+  SESUNGGUHNYA (manajer departemen biasa via `ApprovalApproverType.
+  DirectSuperior`) BUKAN Super Admin/HR Manager/HR Staff, jadi tetap
+  ditolak (403) saat coba lihat lampiran (mis. surat dokter) sebelum
+  approve/reject dari mobile. Fix: `EnsureLeaveRequestAccessAsync`
+  sekarang juga cek langsung ke `apv_approval_steps`/`apv_approval_requests`
+  — siapapun yang punya step aktif (`IsActive && Action == null`) untuk
+  `ApprovalRequest` yang ter-link ke leave request itu, diizinkan akses
+  lampirannya. Lihat `D:\Flutter\AbsenKu\README.md` bagian "Approval Inbox"
+  untuk sisi mobile-nya.
 
 Struktur Menu General Approval (sudah ter-seed, tapi isinya belum jalan)
 =========================================================================

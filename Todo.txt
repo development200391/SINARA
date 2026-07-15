@@ -51,5 +51,5 @@ buat ReadMe[Modul].txt di D:\Projek\SINARA\SINARA berisi deskripsi setiap menu y
 
 
 Approval
-di leave Request ada approval, tapi dia belum terkoneksi sama general approval
-general apprval sudah di build, tapi belum di test karena token habis
+Lagi di androdi
+ada masalah di flutternya karena di onedrive, jadi di move dulu, liat di cloude code terakhri

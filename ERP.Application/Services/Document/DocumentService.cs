@@ -2,10 +2,12 @@ using System.Text;
 using ERP.Application.DTOs.Common;
 using ERP.Application.DTOs.Document;
 using ERP.Application.Options;
+using ERP.Domain.Entities.Approval;
 using ERP.Domain.Entities.Document;
 using ERP.Domain.Entities.HR;
 using ERP.Domain.Entities.System;
 using ERP.Domain.Enums;
+using ERP.Domain.Enums.Approval;
 using ERP.Domain.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -504,7 +506,19 @@ public sealed class DocumentService(IUnitOfWork unitOfWork, IDocumentStorageServ
                 .AnyAsync(x => x.UserId == currentUserId &&
                     (x.Role.Name == "Super Admin" || x.Role.Name == "HR Manager" || x.Role.Name == "HR Staff"), ct);
 
-            if (!isHrOrAdmin)
+            // Neither of the above covers the most common real case: the leave request's actual
+            // approver (General Approval's DirectSuperior — an ordinary department manager, not
+            // necessarily HR/Admin) trying to view the attachment (e.g. a doctor's note) before
+            // deciding whether to approve. Allow anyone holding a currently-active approval step for
+            // this leave request's linked ApprovalRequest — see ReadMeGeneralApproval.md.
+            var isActiveApprover = !isHrOrAdmin && await unitOfWork.Repository<ApprovalStep>()
+                .Query()
+                .AsNoTracking()
+                .AnyAsync(x => x.ApproverUserId == currentUserId && x.IsActive && x.Action == null &&
+                    x.Request!.ReferenceType == "hr_leave_requests" && x.Request.ReferenceId == leaveRequestId &&
+                    (x.Request.Status == ApprovalRequestStatus.Pending || x.Request.Status == ApprovalRequestStatus.InProgress), ct);
+
+            if (!isHrOrAdmin && !isActiveApprover)
             {
                 throw new UnauthorizedAccessException("You are not allowed to access documents for this leave request.");
             }
