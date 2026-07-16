@@ -127,7 +127,7 @@ public sealed class HrLeaveRequestsController(IHrApiClient hrApiClient) : Contro
             return RedirectToAction("Login", "Auth");
         }
 
-        var optionsTask = hrApiClient.GetLeaveRequestOptionsAsync(accessToken, ct);
+        var optionsTask = hrApiClient.GetLeaveRequestOptionsAsync(accessToken, scopeEmployeesToCurrentUser: true, ct);
         var configTask = hrApiClient.GetDocumentConfigAsync(accessToken, DocumentReferenceType, ct);
         await Task.WhenAll(optionsTask, configTask);
         var options = await optionsTask ?? new LeaveRequestOptionsDto();
@@ -153,7 +153,7 @@ public sealed class HrLeaveRequestsController(IHrApiClient hrApiClient) : Contro
             return RedirectToAction("Login", "Auth");
         }
 
-        var options = await hrApiClient.GetLeaveRequestOptionsAsync(accessToken, ct) ?? new LeaveRequestOptionsDto();
+        var options = await hrApiClient.GetLeaveRequestOptionsAsync(accessToken, scopeEmployeesToCurrentUser: true, ct) ?? new LeaveRequestOptionsDto();
         model.Employees = options.Employees;
         model.LeaveTypes = options.LeaveTypes;
         model.AttachmentConfig = await hrApiClient.GetDocumentConfigAsync(accessToken, DocumentReferenceType, ct);
@@ -207,7 +207,7 @@ public sealed class HrLeaveRequestsController(IHrApiClient hrApiClient) : Contro
             return RedirectToAction(nameof(Index));
         }
 
-        var optionsTask = hrApiClient.GetLeaveRequestOptionsAsync(accessToken, ct);
+        var optionsTask = hrApiClient.GetLeaveRequestOptionsAsync(accessToken, scopeEmployeesToCurrentUser: true, ct);
         var configTask = hrApiClient.GetDocumentConfigAsync(accessToken, DocumentReferenceType, ct);
         var documentsTask = hrApiClient.GetDocumentsAsync(accessToken, DocumentReferenceType, id, ct);
         await Task.WhenAll(optionsTask, configTask, documentsTask);
@@ -224,11 +224,28 @@ public sealed class HrLeaveRequestsController(IHrApiClient hrApiClient) : Contro
             StartDate = leaveRequest.StartDate,
             EndDate = leaveRequest.EndDate,
             Reason = leaveRequest.Reason,
-            Employees = options.Employees,
+            Employees = EnsureCurrentEmployeeOption(options.Employees, leaveRequest),
             LeaveTypes = options.LeaveTypes,
             AttachmentConfig = await configTask,
             Documents = await documentsTask
         });
+    }
+
+    /// <summary>
+    /// The Employee dropdown is scoped to who the logged-in user can submit/manage leave for (see
+    /// ILeaveService.GetEmployeeOptionsAsync) — but a Pending request already on file may belong to
+    /// someone outside that scope (e.g. HR created it, a regular manager opens Edit later). Without
+    /// this, the dropdown would silently show "Select Employee" instead of the actual name even
+    /// though the hidden field still submits the correct id.
+    /// </summary>
+    private static IReadOnlyList<LookupDto> EnsureCurrentEmployeeOption(IReadOnlyList<LookupDto> employees, LeaveRequestDto leaveRequest)
+    {
+        if (employees.Any(x => x.Id == leaveRequest.EmployeeId))
+        {
+            return employees;
+        }
+
+        return [.. employees, new LookupDto { Id = leaveRequest.EmployeeId, Name = $"{leaveRequest.EmployeeCode} - {leaveRequest.EmployeeName}" }];
     }
 
     [HttpPost("edit/{id:int}")]
@@ -243,7 +260,7 @@ public sealed class HrLeaveRequestsController(IHrApiClient hrApiClient) : Contro
 
         model.Id = id;
 
-        var options = await hrApiClient.GetLeaveRequestOptionsAsync(accessToken, ct) ?? new LeaveRequestOptionsDto();
+        var options = await hrApiClient.GetLeaveRequestOptionsAsync(accessToken, scopeEmployeesToCurrentUser: true, ct) ?? new LeaveRequestOptionsDto();
         model.Employees = options.Employees;
         model.LeaveTypes = options.LeaveTypes;
         model.AttachmentConfig = await hrApiClient.GetDocumentConfigAsync(accessToken, DocumentReferenceType, ct);

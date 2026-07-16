@@ -34,7 +34,7 @@ public sealed class HrLeaveBalanceController(IHrApiClient hrApiClient) : Control
         var normalizedSortBy = NormalizeSortBy(sortBy);
         var normalizedSortDirection = NormalizeSortDirection(sortDirection);
 
-        var options = await hrApiClient.GetLeaveRequestOptionsAsync(accessToken, ct) ?? new LeaveRequestOptionsDto();
+        var options = await hrApiClient.GetLeaveRequestOptionsAsync(accessToken, ct: ct) ?? new LeaveRequestOptionsDto();
 
         var balances = await hrApiClient.GetLeaveBalancesAsync(accessToken, new LeaveBalanceRequest
         {

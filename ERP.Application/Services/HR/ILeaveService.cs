@@ -26,7 +26,13 @@ public interface ILeaveService
     Task<LeaveTypeDto?> UpdateLeaveTypeAsync(int id, LeaveTypeDto request, CancellationToken ct = default);
     Task<bool> DeleteLeaveTypeAsync(int id, CancellationToken ct = default);
 
-    Task<IReadOnlyList<LookupDto>> GetEmployeeOptionsAsync(CancellationToken ct = default);
+    /// <summary>
+    /// <paramref name="currentUserId"/> is optional — when provided, the result is scoped to what
+    /// that user may submit/manage leave for (Super Admin/HR Manager/HR Staff see everyone; anyone
+    /// else sees only themselves and employees in a department they manage). Omit it for callers
+    /// that intentionally need the unrestricted list (e.g. Leave Balance's employee filter).
+    /// </summary>
+    Task<IReadOnlyList<LookupDto>> GetEmployeeOptionsAsync(int? currentUserId = null, CancellationToken ct = default);
     Task<IReadOnlyList<LookupDto>> GetLeaveTypeOptionsAsync(CancellationToken ct = default);
 }
 

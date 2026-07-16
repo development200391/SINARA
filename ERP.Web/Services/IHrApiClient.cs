@@ -45,7 +45,13 @@ public interface IHrApiClient
 
     Task<PagedResult<LeaveRequestDto>?> GetLeaveRequestsAsync(string accessToken, LeaveRequestPagedRequest request, CancellationToken ct = default);
     Task<LeaveRequestDto?> GetLeaveRequestByIdAsync(string accessToken, int id, CancellationToken ct = default);
-    Task<LeaveRequestOptionsDto?> GetLeaveRequestOptionsAsync(string accessToken, CancellationToken ct = default);
+    /// <summary>
+    /// <paramref name="scopeEmployeesToCurrentUser"/> restricts the Employees list to what the
+    /// current user may submit/manage leave for (see ILeaveService.GetEmployeeOptionsAsync) — pass
+    /// true for the admin Create/Edit forms; leave false (default) for callers like Leave Balance
+    /// that intentionally need the unrestricted list.
+    /// </summary>
+    Task<LeaveRequestOptionsDto?> GetLeaveRequestOptionsAsync(string accessToken, bool scopeEmployeesToCurrentUser = false, CancellationToken ct = default);
     Task<ApiCallResult<SubmitLeaveRequestResult>> SubmitLeaveRequestAsync(string accessToken, SubmitLeaveRequest request, IReadOnlyList<IFormFile>? files, IReadOnlyList<string?>? notes, CancellationToken ct = default);
     Task<ApiCallResult<SubmitLeaveRequestResult>> UpdateLeaveRequestAsync(string accessToken, int id, SubmitLeaveRequest request, IReadOnlyList<IFormFile>? files, IReadOnlyList<string?>? notes, CancellationToken ct = default);
     Task<ApiCallResult<object?>> DeleteLeaveRequestAsync(string accessToken, int id, CancellationToken ct = default);

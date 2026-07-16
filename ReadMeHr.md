@@ -163,6 +163,24 @@ Kegunaan Tiap Menu
 4. Leave Requests (/hr/leave/requests)
 - Pengajuan cuti karyawan: karyawan, jenis cuti, tanggal mulai/selesai, alasan.
 - Hanya request berstatus Pending yang bisa diedit.
+- **Dropdown Employee di Create/Edit sekarang di-scope per user yang login** —
+  Super Admin/HR Manager/HR Staff (atau akun tanpa profil `HrEmployee` sama
+  sekali — dianggap back-office, sama seperti konvensi di
+  `DocumentService.EnsureLeaveRequestAccessAsync`) tetap lihat SEMUA
+  karyawan aktif. User lain cuma lihat dirinya sendiri + karyawan di
+  departemen yang dia jadi manager-nya (`HrDepartment.ManagerId`) — jadi
+  staf biasa tidak bisa lagi mengajukan cuti atas nama karyawan siapapun
+  lintas departemen. Diatur lewat parameter opsional
+  `ILeaveService.GetEmployeeOptionsAsync(currentUserId, ct)` dan query
+  string `scopeEmployeesToCurrentUser=true` di
+  `GET /api/v1/hr/leave-requests/options` — dropdown filter di halaman
+  Leave Balance (poin 4.1) SENGAJA TIDAK di-scope (tetap lihat semua),
+  karena endpoint options-nya dipakai bersama dan cuma di-scope kalau
+  parameter itu dikirim. Kalau leave request yang sedang di-Edit
+  employee-nya kebetulan di luar scope (mis. dulu dibuat HR untuk
+  karyawan lintas departemen), namanya tetap muncul di dropdown (di-
+  suntik manual lewat `EnsureCurrentEmployeeOption` di
+  `HrLeaveRequestsController.cs`) supaya tidak kelihatan kosong/salah.
 - **Approve/Reject sekarang lewat mesin General Approval** (lihat
   `ReadMeGeneralApproval.md` bagian "Integrasi Modul HR Leave Request" untuk
   detail lengkap) — bukan flip status langsung lagi:

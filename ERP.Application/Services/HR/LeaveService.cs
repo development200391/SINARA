@@ -2,6 +2,7 @@ using ERP.Application.DTOs.Common;
 using ERP.Application.DTOs.HR;
 using ERP.Application.Services.Approval;
 using ERP.Domain.Entities.HR;
+using ERP.Domain.Entities.System;
 using ERP.Domain.Enums;
 using ERP.Domain.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -648,12 +649,19 @@ public sealed class LeaveService(IUnitOfWork unitOfWork, IApprovalRequestService
         return true;
     }
 
-    public async Task<IReadOnlyList<LookupDto>> GetEmployeeOptionsAsync(CancellationToken ct = default)
+    public async Task<IReadOnlyList<LookupDto>> GetEmployeeOptionsAsync(int? currentUserId = null, CancellationToken ct = default)
     {
-        return await unitOfWork.Repository<HrEmployee>()
+        var query = unitOfWork.Repository<HrEmployee>()
             .Query()
             .AsNoTracking()
-            .Where(x => x.EmploymentStatus != EmploymentStatus.Inactive)
+            .Where(x => x.EmploymentStatus != EmploymentStatus.Inactive);
+
+        if (currentUserId.HasValue)
+        {
+            query = await ScopeEmployeeOptionsToCurrentUserAsync(query, currentUserId.Value, ct);
+        }
+
+        return await query
             .OrderBy(x => x.FullName)
             .Select(x => new LookupDto
             {
@@ -661,6 +669,38 @@ public sealed class LeaveService(IUnitOfWork unitOfWork, IApprovalRequestService
                 Name = x.EmployeeCode + " - " + x.FullName
             })
             .ToListAsync(ct);
+    }
+
+    /// <summary>
+    /// Super Admin/HR Manager/HR Staff (or an account with no linked employee profile at all —
+    /// same "back office" convention as DocumentService.EnsureLeaveRequestAccessAsync) can submit
+    /// leave for anyone; everyone else can only pick themselves or an employee in a department they
+    /// manage (HrDepartment.ManagerId). Query is returned unmodified (unrestricted) for back-office.
+    /// </summary>
+    private async Task<IQueryable<HrEmployee>> ScopeEmployeeOptionsToCurrentUserAsync(IQueryable<HrEmployee> query, int currentUserId, CancellationToken ct)
+    {
+        var isHrOrAdmin = await unitOfWork.Repository<SysUserRole>()
+            .Query()
+            .AsNoTracking()
+            .AnyAsync(x => x.UserId == currentUserId &&
+                (x.Role.Name == "Super Admin" || x.Role.Name == "HR Manager" || x.Role.Name == "HR Staff"), ct);
+
+        if (isHrOrAdmin)
+        {
+            return query;
+        }
+
+        var currentEmployee = await unitOfWork.Repository<HrEmployee>()
+            .Query()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.UserId == currentUserId, ct);
+
+        if (currentEmployee is null)
+        {
+            return query;
+        }
+
+        return query.Where(x => x.Id == currentEmployee.Id || x.Department.ManagerId == currentEmployee.Id);
     }
 
     public async Task<IReadOnlyList<LookupDto>> GetLeaveTypeOptionsAsync(CancellationToken ct = default)

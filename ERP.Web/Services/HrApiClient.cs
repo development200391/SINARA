@@ -418,9 +418,10 @@ public sealed class HrApiClient(HttpClient httpClient, ILogger<HrApiClient> logg
         return SendWithResultAsync<LeaveRequestDto>(HttpMethod.Get, $"api/v1/hr/leave-requests/{id}", accessToken, null, ct).ToDataAsync();
     }
 
-    public Task<LeaveRequestOptionsDto?> GetLeaveRequestOptionsAsync(string accessToken, CancellationToken ct = default)
+    public Task<LeaveRequestOptionsDto?> GetLeaveRequestOptionsAsync(string accessToken, bool scopeEmployeesToCurrentUser = false, CancellationToken ct = default)
     {
-        return SendWithResultAsync<LeaveRequestOptionsDto>(HttpMethod.Get, "api/v1/hr/leave-requests/options", accessToken, null, ct).ToDataAsync();
+        var query = scopeEmployeesToCurrentUser ? "?scopeEmployeesToCurrentUser=true" : string.Empty;
+        return SendWithResultAsync<LeaveRequestOptionsDto>(HttpMethod.Get, $"api/v1/hr/leave-requests/options{query}", accessToken, null, ct).ToDataAsync();
     }
 
     public async Task<ApiCallResult<SubmitLeaveRequestResult>> SubmitLeaveRequestAsync(string accessToken, SubmitLeaveRequest request, IReadOnlyList<IFormFile>? files, IReadOnlyList<string?>? notes, CancellationToken ct = default)

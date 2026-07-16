@@ -96,9 +96,10 @@ public sealed class LeaveRequestsController(
     }
 
     [HttpGet("options")]
-    public async Task<IActionResult> GetOptions(CancellationToken ct)
+    public async Task<IActionResult> GetOptions([FromQuery] bool scopeEmployeesToCurrentUser, CancellationToken ct)
     {
-        var employees = await leaveService.GetEmployeeOptionsAsync(ct);
+        var employeeScopeUserId = scopeEmployeesToCurrentUser ? GetCurrentUserId() : null;
+        var employees = await leaveService.GetEmployeeOptionsAsync(employeeScopeUserId, ct);
         var leaveTypes = await leaveService.GetLeaveTypeOptionsAsync(ct);
 
         return Ok(new LeaveRequestOptionsDto
