@@ -174,10 +174,14 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapHub<ApprovalHub>("/hubs/approval");
 
-RecurringJob.AddOrUpdate<IApprovalRequestService>(
-    "approval-escalation-reminders",
-    service => service.ProcessEscalationsAndRemindersAsync(CancellationToken.None),
-    "*/30 * * * *");
+using (var recurringJobScope = app.Services.CreateScope())
+{
+    var recurringJobManager = recurringJobScope.ServiceProvider.GetRequiredService<IRecurringJobManager>();
+    recurringJobManager.AddOrUpdate<IApprovalRequestService>(
+        "approval-escalation-reminders",
+        service => service.ProcessEscalationsAndRemindersAsync(CancellationToken.None),
+        "*/30 * * * *");
+}
 
 app.Run();
 

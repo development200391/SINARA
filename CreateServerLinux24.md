@@ -445,4 +445,27 @@ git pull
 dotnet publish ERP.API -c Release -o ~/SINARA/publish-api
 dotnet publish ERP.Web -c Release -o ~/SINARA/publish-web
 sudo systemctl restart erp-api erp-web
+
+# Publish dari update project
+1. Kerja seperti biasa di lokal — edit kode, test, lalu commit & push ke git (kamu commit sendiri sesuai kebiasaan).
+
+2. Publish ulang project yang berubah (di lokal, PowerShell):
+
+
+cd D:\NET\SINARA
+dotnet publish ERP.API -c Release -o publish/api
+dotnet publish ERP.Web -c Release -o publish/web
+(Kalau cuma salah satu yang berubah, publish yang itu saja.)
+
+3. Upload hasil publish ke VPS:
+
+
+scp -i C:\Users\kokos\.ssh\id_ed25519_sinara -r publish/api/. sinaraadmin@103.127.137.63:~/SINARA/publish-api/
+scp -i C:\Users\kokos\.ssh\id_ed25519_sinara -r publish/web/. sinaraadmin@103.127.137.63:~/SINARA/publish-web/
+4. Restart service di VPS:
+
+
+ssh -i C:\Users\kokos\.ssh\id_ed25519_sinara sinaraadmin@103.127.137.63 "sudo systemctl restart erp-api erp-web"
+
+
 ```

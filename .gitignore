@@ -367,5 +367,8 @@ FodyWeavers.xsd
 # Uploaded employee photos (runtime files)
 ERP.Web/wwwroot/uploads/
 
+# Claude Code personal settings
+.claude/settings.local.json
+
 # Uploaded General Document files (runtime files)
 ERP.API/App_Data/uploads/
