@@ -194,7 +194,7 @@ dotnet publish ERP.Web -c Release -o ~/SINARA/publish-web
 
 Karena Postgres & Redis jalan di Docker dengan port di-bind ke `127.0.0.1`, dan ERP.API/ERP.Web jalan native di host yang sama, connection string cukup pakai `localhost`.
 
-Buat file `~/SINARA/publish-api/appsettings.Production.json` (kalau belum ada) atau pastikan environment variable berikut di-set saat service jalan (diatur di langkah 11 lewat systemd):
+Tidak perlu buat file `appsettings.Production.json` — semua nilai ini langsung di-set sebagai environment variable di file systemd (langkah 11), jadi cukup pastikan nilainya konsisten:
 
 ```
 ConnectionStrings__DefaultConnection = Host=localhost;Port=5432;Database=erp_db;Username=erp_user;Password=<sama_dengan_.env>
@@ -206,11 +206,15 @@ JwtSettings__ExpiryMinutes = 60
 JwtSettings__RefreshTokenExpiryDays = 7
 JwtSettings__SigningKey = <sama_dengan_.env>
 ASPNETCORE_ENVIRONMENT = Production
-ASPNETCORE_URLS = http://localhost:5000   (untuk API)
-ASPNETCORE_URLS = http://localhost:5001   (untuk Web)
+ASPNETCORE_URLS = http://0.0.0.0:5000   (untuk API — bisa diakses dari luar VPS lewat IP:Port)
+ASPNETCORE_URLS = http://0.0.0.0:5001   (untuk Web — bisa diakses dari luar VPS lewat IP:Port)
 ```
 
-> Web juga butuh setting `ApiSettings__BaseUrl = http://localhost:5000` supaya bisa memanggil API.
+> `Host=localhost` dan `Redis__ConnectionString=localhost:...` tetap dipakai walau `ASPNETCORE_URLS` pakai `0.0.0.0` — karena Postgres/Redis cuma dipanggil dari ERP.API/ERP.Web yang jalan di VPS yang sama (bukan dari luar).
+>
+> Kalau nanti pakai domain + Nginx (Opsi B di langkah 13), ganti `ASPNETCORE_URLS` jadi `http://localhost:5000`/`5001` lagi (tidak perlu expose ke `0.0.0.0`, karena Nginx yang jadi pintu masuk publik).
+>
+> Web juga butuh setting `ApiSettings__BaseUrl = http://localhost:5000` supaya bisa memanggil API — ini **tidak berubah** di kedua opsi, karena panggilan Web→API selalu lewat `localhost` (server-to-server).
 
 ---
 
@@ -232,13 +236,13 @@ Description=SINARA ERP API
 After=network.target docker.service
 
 [Service]
-WorkingDirectory=/home/USERNAME/SINARA/publish-api
-ExecStart=/usr/bin/dotnet /home/USERNAME/SINARA/publish-api/ERP.API.dll
+WorkingDirectory=/home/sinaraadmin/SINARA/publish-api
+ExecStart=/usr/bin/dotnet /home/sinaraadmin/SINARA/publish-api/ERP.API.dll
 Restart=always
 RestartSec=10
-User=USERNAME
+User=sinaraadmin
 Environment=ASPNETCORE_ENVIRONMENT=Production
-Environment=ASPNETCORE_URLS=http://localhost:5000
+Environment=ASPNETCORE_URLS=http://0.0.0.0:5000
 Environment=ConnectionStrings__DefaultConnection=Host=localhost;Port=5432;Database=erp_db;Username=erp_user;Password=<password_kamu>
 Environment=Redis__ConnectionString=localhost:6379,password=<password_redis_kamu>
 Environment=Redis__InstanceName=ERP_
@@ -268,13 +272,13 @@ Description=SINARA ERP Web
 After=network.target erp-api.service
 
 [Service]
-WorkingDirectory=/home/USERNAME/SINARA/publish-web
-ExecStart=/usr/bin/dotnet /home/USERNAME/SINARA/publish-web/ERP.Web.dll
+WorkingDirectory=/home/sinaraadmin/SINARA/publish-web
+ExecStart=/usr/bin/dotnet /home/sinaraadmin/SINARA/publish-web/ERP.Web.dll
 Restart=always
 RestartSec=10
-User=USERNAME
+User=sinaraadmin
 Environment=ASPNETCORE_ENVIRONMENT=Production
-Environment=ASPNETCORE_URLS=http://localhost:5001
+Environment=ASPNETCORE_URLS=http://0.0.0.0:5001
 Environment=ApiSettings__BaseUrl=http://localhost:5000
 Environment=Redis__ConnectionString=localhost:6379,password=<password_redis_kamu>
 Environment=Redis__InstanceName=ERP_
@@ -307,22 +311,37 @@ journalctl -u erp-web -f
 
 ---
 
-## 12. Jalankan migration database (kalau perlu)
+## 12. Migration database
 
-Kalau EF Core migration tidak otomatis jalan saat startup:
+Tidak perlu langkah manual — project ini sudah otomatis menjalankan migration EF Core saat ERP.API start (`ERP.API/Program.cs` memanggil `db.Database.MigrateAsync()`). Begitu service `erp-api` (langkah 11) berhasil start, database akan otomatis ter-update ke skema terbaru.
+
+Untuk memastikan migration sukses, cek log:
 
 ```bash
-cd ~/SINARA
-dotnet ef database update --project ERP.Infrastructure --startup-project ERP.API
+journalctl -u erp-api -f
 ```
 
-(Sesuaikan connection string yang dipakai `dotnet ef` mengarah ke `localhost:5432`, bukan container network.)
+Kalau ada error koneksi database di log, cek lagi connection string di `/etc/systemd/system/erp-api.service` dan pastikan container `erp-db` sudah running (`docker compose -f docker-compose.prod.yml ps`).
 
 ---
 
-## 13. Pasang Nginx sebagai reverse proxy + HTTPS
+## 13. Expose aplikasi ke publik
 
-Karena API & Web sekarang jalan di `localhost:5000`/`localhost:5001` (tidak diekspos langsung ke publik), pakai Nginx di depan untuk expose ke internet dengan domain + SSL.
+Pilih salah satu — tergantung apakah kamu sudah punya domain atau belum.
+
+### Opsi A — Belum punya domain: akses langsung via IP:Port
+
+Ini opsi default di panduan ini — file systemd di langkah 11 sudah langsung diset `ASPNETCORE_URLS=http://0.0.0.0:5000` (API) dan `http://0.0.0.0:5001` (Web), jadi tidak ada langkah tambahan di sini. Kalau service sudah running (langkah 11), langsung akses dari browser:
+```
+http://IP_VPS:5001   -> Web
+http://IP_VPS:5000   -> API
+```
+
+> Catatan: ini tanpa HTTPS (koneksi tidak dienkripsi) — cukup untuk testing/internal, tapi kalau data sensitif (login, dsb) sebaiknya upgrade ke Opsi B begitu ada domain.
+
+### Opsi B — Sudah/nanti punya domain: pakai Nginx + HTTPS
+
+Kalau domain sudah diarahkan (A record) ke IP VPS, pakai Nginx sebagai reverse proxy supaya bisa akses via `https://` dengan URL rapi. Ubah dulu `ASPNETCORE_URLS` di kedua file systemd (langkah 11) dari `http://0.0.0.0:...` jadi `http://localhost:...` (tidak perlu expose langsung ke luar lagi, karena Nginx yang jadi pintu masuk publik), lalu `sudo systemctl daemon-reload && sudo systemctl restart erp-api erp-web`.
 
 ```bash
 sudo apt install -y nginx certbot python3-certbot-nginx
@@ -379,12 +398,29 @@ sudo certbot --nginx -d erp.namadomainkamu.com -d api.namadomainkamu.com
 ```bash
 sudo apt install -y ufw
 sudo ufw allow OpenSSH
+```
+
+Lanjutkan sesuai opsi yang dipakai di langkah 13:
+
+**Kalau pakai Opsi A (akses via IP:Port):**
+```bash
+sudo ufw allow 5000/tcp
+sudo ufw allow 5001/tcp
+```
+
+**Kalau pakai Opsi B (Nginx + domain):**
+```bash
 sudo ufw allow "Nginx Full"
+```
+> Port 5000/5001 **tidak perlu** dibuka di firewall untuk Opsi B — akses hanya lewat Nginx (port 80/443), aplikasi tetap `localhost` saja.
+
+Terakhir, aktifkan:
+```bash
 sudo ufw enable
 sudo ufw status
 ```
 
-> Port 5432, 6379, 5000, 5001 **tidak perlu** dibuka di firewall — semuanya hanya diakses via `localhost` (Postgres/Redis dari Docker ke `127.0.0.1`, API/Web diakses lewat Nginx).
+> Port 5432 (Postgres) dan 6379 (Redis) **tidak perlu** dibuka sama sekali — sudah di-bind ke `127.0.0.1` di `docker-compose.prod.yml`, hanya bisa diakses dari VPS itu sendiri.
 
 ---
 
