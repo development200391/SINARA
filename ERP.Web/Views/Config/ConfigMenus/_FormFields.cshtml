@@ -1,0 +1,75 @@
+@model ERP.Web.ViewModels.Config.ConfigMenuEditViewModel
+@using ERP.Web.ViewModels.Shared
+@using System.Globalization
+
+<div class="col-md-4">
+    <label asp-for="ModuleId" class="form-label">@T["Module"]</label>
+    @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+    {
+        Name = nameof(Model.ModuleId),
+        Id = "moduleSelect",
+        CssClass = "form-select",
+        SearchPlaceholder = T["Search"],
+        EmptyOptionLabel = T["Select Module"],
+        SelectedValue = Model.ModuleId > 0
+            ? Model.ModuleId.ToString(CultureInfo.InvariantCulture)
+            : null,
+        Options = Model.AvailableModules.Select(module => new SearchableSelectOptionViewModel
+        {
+            Value = module.Id.ToString(CultureInfo.InvariantCulture),
+            Label = $"{module.Name} ({module.Code})"
+        }).ToList()
+    })
+    <div class="form-text">@T["Changing the module will reload the parent menu list."]</div>
+</div>
+
+<div class="col-md-4">
+    <label asp-for="ParentId" class="form-label">@T["Parent Menu"]</label>
+    @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+    {
+        Name = nameof(Model.ParentId),
+        Id = Html.IdFor(x => x.ParentId).ToString(),
+        CssClass = "form-select",
+        SearchPlaceholder = T["Search"],
+        EmptyOptionLabel = T["(No parent)"],
+        SelectedValue = Model.ParentId.HasValue
+            ? Model.ParentId.Value.ToString(CultureInfo.InvariantCulture)
+            : null,
+        Options = Model.AvailableParents.Select(parent => new SearchableSelectOptionViewModel
+        {
+            Value = parent.Id.ToString(CultureInfo.InvariantCulture),
+            Label = parent.Name
+        }).ToList()
+    })
+</div>
+
+<div class="col-md-4">
+    <label asp-for="SortOrder" class="form-label">@T["Sort Order"]</label>
+    <input asp-for="SortOrder" class="form-control" type="number" min="1" />
+    <span asp-validation-for="SortOrder" class="text-danger"></span>
+</div>
+
+<div class="col-md-6">
+    <label asp-for="Name" class="form-label">@T["Name"]</label>
+    <input asp-for="Name" class="form-control" />
+    <span asp-validation-for="Name" class="text-danger"></span>
+</div>
+
+<div class="col-md-6">
+    <label asp-for="Icon" class="form-label">@T["Icon (Bootstrap Icon)"]</label>
+    <input asp-for="Icon" class="form-control" placeholder="bi-list-ul" />
+    <span asp-validation-for="Icon" class="text-danger"></span>
+</div>
+
+<div class="col-12">
+    <label asp-for="Url" class="form-label">@T["URL"]</label>
+    <input asp-for="Url" class="form-control" placeholder="/config/users" />
+    <span asp-validation-for="Url" class="text-danger"></span>
+</div>
+
+<div class="col-12">
+    <div class="form-check">
+        <input asp-for="IsActive" class="form-check-input" />
+        <label asp-for="IsActive" class="form-check-label">@T["Active"]</label>
+    </div>
+</div>

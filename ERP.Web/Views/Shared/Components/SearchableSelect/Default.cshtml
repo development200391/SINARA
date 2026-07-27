@@ -95,7 +95,11 @@
         var labelNode = host.querySelector('[data-searchable-select-label]');
 
         if (hidden instanceof HTMLInputElement) {
+            var valueChanged = hidden.value !== value;
             hidden.value = value;
+            if (valueChanged) {
+                hidden.dispatchEvent(new Event('change', { bubbles: true }));
+            }
         }
 
         if (labelNode) {
