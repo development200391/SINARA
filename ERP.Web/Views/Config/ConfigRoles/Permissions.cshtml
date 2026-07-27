@@ -1,6 +1,18 @@
 @model ERP.Web.ViewModels.Config.ConfigRolePermissionsViewModel
 @using ERP.Web.ViewModels.Shared
 
+@{
+    var moduleGroups = Model.Matrix.Permissions
+        .Select((perm, idx) => (Perm: perm, Index: idx))
+        .GroupBy(x =>
+        {
+            var name = x.Perm.MenuName ?? string.Empty;
+            var sepIndex = name.IndexOf(" / ", StringComparison.Ordinal);
+            return sepIndex > 0 ? name[..sepIndex] : name;
+        })
+        .ToList();
+}
+
 <div class="card border-0 shadow-sm">
     <div class="card-body">
         <h1 class="h5 mb-1">@T["Permission Matrix"]</h1>
@@ -78,63 +90,89 @@
                         </tr>
                     </thead>
                     <tbody>
-                    @for (var i = 0; i < Model.Matrix.Permissions.Count; i++)
+                    @foreach (var group in moduleGroups)
                     {
-                        <tr>
-                            <td>
-                                @Model.Matrix.Permissions[i].MenuName
-                                <input type="hidden" asp-for="Matrix.Permissions[i].MenuId" />
-                                <input type="hidden" asp-for="Matrix.Permissions[i].MenuName" />
-                            </td>
-                            <td class="text-center">
-                                <div class="d-flex justify-content-center">
+                        var moduleCode = group.Key;
+
+                        <tr class="table-light">
+                            <td colspan="5">
+                                <div class="d-flex align-items-center gap-2">
+                                    <strong>@moduleCode</strong>
                                     @await Component.InvokeAsync("FormCheckbox", new FormCheckboxViewModel
                                     {
-                                        Name = Html.NameFor(x => x.Matrix.Permissions[i].CanView).ToString(),
-                                        Id = Html.IdFor(x => x.Matrix.Permissions[i].CanView).ToString(),
-                                        Label = string.Empty,
-                                        Checked = Model.Matrix.Permissions[i].CanView,
-                                        HtmlAttributes = new Dictionary<string, string> { ["data-permission-col"] = "view" }
-                                    })
-                                </div>
-                            </td>
-                            <td class="text-center">
-                                <div class="d-flex justify-content-center">
-                                    @await Component.InvokeAsync("FormCheckbox", new FormCheckboxViewModel
-                                    {
-                                        Name = Html.NameFor(x => x.Matrix.Permissions[i].CanCreate).ToString(),
-                                        Id = Html.IdFor(x => x.Matrix.Permissions[i].CanCreate).ToString(),
-                                        Label = string.Empty,
-                                        Checked = Model.Matrix.Permissions[i].CanCreate,
-                                        HtmlAttributes = new Dictionary<string, string> { ["data-permission-col"] = "create" }
-                                    })
-                                </div>
-                            </td>
-                            <td class="text-center">
-                                <div class="d-flex justify-content-center">
-                                    @await Component.InvokeAsync("FormCheckbox", new FormCheckboxViewModel
-                                    {
-                                        Name = Html.NameFor(x => x.Matrix.Permissions[i].CanEdit).ToString(),
-                                        Id = Html.IdFor(x => x.Matrix.Permissions[i].CanEdit).ToString(),
-                                        Label = string.Empty,
-                                        Checked = Model.Matrix.Permissions[i].CanEdit,
-                                        HtmlAttributes = new Dictionary<string, string> { ["data-permission-col"] = "edit" }
-                                    })
-                                </div>
-                            </td>
-                            <td class="text-center">
-                                <div class="d-flex justify-content-center">
-                                    @await Component.InvokeAsync("FormCheckbox", new FormCheckboxViewModel
-                                    {
-                                        Name = Html.NameFor(x => x.Matrix.Permissions[i].CanDelete).ToString(),
-                                        Id = Html.IdFor(x => x.Matrix.Permissions[i].CanDelete).ToString(),
-                                        Label = string.Empty,
-                                        Checked = Model.Matrix.Permissions[i].CanDelete,
-                                        HtmlAttributes = new Dictionary<string, string> { ["data-permission-col"] = "delete" }
+                                        Name = $"SelectAllModule_{moduleCode}",
+                                        Id = $"select-all-module-{moduleCode}",
+                                        Label = T["Check All"],
+                                        EmitHiddenFallback = false,
+                                        HtmlAttributes = new Dictionary<string, string> { ["data-module-select-all"] = moduleCode }
                                     })
                                 </div>
                             </td>
                         </tr>
+
+                        foreach (var item in group)
+                        {
+                            var i = item.Index;
+                            var menuName = item.Perm.MenuName ?? string.Empty;
+                            var sepIndex = menuName.IndexOf(" / ", StringComparison.Ordinal);
+                            var displayName = sepIndex > 0 ? menuName[(sepIndex + 3)..] : menuName;
+
+                            <tr>
+                                <td>
+                                    @displayName
+                                    <input type="hidden" asp-for="Matrix.Permissions[i].MenuId" />
+                                    <input type="hidden" asp-for="Matrix.Permissions[i].MenuName" />
+                                </td>
+                                <td class="text-center">
+                                    <div class="d-flex justify-content-center">
+                                        @await Component.InvokeAsync("FormCheckbox", new FormCheckboxViewModel
+                                        {
+                                            Name = Html.NameFor(x => x.Matrix.Permissions[i].CanView).ToString(),
+                                            Id = Html.IdFor(x => x.Matrix.Permissions[i].CanView).ToString(),
+                                            Label = string.Empty,
+                                            Checked = item.Perm.CanView,
+                                            HtmlAttributes = new Dictionary<string, string> { ["data-permission-col"] = "view", ["data-module"] = moduleCode }
+                                        })
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <div class="d-flex justify-content-center">
+                                        @await Component.InvokeAsync("FormCheckbox", new FormCheckboxViewModel
+                                        {
+                                            Name = Html.NameFor(x => x.Matrix.Permissions[i].CanCreate).ToString(),
+                                            Id = Html.IdFor(x => x.Matrix.Permissions[i].CanCreate).ToString(),
+                                            Label = string.Empty,
+                                            Checked = item.Perm.CanCreate,
+                                            HtmlAttributes = new Dictionary<string, string> { ["data-permission-col"] = "create", ["data-module"] = moduleCode }
+                                        })
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <div class="d-flex justify-content-center">
+                                        @await Component.InvokeAsync("FormCheckbox", new FormCheckboxViewModel
+                                        {
+                                            Name = Html.NameFor(x => x.Matrix.Permissions[i].CanEdit).ToString(),
+                                            Id = Html.IdFor(x => x.Matrix.Permissions[i].CanEdit).ToString(),
+                                            Label = string.Empty,
+                                            Checked = item.Perm.CanEdit,
+                                            HtmlAttributes = new Dictionary<string, string> { ["data-permission-col"] = "edit", ["data-module"] = moduleCode }
+                                        })
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <div class="d-flex justify-content-center">
+                                        @await Component.InvokeAsync("FormCheckbox", new FormCheckboxViewModel
+                                        {
+                                            Name = Html.NameFor(x => x.Matrix.Permissions[i].CanDelete).ToString(),
+                                            Id = Html.IdFor(x => x.Matrix.Permissions[i].CanDelete).ToString(),
+                                            Label = string.Empty,
+                                            Checked = item.Perm.CanDelete,
+                                            HtmlAttributes = new Dictionary<string, string> { ["data-permission-col"] = "delete", ["data-module"] = moduleCode }
+                                        })
+                                    </div>
+                                </td>
+                            </tr>
+                        }
                     }
                     </tbody>
                 </table>
@@ -151,24 +189,52 @@
 @section Scripts {
     <script>
         (function () {
-            document.querySelectorAll('[data-select-all-col]').forEach(function (headerCheckbox) {
-                var col = headerCheckbox.getAttribute('data-select-all-col');
-                var rowCheckboxes = document.querySelectorAll('[data-permission-col="' + col + '"]');
+            function isAllChecked(selector) {
+                var list = document.querySelectorAll(selector);
+                return list.length > 0 && Array.prototype.every.call(list, function (cb) { return cb.checked; });
+            }
 
-                var syncHeaderState = function () {
-                    headerCheckbox.checked = rowCheckboxes.length > 0 && Array.prototype.every.call(rowCheckboxes, function (cb) { return cb.checked; });
-                };
+            function toggleAll(selector, checked) {
+                document.querySelectorAll(selector).forEach(function (cb) {
+                    cb.checked = checked;
+                });
+            }
 
-                headerCheckbox.addEventListener('change', function () {
-                    rowCheckboxes.forEach(function (cb) { cb.checked = headerCheckbox.checked; });
+            function syncSelectAllStates() {
+                document.querySelectorAll('[data-select-all-col]').forEach(function (headerCheckbox) {
+                    var col = headerCheckbox.getAttribute('data-select-all-col');
+                    headerCheckbox.checked = isAllChecked('[data-permission-col="' + col + '"]');
                 });
 
-                rowCheckboxes.forEach(function (cb) {
-                    cb.addEventListener('change', syncHeaderState);
+                document.querySelectorAll('[data-module-select-all]').forEach(function (moduleCheckbox) {
+                    var moduleCode = moduleCheckbox.getAttribute('data-module-select-all');
+                    moduleCheckbox.checked = isAllChecked('[data-module="' + moduleCode + '"]');
                 });
+            }
 
-                syncHeaderState();
+            document.addEventListener('change', function (e) {
+                var target = e.target;
+
+                if (target.matches('[data-select-all-col]')) {
+                    var col = target.getAttribute('data-select-all-col');
+                    toggleAll('[data-permission-col="' + col + '"]', target.checked);
+                    syncSelectAllStates();
+                    return;
+                }
+
+                if (target.matches('[data-module-select-all]')) {
+                    var moduleCode = target.getAttribute('data-module-select-all');
+                    toggleAll('[data-module="' + moduleCode + '"]', target.checked);
+                    syncSelectAllStates();
+                    return;
+                }
+
+                if (target.matches('[data-permission-col]')) {
+                    syncSelectAllStates();
+                }
             });
+
+            syncSelectAllStates();
         })();
     </script>
 }

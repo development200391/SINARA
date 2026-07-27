@@ -162,6 +162,7 @@ public sealed class TextLocalizer(IHttpContextAccessor httpContextAccessor) : IT
         ["Break End"] = "Selesai Istirahat",
         ["Break Start"] = "Mulai Istirahat",
         ["Carry Over"] = "Carry Over",
+        ["Check All"] = "Centang Semua",
         ["Check In"] = "Check In",
         ["Check Out"] = "Check Out",
         ["Check-in Tolerance (min)"] = "Toleransi Check-in (menit)",
