@@ -309,6 +309,7 @@ public sealed class TextLocalizer(IHttpContextAccessor httpContextAccessor) : IT
         ["Search leave types"] = "Cari jenis cuti",
         ["Search period"] = "Cari periode",
         ["Search holiday name..."] = "Cari nama hari libur...",
+        ["Select"] = "Pilih",
         ["Select Department"] = "Pilih Departemen",
         ["Select Employee"] = "Pilih Karyawan",
         ["Select Leave Type"] = "Pilih Jenis Cuti",
