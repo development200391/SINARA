@@ -1,42 +1,54 @@
 @model ERP.Web.ViewModels.Config.ConfigRolesIndexViewModel
+@using ERP.Web.ViewModels.Shared
+@using Microsoft.AspNetCore.Html
 
 <div class="card border-0 shadow-sm">
     <div class="card-body">
         <h1 class="h5 mb-3">@T["Roles & Permissions"]</h1>
 
-        <div class="table-responsive">
-            <table class="table table-sm align-middle">
-                <thead>
-                    <tr>
-                        <th>@T["Name"]</th>
-                        <th>@T["Description"]</th>
-                        <th>@T["System"]</th>
-                        <th>@T["Status"]</th>
-                        <th class="text-end">@T["Action"]</th>
-                    </tr>
-                </thead>
-                <tbody>
-                @if (Model.Roles.Count == 0)
+        @{
+            var gridModel = new PagedGridViewModel
+            {
+                Columns =
+                [
+                    new PagedGridColumnViewModel { Key = "name", Title = T["Name"] },
+                    new PagedGridColumnViewModel { Key = "description", Title = T["Description"] },
+                    new PagedGridColumnViewModel { Key = "isSystem", Title = T["System"] },
+                    new PagedGridColumnViewModel { Key = "isActive", Title = T["Status"] }
+                ],
+                Rows = Model.Roles.Select(role => new PagedGridRowViewModel
                 {
-                    <tr><td colspan="5" class="text-center text-muted py-4">@T["msg.no_data"]</td></tr>
-                }
-                else
-                {
-                    foreach (var role in Model.Roles)
+                    Cells =
+                    [
+                        new PagedGridCellViewModel { Text = role.Name },
+                        new PagedGridCellViewModel { Text = role.Description },
+                        new PagedGridCellViewModel
+                        {
+                            Html = new HtmlString(role.IsSystem
+                                ? "<span class=\"badge text-bg-secondary\">Yes</span>"
+                                : "<span class=\"badge text-bg-light\">No</span>")
+                        },
+                        new PagedGridCellViewModel
+                        {
+                            Html = new HtmlString(role.IsActive
+                                ? "<span class=\"badge text-bg-success\">Active</span>"
+                                : "<span class=\"badge text-bg-secondary\">Inactive</span>")
+                        }
+                    ],
+                    Actions = new PagedGridRowActionViewModel
                     {
-                        <tr>
-                            <td>@role.Name</td>
-                            <td>@role.Description</td>
-                            <td>@(role.IsSystem ? "Yes" : "No")</td>
-                            <td>@(role.IsActive ? "Active" : "Inactive")</td>
-                            <td class="text-end">
-                                <a class="btn btn-sm btn-outline-primary" asp-action="Permissions" asp-route-id="@role.Id">Permission Matrix</a>
-                            </td>
-                        </tr>
+                        EditUrl = Url.Action("Permissions", "ConfigRoles", new { id = role.Id })
                     }
+                }).ToList(),
+                EmptyMessage = T["msg.no_data"],
+                Actions = new PagedGridActionConfigViewModel
+                {
+                    ActionColumnTitle = T["Action"],
+                    EditButtonText = T["Permission Matrix"]
                 }
-                </tbody>
-            </table>
-        </div>
+            };
+        }
+
+        @await Component.InvokeAsync("PagedGrid", gridModel)
     </div>
 </div>

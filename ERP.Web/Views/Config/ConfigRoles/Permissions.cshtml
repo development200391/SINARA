@@ -1,4 +1,5 @@
 @model ERP.Web.ViewModels.Config.ConfigRolePermissionsViewModel
+@using ERP.Web.ViewModels.Shared
 
 <div class="card border-0 shadow-sm">
     <div class="card-body">
@@ -14,10 +15,66 @@
                     <thead>
                         <tr>
                             <th>@T["Menu"]</th>
-                            <th class="text-center">@T["View"]</th>
-                            <th class="text-center">@T["Create"]</th>
-                            <th class="text-center">@T["Edit"]</th>
-                            <th class="text-center">@T["Delete"]</th>
+                            <th class="text-center">
+                                <div class="d-flex flex-column align-items-center gap-1">
+                                    <span>@T["View"]</span>
+                                    <div class="d-flex justify-content-center">
+                                        @await Component.InvokeAsync("FormCheckbox", new FormCheckboxViewModel
+                                        {
+                                            Name = "SelectAllView",
+                                            Id = "select-all-view",
+                                            Label = T["Check All"],
+                                            EmitHiddenFallback = false,
+                                            HtmlAttributes = new Dictionary<string, string> { ["data-select-all-col"] = "view" }
+                                        })
+                                    </div>
+                                </div>
+                            </th>
+                            <th class="text-center">
+                                <div class="d-flex flex-column align-items-center gap-1">
+                                    <span>@T["Create"]</span>
+                                    <div class="d-flex justify-content-center">
+                                        @await Component.InvokeAsync("FormCheckbox", new FormCheckboxViewModel
+                                        {
+                                            Name = "SelectAllCreate",
+                                            Id = "select-all-create",
+                                            Label = T["Check All"],
+                                            EmitHiddenFallback = false,
+                                            HtmlAttributes = new Dictionary<string, string> { ["data-select-all-col"] = "create" }
+                                        })
+                                    </div>
+                                </div>
+                            </th>
+                            <th class="text-center">
+                                <div class="d-flex flex-column align-items-center gap-1">
+                                    <span>@T["Edit"]</span>
+                                    <div class="d-flex justify-content-center">
+                                        @await Component.InvokeAsync("FormCheckbox", new FormCheckboxViewModel
+                                        {
+                                            Name = "SelectAllEdit",
+                                            Id = "select-all-edit",
+                                            Label = T["Check All"],
+                                            EmitHiddenFallback = false,
+                                            HtmlAttributes = new Dictionary<string, string> { ["data-select-all-col"] = "edit" }
+                                        })
+                                    </div>
+                                </div>
+                            </th>
+                            <th class="text-center">
+                                <div class="d-flex flex-column align-items-center gap-1">
+                                    <span>@T["Delete"]</span>
+                                    <div class="d-flex justify-content-center">
+                                        @await Component.InvokeAsync("FormCheckbox", new FormCheckboxViewModel
+                                        {
+                                            Name = "SelectAllDelete",
+                                            Id = "select-all-delete",
+                                            Label = T["Check All"],
+                                            EmitHiddenFallback = false,
+                                            HtmlAttributes = new Dictionary<string, string> { ["data-select-all-col"] = "delete" }
+                                        })
+                                    </div>
+                                </div>
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
@@ -29,10 +86,54 @@
                                 <input type="hidden" asp-for="Matrix.Permissions[i].MenuId" />
                                 <input type="hidden" asp-for="Matrix.Permissions[i].MenuName" />
                             </td>
-                            <td class="text-center"><input asp-for="Matrix.Permissions[i].CanView" class="form-check-input" /></td>
-                            <td class="text-center"><input asp-for="Matrix.Permissions[i].CanCreate" class="form-check-input" /></td>
-                            <td class="text-center"><input asp-for="Matrix.Permissions[i].CanEdit" class="form-check-input" /></td>
-                            <td class="text-center"><input asp-for="Matrix.Permissions[i].CanDelete" class="form-check-input" /></td>
+                            <td class="text-center">
+                                <div class="d-flex justify-content-center">
+                                    @await Component.InvokeAsync("FormCheckbox", new FormCheckboxViewModel
+                                    {
+                                        Name = Html.NameFor(x => x.Matrix.Permissions[i].CanView).ToString(),
+                                        Id = Html.IdFor(x => x.Matrix.Permissions[i].CanView).ToString(),
+                                        Label = string.Empty,
+                                        Checked = Model.Matrix.Permissions[i].CanView,
+                                        HtmlAttributes = new Dictionary<string, string> { ["data-permission-col"] = "view" }
+                                    })
+                                </div>
+                            </td>
+                            <td class="text-center">
+                                <div class="d-flex justify-content-center">
+                                    @await Component.InvokeAsync("FormCheckbox", new FormCheckboxViewModel
+                                    {
+                                        Name = Html.NameFor(x => x.Matrix.Permissions[i].CanCreate).ToString(),
+                                        Id = Html.IdFor(x => x.Matrix.Permissions[i].CanCreate).ToString(),
+                                        Label = string.Empty,
+                                        Checked = Model.Matrix.Permissions[i].CanCreate,
+                                        HtmlAttributes = new Dictionary<string, string> { ["data-permission-col"] = "create" }
+                                    })
+                                </div>
+                            </td>
+                            <td class="text-center">
+                                <div class="d-flex justify-content-center">
+                                    @await Component.InvokeAsync("FormCheckbox", new FormCheckboxViewModel
+                                    {
+                                        Name = Html.NameFor(x => x.Matrix.Permissions[i].CanEdit).ToString(),
+                                        Id = Html.IdFor(x => x.Matrix.Permissions[i].CanEdit).ToString(),
+                                        Label = string.Empty,
+                                        Checked = Model.Matrix.Permissions[i].CanEdit,
+                                        HtmlAttributes = new Dictionary<string, string> { ["data-permission-col"] = "edit" }
+                                    })
+                                </div>
+                            </td>
+                            <td class="text-center">
+                                <div class="d-flex justify-content-center">
+                                    @await Component.InvokeAsync("FormCheckbox", new FormCheckboxViewModel
+                                    {
+                                        Name = Html.NameFor(x => x.Matrix.Permissions[i].CanDelete).ToString(),
+                                        Id = Html.IdFor(x => x.Matrix.Permissions[i].CanDelete).ToString(),
+                                        Label = string.Empty,
+                                        Checked = Model.Matrix.Permissions[i].CanDelete,
+                                        HtmlAttributes = new Dictionary<string, string> { ["data-permission-col"] = "delete" }
+                                    })
+                                </div>
+                            </td>
                         </tr>
                     }
                     </tbody>
@@ -46,3 +147,28 @@
         </form>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        (function () {
+            document.querySelectorAll('[data-select-all-col]').forEach(function (headerCheckbox) {
+                var col = headerCheckbox.getAttribute('data-select-all-col');
+                var rowCheckboxes = document.querySelectorAll('[data-permission-col="' + col + '"]');
+
+                var syncHeaderState = function () {
+                    headerCheckbox.checked = rowCheckboxes.length > 0 && Array.prototype.every.call(rowCheckboxes, function (cb) { return cb.checked; });
+                };
+
+                headerCheckbox.addEventListener('change', function () {
+                    rowCheckboxes.forEach(function (cb) { cb.checked = headerCheckbox.checked; });
+                });
+
+                rowCheckboxes.forEach(function (cb) {
+                    cb.addEventListener('change', syncHeaderState);
+                });
+
+                syncHeaderState();
+            });
+        })();
+    </script>
+}
