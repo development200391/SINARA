@@ -14,7 +14,7 @@
     input.Attributes["type"] = "checkbox";
     input.Attributes["id"] = inputId;
     input.Attributes["name"] = Model.Name;
-    input.Attributes["value"] = "true";
+    input.Attributes["value"] = Model.Value;
     input.Attributes["role"] = "switch";
     input.AddCssClass(hasError ? "form-check-input is-invalid" : "form-check-input");
     if (Model.Checked)
@@ -49,7 +49,10 @@
 <div class="sinara-form-field @(hasError ? "error" : "")">
     <div class="form-check form-switch">
         @Html.Raw(inputHtml)
-        <input type="hidden" name="@Model.Name" value="false" />
+        @if (Model.EmitHiddenFallback)
+        {
+            <input type="hidden" name="@Model.Name" value="false" />
+        }
         @if (!string.IsNullOrWhiteSpace(Model.Label))
         {
             <label for="@inputId" class="form-check-label">

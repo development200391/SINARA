@@ -1,0 +1,80 @@
+@model ERP.Web.ViewModels.Config.ConfigUserEditViewModel
+@using ERP.Web.ViewModels.Shared
+
+@{
+    var isEdit = Model.Id > 0;
+}
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h1 class="h5 mb-3">@(isEdit ? T["Edit User"] : T["Create User"])</h1>
+
+        <form method="post">
+            @Html.AntiForgeryToken()
+            @if (isEdit)
+            {
+                <input asp-for="Id" type="hidden" />
+            }
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label asp-for="Username" class="form-label"></label>
+                    <input asp-for="Username" class="form-control" readonly="@isEdit" />
+                    <span asp-validation-for="Username" class="text-danger"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="FullName" class="form-label"></label>
+                    <input asp-for="FullName" class="form-control" />
+                    <span asp-validation-for="FullName" class="text-danger"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Email" class="form-label"></label>
+                    <input asp-for="Email" class="form-control" type="email" autocomplete="email" />
+                    @if (!isEdit)
+                    {
+                        <div class="form-text">Password akun akan dikirim ke email ini setelah user disimpan.</div>
+                    }
+                    <span asp-validation-for="Email" class="text-danger"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Phone" class="form-label"></label>
+                    <input asp-for="Phone" class="form-control" />
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label">@T["Roles"]</label>
+                    <div class="d-flex flex-wrap gap-3">
+                        @foreach (var role in Model.AvailableRoles)
+                        {
+                            @await Component.InvokeAsync("FormCheckbox", new FormCheckboxViewModel
+                            {
+                                Name = "SelectedRoles",
+                                Id = $"role_{role.Id}",
+                                Label = role.Name,
+                                Value = role.Name,
+                                Checked = Model.SelectedRoles.Contains(role.Name),
+                                EmitHiddenFallback = false
+                            })
+                        }
+                    </div>
+                </div>
+
+                <div class="col-12 mt-2">
+                    @await Component.InvokeAsync("FormCheckbox", new FormCheckboxViewModel
+                    {
+                        Name = nameof(Model.IsActive),
+                        Id = Html.IdFor(x => x.IsActive).ToString(),
+                        Label = T["Active"],
+                        Checked = Model.IsActive
+                    })
+                </div>
+            </div>
+
+            <div class="mt-4 d-flex gap-2">
+                <button type="submit" class="btn btn-primary">@T["common.save"]</button>
+                <a class="btn btn-outline-secondary" asp-action="Index">@T["common.cancel"]</a>
+            </div>
+        </form>
+    </div>
+</div>
