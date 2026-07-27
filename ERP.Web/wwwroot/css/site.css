@@ -67,6 +67,9 @@ body {
 
 .sinara-form-field .form-check.form-switch .form-check-input {
     cursor: pointer;
+    float: none;
+    margin-top: 0;
+    flex-shrink: 0;
 }
 
 .sinara-form-field .form-check.form-switch .form-check-input:checked {
