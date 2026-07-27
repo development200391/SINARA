@@ -56,9 +56,14 @@
 </div>
 
 <div class="col-md-6">
-    <label asp-for="Icon" class="form-label">@T["Icon (Bootstrap Icon)"]</label>
-    <input asp-for="Icon" class="form-control" placeholder="bi-list-ul" />
-    <span asp-validation-for="Icon" class="text-danger"></span>
+    @await Component.InvokeAsync("FormIconPicker", new FormIconPickerViewModel
+    {
+        Name = nameof(Model.Icon),
+        Id = Html.IdFor(x => x.Icon).ToString(),
+        Label = T["Icon (Bootstrap Icon)"],
+        Value = Model.Icon,
+        Placeholder = "bi-list-ul"
+    })
 </div>
 
 <div class="col-12">
@@ -68,8 +73,11 @@
 </div>
 
 <div class="col-12">
-    <div class="form-check">
-        <input asp-for="IsActive" class="form-check-input" />
-        <label asp-for="IsActive" class="form-check-label">@T["Active"]</label>
-    </div>
+    @await Component.InvokeAsync("FormCheckbox", new FormCheckboxViewModel
+    {
+        Name = nameof(Model.IsActive),
+        Id = Html.IdFor(x => x.IsActive).ToString(),
+        Label = T["Active"],
+        Checked = Model.IsActive
+    })
 </div>

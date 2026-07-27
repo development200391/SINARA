@@ -1,0 +1,282 @@
+@model ERP.Web.ViewModels.Shared.FormIconPickerViewModel
+@using Microsoft.AspNetCore.Mvc.Rendering
+
+@{
+    var inputId = string.IsNullOrWhiteSpace(Model.Id) ? Model.Name : Model.Id;
+    var previewId = $"{inputId}-icon-preview";
+    var modalId = $"{inputId}-icon-modal";
+    var modalLabelId = $"{modalId}-label";
+    var modelState = ViewData.ModelState.ContainsKey(Model.Name) ? ViewData.ModelState[Model.Name] : null;
+    var modelStateError = modelState != null && modelState.Errors.Count > 0 ? modelState.Errors[0].ErrorMessage : null;
+    var errorMessage = !string.IsNullOrWhiteSpace(Model.Error) ? Model.Error : modelStateError;
+    var hasError = !string.IsNullOrWhiteSpace(errorMessage);
+    var requiredMessage = string.Format(T["{0} is required."], Model.Label);
+    var currentValue = string.IsNullOrWhiteSpace(Model.Value) ? string.Empty : Model.Value.Trim();
+    var previewClass = string.IsNullOrWhiteSpace(currentValue) ? "bi-question-square" : currentValue;
+
+    var input = new TagBuilder("input");
+    input.TagRenderMode = TagRenderMode.SelfClosing;
+    input.Attributes["type"] = "text";
+    input.Attributes["id"] = inputId;
+    input.Attributes["name"] = Model.Name;
+    input.Attributes["autocomplete"] = "off";
+    input.Attributes["data-icon-picker-text-input"] = "true";
+    input.Attributes["data-preview-for"] = $"#{previewId}";
+    input.AddCssClass(hasError ? "form-control is-invalid" : "form-control");
+    if (!string.IsNullOrEmpty(Model.Value))
+    {
+        input.Attributes["value"] = Model.Value;
+    }
+    if (!string.IsNullOrWhiteSpace(Model.Placeholder))
+    {
+        input.Attributes["placeholder"] = Model.Placeholder;
+    }
+    if (Model.IsRequired)
+    {
+        input.Attributes["required"] = "required";
+        input.Attributes["data-val"] = "true";
+        input.Attributes["data-val-required"] = requiredMessage;
+    }
+    input.Attributes["aria-label"] = Model.Label;
+    input.Attributes["aria-invalid"] = hasError ? "true" : "false";
+    if (hasError)
+    {
+        input.Attributes["aria-describedby"] = $"{inputId}-error";
+    }
+    if (Model.HtmlAttributes != null)
+    {
+        foreach (var attr in Model.HtmlAttributes)
+        {
+            input.Attributes[attr.Key] = attr.Value;
+        }
+    }
+
+    using var writer = new System.IO.StringWriter();
+    input.WriteTo(writer, System.Text.Encodings.Web.HtmlEncoder.Default);
+    var inputHtml = writer.ToString();
+}
+
+<div class="sinara-form-field @(hasError ? "error" : "")">
+    @if (!string.IsNullOrWhiteSpace(Model.Label))
+    {
+        <label for="@inputId" class="form-label">
+            @Model.Label
+            @if (Model.IsRequired)
+            {
+                <span class="text-danger">*</span>
+            }
+        </label>
+    }
+
+    <div class="input-group">
+        <span class="input-group-text" id="@previewId">
+            <i class="bi @previewClass" aria-hidden="true"></i>
+        </span>
+        @Html.Raw(inputHtml)
+        <button type="button" class="btn btn-outline-secondary d-inline-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#@modalId">
+            <i class="bi bi-grid-3x3-gap" aria-hidden="true"></i>
+            <span>@T["Choose Icon"]</span>
+        </button>
+    </div>
+
+    <span class="@(hasError ? "text-danger field-validation-error" : "text-danger field-validation-valid")"
+          id="@(inputId)-error"
+          data-valmsg-for="@Model.Name"
+          data-valmsg-replace="true">@errorMessage</span>
+</div>
+
+<div class="modal fade sinara-icon-picker-modal" id="@modalId" tabindex="-1" aria-labelledby="@modalLabelId" aria-hidden="true"
+     data-icon-picker-input="#@inputId" data-icon-picker-preview="#@previewId">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="@modalLabelId">@T["Choose Icon"]</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="search" class="form-control mb-3" placeholder="@T["Search icon..."]" autocomplete="off" data-icon-picker-search />
+                <div class="d-flex flex-wrap gap-2 sinara-icon-picker-grid" data-icon-picker-grid></div>
+                <div class="text-muted small mt-2 d-none" data-icon-picker-empty>@T["No matching icon."]</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        if (window.sinaraIconPickerBound) {
+            return;
+        }
+        window.sinaraIconPickerBound = true;
+
+        var ICONS = [
+            'bi-speedometer', 'bi-speedometer2', 'bi-activity', 'bi-graph-up', 'bi-graph-down', 'bi-graph-up-arrow',
+            'bi-bar-chart', 'bi-bar-chart-line', 'bi-bar-chart-steps', 'bi-pie-chart', 'bi-pie-chart-fill',
+            'bi-house', 'bi-house-door', 'bi-house-door-fill', 'bi-house-fill', 'bi-building', 'bi-building-fill',
+            'bi-building-gear', 'bi-bank', 'bi-bank2', 'bi-shop', 'bi-shop-window',
+            'bi-people', 'bi-people-fill', 'bi-person', 'bi-person-fill', 'bi-person-badge', 'bi-person-badge-fill',
+            'bi-person-check', 'bi-person-check-fill', 'bi-person-plus', 'bi-person-plus-fill', 'bi-person-add',
+            'bi-person-lines-fill', 'bi-person-workspace', 'bi-person-gear', 'bi-person-vcard', 'bi-person-vcard-fill',
+            'bi-briefcase', 'bi-briefcase-fill', 'bi-suitcase', 'bi-suitcase-fill', 'bi-suitcase-lg', 'bi-suitcase2',
+            'bi-calendar', 'bi-calendar-check', 'bi-calendar-check-fill', 'bi-calendar-date', 'bi-calendar-event',
+            'bi-calendar-event-fill', 'bi-calendar-week', 'bi-calendar2-check', 'bi-calendar3', 'bi-calendar-x',
+            'bi-clock', 'bi-clock-fill', 'bi-clock-history', 'bi-alarm', 'bi-alarm-fill', 'bi-hourglass-split',
+            'bi-hourglass', 'bi-stopwatch', 'bi-stopwatch-fill',
+            'bi-cash', 'bi-cash-stack', 'bi-cash-coin', 'bi-currency-exchange', 'bi-currency-dollar',
+            'bi-wallet', 'bi-wallet2', 'bi-wallet-fill', 'bi-piggy-bank', 'bi-piggy-bank-fill', 'bi-coin',
+            'bi-credit-card', 'bi-credit-card-fill', 'bi-credit-card-2-front', 'bi-receipt', 'bi-receipt-cutoff',
+            'bi-percent', 'bi-tags', 'bi-tags-fill', 'bi-tag', 'bi-tag-fill',
+            'bi-journal', 'bi-journal-text', 'bi-journal-bookmark', 'bi-journal-check', 'bi-journals', 'bi-journal-plus',
+            'bi-book', 'bi-book-fill', 'bi-book-half', 'bi-bookmark', 'bi-bookmark-fill', 'bi-bookshelf', 'bi-mortarboard',
+            'bi-file-earmark', 'bi-file-earmark-text', 'bi-file-earmark-text-fill', 'bi-file-earmark-check',
+            'bi-file-earmark-spreadsheet', 'bi-file-earmark-pdf', 'bi-file-earmark-word', 'bi-file-earmark-excel',
+            'bi-file-earmark-plus', 'bi-file-earmark-bar-graph', 'bi-file-text', 'bi-file-text-fill', 'bi-files',
+            'bi-filetype-pdf', 'bi-filetype-doc', 'bi-filetype-xls', 'bi-filetype-csv',
+            'bi-folder', 'bi-folder-fill', 'bi-folder2', 'bi-folder2-open', 'bi-folder-plus', 'bi-folder-check',
+            'bi-clipboard', 'bi-clipboard-check', 'bi-clipboard-data', 'bi-clipboard-data-fill', 'bi-clipboard-plus',
+            'bi-clipboard2', 'bi-clipboard2-check', 'bi-clipboard2-data', 'bi-clipboard-x',
+            'bi-list', 'bi-list-ul', 'bi-list-ol', 'bi-list-check', 'bi-list-nested', 'bi-list-task', 'bi-card-list',
+            'bi-table', 'bi-database', 'bi-database-fill', 'bi-database-check', 'bi-server', 'bi-hdd', 'bi-hdd-stack',
+            'bi-box', 'bi-box-seam', 'bi-box-seam-fill', 'bi-boxes', 'bi-archive', 'bi-archive-fill',
+            'bi-truck', 'bi-truck-front', 'bi-truck-front-fill', 'bi-cart', 'bi-cart2', 'bi-cart3', 'bi-cart-check',
+            'bi-cart-plus', 'bi-bag', 'bi-bag-fill', 'bi-bag-check', 'bi-bag-plus', 'bi-basket', 'bi-basket2',
+            'bi-inbox', 'bi-inboxes', 'bi-inbox-fill', 'bi-send', 'bi-send-fill', 'bi-reply', 'bi-reply-fill',
+            'bi-envelope', 'bi-envelope-fill', 'bi-envelope-open', 'bi-envelope-check', 'bi-chat', 'bi-chat-fill',
+            'bi-chat-dots', 'bi-chat-dots-fill', 'bi-chat-left-text', 'bi-chat-square-text', 'bi-telephone',
+            'bi-telephone-fill', 'bi-megaphone', 'bi-megaphone-fill', 'bi-bell', 'bi-bell-fill', 'bi-broadcast',
+            'bi-globe', 'bi-globe2', 'bi-compass', 'bi-map', 'bi-map-fill', 'bi-geo-alt', 'bi-geo-alt-fill',
+            'bi-signpost', 'bi-signpost-2', 'bi-pin-map', 'bi-pin-map-fill', 'bi-diagram-2', 'bi-diagram-2-fill',
+            'bi-diagram-3', 'bi-diagram-3-fill', 'bi-flag', 'bi-flag-fill', 'bi-share', 'bi-share-fill',
+            'bi-link-45deg', 'bi-paperclip', 'bi-shield', 'bi-shield-check', 'bi-shield-fill', 'bi-shield-lock',
+            'bi-shield-lock-fill', 'bi-key', 'bi-key-fill', 'bi-lock', 'bi-lock-fill', 'bi-unlock', 'bi-unlock-fill',
+            'bi-gear', 'bi-gear-fill', 'bi-gear-wide-connected', 'bi-gears', 'bi-sliders', 'bi-sliders2',
+            'bi-toggle-on', 'bi-toggle-off', 'bi-toggle2-on', 'bi-grid', 'bi-grid-fill', 'bi-grid-3x3-gap',
+            'bi-grid-1x2', 'bi-kanban', 'bi-kanban-fill', 'bi-columns-gap', 'bi-window', 'bi-window-stack',
+            'bi-layers', 'bi-layers-fill', 'bi-stack', 'bi-collection', 'bi-app-indicator', 'bi-layout-sidebar',
+            'bi-layout-text-window', 'bi-menu-button-wide', 'bi-ui-checks', 'bi-check-all', 'bi-check2-square',
+            'bi-check-square', 'bi-check-circle', 'bi-check2-circle', 'bi-check-circle-fill', 'bi-x-circle',
+            'bi-x-circle-fill', 'bi-exclamation-circle', 'bi-exclamation-triangle', 'bi-exclamation-triangle-fill',
+            'bi-info-circle', 'bi-info-circle-fill', 'bi-question-circle', 'bi-question-square', 'bi-plus-circle',
+            'bi-plus-circle-fill', 'bi-dash-circle', 'bi-arrow-repeat', 'bi-arrow-left-right', 'bi-arrow-up',
+            'bi-arrow-down', 'bi-arrow-up-right', 'bi-arrow-down-left', 'bi-arrow-down-up', 'bi-upload', 'bi-download',
+            'bi-printer', 'bi-printer-fill', 'bi-camera', 'bi-camera-fill', 'bi-image', 'bi-images', 'bi-pencil',
+            'bi-pencil-fill', 'bi-pencil-square', 'bi-trash', 'bi-trash-fill', 'bi-trash3', 'bi-search', 'bi-filter',
+            'bi-funnel', 'bi-funnel-fill', 'bi-award', 'bi-award-fill', 'bi-trophy', 'bi-trophy-fill', 'bi-star',
+            'bi-star-fill', 'bi-star-half', 'bi-heart', 'bi-heart-fill', 'bi-lightning', 'bi-lightning-fill',
+            'bi-lightning-charge', 'bi-cpu', 'bi-cpu-fill', 'bi-motherboard', 'bi-cloud', 'bi-cloud-upload',
+            'bi-cloud-download', 'bi-cloud-check', 'bi-wifi', 'bi-plug', 'bi-plug-fill', 'bi-tools', 'bi-wrench',
+            'bi-wrench-adjustable', 'bi-hammer', 'bi-nut', 'bi-brush', 'bi-palette', 'bi-eyedropper', 'bi-code-slash',
+            'bi-code', 'bi-terminal', 'bi-bug', 'bi-bug-fill', 'bi-puzzle', 'bi-app', 'bi-window-sidebar',
+            'bi-truck-flatbed', 'bi-airplane', 'bi-bus-front', 'bi-bicycle', 'bi-fuel-pump', 'bi-battery',
+            'bi-battery-charging', 'bi-thermometer', 'bi-droplet', 'bi-fire', 'bi-tree', 'bi-flower1',
+            'bi-basket3', 'bi-gift', 'bi-gift-fill', 'bi-easel', 'bi-clipboard2-plus'
+        ];
+
+        function renderGrid(modal, filter) {
+            var grid = modal.querySelector('[data-icon-picker-grid]');
+            var emptyNode = modal.querySelector('[data-icon-picker-empty]');
+            if (!grid) {
+                return;
+            }
+
+            grid.innerHTML = '';
+            var text = (filter || '').trim().toLowerCase();
+            var matched = 0;
+
+            ICONS.forEach(function (icon) {
+                if (text && icon.indexOf(text) === -1) {
+                    return;
+                }
+
+                matched++;
+
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'btn btn-outline-secondary d-flex flex-column align-items-center gap-1 sinara-icon-picker-item';
+                btn.style.width = '92px';
+                btn.setAttribute('data-icon-value', icon);
+                btn.innerHTML = '<i class="bi ' + icon + ' fs-4" aria-hidden="true"></i><span class="small text-truncate w-100">' + icon + '</span>';
+                grid.appendChild(btn);
+            });
+
+            if (emptyNode) {
+                emptyNode.classList.toggle('d-none', matched > 0);
+            }
+        }
+
+        document.addEventListener('shown.bs.modal', function (event) {
+            var modal = event.target;
+            if (!(modal instanceof Element) || !modal.classList.contains('sinara-icon-picker-modal')) {
+                return;
+            }
+
+            var search = modal.querySelector('[data-icon-picker-search]');
+            if (search instanceof HTMLInputElement) {
+                search.value = '';
+                search.focus();
+            }
+
+            renderGrid(modal, '');
+        });
+
+        document.addEventListener('input', function (event) {
+            var target = event.target;
+            if (!(target instanceof HTMLInputElement)) {
+                return;
+            }
+
+            if (target.hasAttribute('data-icon-picker-search')) {
+                var modal = target.closest('.sinara-icon-picker-modal');
+                if (modal) {
+                    renderGrid(modal, target.value);
+                }
+                return;
+            }
+
+            if (target.hasAttribute('data-icon-picker-text-input')) {
+                var previewSelector = target.getAttribute('data-preview-for');
+                var preview = previewSelector ? document.querySelector(previewSelector + ' i') : null;
+                if (preview) {
+                    preview.className = 'bi ' + (target.value.trim() || 'bi-question-square');
+                }
+            }
+        });
+
+        document.addEventListener('click', function (event) {
+            var target = event.target;
+            if (!(target instanceof Element)) {
+                return;
+            }
+
+            var item = target.closest('[data-icon-value]');
+            if (!item) {
+                return;
+            }
+
+            var modal = item.closest('.sinara-icon-picker-modal');
+            if (!modal) {
+                return;
+            }
+
+            var value = item.getAttribute('data-icon-value') || '';
+            var inputSelector = modal.getAttribute('data-icon-picker-input');
+            var previewSelector = modal.getAttribute('data-icon-picker-preview');
+            var input = inputSelector ? document.querySelector(inputSelector) : null;
+            var preview = previewSelector ? document.querySelector(previewSelector + ' i') : null;
+
+            if (input instanceof HTMLInputElement) {
+                input.value = value;
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+
+            if (preview) {
+                preview.className = 'bi ' + value;
+            }
+
+            if (window.bootstrap && window.bootstrap.Modal) {
+                window.bootstrap.Modal.getOrCreateInstance(modal).hide();
+            }
+        });
+    })();
+</script>
