@@ -251,6 +251,12 @@
                 input.select();
             }, 0);
         }
+
+        var scrollParent = host.closest('.table-responsive');
+        if (scrollParent instanceof HTMLElement) {
+            scrollParent.dataset.sinaraPrevOverflow = scrollParent.style.overflow;
+            scrollParent.style.overflow = 'visible';
+        }
     });
 
     document.addEventListener('change', function (event) {
@@ -289,6 +295,12 @@
         }
 
         applyFilter(host, '');
+
+        var scrollParent = host.closest('.table-responsive');
+        if (scrollParent instanceof HTMLElement) {
+            scrollParent.style.overflow = scrollParent.dataset.sinaraPrevOverflow || '';
+            delete scrollParent.dataset.sinaraPrevOverflow;
+        }
     });
 })();
 </script>
