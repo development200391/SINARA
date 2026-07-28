@@ -1,448 +1,114 @@
-ReadMe General Approval Module SINARA
+# General Approval Module (APV)
 
-Dokumen ini merangkum modul **General Approval (APV)**: mesin approval
-generik lintas modul, yang dirancang supaya modul lain (Fixed Assets,
-Purchasing, Payroll, Finance, dst.) tidak perlu bikin tabel & alur approval
-sendiri-sendiri — cukup daftarkan satu baris ke `apv_approval_requests`
-(pola `reference_type` + `reference_id`, sama seperti General Document).
+Mesin approval generik lintas modul — dirancang supaya modul lain (Fixed Assets, Purchasing, Payroll, Finance, dst.) tidak perlu bikin tabel & alur approval sendiri-sendiri, cukup daftarkan satu baris ke `apv_approval_requests` (pola `reference_type` + `reference_id`, sama seperti General Document). **Modul ini sudah diimplementasi dan fungsional end-to-end** (Domain → Infrastructure → Application → API → Web → Hangfire → SignalR/email), dengan **satu integrasi nyata sejauh ini: HR Leave Request** (lihat §5).
 
-Rencana lengkap ada di
-`SINARA_ERP_GeneralApproval_Panduan_Detail.docx` (5 fase: APV-1 Fondasi,
-APV-2 Request & Workflow, APV-3 Notifikasi & Eskalasi, APV-4 Integrasi &
-Audit, APV-5 Laporan & Hak Akses). README ini merangkum isi docx tsb DAN
-membandingkannya dengan apa yang sungguhan sudah ada di kode saat ini.
+Rencana desain awal lengkap ada di `SINARA_ERP_GeneralApproval_Panduan_Detail.docx` (5 fase: APV-1 Fondasi, APV-2 Request & Workflow, APV-3 Notifikasi & Eskalasi, APV-4 Integrasi & Audit, APV-5 Laporan & Hak Akses) — dokumen ini merangkum isi docx tsb DAN membandingkannya dengan kenyataan di kode saat ini (lihat §8 untuk tabel rencana-vs-kenyataan).
 
-STATUS IMPLEMENTASI SAAT INI — PENTING, BACA DULU
-==================================================
-**Modul ini SUDAH DIIMPLEMENTASI dan fungsional end-to-end** (Domain →
-Infrastructure → Application → API → Web). Menu "General Approval" di
-ERP.Web sekarang bisa dipakai sungguhan: bikin request lewat API, masuk ke
-Inbox approver yang tepat, di-approve/reject/cancel, notifikasi
-in-app + email terkirim, dan job eskalasi/reminder jalan otomatis tiap 30
-menit lewat Hangfire.
+## 1. Entitas Domain (`ERP.Domain/Entities/Approval`, `ERP.Domain/Enums/Approval`)
 
-Yang SUDAH ada dan jalan:
-- Domain entities — 7 tabel `apv_*` lengkap dengan relasi
-  (`ERP.Domain/Entities/Approval/*.cs`).
-- Migration `20260713100000_AddGeneralApproval` — sudah diterapkan ke
-  database (`dotnet ef database update`, diverifikasi lewat
-  `dotnet ef migrations script`).
-- Enum (`ERP.Domain/Enums/Approval/*.cs`) — 6 file, tidak berubah dari
-  rencana awal.
-- DTO (`ERP.Application/DTOs/Approval/ApprovalDtos.cs`) — tidak berubah.
-- Application services (`ERP.Application/Services/Approval/`):
-  `ApprovalTemplateService` (CRUD Template + Level, options),
-  `ApprovalRequestService` (routing engine inti: submit, resolve approver
-  per ApproverType, Sequential/Parallel/AnyOne, approve/reject/cancel,
-  delegasi otomatis & manual, job eskalasi/reminder),
-  `ApprovalDelegationService` (CRUD + revoke + approver options),
-  `ApprovalReportService` (dashboard, SLA report, by-template report,
-  audit log). `IApprovalCallbackService` adalah registry pattern
-  (`IEnumerable<IApprovalCallbackService>` di-inject ke
-  `ApprovalRequestService`, dicari lewat `ReferenceType`) — implementasi
-  konkret pertama sudah terpasang untuk `hr_leave_requests`
-  (`LeaveRequestApprovalCallbackService`); Fixed Assets/Payroll/
-  Purchasing/Finance belum. Lihat bagian "Integrasi Modul HR Leave
-  Request" di bawah.
-- `IApprovalNotificationService` (`ERP.API/Services/ApprovalNotificationService.cs`)
-  — tulis baris `apv_notifications`, push in-app lewat SignalR
-  (`ERP.API/Hubs/ApprovalHub.cs`, endpoint `/hubs/approval`), kirim email
-  lewat MailKit memakai konfigurasi `Smtp` yang sudah ada di
-  `appsettings.json` (dipakai bersama fitur lupa-password, sudah aktif
-  dengan kredensial Gmail asli — lihat catatan keamanan di bawah).
-- Hangfire (`ERP.API/Program.cs`) — storage PostgreSQL (pakai
-  `ConnectionStrings:DefaultConnection` yang sama dengan EF Core),
-  recurring job `approval-escalation-reminders` jalan tiap 30 menit
-  memanggil `IApprovalRequestService.ProcessEscalationsAndRemindersAsync`.
-  Dashboard Hangfire (`/hangfire`) hanya aktif di environment Development.
-- API controllers (`ERP.API/Controllers/v1/Approval/`) — 7 controller
-  (`ApprovalDashboardController`, `ApprovalInboxController`,
-  `ApprovalRequestsController`, `ApprovalTemplatesController` (+ nested
-  Levels), `ApprovalDelegationsController`, `ApprovalLookupsController`,
-  `ApprovalReportsController`), route persis sesuai kontrak
-  `ApprovalApiClient`/`IApprovalApiClient` — Web layer yang sudah dibangun
-  sebelumnya JALAN TANPA PERUBAHAN.
-- Web layer penuh: controller (`ApprovalController` + 7 partial class),
-  ViewModel, Razor view, `ApprovalApiClient`/`IApprovalApiClient` — tidak
-  berubah dari sebelumnya, sekarang benar-benar terhubung ke API asli.
-- Approval Inbox (`/approval/inbox`) punya tombol "Detail" per baris yang
-  langsung buka halaman detail record sumbernya (bukan cuma kolom generik
-  Template/Amount/Requester) — lewat `ApprovalReferenceLinkResolver`
-  (`ERP.Web/Services/ApprovalReferenceLinkResolver.cs`), registry kecil
-  `ReferenceType` → URL template. Baru ada satu entry (`hr_leave_requests`
-  → `/hr/leave/requests/details/{id}`); tinggal tambah satu baris per
-  modul baru yang connect ke APV. Belum dipasang di `/approval/my-requests`
-  (gampang ditambah kalau perlu, reuse resolver yang sama).
-- Menu & modul sudah di-seed di database (module "APV", 8 item menu), dan
-  Super Admin otomatis dapat izin penuh ke menu-menu itu lewat
-  `SeedSuperAdminPermissionsAsync` (yang men-generate izin untuk SEMUA
-  menu, termasuk yang baru) — tidak perlu seed permission `apv.*` terpisah
-  karena modul ini memakai mekanisme permission yang sama dengan modul
-  lain (`CfgRoleMenuPermission` + `[RequireMenuPermission]`), bukan
-  string permission `apv.*` seperti yang tadinya direncanakan di docx.
-- Template & level default — di-seed lewat `SeedApprovalTemplatesAsync`
-  di `DataSeeder.cs` (lihat tabel di bagian 7 di bawah untuk detail per
-  template, termasuk penyesuaian dari rencana awal docx).
+- **`ApvApprovalTemplate`** — satu baris = satu aturan approval untuk satu jenis dokumen: Code, Name, Module, `ReferenceType`, `ApprovalType` (Sequential/Parallel/AnyOne), MinAmount/MaxAmount (rentang nilai transaksi yang dicakup), AutoApproveBelow (approve otomatis tanpa lewat approver), SlaHours (default 24), AllowDelegation, RequireCommentOnReject, IsActive.
+- **`ApvApprovalLevel`** — level dalam satu template, urut lewat LevelOrder (unik & berurutan per template): LevelName, `ApproverType` (Role/Position/SpecificUser/DirectSuperior) + FK sesuai tipe, MinApproversRequired (kuorum Parallel/AnyOne), EscalationHours + EscalateToLevelId (self-FK).
+- **`ApvDelegation`** — DelegatorUserId → DelegateUserId, TemplateId (nullable = berlaku semua template), StartDate/EndDate, Reason, IsActive.
+- **`ApvApprovalRequest`** — satu pengajuan: RequestNo (auto `APV-{YYYY}-{00001}`, reset tiap tahun), TemplateId, ReferenceType + ReferenceId, Subject, Amount, RequestedBy/At, CurrentLevelId, Status (Pending/InProgress/Approved/Rejected/Cancelled/Expired), FinalActionAt/By, Notes. **Unique constraint** `(reference_type, reference_id)` selama status Pending/InProgress — satu record sumber cuma boleh punya satu approval request yang berjalan.
+- **`ApvApprovalStep`** — satu baris per approver per level per request: RequestId, LevelId, ApproverUserId, IsDelegated + DelegatedFromUserId, Action (Approved/Rejected/Delegated/Returned, nullable = belum bertindak), ActionAt, Comment (wajib kalau Rejected), DueAt (RequestedAt + SlaHours), NotifiedAt, ReminderCount, IsActive.
+- **`ApvNotification`** — per step: RecipientUserId, NotificationType (NewRequest/Approved/Rejected/Reminder/Escalated/Cancelled/Delegated), Channel (InApp/Email/Both), Subject/Body, IsRead, SentAt/FailedAt/RetryCount.
+- **`ApvApprovalAuditLog`** — log append-only (tidak bisa diubah/dihapus): RequestId, StepId, ActorUserId, Action (string bebas), OldStatus/NewStatus, IpAddress, UserAgent, Comment, CreatedAt.
 
-Yang BELUM ada / catatan penting:
-- **Integrasi ke modul lain** — **HR Leave Request SUDAH terhubung**
-  (integrasi pertama, lihat bagian "Integrasi Modul HR Leave Request" di
-  bawah). Fixed Assets, Purchasing, Payroll, Finance MASIH belum — tidak
-  ada satupun dari modul-modul itu yang memanggil
-  `IApprovalRequestService.SubmitAsync` atau mengimplementasikan
-  `IApprovalCallbackService`. Engine-nya sudah lengkap dan bisa dipanggil
-  langsung secara in-process (`SubmitAsync` sengaja tidak diekspos sebagai
-  endpoint API publik — hanya dipanggil modul sumber lewat Application
-  layer, persis seperti `LeaveService.SubmitAsync` memanggilnya), tapi
-  belum ada "tombol Submit for Approval" di modul-modul itu. Sebagian juga
-  karena entity transaksional sumbernya sendiri (PR/PO, Payroll Run yang
-  bisa "diajukan", dst.) belum lengkap dibangun di modul-modul itu — lihat
-  detail per template di bagian 7.
-- **SignalR client di Razor view belum dipasang** — hub `/hubs/approval`
-  sudah jalan di server dan `IApprovalNotificationService` sudah push ke
-  grup `approval-user-{userId}`, tapi belum ada JS client
-  (`@microsoft/signalr`) di `ERP.Web` yang connect & tampilkan toast
-  notifikasi real-time. Notifikasi tetap tersimpan di `apv_notifications`
-  dan bisa dibaca lewat polling/reload halaman.
-- **Kredensial SMTP di `appsettings.json` adalah kredensial Gmail asli**
-  (dipakai bersama fitur reset password) — commit ini TIDAK menambah
-  risiko baru (sudah ada sebelumnya), tapi kalau repo ini pernah/akan
-  di-push ke remote publik, rotate App Password Gmail tsb segera.
-- **Split nilai PRC_PO_LOW/PRC_PO_HIGH (Rp5.000.000)** adalah asumsi
-  penulis seeder, bukan dari docx (docx cuma sebut ambang auto-approve
-  Rp500.000 untuk PO rendah) — sesuaikan lewat halaman Templates kalau
-  nilainya tidak cocok kebutuhan nyata.
-- **`ReferenceType` di beberapa template default menunjuk tabel yang
-  belum ada** (`pur_purchase_orders` untuk PRC_PO_LOW/PRC_PO_HIGH — modul
-  Purchasing baru punya master data, belum ada entity Purchase
-  Order/Requisition). Baris template-nya tetap di-seed sebagai config
-  siap-pakai; begitu modul Purchasing punya entity PO, tinggal panggil
-  `SubmitAsync("Purchasing", "pur_purchase_orders", poId, subject, amount,
-  requestedByUserId, notes)`.
-- Kalau mau sambungkan modul sumber, urutan kerja yang masuk akal: (1)
-  pastikan entity transaksionalnya (mis. Fixed Assets Transfer) punya
-  status "PendingApproval" dan field untuk menyimpan hasil approval, (2)
-  panggil `IApprovalRequestService.SubmitAsync(...)` saat user klik
-  "Submit for Approval", (3) buat kelas yang implement
-  `IApprovalCallbackService` dengan `ReferenceType` yang cocok, daftarkan
-  di `ERP.Application/DependencyInjection.cs` sebagai
-  `services.AddScoped<IApprovalCallbackService, XxxCallbackService>()`
-  (bisa daftar lebih dari satu — routing engine resolve otomatis lewat
-  `ReferenceType`), lalu implementasikan efek samping approve/reject/
-  cancel-nya di sana (README bagian 6 masih relevan untuk pola ini).
+**Enum** (`ERP.Domain/Enums/Approval`): `ApprovalType` (Sequential/Parallel/AnyOne), `ApprovalApproverType` (Role/Position/SpecificUser/DirectSuperior), `ApprovalRequestStatus` (Pending/InProgress/Approved/Rejected/Cancelled/Expired), `ApprovalStepAction` (Approved/Rejected/Delegated/Returned — `Returned` ada di enum tapi belum dipakai engine), `ApprovalNotificationChannel` (InApp/Email/Both), `ApprovalNotificationType`.
 
-Integrasi Modul HR Leave Request (SUDAH JALAN — integrasi pertama)
-======================================================================
-`hr/leave/requests` (menu HR → Leave Requests) sekarang memakai General
-Approval sebagai mesin approval-nya, menggantikan flip status
-langsung yang dipakai sebelumnya. Tombol Approve/Reject & konfirmasi
-`confirm()` polos di halaman itu TIDAK BERUBAH BENTUKNYA, tapi sekarang
-CUMA MUNCUL kalau user yang login benar-benar boleh bertindak (lihat
-"CanApprove" di bawah) — sebelumnya tombolnya selalu tampil untuk semua
-Pending request tanpa peduli siapa yang login.
+## 2. API Endpoints (`ERP.API/Controllers/v1/Approval`, semua `[Authorize]`)
 
-- **Submit** — `LeaveService.SubmitAsync`
-  (`ERP.Application/Services/HR/LeaveService.cs`) sekarang, setelah
-  `HrLeaveRequest` tersimpan, memanggil
-  `IApprovalRequestService.SubmitAsync("HR", "hr_leave_requests",
-  entity.Id, subject, amount: null, requestedByUserId, notes)`.
-  `requestedByUserId` diambil dari `HrEmployee.UserId` milik karyawan yang
-  mengajukan cuti — **kalau karyawan itu tidak punya akun user (SysUser)
-  yang ter-link, pengajuan cuti akan GAGAL** dengan pesan
-  "Cannot submit for approval: '{nama}' has no linked user account."
-  (baris `HrLeaveRequest` yang sudah sempat tersimpan otomatis di-rollback
-  lewat soft-delete supaya tidak jadi baris hantu yang mengganggu
-  pengecekan cuti overlap/kuota di pengajuan berikutnya). Ini perubahan
-  perilaku baru dibanding sebelumnya (dulu karyawan tanpa akun user tetap
-  bisa diajukan cuti-nya oleh HR admin) — kalau ada karyawan begitu, link
-  dulu akun user-nya sebelum mengajukan cuti.
-- **Approve/Reject** — endpoint API `PUT .../approve` dan `.../reject`
-  (`ERP.API/Controllers/v1/HR/LeaveRequestsController.cs`) sekarang cek
-  dulu lewat `IApprovalRequestService.FindActiveRequestIdAsync
-  ("hr_leave_requests", id)`: kalau ada `ApprovalRequest` yang masih
-  Pending/InProgress untuk leave request itu, aksi didelegasikan ke
-  `IApprovalRequestService.ApproveAsync`/`RejectAsync` (lewat mesin APV,
-  lengkap dengan audit log, notifikasi, dan enforcement siapa yang boleh
-  bertindak). Kalau TIDAK ada (mis. data lama dari sebelum fitur ini ada),
-  fallback ke `LeaveService.ApproveAsync`/`RejectAsync` yang lama (flip
-  status langsung) — jadi data lama tetap bisa diproses tanpa error.
-- **Efek samping approve/reject** — `LeaveRequestApprovalCallbackService`
-  (`ERP.Application/Services/HR/LeaveRequestApprovalCallbackService.cs`,
-  `ReferenceType = "hr_leave_requests"`) dipanggil routing engine saat
-  keputusan final: set `HrLeaveRequest.Status`/`ApprovedBy`/`ApprovedAt`,
-  dan kalau Approved, sinkronkan ke `HrAttendanceRecord` (persis logika
-  `SyncApprovedLeaveToAttendanceAsync` yang lama, sekarang diekstrak ke
-  `LeaveAttendanceSyncHelper` supaya dipakai bersama oleh alur baru DAN
-  alur fallback lama tanpa duplikasi kode). Cancel dari APV (lewat
-  `/approval/my-requests`) diperlakukan sama seperti Reject (`LeaveStatus`
-  tidak punya nilai `Cancelled` tersendiri) — pilihan pragmatis supaya
-  tidak perlu ubah skema/enum.
-- **Siapa yang bisa approve sekarang** — template `HR_LEAVE` (lihat tabel
-  di bagian 7) cuma punya 1 level: `ApproverType = DirectSuperior`, jadi
-  **HANYA manajer department karyawan yang bersangkutan** (`HrDepartment.
-  ManagerId`) yang punya step aktif untuk di-approve/reject. Ini LEBIH
-  KETAT dari sebelumnya (dulu siapapun dengan izin menu Leave Requests
-  bisa approve/reject siapapun, tanpa cek hubungan manajerial) — perilaku
-  baru ini konsekuensi wajar dari pindah ke mesin approval generik; kalau
-  departemen karyawan belum punya `ManagerId` ter-set, submit-nya akan
-  gagal dengan pesan "Cannot resolve direct superior: the requester's
-  department has no manager assigned." — pastikan semua department yang
-  aktif sudah punya manajer sebelum staf-nya mengajukan cuti.
-- **RequireCommentOnReject = false** khusus untuk `HR_LEAVE` (beda dari
-  template lain yang defaultnya `true`) — supaya perilaku reject-tanpa-
-  alasan yang sudah ada sebelumnya di halaman Leave Requests tetap sama.
-  Kalau nanti mau mewajibkan alasan reject, ubah field ini lewat halaman
-  Approval → Templates (tidak perlu ubah kode).
-- Approver JUGA bisa bertindak lewat Approval Inbox (`/approval/inbox`)
-  selain lewat tombol di halaman HR Leave Requests — dua-duanya memanggil
-  engine yang sama, jadi hasilnya konsisten dari sisi manapun diambil.
-- **`LeaveRequestDto.CanApprove`** (bool) — dihitung server-side lewat
-  `IApprovalRequestService.GetActionablePermissionsAsync(referenceType,
-  referenceIds, userId)`: true kalau belum ada `ApprovalRequest` aktif
-  utk record itu (fallback legacy, siapapun boleh) ATAU user yang login
-  punya step aktif di request itu. Dipakai `LeaveService.GetRequestsAsync`/
-  `GetByIdAsync` (parameter `currentUserId` opsional — kalau tidak diisi,
-  default `false`/tersembunyi) untuk menyembunyikan tombol Approve/Reject
-  di `Index.cshtml` & `Details.cshtml` SEBELUM user klik, bukan menunggu
-  gagal 403 setelah klik.
-- **Bug ditemukan & diperbaiki**: leave request Pending yang dibuat
-  SEBELUM integrasi ini ada tidak punya `ApprovalRequest` terkait, jadi
-  approve/reject-nya selalu jatuh ke jalur fallback lama (unrestricted —
-  siapapun bisa approve, bukan cuma manajer). Fix: `DataSeeder` sekarang
-  punya `BackfillLeaveRequestApprovalsAsync` (jalan tiap startup, no-op
-  kalau sudah lengkap) yang bikinkan `ApprovalRequest` utk leave request
-  Pending lama yang belum punya, dengan logika resolve manajer yang sama
-  seperti submit normal. Employee tanpa akun user ter-link dilewati
-  (di-log sebagai warning, tidak menghentikan startup).
-- **Bug terkait ditemukan & diperbaiki (di modul General Document, bukan
-  APV, tapi ditemukan lewat alur ini)**: `DocumentService.
-  EnsureLeaveRequestAccessAsync` sebelumnya cuma izinkan akses lampiran
-  kalau user adalah pemilik record ATAU user itu SAMA SEKALI tidak punya
-  profil `HrEmployee` (dianggap "back-office"). Akun `admin` yang
-  kebetulan juga terhubung ke `HrEmployee` (jadi manajer semua departemen
-  di data seed) gagal lolos dua-duanya saat coba edit lampiran leave
-  request milik karyawan lain → 500 `UnauthorizedAccessException`. Fix:
-  tambah fallback cek role — Super Admin/HR Manager/HR Staff tetap boleh
-  akses lampiran leave request siapapun. Detail lengkap & sisa gap-nya ada
-  di `ReadMeDocumentGeneral.md`.
-- **Bug terkait #2 (ditemukan lewat fitur Approval Inbox di AbsenKu,
-  mobile)**: fix di atas masih belum menutup kasus paling umum — approver
-  SESUNGGUHNYA (manajer departemen biasa via `ApprovalApproverType.
-  DirectSuperior`) BUKAN Super Admin/HR Manager/HR Staff, jadi tetap
-  ditolak (403) saat coba lihat lampiran (mis. surat dokter) sebelum
-  approve/reject dari mobile. Fix: `EnsureLeaveRequestAccessAsync`
-  sekarang juga cek langsung ke `apv_approval_steps`/`apv_approval_requests`
-  — siapapun yang punya step aktif (`IsActive && Action == null`) untuk
-  `ApprovalRequest` yang ter-link ke leave request itu, diizinkan akses
-  lampirannya. Lihat `D:\Flutter\AbsenKu\README.md` bagian "Approval Inbox"
-  untuk sisi mobile-nya.
+| Controller | Endpoint utama |
+|---|---|
+| `ApprovalDashboardController` | KPI ringkasan approval |
+| `ApprovalInboxController` | Daftar step aktif milik user login, dengan link ke detail record sumber |
+| `ApprovalRequestsController` | Submit (dipanggil in-process oleh modul sumber, bukan endpoint publik langsung), approve/reject/cancel, get by id/reference |
+| `ApprovalTemplatesController` (+ nested Levels) | CRUD template & level approval |
+| `ApprovalDelegationsController` | CRUD delegasi + revoke + opsi approver |
+| `ApprovalLookupsController` | Dropdown lookup (role/position/user untuk konfigurasi level) |
+| `ApprovalReportsController` | Dashboard, SLA report, by-template report, audit log |
 
-Struktur Menu General Approval (sudah ter-seed, tapi isinya belum jalan)
-=========================================================================
-1. Approval Dashboard — `/approval`
-2. Worklist
-   - Approval Inbox — `/approval/inbox`
-   - My Approval Requests — `/approval/my-requests`
-   - Delegations — `/approval/delegations`
-3. Configuration
-   - Approval Templates — `/approval/templates`
-4. Reports
-   - SLA Report — `/approval/reports/sla`
-   - By Template Report — `/approval/reports/by-template`
-   - Audit Trail — `/approval/reports/audit`
+Route persis sesuai kontrak `ApprovalApiClient`/`IApprovalApiClient` yang sudah dibangun di Web layer sebelumnya — Web JALAN TANPA PERUBAHAN begitu API-nya tersedia.
 
-(Level approval per template, mis. `/approval/templates/{id}/levels`,
-diakses dari dalam halaman Templates, bukan menu sidebar tersendiri.)
+## 3. Halaman Web (`ERP.Web/Controllers/Approval/ApprovalController*.cs`, Views di `Approval/`)
 
-Konsep Desain (dari docx — belum tentu sama persis dengan kode final nanti)
-=============================================================================
+| Menu | Route |
+|---|---|
+| Approval Dashboard | `/approval` |
+| Approval Inbox | `/approval/inbox` |
+| My Approval Requests | `/approval/my-requests` |
+| Delegations | `/approval/delegations` |
+| Approval Templates | `/approval/templates` (+ Level per template di `/approval/templates/{id}/levels`, bukan menu sidebar sendiri) |
+| SLA Report | `/approval/reports/sla` |
+| By Template Report | `/approval/reports/by-template` |
+| Audit Trail | `/approval/reports/audit` |
 
-1. Entitas Inti (rencana skema `apv_*`)
-- **apv_approval_templates** — satu baris = satu aturan approval untuk satu
-  jenis dokumen: Code, Name, Module, ReferenceType (kode reference_type
-  yang dipakai modul sumber, mis. `fa_asset_transfers`), ApprovalType
-  (Sequential/Parallel/AnyOne), MinAmount/MaxAmount (rentang nilai transaksi
-  yang dicakup template ini), AutoApproveBelow (nilai di bawah ini approve
-  otomatis tanpa lewat approver), SlaHours (default 24), AllowDelegation,
-  RequireCommentOnReject, IsActive.
-- **apv_approval_levels** — level-level approval dalam satu template,
-  urut lewat LevelOrder (harus unik & berurutan per template): LevelName,
-  ApproverType (Role/Position/SpecificUser/DirectSuperior) + FK sesuai
-  tipe (ApproverRoleId/ApproverPositionId/ApproverUserId),
-  MinApproversRequired (kuorum untuk Parallel/AnyOne), EscalationHours +
-  EscalateToLevelId (self-FK, ke level mana dieskalasi kalau lewat SLA).
-- **apv_delegations** — pendelegasian approval dari satu user ke user lain:
-  DelegatorUserId → DelegateUserId, TemplateId (nullable = berlaku untuk
-  SEMUA template), StartDate/EndDate, Reason, IsActive.
-- **apv_approval_requests** — satu baris = satu pengajuan approval:
-  RequestNo (auto-generate format `APV-{YYYY}-{00001}`, reset tiap tahun),
-  TemplateId, ReferenceType + ReferenceId (menunjuk record sumber),
-  Subject, Amount, RequestedBy/At, CurrentLevelId, Status (Pending/
-  InProgress/Approved/Rejected/Cancelled/Expired), FinalActionAt/By, Notes.
-  **Aturan penting**: unique constraint `(reference_type, reference_id)`
-  selama status masih Pending/InProgress — satu record sumber cuma boleh
-  punya SATU approval request yang masih berjalan di satu waktu.
-- **apv_approval_steps** — satu baris per approver per level dalam satu
-  request: RequestId, LevelId (+ salinan LevelOrder), ApproverUserId,
-  IsDelegated + DelegatedFromUserId (kalau step ini hasil delegasi),
-  Action (Approved/Rejected/Delegated/Returned, nullable selama belum
-  diambil tindakan), ActionAt, Comment (WAJIB diisi kalau Action=Rejected),
-  DueAt (= RequestedAt + SlaHours template), NotifiedAt, ReminderCount,
-  IsActive (step yang belum giliran/sudah dilewati = false).
-- **apv_notifications** — notifikasi per step: RecipientUserId,
-  NotificationType (NewRequest/Approved/Rejected/Reminder/Escalated/
-  Cancelled/Delegated), Channel (InApp/Email/Both), Subject/Body, IsRead,
-  SentAt/FailedAt/RetryCount.
-- **apv_approval_audit_logs** — log APPEND-ONLY (tidak ada soft-delete,
-  tidak bisa diubah/dihapus): RequestId, StepId (nullable), ActorUserId,
-  Action (string bebas: CREATED/APPROVED/REJECTED/DELEGATED/ESCALATED/
-  CANCELLED/REMINDED), OldStatus/NewStatus, IpAddress, UserAgent, Comment,
-  CreatedAt. Docx menyarankan partisi per tahun kalau sudah di atas 1 juta
-  baris/tahun.
+- **Approval Inbox** punya tombol "Detail" per baris yang langsung buka halaman detail record sumbernya — lewat `ApprovalReferenceLinkResolver` (`ERP.Web/Services/ApprovalReferenceLinkResolver.cs`), registry kecil `ReferenceType` → URL template. Baru ada satu entry (`hr_leave_requests` → `/hr/leave/requests/details/{id}`); belum dipasang di `/approval/my-requests`.
+- Permission mengikuti mekanisme yang sama dengan modul lain: `CfgRoleMenuPermission` per (Role, Menu) + `[RequireMenuPermission]` di Web controller (bukan skema string `apv.*` seperti rencana awal docx). Super Admin otomatis dapat izin penuh lewat `SeedSuperAdminPermissionsAsync` (generik untuk semua menu, bukan seed khusus APV).
 
-2. Enum (SUDAH ada di kode, `ERP.Domain/Enums/Approval/`)
-- `ApprovalType`: Sequential(0) / Parallel(1) / AnyOne(2).
-- `ApprovalApproverType`: Role(0) / Position(1) / SpecificUser(2) /
-  DirectSuperior(3).
-- `ApprovalRequestStatus`: Pending(0) / InProgress(1) / Approved(2) /
-  Rejected(3) / Cancelled(4) / Expired(5).
-- `ApprovalStepAction`: Approved(0) / Rejected(1) / Delegated(2) /
-  Returned(3).
-- `ApprovalNotificationChannel`: InApp(0) / Email(1) / Both(2).
-- `ApprovalNotificationType`: NewRequest(0) / Approved(1) / Rejected(2) /
-  Reminder(3) / Escalated(4) / Cancelled(5) / Delegated(6).
+## 4. Business Rules / Logic Penting
 
-3. Aturan Routing Engine (SUDAH diimplementasi —
-   `ERP.Application/Services/Approval/ApprovalRequestService.cs`)
-- Request baru dibuat → resolve template berdasarkan ReferenceType +
-  Amount (dicocokkan ke MinAmount/MaxAmount template) → kalau Amount di
-  bawah AutoApproveBelow, langsung Status=Approved tanpa bikin step sama
-  sekali → kalau tidak, buat step(s) untuk level 1, aktifkan, kirim
-  notifikasi.
-- **Sequential**: level diproses satu-satu berurutan. Level N selesai
-  (MinApproversRequired terpenuhi) baru level N+1 diaktifkan. Level
-  terakhir selesai → Status=Approved → panggil callback.
-- **Parallel**: SEMUA step di level yang sama diaktifkan bersamaan; level
-  dianggap selesai kalau jumlah approve ≥ `MinApproversRequired` level
-  tsb.
-- **AnyOne**: sama seperti Parallel (semua step di level itu aktif
-  bersamaan), tapi step saudara-saudaranya di level yang sama otomatis
-  di-skip (IsActive=false) begitu SATU approver approve, sehingga level
-  langsung selesai.
-  > **Catatan implementasi**: kuorum "selesai" memakai `MinApproversRequired`
-  > yang di-set statis di konfigurasi Level, BUKAN dihitung ulang dari
-  > jumlah approver yang benar-benar ter-resolve saat request itu dibuat.
-  > Untuk approver type Role/Position, jumlah orang riil bisa berubah
-  > (mis. staf baru masuk role tsb) — kalau mau "Parallel" berarti benar-
-  > benar SEMUA anggota role saat itu, set `MinApproversRequired` manual
-  > sesuai estimasi headcount, atau pakai ApproverType=SpecificUser untuk
-  > level yang butuh kepastian penuh.
-- Reject dari approver manapun (di level manapun) → langsung
-  Status=Rejected, seluruh step yang masih aktif dinonaktifkan, callback
-  dipanggil dengan hasil Rejected — TIDAK melanjutkan ke level berikutnya.
-- Requester bisa Cancel — HANYA selama status masih Pending/InProgress DAN
-  belum ada satupun step yang Approved (bukan cuma "level 1" — di
-  Parallel/AnyOne, approval pertama yang masuk di level manapun langsung
-  mengunci status supaya tidak membatalkan approval yang sudah diberikan).
-- `ApprovalStepAction.Returned` ada di enum (dari rencana docx) tapi TIDAK
-  dipakai oleh engine saat ini — tidak ada alur "kembalikan ke requester
-  untuk revisi", hanya Approved/Rejected/Delegated.
+**Routing engine** (`ApprovalRequestService`)
+- Request baru → resolve template berdasarkan ReferenceType + Amount (dicocokkan MinAmount/MaxAmount) → kalau Amount di bawah AutoApproveBelow, langsung Status=Approved tanpa bikin step → kalau tidak, buat step level 1, aktifkan, kirim notifikasi.
+- **Sequential**: level diproses satu-satu; level N selesai (kuorum terpenuhi) baru level N+1 aktif; level terakhir selesai → Approved → panggil callback.
+- **Parallel**: semua step di level yang sama aktif bersamaan; level selesai kalau jumlah approve ≥ `MinApproversRequired`.
+- **AnyOne**: sama seperti Parallel, tapi step saudara di level sama otomatis di-skip begitu satu approver approve.
+  - **Catatan implementasi**: kuorum "selesai" memakai `MinApproversRequired` yang statis di config Level, bukan dihitung ulang dari jumlah approver riil yang ter-resolve saat request dibuat. Untuk ApproverType Role/Position, jumlah orang bisa berubah (staf baru masuk role) — kalau butuh "benar-benar semua anggota role saat itu", set `MinApproversRequired` manual sesuai estimasi headcount, atau pakai ApproverType=SpecificUser.
+- Reject dari approver manapun di level manapun → langsung Status=Rejected, semua step aktif dinonaktifkan, callback dipanggil — tidak lanjut ke level berikutnya.
+- Requester bisa Cancel HANYA selama status Pending/InProgress DAN belum ada satupun step yang Approved (bukan cuma "level 1" — approval pertama di level manapun mengunci status).
 
-4. SLA, Reminder, Eskalasi (SUDAH diimplementasi — job Hangfire
-   `approval-escalation-reminders`, tiap 30 menit, dikonfigurasi di
-   `ERP.API/Program.cs`, logikanya di
-   `ApprovalRequestService.ProcessEscalationsAndRemindersAsync`)
+**SLA, Reminder, Eskalasi** (job Hangfire `approval-escalation-reminders`, tiap 30 menit, logic di `ProcessEscalationsAndRemindersAsync`)
 - Tiap step punya DueAt = RequestedAt + SlaHours template.
-- Sisa waktu ≤ 4 jam & belum pernah diingatkan → reminder pertama.
-- Sisa waktu ≤ 1 jam & sudah 1x diingatkan → reminder kedua (mendesak).
-- Lewat DueAt & level itu punya EscalateToLevelId → otomatis eskalasi ke
-  level tsb (approver baru dapat step, level asal ditandai selesai/skip).
-- Lewat DueAt & tidak ada target eskalasi → alert ke Super Admin +
-  ditandai overdue di dashboard (tidak otomatis approve/reject).
+- Sisa waktu ≤ 4 jam & belum pernah diingatkan → reminder pertama; sisa ≤ 1 jam & sudah 1x diingatkan → reminder kedua (mendesak).
+- Lewat DueAt & level punya EscalateToLevelId → otomatis eskalasi ke level tsb; tidak ada target eskalasi → alert Super Admin + ditandai overdue di dashboard (tidak otomatis approve/reject).
 
-5. Delegasi (SUDAH diimplementasi)
-- User A (delegator) bisa set delegasi ke User B (delegate) untuk periode
-  StartDate–EndDate, scope ke SATU template tertentu atau SEMUA template
-  (TemplateId null) — CRUD lewat `ApprovalDelegationService`.
-- Saat approval engine resolve approver suatu step dan approver aslinya
-  sedang punya delegasi aktif yang cocok, step BARU dibuat untuk delegate
-  (IsDelegated=true, DelegatedFromUserId=user asli), step lama ditandai
-  Action=Delegated. Ini terjadi otomatis setiap level diaktifkan
-  (`ActivateLevelAsync`), tidak perlu aksi manual dari approver.
-- Selain delegasi terjadwal di atas, ada juga **delegasi ad-hoc per-aksi**:
-  saat approve/reject, `TakeApprovalActionRequest.DelegateUserId` bisa
-  diisi untuk meneruskan step itu ke user lain alih-alih approver
-  bertindak sendiri (tidak butuh baris `apv_delegations` permanen) — ini
-  interpretasi penulis atas field `DelegateUserId` di DTO yang sudah ada
-  di kontrak Web sebelumnya, karena docx tidak menjelaskan detailnya.
+**Delegasi**
+- Terjadwal: User A set delegasi ke User B untuk periode tertentu, scope ke satu template atau semua. Saat engine resolve approver suatu step dan approver asli sedang punya delegasi aktif yang cocok, step baru dibuat untuk delegate (IsDelegated=true), step lama ditandai Delegated — otomatis tiap level diaktifkan, tidak perlu aksi manual.
+- Ad-hoc per-aksi: saat approve/reject, `TakeApprovalActionRequest.DelegateUserId` bisa diisi untuk meneruskan step itu ke user lain tanpa perlu baris `apv_delegations` permanen.
 
-6. Callback ke Modul Sumber (SUDAH diimplementasi kerangkanya —
-   `IApprovalCallbackService` di
-   `ERP.Application/Services/Approval/IApprovalCallbackService.cs`,
-   **belum ada implementasi konkret terpasang**)
-- Approval TIDAK tahu cara memproses efek samping tiap jenis dokumen
-  (mis. memindahkan lokasi aset, posting jurnal, kirim PO ke vendor) — itu
-  tanggung jawab modul sumbernya sendiri.
-- Pola: `IApprovalCallbackService.OnApprovedAsync/OnRejectedAsync/
-  OnCancelledAsync(referenceId, actorUserId, ...)`, di-resolve dari
-  `IEnumerable<IApprovalCallbackService>` (dicari lewat properti
-  `ReferenceType`) yang di-inject ke `ApprovalRequestService` — pola
-  strategy/registry, BUKAN generic event bus. Kalau tidak ada
-  implementasi yang cocok untuk `ReferenceType` sebuah request, callback
-  dilewati (tidak error) — request tetap ganti status seperti biasa,
-  cuma tidak ada efek samping ke modul sumber.
-- Rencana pemetaan (BELUM ada satupun yang diimplementasikan — lihat
-  bagian "Integrasi ke modul lain" di status implementasi di atas):
-  * `fa_asset_transfers` → `FATransferCallbackService` (update status
-    transfer + lokasi/departemen aset kalau approved).
-  * `fa_disposals` → `FADisposalCallbackService` (set aset jadi Disposed +
-    buat jurnal pelepasan).
-  * `hr_payroll_runs` → `PayrollCallbackService` (proses pembayaran
-    payslip) — nama tabel dikoreksi dari rencana awal docx
-    (`prl_payroll_runs`) ke nama tabel asli di kode, `hr_payroll_runs`.
-  * `pur_purchase_orders` → `ProcurementCallbackService` (kirim PO ke
-    vendor) — tabel ini belum ada di modul Purchasing sama sekali.
-  * `fin_journal_entries` → `FinanceCallbackService` (posting ke GL).
-- Setiap transisi status (dibuat/diapprove/ditolak/dieskalasi/
-  dibatalkan/diingatkan) dicatat ke apv_approval_audit_logs, terlepas dari
-  callback berhasil atau tidak.
+**Callback ke modul sumber** (`IApprovalCallbackService`, pola registry)
+- Approval tidak tahu cara memproses efek samping tiap jenis dokumen (pindah lokasi aset, posting jurnal, kirim PO ke vendor) — itu tanggung jawab modul sumber.
+- Pola: `OnApprovedAsync/OnRejectedAsync/OnCancelledAsync(referenceId, actorUserId, ...)`, di-resolve dari `IEnumerable<IApprovalCallbackService>` (dicari lewat `ReferenceType`) yang di-inject ke `ApprovalRequestService`. Kalau tidak ada implementasi yang cocok, callback dilewati tanpa error — request tetap ganti status, cuma tidak ada efek samping ke modul sumber.
+- `SubmitAsync` sengaja **tidak diekspos sebagai endpoint API publik** — hanya dipanggil modul sumber lewat Application layer secara in-process (persis seperti `LeaveService.SubmitAsync` memanggilnya).
+- Setiap transisi status (dibuat/diapprove/ditolak/dieskalasi/dibatalkan/diingatkan) dicatat ke `apv_approval_audit_logs`, terlepas dari callback berhasil atau tidak.
 
-7. Template Default (SUDAH di-seed — `DataSeeder.SeedApprovalTemplatesAsync`,
-   idempotent lewat cek `Code` yang sudah ada)
+**Template Default** (`DataSeeder.SeedApprovalTemplatesAsync`, idempotent lewat cek Code)
+
 | Code | Module | ReferenceType | ApprovalType | SLA | Level | Catatan |
 |---|---|---|---|---|---|---|
-| FA_TRANSFER | Fixed Assets | `fa_asset_transfers` | Sequential | 24 jam | 1) DirectSuperior 2) Role "Finance Staff" | — |
-| FA_DISPOSAL | Fixed Assets | `fa_disposals` | Sequential | 48 jam | 1) DirectSuperior 2) Role "Finance Staff" | — |
-| FA_MAINTENANCE | Fixed Assets | `fa_maintenance_orders` | AnyOne | 24 jam | 1) Role "Inventory Manager" | Auto-approve di bawah Rp1.000.000 |
-| PRL_PAYROLL | Payroll | `hr_payroll_runs` | Sequential | 24 jam | 1) Role "HR Manager" 2) Role "Finance Staff" | ReferenceType dikoreksi dari rencana docx (`prl_payroll_runs`) ke nama tabel asli |
-| PRC_PO_LOW | Purchasing | `pur_purchase_orders` | AnyOne | 8 jam | 1) Role "Finance Staff" | Auto-approve di bawah Rp500.000; berlaku utk jumlah ≤ Rp5.000.000 (asumsi seeder); tabel sumber belum ada |
-| PRC_PO_HIGH | Purchasing | `pur_purchase_orders` | Sequential | 24 jam | 1) DirectSuperior 2) Role "Finance Staff" | Berlaku utk jumlah > Rp5.000.000 (asumsi seeder); tabel sumber belum ada |
-| FIN_JOURNAL | Finance | `fin_journal_entries` | Sequential | 24 jam | 1) Role "Finance Staff" | — |
-| HR_LEAVE | HR | `hr_leave_requests` | Sequential | 24 jam | 1) DirectSuperior | RequireCommentOnReject=false; **satu-satunya template yang sudah benar-benar dipanggil** oleh modul sumbernya (`LeaveService.SubmitAsync`) — lihat bagian "Integrasi Modul HR Leave Request" |
+| FA_TRANSFER | Fixed Assets | `fa_asset_transfers` | Sequential | 24 jam | DirectSuperior → Role Finance Staff | — |
+| FA_DISPOSAL | Fixed Assets | `fa_disposals` | Sequential | 48 jam | DirectSuperior → Role Finance Staff | — |
+| FA_MAINTENANCE | Fixed Assets | `fa_maintenance_orders` | AnyOne | 24 jam | Role Inventory Manager | Auto-approve < Rp1.000.000 |
+| PRL_PAYROLL | Payroll | `hr_payroll_runs` | Sequential | 24 jam | Role HR Manager → Role Finance Staff | ReferenceType dikoreksi dari rencana docx (`prl_payroll_runs`) ke nama tabel asli |
+| PRC_PO_LOW | Purchasing | `pur_purchase_orders` | AnyOne | 8 jam | Role Finance Staff | Auto-approve < Rp500.000; berlaku ≤ Rp5.000.000 (asumsi seeder); **tabel sumber belum ada** |
+| PRC_PO_HIGH | Purchasing | `pur_purchase_orders` | Sequential | 24 jam | DirectSuperior → Role Finance Staff | Berlaku > Rp5.000.000 (asumsi seeder); **tabel sumber belum ada** |
+| FIN_JOURNAL | Finance | `fin_journal_entries` | Sequential | 24 jam | Role Finance Staff | — |
+| HR_LEAVE | HR | `hr_leave_requests` | Sequential | 24 jam | DirectSuperior | RequireCommentOnReject=false; **satu-satunya template yang benar-benar dipanggil** modul sumbernya |
 
-Role yang dipakai di atas (`HR Manager`, `Finance Staff`, `Inventory
-Manager`) adalah role yang SUDAH ada di `DataSeeder.SeedRolesAsync` —
-bukan role baru. Kalau role-role itu belum ter-seed (database lama),
-`SeedApprovalTemplatesAsync` akan skip seluruh seeding template (guard
-di awal method) sampai `SeedRolesAsync` jalan duluan — urutannya sudah
-benar di `SeedAsync` jadi ini seharusnya tidak pernah terjadi di deploy
-normal.
+Role yang dipakai (`HR Manager`, `Finance Staff`, `Inventory Manager`) sudah ada di `DataSeeder.SeedRolesAsync`, bukan role baru; `SeedApprovalTemplatesAsync` skip seluruh seeding kalau role-role itu belum ter-seed (guard urutan).
 
-8. Role & Permission — TIDAK memakai skema string permission `apv.*`
-   seperti rencana awal docx. Modul ini memakai mekanisme yang SAMA
-   dengan semua modul lain di codebase: `CfgRoleMenuPermission` per
-   (Role, Menu) dengan flag CanView/CanCreate/CanEdit/CanDelete,
-   ditegakkan lewat `[RequireMenuPermission]` di WEB controller (API
-   controller cuma `[Authorize]`, tidak ada pengecekan per-menu — sama
-   seperti modul General Document dan modul lain). Super Admin otomatis
-   dapat izin penuh ke semua menu APV lewat `SeedSuperAdminPermissionsAsync`
-   (tidak spesifik ke APV, berlaku untuk semua menu). Kalau mau role lain
-   (mis. "Approval Admin" khusus Configuration saja, "Approver" yang cuma
-   bisa lihat Inbox) juga bisa akses menu APV, atur lewat halaman
-   Role Management → Menu Permission yang sudah ada (bukan seed baru).
+## 5. Integrasi Modul HR Leave Request (satu-satunya integrasi nyata sejauh ini)
 
-Flowchart Alur Approval (mengikuti desain di docx)
-====================================================
+`hr/leave/requests` memakai General Approval sebagai mesin approval, menggantikan flip status langsung. Tombol Approve/Reject tidak berubah bentuk, tapi sekarang cuma muncul kalau user login benar-benar boleh bertindak.
+
+- **Submit** — `LeaveService.SubmitAsync` memanggil `IApprovalRequestService.SubmitAsync("HR", "hr_leave_requests", entity.Id, subject, amount: null, requestedByUserId, notes)`. `requestedByUserId` dari `HrEmployee.UserId` — **kalau karyawan tidak punya akun user ter-link, pengajuan cuti GAGAL** ("Cannot submit for approval: '{nama}' has no linked user account.", baris yang sudah tersimpan di-rollback via soft-delete).
+- **Approve/Reject** — endpoint API cek dulu `FindActiveRequestIdAsync`: kalau ada `ApprovalRequest` Pending/InProgress, aksi didelegasikan ke mesin APV (audit log, notifikasi, enforcement siapa yang boleh bertindak); kalau tidak ada (data lama), fallback ke `LeaveService.ApproveAsync`/`RejectAsync` lama (flip status langsung).
+- **Efek samping** — `LeaveRequestApprovalCallbackService` (ReferenceType=`hr_leave_requests`) dipanggil saat keputusan final: set Status/ApprovedBy/ApprovedAt, dan kalau Approved, sync ke `HrAttendanceRecord` lewat `LeaveAttendanceSyncHelper` (dipakai bersama alur baru & fallback lama). Cancel dari APV diperlakukan sama seperti Reject.
+- **Siapa yang bisa approve** — template `HR_LEAVE` cuma 1 level (`DirectSuperior`), jadi HANYA manajer departemen karyawan bersangkutan (`HrDepartment.ManagerId`) yang punya step aktif — lebih ketat dari sebelumnya (dulu siapapun dengan izin menu bisa approve siapapun). Departemen tanpa `ManagerId` bikin submit gagal ("Cannot resolve direct superior...").
+- **`RequireCommentOnReject=false`** khusus HR_LEAVE (beda dari default `true`) — supaya reject-tanpa-alasan yang sudah ada sebelumnya tetap sama perilakunya.
+- **`LeaveRequestDto.CanApprove`** dihitung server-side lewat `GetActionablePermissionsAsync` — dipakai untuk sembunyikan tombol Approve/Reject SEBELUM klik, bukan menunggu gagal 403 setelahnya.
+- **Backfill**: leave request Pending yang dibuat sebelum integrasi ini di-backfill otomatis saat startup API (`DataSeeder.BackfillLeaveRequestApprovalsAsync`) — employee tanpa akun user dilewati (warning, tidak menghentikan startup).
+- **Bug fix terkait lampiran dokumen** (bukan di APV, tapi ditemukan lewat integrasi ini): `DocumentService.EnsureLeaveRequestAccessAsync` sekarang juga cek langsung ke `apv_approval_steps`/`apv_approval_requests` — siapapun yang punya step aktif (`IsActive && Action == null`) untuk request yang ter-link, diizinkan akses lampiran leave request itu (mis. lihat surat dokter sebelum approve/reject dari mobile). Detail lengkap di `ReadMeDocumentGeneral.md`.
+
+## 6. Relasi Kunci
+
+- `ApvApprovalRequest` → `ApvApprovalTemplate`, → record sumber (via `ReferenceType`+`ReferenceId`, bukan FK — pola generik lintas modul).
+- `ApvApprovalStep` → `ApvApprovalRequest`, → `ApvApprovalLevel`, → `SysUser` (approver, opsional delegate).
+- `ApvApprovalTemplate` → `ApvApprovalLevel` (1:many, urut LevelOrder); Level → Role/Position/SpecificUser (sesuai ApproverType) atau `HrDepartment.ManagerId` (DirectSuperior).
+- `ApvDelegation` → `SysUser` (Delegator+Delegate), opsional → `ApvApprovalTemplate`.
+- `HrLeaveRequest` ↔ `ApvApprovalRequest` (via ReferenceType=`hr_leave_requests`) — satu-satunya hubungan cross-module yang sudah benar-benar aktif.
+
+## 7. Diagram Alur
 
 ```mermaid
 flowchart TD
@@ -501,99 +167,54 @@ flowchart TD
     CB3 --> AUD
 ```
 
-Jangan Tertukar dengan Modul Lain
-===================================
-Ada DUA entitas approval-matrix yang TIDAK ADA HUBUNGANNYA dengan modul
-General Approval di atas — jangan disangka bagian dari APV:
-- `PurApprovalConfig` (Purchasing) — `ERP.Domain/Entities/Purchasing/
-  PurApprovalConfig.cs`: matriks approval per level (DocumentType, Level,
-  MinAmount/MaxAmount, ApproverEmployeeId). Punya CRUD sendiri
-  (`ERP.API/Controllers/v1/Purchasing/ApprovalConfigsController.cs`,
-  menu `/purchasing/approval-configs`), langsung ke `AppDbContext` tanpa
-  service layer. **Tidak dipakai oleh transaksi apapun** — entity
-  PurchaseRequisition/PurchaseOrder yang seharusnya memicu approval ini
-  belum ada di modul Purchasing (baru ada master data: BuyerGroup,
-  VendorCategory, dll).
-- `SalApprovalConfig` (Sales) — pola sama persis di modul Sales (menu
-  `/sales/approval-configs`), juga belum ada transaksi Quotation/Sales
-  Order yang memicunya.
-- Enum `Purchasing.ApprovalStatus` dan `Sales.SalesApprovalStatus` — ada
-  di kode tapi TIDAK DIPAKAI di manapun (dead code), sisa dari desain
-  awal sebelum diputuskan pakai modul General Approval terpusat.
+## 8. Jangan Tertukar dengan Modul Lain
 
-Catatan Gap Implementasi (Rencana vs Kenyataan)
-==================================================
-| Layer | Direncanakan | Kenyataan di Kode |
+Ada DUA entitas approval-matrix yang **tidak ada hubungannya** dengan General Approval — jangan disangka bagian dari APV:
+
+- **`PurApprovalConfig`** (Purchasing) — matriks approval per level (DocumentType, Level, MinAmount/MaxAmount, ApproverEmployeeId), CRUD sendiri (`/purchasing/approval-configs`), langsung ke `AppDbContext` tanpa service layer. **Tidak dipakai transaksi apapun** — entity PurchaseRequisition/PurchaseOrder yang seharusnya memicu approval ini belum ada.
+- **`SalApprovalConfig`** (Sales) — pola sama persis (`/sales/approval-configs`), juga belum ada transaksi Quotation/Sales Order yang memicunya.
+- Enum `Purchasing.ApprovalStatus` dan `Sales.SalesApprovalStatus` ada di kode tapi tidak dipakai di manapun (dead code) — sisa desain awal sebelum diputuskan pakai General Approval terpusat.
+
+## 9. Known Gaps / Belum Lengkap
+
+- **Integrasi ke modul lain belum ada** — Fixed Assets, Purchasing, Payroll, Finance MASIH belum memanggil `IApprovalRequestService.SubmitAsync` atau mengimplementasikan `IApprovalCallbackService`. Engine-nya sudah lengkap dan bisa dipanggil langsung secara in-process, tapi belum ada "tombol Submit for Approval" di modul-modul itu — sebagian juga karena entity transaksional sumbernya sendiri (PR/PO, dst.) belum lengkap dibangun (lihat `ReadMePurchasing.md`, `ReadMeSales.md`).
+  - Urutan kerja untuk menyambungkan modul baru: (1) pastikan entity transaksionalnya punya status "PendingApproval" + field hasil approval, (2) panggil `SubmitAsync(...)` saat user klik "Submit for Approval", (3) buat kelas yang implement `IApprovalCallbackService` dengan `ReferenceType` yang cocok, daftarkan di `ERP.Application/DependencyInjection.cs` sebagai `AddScoped<IApprovalCallbackService, XxxCallbackService>()` (bisa lebih dari satu, routing resolve otomatis lewat `ReferenceType`).
+- **SignalR client di Razor view belum dipasang** — hub `/hubs/approval` sudah jalan di server dan push ke grup `approval-user-{userId}`, tapi belum ada JS client (`@microsoft/signalr`) di `ERP.Web` yang connect & tampilkan toast real-time. Notifikasi tetap tersimpan di `apv_notifications`, bisa dibaca lewat polling/reload halaman.
+- **`ReferenceType` beberapa template default menunjuk tabel yang belum ada** (`pur_purchase_orders` untuk PRC_PO_LOW/PRC_PO_HIGH) — baris template tetap di-seed sebagai config siap-pakai, begitu modul Purchasing punya entity PO tinggal panggil `SubmitAsync`.
+- **Nilai split PRC_PO_LOW/PRC_PO_HIGH (Rp5.000.000)** adalah asumsi penulis seeder, bukan dari docx (docx cuma sebut ambang auto-approve Rp500.000 untuk PO rendah) — sesuaikan lewat halaman Templates kalau tidak cocok kebutuhan nyata.
+- **`ApprovalStepAction.Returned`** ada di enum tapi tidak dipakai engine — tidak ada alur "kembalikan ke requester untuk revisi".
+- **[DIKONFIRMASI 2026-07-28, BUKAN LAGI HIPOTETIS] Kredensial SMTP di `ERP.API/appsettings.json` adalah kredensial Gmail ASLI dan SUDAH BOCOR ke repo publik** (`github.com/development200391/SINARA`, dikonfirmasi `"private": false`, `git status -sb` sinkron dengan `origin/master`, kredensial ter-commit sejak `2b015dc`). Ini eksposur secret aktif sekarang, bukan risiko "kalau nanti di-push". Rekomendasi segera:
+  1. Rotate App Password Gmail sekarang juga (invalidate yang lama).
+  2. Rotate juga secret lain di file yang sama (connection string Postgres/Redis, JWT signing key) karena semuanya ter-expose bersamaan.
+  3. Pindahkan semua secret ke user-secrets/environment variable, tambahkan `appsettings.json` (atau minimal section Smtp/ConnectionStrings/Jwt) ke `.gitignore`.
+  4. Riwayat git yang sudah ter-push tetap menyimpan secret lama walau file diubah — rotasi kredensial wajib, bukan cukup hapus dari commit berikutnya.
+- Wiring Hangfire di `Program.cs` berubah bentuk sejak commit `952c81e` ("adjust code to deploy VPS") — sekarang dibungkus `app.Services.CreateScope()` + `IRecurringJobManager` (sebelumnya `RecurringJob.AddOrUpdate` statis langsung). Nama job/cron/behavior sama persis, cuma jadi DI-scoped — bukan perubahan fungsional.
+
+## 10. Tabel Rencana vs Kenyataan (ringkasan status implementasi)
+
+| Layer | Direncanakan (docx) | Kenyataan di Kode |
 |---|---|---|
-| Domain entities (7 tabel) | Lengkap | **Lengkap** (`ERP.Domain/Entities/Approval/*.cs`) |
+| Domain entities (7 tabel) | Lengkap | **Lengkap** |
 | Enum | 6 enum | Ada semua, sudah final |
-| DTO | ~9 file per-concern | 1 file gabungan, strukturnya sudah sesuai rencana |
 | Migration / tabel Postgres | 7 tabel `apv_*` | **Lengkap**, sudah diterapkan (`20260713100000_AddGeneralApproval`) |
-| Application services | Template/Request/RoutingEngine/Notification/Delegation/Report | **Lengkap** — 4 service (`ApprovalTemplateService`, `ApprovalRequestService`, `ApprovalDelegationService`, `ApprovalReportService`) menggantikan 8 interface yang direncanakan docx (beberapa digabung, mis. RoutingEngine+Action jadi satu `ApprovalRequestService`) |
+| Application services | Template/Request/RoutingEngine/Notification/Delegation/Report | **Lengkap** — 4 service menggantikan 8 interface rencana docx (beberapa digabung) |
 | API controllers | Full REST, 8 controller | **Lengkap**, 7 controller (route sesuai kontrak `ApprovalApiClient` persis) |
-| Web layer | Dashboard/Inbox/My Requests/Delegations/Templates/Levels/Reports | Lengkap dibangun sebelumnya, sekarang **benar-benar jalan** karena API-nya sudah ada |
-| Hangfire (job terjadwal) | Eskalasi/reminder tiap 30 menit | **Lengkap**, recurring job `approval-escalation-reminders` |
-| MailKit (email) | Kirim email approval | **Lengkap**, pakai config `Smtp` yang sudah ada (dipakai bersama fitur lupa-password) |
-| SignalR (push real-time) | Notifikasi real-time | **Server lengkap** (`ApprovalHub` di `/hubs/approval`); **client JS di Razor belum dipasang** |
-| DataSeeder | Module + menu + permission + seed template/level | **Lengkap** — permission ikut mekanisme `CfgRoleMenuPermission` yang sudah ada (bukan seed `apv.*` terpisah seperti rencana docx), 7 template + level default ter-seed |
-| Integrasi ke modul lain | Callback pattern via `IApprovalCallbackService` per reference_type | **HR Leave Request sudah terintegrasi penuh** (`LeaveRequestApprovalCallbackService`) — integrasi pertama & satu-satunya sejauh ini. Fixed Assets/Payroll/Purchasing/Finance belum memanggil `SubmitAsync` atau mendaftarkan `IApprovalCallbackService` |
+| Web layer | Dashboard/Inbox/My Requests/Delegations/Templates/Levels/Reports | Lengkap dibangun sebelumnya, sekarang **benar-benar jalan** |
+| Hangfire (job terjadwal) | Eskalasi/reminder tiap 30 menit | **Lengkap** |
+| MailKit (email) | Kirim email approval | **Lengkap**, pakai config `Smtp` yang sudah ada |
+| SignalR (push real-time) | Notifikasi real-time | **Server lengkap**; client JS di Razor belum dipasang |
+| DataSeeder | Module + menu + permission + seed template/level | **Lengkap** — permission ikut `CfgRoleMenuPermission` yang sudah ada, 7 template + level default ter-seed |
+| Integrasi ke modul lain | Callback pattern per reference_type | **HR Leave Request** sudah terintegrasi penuh — satu-satunya sejauh ini. Fixed Assets/Payroll/Purchasing/Finance belum |
 
-Acuan Implementasi
-=====================
-- Dokumen desain lengkap (rencana awal, sebagian sudah disesuaikan dengan
-  kenyataan kode — lihat catatan koreksi di bagian 6-7 di atas):
-  `SINARA_ERP_GeneralApproval_Panduan_Detail.docx` (root repo)
-- Domain entities: `ERP.Domain/Entities/Approval/*.cs` (7 file)
-- Enum: `ERP.Domain/Enums/Approval/ApprovalType.cs`,
-  `ApprovalApproverType.cs`, `ApprovalRequestStatus.cs`,
-  `ApprovalStepAction.cs`, `ApprovalNotificationChannel.cs`,
-  `ApprovalNotificationType.cs`
+## Acuan Implementasi
+
+- Desain awal: `SINARA_ERP_GeneralApproval_Panduan_Detail.docx` (root repo)
+- Domain: `ERP.Domain/Entities/Approval/*.cs` (7 file), `ERP.Domain/Enums/Approval/*.cs` (6 file)
 - DTO: `ERP.Application/DTOs/Approval/ApprovalDtos.cs`
-- Migration: `ERP.Infrastructure/Migrations/20260713100000_AddGeneralApproval.cs`,
-  konfigurasi EF di `ERP.Infrastructure/Data/AppDbContext.cs` (7
-  `Configure*` method + 7 `DbSet<>`)
+- Migration: `ERP.Infrastructure/Migrations/20260713100000_AddGeneralApproval.cs`
 - Application services: `ERP.Application/Services/Approval/*.cs`
-  (`IApprovalTemplateService`/`ApprovalTemplateService`,
-  `IApprovalRequestService`/`ApprovalRequestService` — routing engine +
-  job eskalasi, `IApprovalDelegationService`/`ApprovalDelegationService`,
-  `IApprovalReportService`/`ApprovalReportService`,
-  `IApprovalCallbackService` — interface saja,
-  `IApprovalNotificationService` — interface saja, implementasi di API)
-- API: `ERP.API/Controllers/v1/Approval/*.cs` (7 controller),
-  `ERP.API/Services/ApprovalNotificationService.cs`,
-  `ERP.API/Hubs/ApprovalHub.cs`, wiring Hangfire/SignalR/JWT-for-hub di
-  `ERP.API/Program.cs`
-- Web layer (SUDAH ADA sebelumnya, sekarang fungsional):
-  `ERP.Web/Controllers/Approval/ApprovalController*.cs` (8 file: induk +
-  Dashboard/Inbox/Requests/Delegations/Templates/Levels/Reports),
-  `ERP.Web/ViewModels/Approval/ApprovalViewModels.cs`,
-  `ERP.Web/Views/Approval/**/*.cshtml`,
-  `ERP.Web/Services/ApprovalApiClient.cs` + `IApprovalApiClient.cs`
-- Seed module, menu, template, level, backfill:
-  `ERP.Infrastructure/Data/DataSeeder.cs` — module "General
-  Approval"/"APV", menu tree, `SeedApprovalTemplatesAsync` (template +
-  level default), `BackfillLeaveRequestApprovalsAsync` (catch-up utk leave
-  request Pending dari sebelum integrasi ini ada), permission ikut
-  `SeedSuperAdminPermissionsAsync` yang generik untuk semua menu.
-- Integrasi HR Leave Request (lihat bagian "Integrasi Modul HR Leave
-  Request" di atas untuk detail):
-  `ERP.Application/Services/HR/LeaveService.cs` (`SubmitAsync`,
-  `GetRequestsAsync`/`GetByIdAsync` param `currentUserId` → `CanApprove`),
-  `ERP.Application/Services/HR/LeaveRequestApprovalCallbackService.cs`,
-  `ERP.Application/Services/HR/LeaveAttendanceSyncHelper.cs`,
-  `ERP.Application/Services/Approval/ApprovalRequestService.cs`
-  (`FindActiveRequestIdAsync`, `GetActionablePermissionsAsync`),
-  `ERP.API/Controllers/v1/HR/LeaveRequestsController.cs` (`Approve`/`Reject`/
-  `Get`/`GetSelf`/`GetById`),
-  `ERP.Web/Views/HR/HrLeaveRequests/Index.cshtml` + `Details.cshtml`
-  (gating tombol lewat `CanApprove`),
-  `ERP.Web/Services/ApprovalReferenceLinkResolver.cs` (link Inbox → detail
-  leave request),
-  `ERP.Application/Services/Document/DocumentService.cs`
-  (`EnsureLeaveRequestAccessAsync` — fix akses Super Admin/HR Manager/HR
-  Staff, lihat `ReadMeDocumentGeneral.md` untuk detail).
-- Entitas approval-matrix TIDAK TERKAIT (jangan disangka bagian APV):
-  `ERP.Domain/Entities/Purchasing/PurApprovalConfig.cs`,
-  `ERP.Domain/Entities/Sales/SalApprovalConfig.cs`,
-  `ERP.API/Controllers/v1/Purchasing/ApprovalConfigsController.cs`,
-  `ERP.API/Controllers/v1/Sales/ApprovalConfigsController.cs`.
+- API: `ERP.API/Controllers/v1/Approval/*.cs`, `ERP.API/Services/ApprovalNotificationService.cs`, `ERP.API/Hubs/ApprovalHub.cs`, wiring Hangfire/SignalR di `ERP.API/Program.cs`
+- Web: `ERP.Web/Controllers/Approval/ApprovalController*.cs`, `ERP.Web/ViewModels/Approval/ApprovalViewModels.cs`, `ERP.Web/Views/Approval/**`, `ERP.Web/Services/ApprovalApiClient.cs`
+- Seed: `ERP.Infrastructure/Data/DataSeeder.cs` (module/menu/template/level/backfill)
+- Integrasi HR Leave Request: `ERP.Application/Services/HR/LeaveService.cs`, `LeaveRequestApprovalCallbackService.cs`, `LeaveAttendanceSyncHelper.cs`, `ERP.API/Controllers/v1/HR/LeaveRequestsController.cs`, `ERP.Web/Services/ApprovalReferenceLinkResolver.cs`
+- Entitas approval-matrix TIDAK TERKAIT: `ERP.Domain/Entities/Purchasing/PurApprovalConfig.cs`, `ERP.Domain/Entities/Sales/SalApprovalConfig.cs`
