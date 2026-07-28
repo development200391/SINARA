@@ -1,4 +1,6 @@
 @model ERP.Web.ViewModels.Inventory.InventoryCategoryEditViewModel
+@using ERP.Web.ViewModels.Shared
+@using System.Globalization
 
 <div class="row g-3">
     <div class="col-md-4">
@@ -13,13 +15,21 @@
     </div>
     <div class="col-md-6">
         <label asp-for="ParentCategoryId" class="form-label">@T["Parent"]</label>
-        <select asp-for="ParentCategoryId" class="form-select">
-            <option value="">@T["No Parent"]</option>
-            @foreach (var option in Model.ParentCategories)
+        @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+        {
+            Name = nameof(Model.ParentCategoryId),
+            Id = Html.IdFor(x => x.ParentCategoryId).ToString(),
+            SearchPlaceholder = T["Search"],
+            EmptyOptionLabel = T["No Parent"],
+            SelectedValue = Model.ParentCategoryId.HasValue
+                ? Model.ParentCategoryId.Value.ToString(CultureInfo.InvariantCulture)
+                : null,
+            Options = Model.ParentCategories.Select(option => new SearchableSelectOptionViewModel
             {
-                <option value="@option.Id">@option.Label</option>
-            }
-        </select>
+                Value = option.Id.ToString(CultureInfo.InvariantCulture),
+                Label = option.Label
+            }).ToList()
+        })
         <span asp-validation-for="ParentCategoryId" class="text-danger small"></span>
     </div>
     <div class="col-md-12">
@@ -28,9 +38,12 @@
         <span asp-validation-for="Description" class="text-danger small"></span>
     </div>
     <div class="col-md-4">
-        <div class="form-check mt-2">
-            <input asp-for="IsActive" class="form-check-input" />
-            <label asp-for="IsActive" class="form-check-label">@T["Active"]</label>
-        </div>
+        @await Component.InvokeAsync("FormCheckbox", new FormCheckboxViewModel
+        {
+            Name = nameof(Model.IsActive),
+            Id = Html.IdFor(x => x.IsActive).ToString(),
+            Label = T["Active"],
+            Checked = Model.IsActive
+        })
     </div>
 </div>

@@ -1,4 +1,5 @@
 @model ERP.Web.ViewModels.Inventory.InventoryUnitEditViewModel
+@using ERP.Web.ViewModels.Shared
 
 <div class="row g-3">
     <div class="col-md-4">
@@ -17,9 +18,12 @@
         <span asp-validation-for="Description" class="text-danger small"></span>
     </div>
     <div class="col-md-4">
-        <div class="form-check mt-2">
-            <input asp-for="IsActive" class="form-check-input" />
-            <label asp-for="IsActive" class="form-check-label">@T["Active"]</label>
-        </div>
+        @await Component.InvokeAsync("FormCheckbox", new FormCheckboxViewModel
+        {
+            Name = nameof(Model.IsActive),
+            Id = Html.IdFor(x => x.IsActive).ToString(),
+            Label = T["Active"],
+            Checked = Model.IsActive
+        })
     </div>
 </div>

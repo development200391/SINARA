@@ -1,5 +1,7 @@
-﻿@model ERP.Web.ViewModels.Inventory.InventoryItemEditViewModel
+@model ERP.Web.ViewModels.Inventory.InventoryItemEditViewModel
 @using ERP.Domain.Enums.Inventory
+@using ERP.Web.ViewModels.Shared
+@using System.Globalization
 
 @{
     string LocalizeItemType(ItemType type)
@@ -52,12 +54,19 @@
     </div>
     <div class="col-md-4">
         <label asp-for="Status" class="form-label">@T["Status"]</label>
-        <select asp-for="Status" class="form-select">
-            @foreach (var status in Enum.GetValues<ItemStatus>())
+        @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+        {
+            Name = nameof(Model.Status),
+            Id = Html.IdFor(x => x.Status).ToString(),
+            SearchPlaceholder = T["Search"],
+            EmptyOptionLabel = T["Select"],
+            SelectedValue = Model.Status.ToString(),
+            Options = Enum.GetValues<ItemStatus>().Select(status => new SearchableSelectOptionViewModel
             {
-                <option value="@status">@LocalizeItemStatus(status)</option>
-            }
-        </select>
+                Value = status.ToString(),
+                Label = LocalizeItemStatus(status)
+            }).ToList()
+        })
         <span asp-validation-for="Status" class="text-danger small"></span>
     </div>
 
@@ -68,68 +77,114 @@
     </div>
     <div class="col-md-4">
         <label asp-for="Type" class="form-label">@T["Type"]</label>
-        <select asp-for="Type" class="form-select">
-            @foreach (var itemType in Enum.GetValues<ItemType>())
+        @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+        {
+            Name = nameof(Model.Type),
+            Id = Html.IdFor(x => x.Type).ToString(),
+            SearchPlaceholder = T["Search"],
+            EmptyOptionLabel = T["Select"],
+            SelectedValue = Model.Type.ToString(),
+            Options = Enum.GetValues<ItemType>().Select(itemType => new SearchableSelectOptionViewModel
             {
-                <option value="@itemType">@LocalizeItemType(itemType)</option>
-            }
-        </select>
+                Value = itemType.ToString(),
+                Label = LocalizeItemType(itemType)
+            }).ToList()
+        })
         <span asp-validation-for="Type" class="text-danger small"></span>
     </div>
 
     <div class="col-md-4">
         <label asp-for="CategoryId" class="form-label">@T["Category"]</label>
-        <select asp-for="CategoryId" class="form-select">
-            <option value="">@T["Select Category"]</option>
-            @foreach (var option in Model.CategoryOptions)
+        @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+        {
+            Name = nameof(Model.CategoryId),
+            Id = Html.IdFor(x => x.CategoryId).ToString(),
+            SearchPlaceholder = T["Search"],
+            EmptyOptionLabel = T["Select Category"],
+            SelectedValue = Model.CategoryId > 0
+                ? Model.CategoryId.ToString(CultureInfo.InvariantCulture)
+                : null,
+            Options = Model.CategoryOptions.Select(option => new SearchableSelectOptionViewModel
             {
-                <option value="@option.Id">@option.Label</option>
-            }
-        </select>
+                Value = option.Id.ToString(CultureInfo.InvariantCulture),
+                Label = option.Label
+            }).ToList()
+        })
         <span asp-validation-for="CategoryId" class="text-danger small"></span>
     </div>
     <div class="col-md-4">
         <label asp-for="BrandId" class="form-label">@T["Brand"]</label>
-        <select asp-for="BrandId" class="form-select">
-            <option value="">@T["None"]</option>
-            @foreach (var option in Model.BrandOptions)
+        @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+        {
+            Name = nameof(Model.BrandId),
+            Id = Html.IdFor(x => x.BrandId).ToString(),
+            SearchPlaceholder = T["Search"],
+            EmptyOptionLabel = T["None"],
+            SelectedValue = Model.BrandId.HasValue
+                ? Model.BrandId.Value.ToString(CultureInfo.InvariantCulture)
+                : null,
+            Options = Model.BrandOptions.Select(option => new SearchableSelectOptionViewModel
             {
-                <option value="@option.Id">@option.Label</option>
-            }
-        </select>
+                Value = option.Id.ToString(CultureInfo.InvariantCulture),
+                Label = option.Label
+            }).ToList()
+        })
         <span asp-validation-for="BrandId" class="text-danger small"></span>
     </div>
     <div class="col-md-4">
         <label asp-for="ValuationMethod" class="form-label">@T["Valuation Method"]</label>
-        <select asp-for="ValuationMethod" class="form-select">
-            @foreach (var valuationMethod in Enum.GetValues<ValuationMethod>())
+        @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+        {
+            Name = nameof(Model.ValuationMethod),
+            Id = Html.IdFor(x => x.ValuationMethod).ToString(),
+            SearchPlaceholder = T["Search"],
+            EmptyOptionLabel = T["Select"],
+            SelectedValue = Model.ValuationMethod.ToString(),
+            Options = Enum.GetValues<ValuationMethod>().Select(valuationMethod => new SearchableSelectOptionViewModel
             {
-                <option value="@valuationMethod">@LocalizeValuationMethod(valuationMethod)</option>
-            }
-        </select>
+                Value = valuationMethod.ToString(),
+                Label = LocalizeValuationMethod(valuationMethod)
+            }).ToList()
+        })
         <span asp-validation-for="ValuationMethod" class="text-danger small"></span>
     </div>
 
     <div class="col-md-4">
         <label asp-for="BaseUomId" class="form-label">@T["Base UOM"]</label>
-        <select asp-for="BaseUomId" class="form-select">
-            <option value="">@T["Select UOM"]</option>
-            @foreach (var option in Model.UomOptions)
+        @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+        {
+            Name = nameof(Model.BaseUomId),
+            Id = Html.IdFor(x => x.BaseUomId).ToString(),
+            SearchPlaceholder = T["Search"],
+            EmptyOptionLabel = T["Select UOM"],
+            SelectedValue = Model.BaseUomId > 0
+                ? Model.BaseUomId.ToString(CultureInfo.InvariantCulture)
+                : null,
+            Options = Model.UomOptions.Select(option => new SearchableSelectOptionViewModel
             {
-                <option value="@option.Id">@option.Label</option>
-            }
-        </select>
+                Value = option.Id.ToString(CultureInfo.InvariantCulture),
+                Label = option.Label
+            }).ToList()
+        })
         <span asp-validation-for="BaseUomId" class="text-danger small"></span>
     </div>
     <div class="col-md-4">
         <label asp-for="PurchaseUomId" class="form-label">@T["Purchase UOM"]</label>
-        <select asp-for="PurchaseUomId" class="form-select">
-            <option value="">@T["None"]</option>
-            @foreach (var option in Model.UomOptions)
+        @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+        {
+            Name = nameof(Model.PurchaseUomId),
+            Id = Html.IdFor(x => x.PurchaseUomId).ToString(),
+            SearchPlaceholder = T["Search"],
+            EmptyOptionLabel = T["None"],
+            SelectedValue = Model.PurchaseUomId.HasValue
+                ? Model.PurchaseUomId.Value.ToString(CultureInfo.InvariantCulture)
+                : null,
+            Options = Model.UomOptions.Select(option => new SearchableSelectOptionViewModel
             {
-                <option value="@option.Id">@option.Label</option>
-            }
-        </select>
+                Value = option.Id.ToString(CultureInfo.InvariantCulture),
+                Label = option.Label
+            }).ToList()
+        })
         <span asp-validation-for="PurchaseUomId" class="text-danger small"></span>
     </div>
     <div class="col-md-4">
@@ -167,35 +222,59 @@
 
     <div class="col-md-4">
         <label asp-for="InventoryAccountId" class="form-label">@T["Inventory Account"]</label>
-        <select asp-for="InventoryAccountId" class="form-select">
-            <option value="">@T["None"]</option>
-            @foreach (var option in Model.AccountOptions)
+        @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+        {
+            Name = nameof(Model.InventoryAccountId),
+            Id = Html.IdFor(x => x.InventoryAccountId).ToString(),
+            SearchPlaceholder = T["Search"],
+            EmptyOptionLabel = T["None"],
+            SelectedValue = Model.InventoryAccountId.HasValue
+                ? Model.InventoryAccountId.Value.ToString(CultureInfo.InvariantCulture)
+                : null,
+            Options = Model.AccountOptions.Select(option => new SearchableSelectOptionViewModel
             {
-                <option value="@option.Id">@option.Label</option>
-            }
-        </select>
+                Value = option.Id.ToString(CultureInfo.InvariantCulture),
+                Label = option.Label
+            }).ToList()
+        })
         <span asp-validation-for="InventoryAccountId" class="text-danger small"></span>
     </div>
     <div class="col-md-4">
         <label asp-for="CogsAccountId" class="form-label">@T["COGS Account"]</label>
-        <select asp-for="CogsAccountId" class="form-select">
-            <option value="">@T["None"]</option>
-            @foreach (var option in Model.AccountOptions)
+        @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+        {
+            Name = nameof(Model.CogsAccountId),
+            Id = Html.IdFor(x => x.CogsAccountId).ToString(),
+            SearchPlaceholder = T["Search"],
+            EmptyOptionLabel = T["None"],
+            SelectedValue = Model.CogsAccountId.HasValue
+                ? Model.CogsAccountId.Value.ToString(CultureInfo.InvariantCulture)
+                : null,
+            Options = Model.AccountOptions.Select(option => new SearchableSelectOptionViewModel
             {
-                <option value="@option.Id">@option.Label</option>
-            }
-        </select>
+                Value = option.Id.ToString(CultureInfo.InvariantCulture),
+                Label = option.Label
+            }).ToList()
+        })
         <span asp-validation-for="CogsAccountId" class="text-danger small"></span>
     </div>
     <div class="col-md-4">
         <label asp-for="AdjustmentAccountId" class="form-label">@T["Adjustment Account"]</label>
-        <select asp-for="AdjustmentAccountId" class="form-select">
-            <option value="">@T["None"]</option>
-            @foreach (var option in Model.AccountOptions)
+        @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+        {
+            Name = nameof(Model.AdjustmentAccountId),
+            Id = Html.IdFor(x => x.AdjustmentAccountId).ToString(),
+            SearchPlaceholder = T["Search"],
+            EmptyOptionLabel = T["None"],
+            SelectedValue = Model.AdjustmentAccountId.HasValue
+                ? Model.AdjustmentAccountId.Value.ToString(CultureInfo.InvariantCulture)
+                : null,
+            Options = Model.AccountOptions.Select(option => new SearchableSelectOptionViewModel
             {
-                <option value="@option.Id">@option.Label</option>
-            }
-        </select>
+                Value = option.Id.ToString(CultureInfo.InvariantCulture),
+                Label = option.Label
+            }).ToList()
+        })
         <span asp-validation-for="AdjustmentAccountId" class="text-danger small"></span>
     </div>
 
@@ -211,9 +290,12 @@
     </div>
 
     <div class="col-md-4">
-        <div class="form-check mt-2">
-            <input asp-for="IsActive" class="form-check-input" />
-            <label asp-for="IsActive" class="form-check-label">@T["Active"]</label>
-        </div>
+        @await Component.InvokeAsync("FormCheckbox", new FormCheckboxViewModel
+        {
+            Name = nameof(Model.IsActive),
+            Id = Html.IdFor(x => x.IsActive).ToString(),
+            Label = T["Active"],
+            Checked = Model.IsActive
+        })
     </div>
 </div>

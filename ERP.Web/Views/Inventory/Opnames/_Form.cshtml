@@ -1,4 +1,6 @@
 @model ERP.Web.ViewModels.Inventory.InventoryOpnameEditViewModel
+@using ERP.Web.ViewModels.Shared
+@using System.Globalization
 
 <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
@@ -10,24 +12,40 @@
     </div>
     <div class="col-md-4">
         <label asp-for="WarehouseId" class="form-label">@T["Warehouse"]</label>
-        <select asp-for="WarehouseId" class="form-select">
-            <option value="">@T["Select Warehouse"]</option>
-            @foreach (var option in Model.WarehouseOptions)
+        @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+        {
+            Name = nameof(Model.WarehouseId),
+            Id = Html.IdFor(x => x.WarehouseId).ToString(),
+            SearchPlaceholder = T["Search"],
+            EmptyOptionLabel = T["Select Warehouse"],
+            SelectedValue = Model.WarehouseId > 0
+                ? Model.WarehouseId.ToString(CultureInfo.InvariantCulture)
+                : null,
+            Options = Model.WarehouseOptions.Select(option => new SearchableSelectOptionViewModel
             {
-                <option value="@option.Id">@option.Label</option>
-            }
-        </select>
+                Value = option.Id.ToString(CultureInfo.InvariantCulture),
+                Label = option.Label
+            }).ToList()
+        })
         <span asp-validation-for="WarehouseId" class="text-danger small"></span>
     </div>
     <div class="col-md-4">
         <label asp-for="LocationId" class="form-label">@T["Location"]</label>
-        <select asp-for="LocationId" class="form-select">
-            <option value="">@T["All"]</option>
-            @foreach (var option in Model.LocationOptions)
+        @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+        {
+            Name = nameof(Model.LocationId),
+            Id = Html.IdFor(x => x.LocationId).ToString(),
+            SearchPlaceholder = T["Search"],
+            EmptyOptionLabel = T["All"],
+            SelectedValue = Model.LocationId.HasValue
+                ? Model.LocationId.Value.ToString(CultureInfo.InvariantCulture)
+                : null,
+            Options = Model.LocationOptions.Select(option => new SearchableSelectOptionViewModel
             {
-                <option value="@option.Id">@option.Label</option>
-            }
-        </select>
+                Value = option.Id.ToString(CultureInfo.InvariantCulture),
+                Label = option.Label
+            }).ToList()
+        })
         <span asp-validation-for="LocationId" class="text-danger small"></span>
     </div>
 

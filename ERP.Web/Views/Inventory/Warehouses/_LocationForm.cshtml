@@ -1,4 +1,5 @@
 ﻿@model ERP.Web.ViewModels.Inventory.InventoryWarehouseLocationEditViewModel
+@using ERP.Web.ViewModels.Shared
 
 <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
@@ -20,15 +21,21 @@
     </div>
 
     <div class="col-md-4">
-        <div class="form-check mt-2">
-            <input asp-for="IsDefault" class="form-check-input" />
-            <label asp-for="IsDefault" class="form-check-label">@T["Default"]</label>
-        </div>
+        @await Component.InvokeAsync("FormCheckbox", new FormCheckboxViewModel
+        {
+            Name = nameof(Model.IsDefault),
+            Id = Html.IdFor(x => x.IsDefault).ToString(),
+            Label = T["Default"],
+            Checked = Model.IsDefault
+        })
     </div>
     <div class="col-md-4">
-        <div class="form-check mt-2">
-            <input asp-for="IsActive" class="form-check-input" />
-            <label asp-for="IsActive" class="form-check-label">@T["Active"]</label>
-        </div>
+        @await Component.InvokeAsync("FormCheckbox", new FormCheckboxViewModel
+        {
+            Name = nameof(Model.IsActive),
+            Id = Html.IdFor(x => x.IsActive).ToString(),
+            Label = T["Active"],
+            Checked = Model.IsActive
+        })
     </div>
 </div>
