@@ -1,17 +1,26 @@
 @model ERP.Web.ViewModels.Purchasing.PurchasingApprovalConfigEditViewModel
 @using ERP.Domain.Enums.Purchasing
+@using ERP.Web.ViewModels.Shared
+@using System.Globalization
 
 <div class="row g-3">
     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
     <div class="col-md-4">
         <label asp-for="DocumentType" class="form-label">@T["Document Type"]</label>
-        <select asp-for="DocumentType" class="form-select">
-            @foreach (var item in Enum.GetValues<PurchasingDocumentType>())
+        @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+        {
+            Name = nameof(Model.DocumentType),
+            Id = Html.IdFor(x => x.DocumentType).ToString(),
+            SearchPlaceholder = T["Search"],
+            EmptyOptionLabel = T["Select"],
+            SelectedValue = Model.DocumentType.ToString(),
+            Options = Enum.GetValues<PurchasingDocumentType>().Select(item => new SearchableSelectOptionViewModel
             {
-                <option value="@((int)item)">@(item == PurchasingDocumentType.PurchaseOrder ? T["Purchase Order"] : T["Purchase Requisition"])</option>
-            }
-        </select>
+                Value = item.ToString(),
+                Label = item == PurchasingDocumentType.PurchaseOrder ? T["Purchase Order"] : T["Purchase Requisition"]
+            }).ToList()
+        })
         <span asp-validation-for="DocumentType" class="text-danger small"></span>
     </div>
 
@@ -35,13 +44,21 @@
 
     <div class="col-md-6">
         <label asp-for="ApproverEmployeeId" class="form-label">@T["Approver"]</label>
-        <select asp-for="ApproverEmployeeId" class="form-select">
-            <option value="">@T["Select Employee"]</option>
-            @foreach (var option in Model.ApproverOptions)
+        @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+        {
+            Name = nameof(Model.ApproverEmployeeId),
+            Id = Html.IdFor(x => x.ApproverEmployeeId).ToString(),
+            SearchPlaceholder = T["Search"],
+            EmptyOptionLabel = T["Select Employee"],
+            SelectedValue = Model.ApproverEmployeeId > 0
+                ? Model.ApproverEmployeeId.ToString(CultureInfo.InvariantCulture)
+                : null,
+            Options = Model.ApproverOptions.Select(option => new SearchableSelectOptionViewModel
             {
-                <option value="@option.Id">@option.Name</option>
-            }
-        </select>
+                Value = option.Id.ToString(CultureInfo.InvariantCulture),
+                Label = option.Name
+            }).ToList()
+        })
         <span asp-validation-for="ApproverEmployeeId" class="text-danger small"></span>
     </div>
 
@@ -52,9 +69,12 @@
     </div>
 
     <div class="col-md-4">
-        <div class="form-check mt-2">
-            <input asp-for="IsActive" class="form-check-input" />
-            <label asp-for="IsActive" class="form-check-label">@T["Active"]</label>
-        </div>
+        @await Component.InvokeAsync("FormCheckbox", new FormCheckboxViewModel
+        {
+            Name = nameof(Model.IsActive),
+            Id = Html.IdFor(x => x.IsActive).ToString(),
+            Label = T["Active"],
+            Checked = Model.IsActive
+        })
     </div>
 </div>

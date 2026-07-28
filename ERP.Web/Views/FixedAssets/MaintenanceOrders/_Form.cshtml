@@ -1,18 +1,28 @@
 @model ERP.Web.ViewModels.FixedAssets.FixedAssetMaintenanceOrderEditViewModel
 @using ERP.Domain.Enums.FixedAssets
+@using ERP.Web.ViewModels.Shared
+@using System.Globalization
 
 <div class="row g-3">
     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
     <div class="col-md-6">
         <label asp-for="AssetId" class="form-label">@T["Asset"]</label>
-        <select asp-for="AssetId" class="form-select">
-            <option value="">@T["Select Asset"]</option>
-            @foreach (var option in Model.AssetOptions)
+        @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+        {
+            Name = nameof(Model.AssetId),
+            Id = Html.IdFor(x => x.AssetId).ToString(),
+            SearchPlaceholder = T["Search"],
+            EmptyOptionLabel = T["Select Asset"],
+            SelectedValue = Model.AssetId > 0
+                ? Model.AssetId.ToString(CultureInfo.InvariantCulture)
+                : null,
+            Options = Model.AssetOptions.Select(option => new SearchableSelectOptionViewModel
             {
-                <option value="@option.Id">@option.Label</option>
-            }
-        </select>
+                Value = option.Id.ToString(CultureInfo.InvariantCulture),
+                Label = option.Label
+            }).ToList()
+        })
         <span asp-validation-for="AssetId" class="text-danger small"></span>
     </div>
     <div class="col-md-3">
@@ -22,10 +32,19 @@
     </div>
     <div class="col-md-3">
         <label asp-for="MaintenanceType" class="form-label">@T["Maintenance Type"]</label>
-        <select asp-for="MaintenanceType" class="form-select">
-            <option value="@MaintenanceType.Preventive">@T["Preventive"]</option>
-            <option value="@MaintenanceType.Corrective">@T["Corrective"]</option>
-        </select>
+        @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+        {
+            Name = nameof(Model.MaintenanceType),
+            Id = Html.IdFor(x => x.MaintenanceType).ToString(),
+            SearchPlaceholder = T["Search"],
+            EmptyOptionLabel = T["Select"],
+            SelectedValue = Model.MaintenanceType.ToString(),
+            Options = new List<SearchableSelectOptionViewModel>
+            {
+                new() { Value = MaintenanceType.Preventive.ToString(), Label = T["Preventive"] },
+                new() { Value = MaintenanceType.Corrective.ToString(), Label = T["Corrective"] }
+            }
+        })
         <span asp-validation-for="MaintenanceType" class="text-danger small"></span>
     </div>
 
@@ -39,11 +58,14 @@
         <input asp-for="Cost" class="form-control text-end sinara-text-number sinara-text-number-theme sinara-text-number-input" type="text" inputmode="decimal" data-text-number-decimals="2" autocomplete="off" />
         <span asp-validation-for="Cost" class="text-danger small"></span>
     </div>
-    <div class="col-md-3">
-        <div class="form-check mt-4 pt-2">
-            <input asp-for="IsCapitalized" class="form-check-input" />
-            <label asp-for="IsCapitalized" class="form-check-label">@T["Capitalized"]</label>
-        </div>
+    <div class="col-md-3 d-flex align-items-end">
+        @await Component.InvokeAsync("FormCheckbox", new FormCheckboxViewModel
+        {
+            Name = nameof(Model.IsCapitalized),
+            Id = Html.IdFor(x => x.IsCapitalized).ToString(),
+            Label = T["Capitalized"],
+            Checked = Model.IsCapitalized
+        })
     </div>
 
     <div class="col-12">

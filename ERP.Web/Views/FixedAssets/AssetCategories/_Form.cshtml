@@ -1,5 +1,7 @@
 @model ERP.Web.ViewModels.FixedAssets.FixedAssetCategoryEditViewModel
 @using ERP.Domain.Enums.FixedAssets
+@using ERP.Web.ViewModels.Shared
+@using System.Globalization
 
 <div class="row g-3">
     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
@@ -16,10 +18,19 @@
     </div>
     <div class="col-md-4">
         <label asp-for="DepreciationMethod" class="form-label">@T["Depreciation Method"]</label>
-        <select asp-for="DepreciationMethod" class="form-select">
-            <option value="@DepreciationMethod.StraightLine">@T["Straight Line"]</option>
-            <option value="@DepreciationMethod.DecliningBalance">@T["Declining Balance"]</option>
-        </select>
+        @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+        {
+            Name = nameof(Model.DepreciationMethod),
+            Id = Html.IdFor(x => x.DepreciationMethod).ToString(),
+            SearchPlaceholder = T["Search"],
+            EmptyOptionLabel = T["Select"],
+            SelectedValue = Model.DepreciationMethod.ToString(),
+            Options = new List<SearchableSelectOptionViewModel>
+            {
+                new() { Value = DepreciationMethod.StraightLine.ToString(), Label = T["Straight Line"] },
+                new() { Value = DepreciationMethod.DecliningBalance.ToString(), Label = T["Declining Balance"] }
+            }
+        })
         <span asp-validation-for="DepreciationMethod" class="text-danger small"></span>
     </div>
 
@@ -35,42 +46,69 @@
     </div>
     <div class="col-md-6">
         <label asp-for="AssetAccountId" class="form-label">@T["Asset"] @T["Account"]</label>
-        <select asp-for="AssetAccountId" class="form-select">
-            <option value="">@T["None"]</option>
-            @foreach (var option in Model.AccountOptions)
+        @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+        {
+            Name = nameof(Model.AssetAccountId),
+            Id = Html.IdFor(x => x.AssetAccountId).ToString(),
+            SearchPlaceholder = T["Search"],
+            EmptyOptionLabel = T["None"],
+            SelectedValue = Model.AssetAccountId.HasValue
+                ? Model.AssetAccountId.Value.ToString(CultureInfo.InvariantCulture)
+                : null,
+            Options = Model.AccountOptions.Select(option => new SearchableSelectOptionViewModel
             {
-                <option value="@option.Id">@option.Label</option>
-            }
-        </select>
+                Value = option.Id.ToString(CultureInfo.InvariantCulture),
+                Label = option.Label
+            }).ToList()
+        })
         <span asp-validation-for="AssetAccountId" class="text-danger small"></span>
     </div>
 
     <div class="col-md-6">
         <label asp-for="AccumulatedDepreciationAccountId" class="form-label">@T["Accumulated Depreciation"] @T["Account"]</label>
-        <select asp-for="AccumulatedDepreciationAccountId" class="form-select">
-            <option value="">@T["None"]</option>
-            @foreach (var option in Model.AccountOptions)
+        @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+        {
+            Name = nameof(Model.AccumulatedDepreciationAccountId),
+            Id = Html.IdFor(x => x.AccumulatedDepreciationAccountId).ToString(),
+            SearchPlaceholder = T["Search"],
+            EmptyOptionLabel = T["None"],
+            SelectedValue = Model.AccumulatedDepreciationAccountId.HasValue
+                ? Model.AccumulatedDepreciationAccountId.Value.ToString(CultureInfo.InvariantCulture)
+                : null,
+            Options = Model.AccountOptions.Select(option => new SearchableSelectOptionViewModel
             {
-                <option value="@option.Id">@option.Label</option>
-            }
-        </select>
+                Value = option.Id.ToString(CultureInfo.InvariantCulture),
+                Label = option.Label
+            }).ToList()
+        })
         <span asp-validation-for="AccumulatedDepreciationAccountId" class="text-danger small"></span>
     </div>
     <div class="col-md-6">
         <label asp-for="DepreciationExpenseAccountId" class="form-label">@T["Depreciation Expense"] @T["Account"]</label>
-        <select asp-for="DepreciationExpenseAccountId" class="form-select">
-            <option value="">@T["None"]</option>
-            @foreach (var option in Model.AccountOptions)
+        @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+        {
+            Name = nameof(Model.DepreciationExpenseAccountId),
+            Id = Html.IdFor(x => x.DepreciationExpenseAccountId).ToString(),
+            SearchPlaceholder = T["Search"],
+            EmptyOptionLabel = T["None"],
+            SelectedValue = Model.DepreciationExpenseAccountId.HasValue
+                ? Model.DepreciationExpenseAccountId.Value.ToString(CultureInfo.InvariantCulture)
+                : null,
+            Options = Model.AccountOptions.Select(option => new SearchableSelectOptionViewModel
             {
-                <option value="@option.Id">@option.Label</option>
-            }
-        </select>
+                Value = option.Id.ToString(CultureInfo.InvariantCulture),
+                Label = option.Label
+            }).ToList()
+        })
         <span asp-validation-for="DepreciationExpenseAccountId" class="text-danger small"></span>
     </div>
-    <div class="col-md-3">
-        <div class="form-check mt-4 pt-2">
-            <input asp-for="IsActive" class="form-check-input" />
-            <label asp-for="IsActive" class="form-check-label">@T["Active"]</label>
-        </div>
+    <div class="col-md-3 d-flex align-items-end">
+        @await Component.InvokeAsync("FormCheckbox", new FormCheckboxViewModel
+        {
+            Name = nameof(Model.IsActive),
+            Id = Html.IdFor(x => x.IsActive).ToString(),
+            Label = T["Active"],
+            Checked = Model.IsActive
+        })
     </div>
 </div>

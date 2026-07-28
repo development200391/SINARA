@@ -1,4 +1,5 @@
 @model ERP.Web.ViewModels.FixedAssets.FixedAssetDepreciationConfigEditViewModel
+@using ERP.Web.ViewModels.Shared
 
 <div class="row g-3">
     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
@@ -30,16 +31,22 @@
         <span asp-validation-for="EndDate" class="text-danger small"></span>
     </div>
 
-    <div class="col-md-3">
-        <div class="form-check mt-4 pt-2">
-            <input asp-for="IsAutoPostJournal" class="form-check-input" />
-            <label asp-for="IsAutoPostJournal" class="form-check-label">@T["Auto Post Journal"]</label>
-        </div>
+    <div class="col-md-3 d-flex align-items-end">
+        @await Component.InvokeAsync("FormCheckbox", new FormCheckboxViewModel
+        {
+            Name = nameof(Model.IsAutoPostJournal),
+            Id = Html.IdFor(x => x.IsAutoPostJournal).ToString(),
+            Label = T["Auto Post Journal"],
+            Checked = Model.IsAutoPostJournal
+        })
     </div>
-    <div class="col-md-3">
-        <div class="form-check mt-4 pt-2">
-            <input asp-for="IsActive" class="form-check-input" />
-            <label asp-for="IsActive" class="form-check-label">@T["Active"]</label>
-        </div>
+    <div class="col-md-3 d-flex align-items-end">
+        @await Component.InvokeAsync("FormCheckbox", new FormCheckboxViewModel
+        {
+            Name = nameof(Model.IsActive),
+            Id = Html.IdFor(x => x.IsActive).ToString(),
+            Label = T["Active"],
+            Checked = Model.IsActive
+        })
     </div>
 </div>

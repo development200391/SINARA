@@ -1,4 +1,6 @@
 @model ERP.Web.ViewModels.Sales.SalesTeamEditViewModel
+@using ERP.Web.ViewModels.Shared
+@using System.Globalization
 
 <div class="card border-0 shadow-sm">
     <div class="card-body">
@@ -17,13 +19,21 @@
             </div>
             <div class="col-md-4">
                 <label asp-for="TeamLeaderId" class="form-label">@T["Team Leader"]</label>
-                <select asp-for="TeamLeaderId" class="form-select">
-                    <option value="">@T["Select Employee"]</option>
-                    @foreach (var option in Model.EmployeeOptions)
+                @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+                {
+                    Name = nameof(Model.TeamLeaderId),
+                    Id = Html.IdFor(x => x.TeamLeaderId).ToString(),
+                    SearchPlaceholder = T["Search"],
+                    EmptyOptionLabel = T["Select Employee"],
+                    SelectedValue = Model.TeamLeaderId > 0
+                        ? Model.TeamLeaderId.ToString(CultureInfo.InvariantCulture)
+                        : null,
+                    Options = Model.EmployeeOptions.Select(option => new SearchableSelectOptionViewModel
                     {
-                        <option value="@option.Id">@option.Name</option>
-                    }
-                </select>
+                        Value = option.Id.ToString(CultureInfo.InvariantCulture),
+                        Label = option.Name
+                    }).ToList()
+                })
                 <span asp-validation-for="TeamLeaderId" class="text-danger"></span>
             </div>
             <div class="col-md-8">
@@ -37,9 +47,14 @@
                 <div class="form-text">@T["Hold Ctrl or Cmd to select multiple employees"]</div>
             </div>
             <div class="col-md-4 d-flex align-items-center">
-                <div class="form-check mt-3">
-                    <input asp-for="IsActive" class="form-check-input" />
-                    <label asp-for="IsActive" class="form-check-label">@T["Active"]</label>
+                <div class="mt-3">
+                    @await Component.InvokeAsync("FormCheckbox", new FormCheckboxViewModel
+                    {
+                        Name = nameof(Model.IsActive),
+                        Id = Html.IdFor(x => x.IsActive).ToString(),
+                        Label = T["Active"],
+                        Checked = Model.IsActive
+                    })
                 </div>
             </div>
         </div>
@@ -50,4 +65,3 @@
         </div>
     </div>
 </div>
-

@@ -1,4 +1,6 @@
 @model ERP.Web.ViewModels.Sales.SalesPriceListEditViewModel
+@using ERP.Domain.Enums.Sales
+@using ERP.Web.ViewModels.Shared
 
 <div class="card border-0 shadow-sm">
     <div class="card-body">
@@ -15,16 +17,35 @@
             </div>
             <div class="col-md-4">
                 <label asp-for="Type" class="form-label"></label>
-                <select asp-for="Type" asp-items="Html.GetEnumSelectList<ERP.Domain.Enums.Sales.PriceListType>()" class="form-select"></select>
+                @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+                {
+                    Name = nameof(Model.Type),
+                    Id = Html.IdFor(x => x.Type).ToString(),
+                    SearchPlaceholder = T["Search"],
+                    EmptyOptionLabel = T["Select"],
+                    SelectedValue = Model.Type.ToString(),
+                    Options = Enum.GetValues<PriceListType>().Select(type => new SearchableSelectOptionViewModel
+                    {
+                        Value = type.ToString(),
+                        Label = T[type.ToString()]
+                    }).ToList()
+                })
             </div>
             <div class="col-md-3">
                 <label asp-for="CurrencyCode" class="form-label">@T["Currency"]</label>
-                <select asp-for="CurrencyCode" class="form-select">
-                    @foreach (var currency in Model.CurrencyOptions)
+                @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+                {
+                    Name = nameof(Model.CurrencyCode),
+                    Id = Html.IdFor(x => x.CurrencyCode).ToString(),
+                    SearchPlaceholder = T["Search"],
+                    EmptyOptionLabel = T["Select"],
+                    SelectedValue = Model.CurrencyCode,
+                    Options = Model.CurrencyOptions.Select(currency => new SearchableSelectOptionViewModel
                     {
-                        <option value="@currency">@currency</option>
-                    }
-                </select>
+                        Value = currency,
+                        Label = currency
+                    }).ToList()
+                })
             </div>
             <div class="col-md-3">
                 <label asp-for="ValidFrom" class="form-label"></label>
@@ -41,9 +62,14 @@
                 <textarea asp-for="Notes" class="form-control" rows="2"></textarea>
             </div>
             <div class="col-md-3 d-flex align-items-center">
-                <div class="form-check mt-4">
-                    <input asp-for="IsActive" class="form-check-input" />
-                    <label asp-for="IsActive" class="form-check-label">@T["Active"]</label>
+                <div class="mt-4">
+                    @await Component.InvokeAsync("FormCheckbox", new FormCheckboxViewModel
+                    {
+                        Name = nameof(Model.IsActive),
+                        Id = Html.IdFor(x => x.IsActive).ToString(),
+                        Label = T["Active"],
+                        Checked = Model.IsActive
+                    })
                 </div>
             </div>
         </div>

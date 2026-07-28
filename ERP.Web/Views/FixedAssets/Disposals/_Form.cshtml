@@ -1,18 +1,28 @@
 @model ERP.Web.ViewModels.FixedAssets.FixedAssetDisposalEditViewModel
 @using ERP.Domain.Enums.FixedAssets
+@using ERP.Web.ViewModels.Shared
+@using System.Globalization
 
 <div class="row g-3">
     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
     <div class="col-md-6">
         <label asp-for="AssetId" class="form-label">@T["Asset"]</label>
-        <select asp-for="AssetId" class="form-select">
-            <option value="">@T["Select Asset"]</option>
-            @foreach (var option in Model.AssetOptions)
+        @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+        {
+            Name = nameof(Model.AssetId),
+            Id = Html.IdFor(x => x.AssetId).ToString(),
+            SearchPlaceholder = T["Search"],
+            EmptyOptionLabel = T["Select Asset"],
+            SelectedValue = Model.AssetId > 0
+                ? Model.AssetId.ToString(CultureInfo.InvariantCulture)
+                : null,
+            Options = Model.AssetOptions.Select(option => new SearchableSelectOptionViewModel
             {
-                <option value="@option.Id">@option.Label</option>
-            }
-        </select>
+                Value = option.Id.ToString(CultureInfo.InvariantCulture),
+                Label = option.Label
+            }).ToList()
+        })
         <span asp-validation-for="AssetId" class="text-danger small"></span>
     </div>
     <div class="col-md-3">
@@ -22,11 +32,20 @@
     </div>
     <div class="col-md-3">
         <label asp-for="DisposalType" class="form-label">@T["Disposal Type"]</label>
-        <select asp-for="DisposalType" class="form-select">
-            <option value="@DisposalType.Sale">@T["Sale"]</option>
-            <option value="@DisposalType.WriteOff">@T["Write Off"]</option>
-            <option value="@DisposalType.Scrap">@T["Scrap"]</option>
-        </select>
+        @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+        {
+            Name = nameof(Model.DisposalType),
+            Id = Html.IdFor(x => x.DisposalType).ToString(),
+            SearchPlaceholder = T["Search"],
+            EmptyOptionLabel = T["Select"],
+            SelectedValue = Model.DisposalType.ToString(),
+            Options = new List<SearchableSelectOptionViewModel>
+            {
+                new() { Value = DisposalType.Sale.ToString(), Label = T["Sale"] },
+                new() { Value = DisposalType.WriteOff.ToString(), Label = T["Write Off"] },
+                new() { Value = DisposalType.Scrap.ToString(), Label = T["Scrap"] }
+            }
+        })
         <span asp-validation-for="DisposalType" class="text-danger small"></span>
     </div>
 

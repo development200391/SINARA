@@ -1,4 +1,7 @@
 @model ERP.Web.ViewModels.Manufacturing.ManufacturingQcParameterEditViewModel
+@using ERP.Domain.Enums.Manufacturing
+@using ERP.Web.ViewModels.Shared
+@using System.Globalization
 
 <div class="card border-0 shadow-sm">
     <div class="card-body">
@@ -15,18 +18,38 @@
             </div>
             <div class="col-md-4">
                 <label asp-for="ItemId" class="form-label">@T["Item"]</label>
-                <select asp-for="ItemId" class="form-select">
-                    <option value="">-- Select --</option>
-                    @foreach (var option in Model.ItemOptions)
+                @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+                {
+                    Name = nameof(Model.ItemId),
+                    Id = Html.IdFor(x => x.ItemId).ToString(),
+                    SearchPlaceholder = T["Search"],
+                    EmptyOptionLabel = T["Select"],
+                    SelectedValue = Model.ItemId.HasValue
+                        ? Model.ItemId.Value.ToString(CultureInfo.InvariantCulture)
+                        : null,
+                    Options = Model.ItemOptions.Select(option => new SearchableSelectOptionViewModel
                     {
-                        <option value="@option.Id">@option.Label</option>
-                    }
-                </select>
+                        Value = option.Id.ToString(CultureInfo.InvariantCulture),
+                        Label = option.Label
+                    }).ToList()
+                })
                 <span asp-validation-for="ItemId" class="text-danger"></span>
             </div>
             <div class="col-md-3">
                 <label asp-for="ParameterType" class="form-label">@T["Parameter Type"]</label>
-                <select asp-for="ParameterType" asp-items="Html.GetEnumSelectList<ERP.Domain.Enums.Manufacturing.QcParameterType>()" class="form-select"></select>
+                @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+                {
+                    Name = nameof(Model.ParameterType),
+                    Id = Html.IdFor(x => x.ParameterType).ToString(),
+                    SearchPlaceholder = T["Search"],
+                    EmptyOptionLabel = T["Select"],
+                    SelectedValue = Model.ParameterType.ToString(),
+                    Options = Enum.GetValues<QcParameterType>().Select(type => new SearchableSelectOptionViewModel
+                    {
+                        Value = type.ToString(),
+                        Label = T[type.ToString()]
+                    }).ToList()
+                })
             </div>
             <div class="col-md-3">
                 <label asp-for="MinValue" class="form-label">@T["Min Value"]</label>
@@ -39,13 +62,23 @@
                 <span asp-validation-for="MaxValue" class="text-danger"></span>
             </div>
             <div class="col-md-3 d-flex align-items-center gap-4">
-                <div class="form-check mt-4">
-                    <input asp-for="IsCritical" class="form-check-input" />
-                    <label asp-for="IsCritical" class="form-check-label">@T["Critical"]</label>
+                <div class="mt-4">
+                    @await Component.InvokeAsync("FormCheckbox", new FormCheckboxViewModel
+                    {
+                        Name = nameof(Model.IsCritical),
+                        Id = Html.IdFor(x => x.IsCritical).ToString(),
+                        Label = T["Critical"],
+                        Checked = Model.IsCritical
+                    })
                 </div>
-                <div class="form-check mt-4">
-                    <input asp-for="IsActive" class="form-check-input" />
-                    <label asp-for="IsActive" class="form-check-label">@T["Active"]</label>
+                <div class="mt-4">
+                    @await Component.InvokeAsync("FormCheckbox", new FormCheckboxViewModel
+                    {
+                        Name = nameof(Model.IsActive),
+                        Id = Html.IdFor(x => x.IsActive).ToString(),
+                        Label = T["Active"],
+                        Checked = Model.IsActive
+                    })
                 </div>
             </div>
             <div class="col-md-12">

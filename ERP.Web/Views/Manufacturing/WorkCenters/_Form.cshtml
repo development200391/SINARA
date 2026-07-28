@@ -1,4 +1,5 @@
 @model ERP.Web.ViewModels.Manufacturing.ManufacturingWorkCenterEditViewModel
+@using ERP.Web.ViewModels.Shared
 
 <div class="card border-0 shadow-sm">
     <div class="card-body">
@@ -38,9 +39,14 @@
                 <textarea asp-for="Notes" class="form-control" rows="2"></textarea>
             </div>
             <div class="col-md-3 d-flex align-items-center">
-                <div class="form-check mt-4">
-                    <input asp-for="IsActive" class="form-check-input" />
-                    <label asp-for="IsActive" class="form-check-label">@T["Active"]</label>
+                <div class="mt-4">
+                    @await Component.InvokeAsync("FormCheckbox", new FormCheckboxViewModel
+                    {
+                        Name = nameof(Model.IsActive),
+                        Id = Html.IdFor(x => x.IsActive).ToString(),
+                        Label = T["Active"],
+                        Checked = Model.IsActive
+                    })
                 </div>
             </div>
         </div>

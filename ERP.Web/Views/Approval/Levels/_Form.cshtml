@@ -1,5 +1,6 @@
 @model ERP.Web.ViewModels.Approval.ApprovalLevelEditViewModel
 @using ERP.Domain.Enums.Approval
+@using ERP.Web.ViewModels.Shared
 
 <div class="row g-3">
     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
@@ -22,21 +23,26 @@
 
     <div class="col-md-4">
         <label asp-for="ApproverType" class="form-label">@T["Approver Type"]</label>
-        <select asp-for="ApproverType" class="form-select">
-            @foreach (var type in Enum.GetValues<ApprovalApproverType>())
+        @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+        {
+            Name = nameof(Model.ApproverType),
+            Id = Html.IdFor(x => x.ApproverType).ToString(),
+            SearchPlaceholder = T["Search"],
+            EmptyOptionLabel = T["Select"],
+            SelectedValue = Model.ApproverType.ToString(),
+            Options = Enum.GetValues<ApprovalApproverType>().Select(type => new SearchableSelectOptionViewModel
             {
-                var label = type switch
+                Value = type.ToString(),
+                Label = type switch
                 {
                     ApprovalApproverType.Role => T["Role"],
                     ApprovalApproverType.Position => T["Position"],
                     ApprovalApproverType.SpecificUser => T["Specific User"],
                     ApprovalApproverType.DirectSuperior => T["Direct Superior"],
                     _ => type.ToString()
-                };
-
-                <option value="@((int)type)" selected="@(Model.ApproverType == type)">@label</option>
-            }
-        </select>
+                }
+            }).ToList()
+        })
         <span asp-validation-for="ApproverType" class="text-danger"></span>
     </div>
 
@@ -76,8 +82,13 @@
         <span asp-validation-for="EscalateToLevelId" class="text-danger"></span>
     </div>
 
-    <div class="col-12 form-check mt-1">
-        <input asp-for="IsActive" class="form-check-input" />
-        <label asp-for="IsActive" class="form-check-label">@T["Active"]</label>
+    <div class="col-12 mt-1">
+        @await Component.InvokeAsync("FormCheckbox", new FormCheckboxViewModel
+        {
+            Name = nameof(Model.IsActive),
+            Id = Html.IdFor(x => x.IsActive).ToString(),
+            Label = T["Active"],
+            Checked = Model.IsActive
+        })
     </div>
 </div>

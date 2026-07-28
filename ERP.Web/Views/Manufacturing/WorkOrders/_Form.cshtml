@@ -1,20 +1,10 @@
 @model ERP.Web.ViewModels.Manufacturing.ManufacturingWorkOrderEditViewModel
-@using System.Text.Json
+@using ERP.Domain.Enums.Manufacturing
+@using ERP.Web.ViewModels.Shared
+@using System.Globalization
 
 @{
-    var bomMappingsJson = JsonSerializer.Serialize(Model.BomItemMappings.Select(x => new
-    {
-        id = x.Id,
-        label = x.Label,
-        itemId = x.ItemId
-    }));
-
-    var routingMappingsJson = JsonSerializer.Serialize(Model.RoutingItemMappings.Select(x => new
-    {
-        id = x.Id,
-        label = x.Label,
-        itemId = x.ItemId
-    }));
+    var itemSelectId = Html.IdFor(x => x.ItemId).ToString();
 }
 
 <div class="card border-0 shadow-sm">
@@ -29,67 +19,135 @@
             </div>
             <div class="col-md-3">
                 <label asp-for="ItemId" class="form-label">@T["Item"]</label>
-                <select asp-for="ItemId" class="form-select">
-                    <option value="">-- Select --</option>
-                    @foreach (var option in Model.ItemOptions)
+                @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+                {
+                    Name = nameof(Model.ItemId),
+                    Id = itemSelectId,
+                    SearchPlaceholder = T["Search"],
+                    EmptyOptionLabel = T["Select"],
+                    SelectedValue = Model.ItemId > 0
+                        ? Model.ItemId.ToString(CultureInfo.InvariantCulture)
+                        : null,
+                    Options = Model.ItemOptions.Select(option => new SearchableSelectOptionViewModel
                     {
-                        <option value="@option.Id">@option.Label</option>
-                    }
-                </select>
+                        Value = option.Id.ToString(CultureInfo.InvariantCulture),
+                        Label = option.Label
+                    }).ToList()
+                })
                 <span asp-validation-for="ItemId" class="text-danger"></span>
             </div>
             <div class="col-md-3">
                 <label asp-for="BomId" class="form-label">@T["BOM"]</label>
-                <select asp-for="BomId" class="form-select">
-                    <option value="">-- Select --</option>
-                    @foreach (var option in Model.BomOptions)
+                @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+                {
+                    Name = nameof(Model.BomId),
+                    Id = Html.IdFor(x => x.BomId).ToString(),
+                    SearchPlaceholder = T["Search"],
+                    EmptyOptionLabel = T["Select"],
+                    DependsOnElementId = itemSelectId,
+                    SelectedValue = Model.BomId > 0
+                        ? Model.BomId.ToString(CultureInfo.InvariantCulture)
+                        : null,
+                    Options = Model.BomItemMappings.Select(option => new SearchableSelectOptionViewModel
                     {
-                        <option value="@option.Id">@option.Label</option>
-                    }
-                </select>
+                        Value = option.Id.ToString(CultureInfo.InvariantCulture),
+                        Label = option.Label,
+                        GroupValue = option.ItemId?.ToString(CultureInfo.InvariantCulture)
+                    }).ToList()
+                })
                 <span asp-validation-for="BomId" class="text-danger"></span>
             </div>
             <div class="col-md-3">
                 <label asp-for="MrpRunId" class="form-label">@T["MRP Run"]</label>
-                <select asp-for="MrpRunId" class="form-select">
-                    <option value="">-- Select --</option>
-                    @foreach (var option in Model.MrpRunOptions)
+                @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+                {
+                    Name = nameof(Model.MrpRunId),
+                    Id = Html.IdFor(x => x.MrpRunId).ToString(),
+                    SearchPlaceholder = T["Search"],
+                    EmptyOptionLabel = T["Select"],
+                    SelectedValue = Model.MrpRunId.HasValue
+                        ? Model.MrpRunId.Value.ToString(CultureInfo.InvariantCulture)
+                        : null,
+                    Options = Model.MrpRunOptions.Select(option => new SearchableSelectOptionViewModel
                     {
-                        <option value="@option.Id">@option.Label</option>
-                    }
-                </select>
+                        Value = option.Id.ToString(CultureInfo.InvariantCulture),
+                        Label = option.Label
+                    }).ToList()
+                })
                 <span asp-validation-for="MrpRunId" class="text-danger"></span>
             </div>
 
             <div class="col-md-3">
                 <label asp-for="RoutingId" class="form-label">@T["Routing"]</label>
-                <select asp-for="RoutingId" class="form-select">
-                    <option value="">-- Select --</option>
-                    @foreach (var option in Model.RoutingOptions)
+                @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+                {
+                    Name = nameof(Model.RoutingId),
+                    Id = Html.IdFor(x => x.RoutingId).ToString(),
+                    SearchPlaceholder = T["Search"],
+                    EmptyOptionLabel = T["Select"],
+                    DependsOnElementId = itemSelectId,
+                    SelectedValue = Model.RoutingId.HasValue
+                        ? Model.RoutingId.Value.ToString(CultureInfo.InvariantCulture)
+                        : null,
+                    Options = Model.RoutingItemMappings.Select(option => new SearchableSelectOptionViewModel
                     {
-                        <option value="@option.Id">@option.Label</option>
-                    }
-                </select>
+                        Value = option.Id.ToString(CultureInfo.InvariantCulture),
+                        Label = option.Label,
+                        GroupValue = option.ItemId?.ToString(CultureInfo.InvariantCulture)
+                    }).ToList()
+                })
                 <span asp-validation-for="RoutingId" class="text-danger"></span>
             </div>
             <div class="col-md-3">
                 <label asp-for="WorkCenterId" class="form-label">@T["Work Center"]</label>
-                <select asp-for="WorkCenterId" class="form-select">
-                    <option value="">-- Select --</option>
-                    @foreach (var option in Model.WorkCenterOptions)
+                @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+                {
+                    Name = nameof(Model.WorkCenterId),
+                    Id = Html.IdFor(x => x.WorkCenterId).ToString(),
+                    SearchPlaceholder = T["Search"],
+                    EmptyOptionLabel = T["Select"],
+                    SelectedValue = Model.WorkCenterId.HasValue
+                        ? Model.WorkCenterId.Value.ToString(CultureInfo.InvariantCulture)
+                        : null,
+                    Options = Model.WorkCenterOptions.Select(option => new SearchableSelectOptionViewModel
                     {
-                        <option value="@option.Id">@option.Label</option>
-                    }
-                </select>
+                        Value = option.Id.ToString(CultureInfo.InvariantCulture),
+                        Label = option.Label
+                    }).ToList()
+                })
                 <span asp-validation-for="WorkCenterId" class="text-danger"></span>
             </div>
             <div class="col-md-3">
                 <label asp-for="Status" class="form-label"></label>
-                <select asp-for="Status" asp-items="Html.GetEnumSelectList<ERP.Domain.Enums.Manufacturing.WorkOrderStatus>()" class="form-select"></select>
+                @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+                {
+                    Name = nameof(Model.Status),
+                    Id = Html.IdFor(x => x.Status).ToString(),
+                    SearchPlaceholder = T["Search"],
+                    EmptyOptionLabel = T["Select"],
+                    SelectedValue = Model.Status.ToString(),
+                    Options = Enum.GetValues<WorkOrderStatus>().Select(status => new SearchableSelectOptionViewModel
+                    {
+                        Value = status.ToString(),
+                        Label = T[status.ToString()]
+                    }).ToList()
+                })
             </div>
             <div class="col-md-3">
                 <label asp-for="ProductionType" class="form-label">@T["Production Type"]</label>
-                <select asp-for="ProductionType" asp-items="Html.GetEnumSelectList<ERP.Domain.Enums.Manufacturing.ProductionType>()" class="form-select"></select>
+                @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+                {
+                    Name = nameof(Model.ProductionType),
+                    Id = Html.IdFor(x => x.ProductionType).ToString(),
+                    SearchPlaceholder = T["Search"],
+                    EmptyOptionLabel = T["Select"],
+                    SelectedValue = Model.ProductionType.ToString(),
+                    Options = Enum.GetValues<ProductionType>().Select(type => new SearchableSelectOptionViewModel
+                    {
+                        Value = type.ToString(),
+                        Label = T[type.ToString()]
+                    }).ToList()
+                })
             </div>
 
             <div class="col-md-3">
@@ -108,9 +166,14 @@
                 <span asp-validation-for="QtyScrap" class="text-danger"></span>
             </div>
             <div class="col-md-3 d-flex align-items-center">
-                <div class="form-check mt-4">
-                    <input asp-for="IsActive" class="form-check-input" />
-                    <label asp-for="IsActive" class="form-check-label">@T["Active"]</label>
+                <div class="mt-4">
+                    @await Component.InvokeAsync("FormCheckbox", new FormCheckboxViewModel
+                    {
+                        Name = nameof(Model.IsActive),
+                        Id = Html.IdFor(x => x.IsActive).ToString(),
+                        Label = T["Active"],
+                        Checked = Model.IsActive
+                    })
                 </div>
             </div>
 
@@ -158,67 +221,3 @@
         </div>
     </div>
 </div>
-
-<script>
-    (() => {
-        const itemSelect = document.getElementById('ItemId');
-        const bomSelect = document.getElementById('BomId');
-        const routingSelect = document.getElementById('RoutingId');
-
-        if (!itemSelect || !bomSelect || !routingSelect) {
-            return;
-        }
-
-        const bomOptions = @Html.Raw(bomMappingsJson);
-        const routingOptions = @Html.Raw(routingMappingsJson);
-
-        const parseId = (value) => {
-            const parsed = Number.parseInt(String(value || ''), 10);
-            return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
-        };
-
-        const setOptions = (select, options, selectedId) => {
-            select.innerHTML = '';
-
-            const placeholder = document.createElement('option');
-            placeholder.value = '';
-            placeholder.textContent = '-- Select --';
-            select.appendChild(placeholder);
-
-            for (const option of options) {
-                const node = document.createElement('option');
-                node.value = String(option.id);
-                node.textContent = option.label;
-                select.appendChild(node);
-            }
-
-            const normalizedSelectedId = parseId(selectedId);
-            if (normalizedSelectedId && options.some((option) => option.id === normalizedSelectedId)) {
-                select.value = String(normalizedSelectedId);
-            }
-            else {
-                select.value = '';
-            }
-        };
-
-        const filterByItem = (options, itemId) => {
-            if (!itemId) {
-                return options;
-            }
-
-            return options.filter((option) => !option.itemId || option.itemId === itemId);
-        };
-
-        const refreshDependentSelects = () => {
-            const itemId = parseId(itemSelect.value);
-            const selectedBomId = bomSelect.value;
-            const selectedRoutingId = routingSelect.value;
-
-            setOptions(bomSelect, filterByItem(bomOptions, itemId), selectedBomId);
-            setOptions(routingSelect, filterByItem(routingOptions, itemId), selectedRoutingId);
-        };
-
-        itemSelect.addEventListener('change', refreshDependentSelects);
-        refreshDependentSelects();
-    })();
-</script>

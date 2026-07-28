@@ -1,5 +1,6 @@
 @model ERP.Web.ViewModels.Approval.ApprovalTemplateEditViewModel
 @using ERP.Domain.Enums.Approval
+@using ERP.Web.ViewModels.Shared
 @using System.Globalization
 
 <div class="row g-3">
@@ -31,20 +32,25 @@
 
     <div class="col-md-4">
         <label asp-for="ApprovalType" class="form-label">@T["Approval Type"]</label>
-        <select asp-for="ApprovalType" class="form-select">
-            @foreach (var type in Enum.GetValues<ApprovalType>())
+        @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+        {
+            Name = nameof(Model.ApprovalType),
+            Id = Html.IdFor(x => x.ApprovalType).ToString(),
+            SearchPlaceholder = T["Search"],
+            EmptyOptionLabel = T["Select"],
+            SelectedValue = Model.ApprovalType.ToString(),
+            Options = Enum.GetValues<ApprovalType>().Select(type => new SearchableSelectOptionViewModel
             {
-                var label = type switch
+                Value = type.ToString(),
+                Label = type switch
                 {
                     ApprovalType.Sequential => T["Sequential"],
                     ApprovalType.Parallel => T["Parallel"],
                     ApprovalType.AnyOne => T["Any One"],
                     _ => type.ToString()
-                };
-
-                <option value="@((int)type)" selected="@(Model.ApprovalType == type)">@label</option>
-            }
-        </select>
+                }
+            }).ToList()
+        })
         <span asp-validation-for="ApprovalType" class="text-danger"></span>
     </div>
 
@@ -73,19 +79,34 @@
     </div>
 
     <div class="col-12 d-flex flex-wrap gap-3 mt-1">
-        <div class="form-check">
-            <input asp-for="AllowDelegation" class="form-check-input" />
-            <label asp-for="AllowDelegation" class="form-check-label">@T["Allow Delegation"]</label>
+        <div>
+            @await Component.InvokeAsync("FormCheckbox", new FormCheckboxViewModel
+            {
+                Name = nameof(Model.AllowDelegation),
+                Id = Html.IdFor(x => x.AllowDelegation).ToString(),
+                Label = T["Allow Delegation"],
+                Checked = Model.AllowDelegation
+            })
         </div>
 
-        <div class="form-check">
-            <input asp-for="RequireCommentOnReject" class="form-check-input" />
-            <label asp-for="RequireCommentOnReject" class="form-check-label">@T["Require Comment On Reject"]</label>
+        <div>
+            @await Component.InvokeAsync("FormCheckbox", new FormCheckboxViewModel
+            {
+                Name = nameof(Model.RequireCommentOnReject),
+                Id = Html.IdFor(x => x.RequireCommentOnReject).ToString(),
+                Label = T["Require Comment On Reject"],
+                Checked = Model.RequireCommentOnReject
+            })
         </div>
 
-        <div class="form-check">
-            <input asp-for="IsActive" class="form-check-input" />
-            <label asp-for="IsActive" class="form-check-label">@T["Active"]</label>
+        <div>
+            @await Component.InvokeAsync("FormCheckbox", new FormCheckboxViewModel
+            {
+                Name = nameof(Model.IsActive),
+                Id = Html.IdFor(x => x.IsActive).ToString(),
+                Label = T["Active"],
+                Checked = Model.IsActive
+            })
         </div>
     </div>
 </div>

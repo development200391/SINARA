@@ -19,18 +19,30 @@
                 </div>
                 <div class="col-md-3">
                     <label asp-for="RunForm.PeriodMonth" class="form-label">@T["Period"] @T["Month"]</label>
-                    <select asp-for="RunForm.PeriodMonth" class="form-select">
-                        @for (byte month = 1; month <= 12; month++)
+                    @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+                    {
+                        Name = "RunForm.PeriodMonth",
+                        Id = Html.IdFor(x => x.RunForm.PeriodMonth).ToString(),
+                        SearchPlaceholder = T["Search"],
+                        EmptyOptionLabel = T["Select"],
+                        SelectedValue = Model.RunForm.PeriodMonth.ToString(CultureInfo.InvariantCulture),
+                        Options = Enumerable.Range(1, 12).Select(month => new SearchableSelectOptionViewModel
                         {
-                            <option value="@month">@month.ToString("00", CultureInfo.InvariantCulture)</option>
-                        }
-                    </select>
+                            Value = month.ToString(CultureInfo.InvariantCulture),
+                            Label = month.ToString("00", CultureInfo.InvariantCulture)
+                        }).ToList()
+                    })
                     <span asp-validation-for="RunForm.PeriodMonth" class="text-danger small"></span>
                 </div>
                 <div class="col-md-3">
-                    <div class="form-check mb-2">
-                        <input asp-for="RunForm.ApproveImmediately" class="form-check-input" />
-                        <label asp-for="RunForm.ApproveImmediately" class="form-check-label">@T["Approve Immediately"]</label>
+                    <div class="mb-2">
+                        @await Component.InvokeAsync("FormCheckbox", new FormCheckboxViewModel
+                        {
+                            Name = "RunForm.ApproveImmediately",
+                            Id = Html.IdFor(x => x.RunForm.ApproveImmediately).ToString(),
+                            Label = T["Approve Immediately"],
+                            Checked = Model.RunForm.ApproveImmediately
+                        })
                     </div>
                 </div>
                 <div class="col-md-3 d-flex justify-content-md-end">

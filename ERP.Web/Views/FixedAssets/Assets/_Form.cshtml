@@ -1,5 +1,7 @@
 @model ERP.Web.ViewModels.FixedAssets.FixedAssetEditViewModel
 @using ERP.Domain.Enums.FixedAssets
+@using ERP.Web.ViewModels.Shared
+@using System.Globalization
 
 <div class="row g-3">
     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
@@ -16,47 +18,80 @@
     </div>
     <div class="col-md-4">
         <label asp-for="Status" class="form-label">@T["Status"]</label>
-        <select asp-for="Status" class="form-select">
-            <option value="@AssetStatus.Draft">@T["Draft"]</option>
-            <option value="@AssetStatus.Active">@T["Active"]</option>
-            <option value="@AssetStatus.InMaintenance">@T["In Maintenance"]</option>
-            <option value="@AssetStatus.FullyDepreciated">@T["Fully Depreciated"]</option>
-            <option value="@AssetStatus.Disposed">@T["Disposed"]</option>
-        </select>
+        @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+        {
+            Name = nameof(Model.Status),
+            Id = Html.IdFor(x => x.Status).ToString(),
+            SearchPlaceholder = T["Search"],
+            EmptyOptionLabel = T["Select"],
+            SelectedValue = Model.Status.ToString(),
+            Options = new List<SearchableSelectOptionViewModel>
+            {
+                new() { Value = AssetStatus.Draft.ToString(), Label = T["Draft"] },
+                new() { Value = AssetStatus.Active.ToString(), Label = T["Active"] },
+                new() { Value = AssetStatus.InMaintenance.ToString(), Label = T["In Maintenance"] },
+                new() { Value = AssetStatus.FullyDepreciated.ToString(), Label = T["Fully Depreciated"] },
+                new() { Value = AssetStatus.Disposed.ToString(), Label = T["Disposed"] }
+            }
+        })
         <span asp-validation-for="Status" class="text-danger small"></span>
     </div>
 
     <div class="col-md-4">
         <label asp-for="CategoryId" class="form-label">@T["Category"]</label>
-        <select asp-for="CategoryId" class="form-select">
-            <option value="">@T["Select Category"]</option>
-            @foreach (var option in Model.CategoryOptions)
+        @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+        {
+            Name = nameof(Model.CategoryId),
+            Id = Html.IdFor(x => x.CategoryId).ToString(),
+            SearchPlaceholder = T["Search"],
+            EmptyOptionLabel = T["Select Category"],
+            SelectedValue = Model.CategoryId > 0
+                ? Model.CategoryId.ToString(CultureInfo.InvariantCulture)
+                : null,
+            Options = Model.CategoryOptions.Select(option => new SearchableSelectOptionViewModel
             {
-                <option value="@option.Id">@option.Label</option>
-            }
-        </select>
+                Value = option.Id.ToString(CultureInfo.InvariantCulture),
+                Label = option.Label
+            }).ToList()
+        })
         <span asp-validation-for="CategoryId" class="text-danger small"></span>
     </div>
     <div class="col-md-4">
         <label asp-for="LocationId" class="form-label">@T["Location"]</label>
-        <select asp-for="LocationId" class="form-select">
-            <option value="">@T["Select Location"]</option>
-            @foreach (var option in Model.LocationOptions)
+        @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+        {
+            Name = nameof(Model.LocationId),
+            Id = Html.IdFor(x => x.LocationId).ToString(),
+            SearchPlaceholder = T["Search"],
+            EmptyOptionLabel = T["Select Location"],
+            SelectedValue = Model.LocationId > 0
+                ? Model.LocationId.ToString(CultureInfo.InvariantCulture)
+                : null,
+            Options = Model.LocationOptions.Select(option => new SearchableSelectOptionViewModel
             {
-                <option value="@option.Id">@option.Label</option>
-            }
-        </select>
+                Value = option.Id.ToString(CultureInfo.InvariantCulture),
+                Label = option.Label
+            }).ToList()
+        })
         <span asp-validation-for="LocationId" class="text-danger small"></span>
     </div>
     <div class="col-md-4">
         <label asp-for="DepartmentId" class="form-label">@T["Department"]</label>
-        <select asp-for="DepartmentId" class="form-select">
-            <option value="">@T["All Department"]</option>
-            @foreach (var option in Model.DepartmentOptions)
+        @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+        {
+            Name = nameof(Model.DepartmentId),
+            Id = Html.IdFor(x => x.DepartmentId).ToString(),
+            SearchPlaceholder = T["Search"],
+            EmptyOptionLabel = T["All Department"],
+            SelectedValue = Model.DepartmentId.HasValue
+                ? Model.DepartmentId.Value.ToString(CultureInfo.InvariantCulture)
+                : null,
+            Options = Model.DepartmentOptions.Select(option => new SearchableSelectOptionViewModel
             {
-                <option value="@option.Id">@option.Label</option>
-            }
-        </select>
+                Value = option.Id.ToString(CultureInfo.InvariantCulture),
+                Label = option.Label
+            }).ToList()
+        })
         <span asp-validation-for="DepartmentId" class="text-danger small"></span>
     </div>
 
@@ -77,10 +112,19 @@
     </div>
     <div class="col-md-3">
         <label asp-for="DepreciationMethod" class="form-label">@T["Depreciation Method"]</label>
-        <select asp-for="DepreciationMethod" class="form-select">
-            <option value="@DepreciationMethod.StraightLine">@T["Straight Line"]</option>
-            <option value="@DepreciationMethod.DecliningBalance">@T["Declining Balance"]</option>
-        </select>
+        @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+        {
+            Name = nameof(Model.DepreciationMethod),
+            Id = Html.IdFor(x => x.DepreciationMethod).ToString(),
+            SearchPlaceholder = T["Search"],
+            EmptyOptionLabel = T["Select"],
+            SelectedValue = Model.DepreciationMethod.ToString(),
+            Options = new List<SearchableSelectOptionViewModel>
+            {
+                new() { Value = DepreciationMethod.StraightLine.ToString(), Label = T["Straight Line"] },
+                new() { Value = DepreciationMethod.DecliningBalance.ToString(), Label = T["Declining Balance"] }
+            }
+        })
         <span asp-validation-for="DepreciationMethod" class="text-danger small"></span>
     </div>
 
@@ -99,11 +143,14 @@
         <input asp-for="DepreciationRate" class="form-control text-end sinara-text-number sinara-text-number-theme sinara-text-number-input" type="text" inputmode="decimal" data-text-number-decimals="4" autocomplete="off" />
         <span asp-validation-for="DepreciationRate" class="text-danger small"></span>
     </div>
-    <div class="col-md-3">
-        <div class="form-check mt-4 pt-2">
-            <input asp-for="IsActive" class="form-check-input" />
-            <label asp-for="IsActive" class="form-check-label">@T["Active"]</label>
-        </div>
+    <div class="col-md-3 d-flex align-items-end">
+        @await Component.InvokeAsync("FormCheckbox", new FormCheckboxViewModel
+        {
+            Name = nameof(Model.IsActive),
+            Id = Html.IdFor(x => x.IsActive).ToString(),
+            Label = T["Active"],
+            Checked = Model.IsActive
+        })
     </div>
 
     <div class="col-md-4">

@@ -1,4 +1,6 @@
 @model ERP.Web.ViewModels.Manufacturing.ManufacturingMrpRunEditViewModel
+@using ERP.Domain.Enums.Manufacturing
+@using ERP.Web.ViewModels.Shared
 
 <div class="card border-0 shadow-sm">
     <div class="card-body">
@@ -17,7 +19,19 @@
             </div>
             <div class="col-md-3">
                 <label asp-for="Status" class="form-label"></label>
-                <select asp-for="Status" asp-items="Html.GetEnumSelectList<ERP.Domain.Enums.Manufacturing.MrpStatus>()" class="form-select"></select>
+                @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+                {
+                    Name = nameof(Model.Status),
+                    Id = Html.IdFor(x => x.Status).ToString(),
+                    SearchPlaceholder = T["Search"],
+                    EmptyOptionLabel = T["Select"],
+                    SelectedValue = Model.Status.ToString(),
+                    Options = Enum.GetValues<MrpStatus>().Select(status => new SearchableSelectOptionViewModel
+                    {
+                        Value = status.ToString(),
+                        Label = T[status.ToString()]
+                    }).ToList()
+                })
             </div>
             <div class="col-md-3">
                 <label asp-for="HorizonDays" class="form-label">@T["Horizon Days"]</label>

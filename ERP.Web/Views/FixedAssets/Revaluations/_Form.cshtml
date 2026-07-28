@@ -1,17 +1,27 @@
 @model ERP.Web.ViewModels.FixedAssets.FixedAssetRevaluationEditViewModel
+@using ERP.Web.ViewModels.Shared
+@using System.Globalization
 
 <div class="row g-3">
     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
     <div class="col-md-6">
         <label asp-for="AssetId" class="form-label">@T["Asset"]</label>
-        <select asp-for="AssetId" class="form-select">
-            <option value="">@T["Select Asset"]</option>
-            @foreach (var option in Model.AssetOptions)
+        @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+        {
+            Name = nameof(Model.AssetId),
+            Id = Html.IdFor(x => x.AssetId).ToString(),
+            SearchPlaceholder = T["Search"],
+            EmptyOptionLabel = T["Select Asset"],
+            SelectedValue = Model.AssetId > 0
+                ? Model.AssetId.ToString(CultureInfo.InvariantCulture)
+                : null,
+            Options = Model.AssetOptions.Select(option => new SearchableSelectOptionViewModel
             {
-                <option value="@option.Id">@option.Label</option>
-            }
-        </select>
+                Value = option.Id.ToString(CultureInfo.InvariantCulture),
+                Label = option.Label
+            }).ToList()
+        })
         <span asp-validation-for="AssetId" class="text-danger small"></span>
     </div>
     <div class="col-md-3">

@@ -1,4 +1,6 @@
 @model ERP.Web.ViewModels.Purchasing.PurchasingBuyerGroupEditViewModel
+@using ERP.Web.ViewModels.Shared
+@using System.Globalization
 
 <div class="row g-3">
     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
@@ -17,13 +19,21 @@
 
     <div class="col-md-6">
         <label asp-for="BuyerEmployeeId" class="form-label">@T["Buyer"]</label>
-        <select asp-for="BuyerEmployeeId" class="form-select">
-            <option value="">@T["Select Employee"]</option>
-            @foreach (var option in Model.BuyerOptions)
+        @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+        {
+            Name = nameof(Model.BuyerEmployeeId),
+            Id = Html.IdFor(x => x.BuyerEmployeeId).ToString(),
+            SearchPlaceholder = T["Search"],
+            EmptyOptionLabel = T["Select Employee"],
+            SelectedValue = Model.BuyerEmployeeId > 0
+                ? Model.BuyerEmployeeId.ToString(CultureInfo.InvariantCulture)
+                : null,
+            Options = Model.BuyerOptions.Select(option => new SearchableSelectOptionViewModel
             {
-                <option value="@option.Id">@option.Name</option>
-            }
-        </select>
+                Value = option.Id.ToString(CultureInfo.InvariantCulture),
+                Label = option.Name
+            }).ToList()
+        })
         <span asp-validation-for="BuyerEmployeeId" class="text-danger small"></span>
     </div>
 
@@ -46,9 +56,12 @@
     </div>
 
     <div class="col-md-4">
-        <div class="form-check mt-2">
-            <input asp-for="IsActive" class="form-check-input" />
-            <label asp-for="IsActive" class="form-check-label">@T["Active"]</label>
-        </div>
+        @await Component.InvokeAsync("FormCheckbox", new FormCheckboxViewModel
+        {
+            Name = nameof(Model.IsActive),
+            Id = Html.IdFor(x => x.IsActive).ToString(),
+            Label = T["Active"],
+            Checked = Model.IsActive
+        })
     </div>
 </div>

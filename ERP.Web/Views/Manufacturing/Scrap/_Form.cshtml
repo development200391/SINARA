@@ -1,18 +1,16 @@
 @model ERP.Web.ViewModels.Manufacturing.ManufacturingScrapRecordEditViewModel
+@using ERP.Domain.Enums.Manufacturing
+@using ERP.Web.ViewModels.Shared
+@using System.Globalization
 @using System.Text.Json
 
 @{
-    var itemOptionsJson = JsonSerializer.Serialize(Model.ItemOptions.Select(x => new
-    {
-        id = x.Id,
-        label = x.Label
-    }));
+    var workOrderSelectId = Html.IdFor(x => x.WorkOrderId).ToString();
+    var itemSelectId = Html.IdFor(x => x.ItemId).ToString();
 
-    var workOrderItemMappingsJson = JsonSerializer.Serialize(Model.WorkOrderItemMappings.Select(x => new
-    {
-        id = x.Id,
-        itemId = x.ItemId
-    }));
+    var workOrderItemMapJson = JsonSerializer.Serialize(Model.WorkOrderItemMappings
+        .Where(x => x.ItemId.HasValue)
+        .ToDictionary(x => x.Id.ToString(CultureInfo.InvariantCulture), x => x.ItemId!.Value));
 }
 
 <div class="card border-0 shadow-sm">
@@ -27,41 +25,77 @@
             </div>
             <div class="col-md-3">
                 <label asp-for="WorkOrderId" class="form-label">@T["Work Order"]</label>
-                <select asp-for="WorkOrderId" class="form-select">
-                    <option value="">-- Select --</option>
-                    @foreach (var option in Model.WorkOrderOptions)
+                @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+                {
+                    Name = nameof(Model.WorkOrderId),
+                    Id = workOrderSelectId,
+                    SearchPlaceholder = T["Search"],
+                    EmptyOptionLabel = T["Select"],
+                    SelectedValue = Model.WorkOrderId.HasValue
+                        ? Model.WorkOrderId.Value.ToString(CultureInfo.InvariantCulture)
+                        : null,
+                    Options = Model.WorkOrderOptions.Select(option => new SearchableSelectOptionViewModel
                     {
-                        <option value="@option.Id">@option.Label</option>
-                    }
-                </select>
+                        Value = option.Id.ToString(CultureInfo.InvariantCulture),
+                        Label = option.Label
+                    }).ToList()
+                })
                 <span asp-validation-for="WorkOrderId" class="text-danger"></span>
             </div>
             <div class="col-md-3">
                 <label asp-for="ItemId" class="form-label">@T["Item"]</label>
-                <select asp-for="ItemId" class="form-select">
-                    <option value="">-- Select --</option>
-                    @foreach (var option in Model.ItemOptions)
+                @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+                {
+                    Name = nameof(Model.ItemId),
+                    Id = itemSelectId,
+                    SearchPlaceholder = T["Search"],
+                    EmptyOptionLabel = T["Select"],
+                    SelectedValue = Model.ItemId.HasValue
+                        ? Model.ItemId.Value.ToString(CultureInfo.InvariantCulture)
+                        : null,
+                    Options = Model.ItemOptions.Select(option => new SearchableSelectOptionViewModel
                     {
-                        <option value="@option.Id">@option.Label</option>
-                    }
-                </select>
+                        Value = option.Id.ToString(CultureInfo.InvariantCulture),
+                        Label = option.Label
+                    }).ToList()
+                })
                 <span asp-validation-for="ItemId" class="text-danger"></span>
             </div>
             <div class="col-md-3">
                 <label asp-for="WorkCenterId" class="form-label">@T["Work Center"]</label>
-                <select asp-for="WorkCenterId" class="form-select">
-                    <option value="">-- Select --</option>
-                    @foreach (var option in Model.WorkCenterOptions)
+                @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+                {
+                    Name = nameof(Model.WorkCenterId),
+                    Id = Html.IdFor(x => x.WorkCenterId).ToString(),
+                    SearchPlaceholder = T["Search"],
+                    EmptyOptionLabel = T["Select"],
+                    SelectedValue = Model.WorkCenterId.HasValue
+                        ? Model.WorkCenterId.Value.ToString(CultureInfo.InvariantCulture)
+                        : null,
+                    Options = Model.WorkCenterOptions.Select(option => new SearchableSelectOptionViewModel
                     {
-                        <option value="@option.Id">@option.Label</option>
-                    }
-                </select>
+                        Value = option.Id.ToString(CultureInfo.InvariantCulture),
+                        Label = option.Label
+                    }).ToList()
+                })
                 <span asp-validation-for="WorkCenterId" class="text-danger"></span>
             </div>
 
             <div class="col-md-3">
                 <label asp-for="Reason" class="form-label"></label>
-                <select asp-for="Reason" asp-items="Html.GetEnumSelectList<ERP.Domain.Enums.Manufacturing.ScrapReason>()" class="form-select"></select>
+                @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+                {
+                    Name = nameof(Model.Reason),
+                    Id = Html.IdFor(x => x.Reason).ToString(),
+                    SearchPlaceholder = T["Search"],
+                    EmptyOptionLabel = T["Select"],
+                    SelectedValue = Model.Reason.ToString(),
+                    Options = Enum.GetValues<ScrapReason>().Select(reason => new SearchableSelectOptionViewModel
+                    {
+                        Value = reason.ToString(),
+                        Label = T[reason.ToString()]
+                    }).ToList()
+                })
             </div>
             <div class="col-md-3">
                 <label asp-for="QtyScrap" class="form-label">@T["Qty Scrap"]</label>
@@ -95,65 +129,37 @@
 
 <script>
     (() => {
-        const workOrderSelect = document.getElementById('WorkOrderId');
-        const itemSelect = document.getElementById('ItemId');
+        const workOrderItemMap = @Html.Raw(workOrderItemMapJson);
 
-        if (!workOrderSelect || !itemSelect) {
+        const workOrderHidden = document.getElementById('@workOrderSelectId');
+        const itemHost = document.getElementById('@itemSelectId')?.closest('[data-searchable-select]');
+
+        if (!workOrderHidden || !itemHost) {
             return;
         }
 
-        const allItems = @Html.Raw(itemOptionsJson);
-        const workOrderMappings = @Html.Raw(workOrderItemMappingsJson);
-        const itemById = new Map(allItems.map((item) => [item.id, item]));
-        const itemByWorkOrderId = new Map(
-            workOrderMappings
-                .filter((item) => Number.isInteger(item.itemId) && item.itemId > 0)
-                .map((item) => [item.id, item.itemId])
-        );
+        const selectItemOption = (value) => {
+            const hidden = itemHost.querySelector('[data-searchable-select-value]');
+            const labelNode = itemHost.querySelector('[data-searchable-select-label]');
+            const options = Array.from(itemHost.querySelectorAll('[data-searchable-select-option]'));
+            const target = options.find((option) => (option.getAttribute('data-value') || '') === value);
 
-        const parseId = (value) => {
-            const parsed = Number.parseInt(String(value || ''), 10);
-            return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
-        };
-
-        const setItemOptions = (options, selectedId) => {
-            itemSelect.innerHTML = '';
-
-            const placeholder = document.createElement('option');
-            placeholder.value = '';
-            placeholder.textContent = '-- Select --';
-            itemSelect.appendChild(placeholder);
-
-            for (const option of options) {
-                const node = document.createElement('option');
-                node.value = String(option.id);
-                node.textContent = option.label;
-                itemSelect.appendChild(node);
-            }
-
-            const normalizedSelectedId = parseId(selectedId);
-            if (normalizedSelectedId && options.some((option) => option.id === normalizedSelectedId)) {
-                itemSelect.value = String(normalizedSelectedId);
-            }
-            else {
-                itemSelect.value = '';
-            }
-        };
-
-        const refreshItemOptions = () => {
-            const selectedWorkOrderId = parseId(workOrderSelect.value);
-            const currentItemId = parseId(itemSelect.value);
-            const mappedItemId = selectedWorkOrderId ? itemByWorkOrderId.get(selectedWorkOrderId) : null;
-
-            if (mappedItemId && itemById.has(mappedItemId)) {
-                setItemOptions([itemById.get(mappedItemId)], mappedItemId);
+            if (!target || !(hidden instanceof HTMLInputElement)) {
                 return;
             }
 
-            setItemOptions(allItems, currentItemId);
+            hidden.value = value;
+            if (labelNode) {
+                labelNode.textContent = target.getAttribute('data-label') || target.textContent.trim();
+            }
+            options.forEach((option) => option.classList.toggle('active', option === target));
         };
 
-        workOrderSelect.addEventListener('change', refreshItemOptions);
-        refreshItemOptions();
+        workOrderHidden.addEventListener('change', () => {
+            const mappedItemId = workOrderItemMap[workOrderHidden.value];
+            if (mappedItemId) {
+                selectItemOption(String(mappedItemId));
+            }
+        });
     })();
 </script>
