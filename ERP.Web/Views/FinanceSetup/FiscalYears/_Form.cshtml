@@ -1,5 +1,6 @@
 @model ERP.Web.ViewModels.Finance.FinanceFiscalYearEditViewModel
 @using ERP.Domain.Enums
+@using ERP.Web.ViewModels.Shared
 
 <form method="post" class="row g-3">
     @Html.AntiForgeryToken()
@@ -25,7 +26,20 @@
 
     <div class="col-md-4">
         <label asp-for="Status" class="form-label"></label>
-        <select asp-for="Status" class="form-select" asp-items="Html.GetEnumSelectList<FinancePeriodStatus>()"></select>
+        @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+        {
+            Name = nameof(Model.Status),
+            Id = Html.IdFor(x => x.Status).ToString(),
+            CssClass = "form-select",
+            SearchPlaceholder = T["Search"],
+            EmptyOptionLabel = T["Select"],
+            SelectedValue = Model.Status.ToString(),
+            Options = Html.GetEnumSelectList<FinancePeriodStatus>().Select(item => new SearchableSelectOptionViewModel
+            {
+                Value = item.Value,
+                Label = item.Text
+            }).ToList()
+        })
         <span asp-validation-for="Status" class="text-danger"></span>
     </div>
 

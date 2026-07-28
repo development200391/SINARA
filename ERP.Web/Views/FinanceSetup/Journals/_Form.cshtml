@@ -1,7 +1,15 @@
 @model ERP.Web.ViewModels.Finance.FinanceJournalEditViewModel
+@using ERP.Web.ViewModels.Shared
+@using System.Globalization
 
 @{
     var isReadOnly = Model.IsReadOnly;
+
+    SearchableSelectOptionViewModel ToOption(ERP.Web.ViewModels.Finance.FinanceIdOptionViewModel option) => new()
+    {
+        Value = option.Id.ToString(CultureInfo.InvariantCulture),
+        Label = option.Label
+    };
 }
 
 @if (!string.IsNullOrWhiteSpace(Model.JournalNo))
@@ -14,12 +22,19 @@
 
 <div class="col-md-4">
     <label asp-for="PeriodId" class="form-label">@T["Period"]</label>
-    <select asp-for="PeriodId" class="form-select" disabled="@isReadOnly">
-        @foreach (var option in Model.PeriodOptions)
-        {
-            <option value="@option.Id" selected="@(Model.PeriodId == option.Id)">@option.Label</option>
-        }
-    </select>
+    @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+    {
+        Name = nameof(Model.PeriodId),
+        Id = Html.IdFor(x => x.PeriodId).ToString(),
+        CssClass = "form-select",
+        SearchPlaceholder = T["Search"],
+        EmptyOptionLabel = T["Select"],
+        IsDisabled = isReadOnly,
+        SelectedValue = Model.PeriodId > 0
+            ? Model.PeriodId.ToString(CultureInfo.InvariantCulture)
+            : null,
+        Options = Model.PeriodOptions.Select(ToOption).ToList()
+    })
     <span asp-validation-for="PeriodId" class="text-danger"></span>
 </div>
 
@@ -31,12 +46,21 @@
 
 <div class="col-md-2">
     <label asp-for="Source" class="form-label">@T["Source"]</label>
-    <select asp-for="Source" class="form-select" disabled="@isReadOnly">
-        @foreach (var value in Enum.GetValues<ERP.Domain.Enums.FinanceJournalSource>())
+    @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+    {
+        Name = nameof(Model.Source),
+        Id = Html.IdFor(x => x.Source).ToString(),
+        CssClass = "form-select",
+        SearchPlaceholder = T["Search"],
+        EmptyOptionLabel = T["Select"],
+        IsDisabled = isReadOnly,
+        SelectedValue = Model.Source.ToString(),
+        Options = Enum.GetValues<ERP.Domain.Enums.FinanceJournalSource>().Select(value => new SearchableSelectOptionViewModel
         {
-            <option value="@value" selected="@(Model.Source == value)">@T[value.ToString()]</option>
-        }
-    </select>
+            Value = value.ToString(),
+            Label = T[value.ToString()]
+        }).ToList()
+    })
 </div>
 
 <div class="col-md-8">
@@ -47,12 +71,21 @@
 
 <div class="col-md-2">
     <label asp-for="CurrencyCode" class="form-label">@T["Currency"]</label>
-    <select asp-for="CurrencyCode" class="form-select" disabled="@isReadOnly">
-        @foreach (var option in Model.CurrencyOptions)
+    @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+    {
+        Name = nameof(Model.CurrencyCode),
+        Id = Html.IdFor(x => x.CurrencyCode).ToString(),
+        CssClass = "form-select",
+        SearchPlaceholder = T["Search"],
+        EmptyOptionLabel = T["Select"],
+        IsDisabled = isReadOnly,
+        SelectedValue = Model.CurrencyCode,
+        Options = Model.CurrencyOptions.Select(option => new SearchableSelectOptionViewModel
         {
-            <option value="@option.Code" selected="@string.Equals(Model.CurrencyCode, option.Code, StringComparison.OrdinalIgnoreCase)">@option.Label</option>
-        }
-    </select>
+            Value = option.Code,
+            Label = option.Label
+        }).ToList()
+    })
 </div>
 
 <div class="col-md-2">
@@ -96,8 +129,8 @@
             <thead>
                 <tr>
                     <th style="width:56px;">#</th>
-                    <th>@T["Account"]</th>
-                    <th>@T["Cost Center"]</th>
+                    <th style="width:220px;">@T["Account"]</th>
+                    <th style="width:200px;">@T["Cost Center"]</th>
                     <th>@T["Description"]</th>
                     <th class="text-end" style="width:150px;">@T["Debit"]</th>
                     <th class="text-end" style="width:150px;">@T["Credit"]</th>
@@ -107,34 +140,50 @@
             <tbody id="journal-lines-body">
                 @for (var index = 0; index < Model.Lines.Count; index++)
                 {
+                    var line = Model.Lines[index];
+
                     <tr class="journal-line-row">
                         <td class="line-no">@(index + 1)</td>
                         <td>
-                            <select class="form-select form-select-sm" data-field="AccountId" disabled="@isReadOnly">
-                                <option value="">@T["Select Account"]</option>
-                                @foreach (var option in Model.AccountOptions)
-                                {
-                                    <option value="@option.Id" selected="@(Model.Lines[index].AccountId == option.Id)">@option.Label</option>
-                                }
-                            </select>
+                            @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+                            {
+                                Name = $"Lines[{index}].AccountId",
+                                Id = $"Lines_{index}__AccountId",
+                                CssClass = "form-select form-select-sm",
+                                SearchPlaceholder = T["Search"],
+                                EmptyOptionLabel = T["Select Account"],
+                                IsDisabled = isReadOnly,
+                                SelectedValue = line.AccountId > 0
+                                    ? line.AccountId.ToString(CultureInfo.InvariantCulture)
+                                    : null,
+                                Options = Model.AccountOptions.Select(ToOption).ToList(),
+                                HtmlAttributes = new Dictionary<string, string> { ["data-field"] = "AccountId" }
+                            })
                         </td>
                         <td>
-                            <select class="form-select form-select-sm" data-field="CostCenterId" disabled="@isReadOnly">
-                                <option value="">@T["All"]</option>
-                                @foreach (var option in Model.CostCenterOptions)
-                                {
-                                    <option value="@option.Id" selected="@(Model.Lines[index].CostCenterId == option.Id)">@option.Label</option>
-                                }
-                            </select>
+                            @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+                            {
+                                Name = $"Lines[{index}].CostCenterId",
+                                Id = $"Lines_{index}__CostCenterId",
+                                CssClass = "form-select form-select-sm",
+                                SearchPlaceholder = T["Search"],
+                                EmptyOptionLabel = T["All"],
+                                IsDisabled = isReadOnly,
+                                SelectedValue = line.CostCenterId.HasValue
+                                    ? line.CostCenterId.Value.ToString(CultureInfo.InvariantCulture)
+                                    : null,
+                                Options = Model.CostCenterOptions.Select(ToOption).ToList(),
+                                HtmlAttributes = new Dictionary<string, string> { ["data-field"] = "CostCenterId" }
+                            })
                         </td>
                         <td>
-                            <input type="text" class="form-control form-control-sm" data-field="Description" value="@Model.Lines[index].Description" readonly="@isReadOnly" />
+                            <input type="text" class="form-control form-control-sm" data-field="Description" value="@line.Description" readonly="@isReadOnly" />
                         </td>
                         <td>
-                            <input type="number" class="form-control form-control-sm text-end journal-debit" data-field="Debit" min="0" step="0.01" value="@Model.Lines[index].Debit.ToString(System.Globalization.CultureInfo.InvariantCulture)" readonly="@isReadOnly" />
+                            <input type="number" class="form-control form-control-sm text-end journal-debit" data-field="Debit" min="0" step="0.01" value="@line.Debit.ToString(CultureInfo.InvariantCulture)" readonly="@isReadOnly" />
                         </td>
                         <td>
-                            <input type="number" class="form-control form-control-sm text-end journal-credit" data-field="Credit" min="0" step="0.01" value="@Model.Lines[index].Credit.ToString(System.Globalization.CultureInfo.InvariantCulture)" readonly="@isReadOnly" />
+                            <input type="number" class="form-control form-control-sm text-end journal-credit" data-field="Credit" min="0" step="0.01" value="@line.Credit.ToString(CultureInfo.InvariantCulture)" readonly="@isReadOnly" />
                         </td>
                         <td class="text-end">
                             @if (!isReadOnly)
@@ -170,22 +219,28 @@
         <tr class="journal-line-row">
             <td class="line-no"></td>
             <td>
-                <select class="form-select form-select-sm" data-field="AccountId">
-                    <option value="">@T["Select Account"]</option>
-                    @foreach (var option in Model.AccountOptions)
-                    {
-                        <option value="@option.Id">@option.Label</option>
-                    }
-                </select>
+                @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+                {
+                    Name = string.Empty,
+                    Id = "journal-line-template-account",
+                    CssClass = "form-select form-select-sm",
+                    SearchPlaceholder = T["Search"],
+                    EmptyOptionLabel = T["Select Account"],
+                    Options = Model.AccountOptions.Select(ToOption).ToList(),
+                    HtmlAttributes = new Dictionary<string, string> { ["data-field"] = "AccountId" }
+                })
             </td>
             <td>
-                <select class="form-select form-select-sm" data-field="CostCenterId">
-                    <option value="">@T["All"]</option>
-                    @foreach (var option in Model.CostCenterOptions)
-                    {
-                        <option value="@option.Id">@option.Label</option>
-                    }
-                </select>
+                @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+                {
+                    Name = string.Empty,
+                    Id = "journal-line-template-costcenter",
+                    CssClass = "form-select form-select-sm",
+                    SearchPlaceholder = T["Search"],
+                    EmptyOptionLabel = T["All"],
+                    Options = Model.CostCenterOptions.Select(ToOption).ToList(),
+                    HtmlAttributes = new Dictionary<string, string> { ["data-field"] = "CostCenterId" }
+                })
             </td>
             <td>
                 <input type="text" class="form-control form-control-sm" data-field="Description" />

@@ -1,3 +1,4 @@
+using ERP.Web.Validation;
 using System.ComponentModel.DataAnnotations;
 using ERP.Domain.Enums;
 
@@ -33,7 +34,7 @@ public sealed class FinanceJournalEditViewModel
     [Display(Name = "Currency")]
     public string CurrencyCode { get; set; } = "IDR";
 
-    [Range(typeof(decimal), "0.000001", "79228162514264337593543950335")]
+    [DecimalRange("0.000001", "79228162514264337593543950335")]
     [Display(Name = "Exchange Rate")]
     public decimal ExchangeRate { get; set; } = 1m;
 
@@ -69,9 +70,9 @@ public sealed class FinanceJournalLineEditViewModel
     [Display(Name = "Description")]
     public string? Description { get; set; }
 
-    [Range(typeof(decimal), "0", "79228162514264337593543950335")]
+    [DecimalRange("0", "79228162514264337593543950335")]
     public decimal Debit { get; set; }
 
-    [Range(typeof(decimal), "0", "79228162514264337593543950335")]
+    [DecimalRange("0", "79228162514264337593543950335")]
     public decimal Credit { get; set; }
 }

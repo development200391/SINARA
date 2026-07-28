@@ -1,5 +1,7 @@
 @model ERP.Web.ViewModels.Finance.FinanceTaxCodeEditViewModel
 @using ERP.Domain.Enums
+@using ERP.Web.ViewModels.Shared
+@using System.Globalization
 
 <form method="post" class="row g-3">
     @Html.AntiForgeryToken()
@@ -19,7 +21,20 @@
 
     <div class="col-md-4">
         <label asp-for="Type" class="form-label"></label>
-        <select asp-for="Type" class="form-select" asp-items="Html.GetEnumSelectList<FinanceTaxType>()"></select>
+        @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+        {
+            Name = nameof(Model.Type),
+            Id = Html.IdFor(x => x.Type).ToString(),
+            CssClass = "form-select",
+            SearchPlaceholder = T["Search"],
+            EmptyOptionLabel = T["Select"],
+            SelectedValue = Model.Type.ToString(),
+            Options = Html.GetEnumSelectList<FinanceTaxType>().Select(item => new SearchableSelectOptionViewModel
+            {
+                Value = item.Value,
+                Label = item.Text
+            }).ToList()
+        })
         <span asp-validation-for="Type" class="text-danger"></span>
     </div>
 
@@ -31,23 +46,43 @@
 
     <div class="col-md-6">
         <label asp-for="AccountId" class="form-label">@T["Account"]</label>
-        <select asp-for="AccountId" class="form-select">
-            @foreach (var option in Model.AccountOptions)
+        @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+        {
+            Name = nameof(Model.AccountId),
+            Id = Html.IdFor(x => x.AccountId).ToString(),
+            CssClass = "form-select",
+            SearchPlaceholder = T["Search"],
+            EmptyOptionLabel = T["Select"],
+            SelectedValue = Model.AccountId > 0
+                ? Model.AccountId.ToString(CultureInfo.InvariantCulture)
+                : null,
+            Options = Model.AccountOptions.Select(option => new SearchableSelectOptionViewModel
             {
-                <option value="@option.Id" selected="@(Model.AccountId == option.Id)">@option.Label</option>
-            }
-        </select>
+                Value = option.Id.ToString(CultureInfo.InvariantCulture),
+                Label = option.Label
+            }).ToList()
+        })
         <span asp-validation-for="AccountId" class="text-danger"></span>
     </div>
 
-    <div class="col-md-3 form-check mt-2">
-        <input asp-for="IsInclusive" class="form-check-input" />
-        <label asp-for="IsInclusive" class="form-check-label"></label>
+    <div class="col-md-3">
+        @await Component.InvokeAsync("FormCheckbox", new FormCheckboxViewModel
+        {
+            Name = nameof(Model.IsInclusive),
+            Id = Html.IdFor(x => x.IsInclusive).ToString(),
+            Label = T["Inclusive"],
+            Checked = Model.IsInclusive
+        })
     </div>
 
-    <div class="col-md-3 form-check mt-2">
-        <input asp-for="IsActive" class="form-check-input" />
-        <label asp-for="IsActive" class="form-check-label"></label>
+    <div class="col-md-3">
+        @await Component.InvokeAsync("FormCheckbox", new FormCheckboxViewModel
+        {
+            Name = nameof(Model.IsActive),
+            Id = Html.IdFor(x => x.IsActive).ToString(),
+            Label = T["Active"],
+            Checked = Model.IsActive
+        })
     </div>
 
     <div class="col-12 d-flex gap-2">

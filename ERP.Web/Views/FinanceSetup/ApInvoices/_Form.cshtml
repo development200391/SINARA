@@ -1,4 +1,5 @@
-﻿@model ERP.Web.ViewModels.Finance.FinanceApInvoiceEditViewModel
+@model ERP.Web.ViewModels.Finance.FinanceApInvoiceEditViewModel
+@using ERP.Web.ViewModels.Shared
 @using System.Globalization
 
 @{
@@ -6,6 +7,12 @@
     var numberCulture = string.Equals(T.CurrentLanguage, "id", StringComparison.OrdinalIgnoreCase)
         ? CultureInfo.GetCultureInfo("id-ID")
         : CultureInfo.GetCultureInfo("en-US");
+
+    SearchableSelectOptionViewModel ToOption(ERP.Web.ViewModels.Finance.FinanceIdOptionViewModel option) => new()
+    {
+        Value = option.Id.ToString(CultureInfo.InvariantCulture),
+        Label = option.Label
+    };
 }
 
 @if (!string.IsNullOrWhiteSpace(Model.InvoiceNo))
@@ -18,23 +25,37 @@
 
 <div class="col-md-3">
     <label asp-for="VendorId" class="form-label">@T["Vendor"]</label>
-    <select asp-for="VendorId" class="form-select" disabled="@isReadOnly">
-        @foreach (var option in Model.VendorOptions)
-        {
-            <option value="@option.Id" selected="@(Model.VendorId == option.Id)">@option.Label</option>
-        }
-    </select>
+    @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+    {
+        Name = nameof(Model.VendorId),
+        Id = Html.IdFor(x => x.VendorId).ToString(),
+        CssClass = "form-select",
+        SearchPlaceholder = T["Search"],
+        EmptyOptionLabel = T["Select"],
+        IsDisabled = isReadOnly,
+        SelectedValue = Model.VendorId > 0
+            ? Model.VendorId.ToString(CultureInfo.InvariantCulture)
+            : null,
+        Options = Model.VendorOptions.Select(ToOption).ToList()
+    })
     <span asp-validation-for="VendorId" class="text-danger"></span>
 </div>
 
 <div class="col-md-3">
     <label asp-for="PeriodId" class="form-label">@T["Period"]</label>
-    <select asp-for="PeriodId" class="form-select" disabled="@isReadOnly">
-        @foreach (var option in Model.PeriodOptions)
-        {
-            <option value="@option.Id" selected="@(Model.PeriodId == option.Id)">@option.Label</option>
-        }
-    </select>
+    @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+    {
+        Name = nameof(Model.PeriodId),
+        Id = Html.IdFor(x => x.PeriodId).ToString(),
+        CssClass = "form-select",
+        SearchPlaceholder = T["Search"],
+        EmptyOptionLabel = T["Select"],
+        IsDisabled = isReadOnly,
+        SelectedValue = Model.PeriodId > 0
+            ? Model.PeriodId.ToString(CultureInfo.InvariantCulture)
+            : null,
+        Options = Model.PeriodOptions.Select(ToOption).ToList()
+    })
     <span asp-validation-for="PeriodId" class="text-danger"></span>
 </div>
 
@@ -58,12 +79,21 @@
 
 <div class="col-md-2">
     <label asp-for="CurrencyCode" class="form-label">@T["Currency"]</label>
-    <select asp-for="CurrencyCode" class="form-select" disabled="@isReadOnly">
-        @foreach (var option in Model.CurrencyOptions)
+    @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+    {
+        Name = nameof(Model.CurrencyCode),
+        Id = Html.IdFor(x => x.CurrencyCode).ToString(),
+        CssClass = "form-select",
+        SearchPlaceholder = T["Search"],
+        EmptyOptionLabel = T["Select"],
+        IsDisabled = isReadOnly,
+        SelectedValue = Model.CurrencyCode,
+        Options = Model.CurrencyOptions.Select(option => new SearchableSelectOptionViewModel
         {
-            <option value="@option.Code" selected="@string.Equals(Model.CurrencyCode, option.Code, StringComparison.OrdinalIgnoreCase)">@option.Label</option>
-        }
-    </select>
+            Value = option.Code,
+            Label = option.Label
+        }).ToList()
+    })
     <span asp-validation-for="CurrencyCode" class="text-danger"></span>
 </div>
 
@@ -115,51 +145,73 @@
             <tbody id="ap-invoice-lines-body">
                 @for (var index = 0; index < Model.Lines.Count; index++)
                 {
-                    var lineAmount = Model.Lines[index].Quantity * Model.Lines[index].UnitPrice;
+                    var line = Model.Lines[index];
+                    var lineAmount = line.Quantity * line.UnitPrice;
 
                     <tr class="ap-line-row">
                         <td class="line-no">@(index + 1)</td>
                         <td>
-                            <input type="text" class="form-control form-control-sm" data-field="Description" value="@Model.Lines[index].Description" readonly="@isReadOnly" />
+                            <input type="text" class="form-control form-control-sm" data-field="Description" value="@line.Description" readonly="@isReadOnly" />
                         </td>
                         <td>
-                            <input type="text" inputmode="decimal" class="form-control form-control-sm text-end sinara-text-number sinara-text-number-theme ap-line-qty" data-field="Quantity" value="@Model.Lines[index].Quantity.ToString("N2", numberCulture)" readonly="@isReadOnly" />
+                            <input type="text" inputmode="decimal" class="form-control form-control-sm text-end sinara-text-number sinara-text-number-theme ap-line-qty" data-field="Quantity" value="@line.Quantity.ToString("N2", numberCulture)" readonly="@isReadOnly" />
                         </td>
                         <td>
-                            <input type="text" inputmode="decimal" class="form-control form-control-sm text-end sinara-text-number sinara-text-number-theme ap-line-price" data-field="UnitPrice" value="@Model.Lines[index].UnitPrice.ToString("N2", numberCulture)" readonly="@isReadOnly" />
+                            <input type="text" inputmode="decimal" class="form-control form-control-sm text-end sinara-text-number sinara-text-number-theme ap-line-price" data-field="UnitPrice" value="@line.UnitPrice.ToString("N2", numberCulture)" readonly="@isReadOnly" />
                         </td>
                         <td class="text-end">
                             <span class="d-inline-block w-100 text-end sinara-text-number sinara-text-number-theme ap-line-amount">@lineAmount.ToString("N2", numberCulture)</span>
                         </td>
                         <td>
-                            <select class="form-select form-select-sm" data-field="TaxCodeId" disabled="@isReadOnly">
-                                <option value="">@T["None"]</option>
-                                @foreach (var option in Model.TaxCodeOptions)
-                                {
-                                    <option value="@option.Id" selected="@(Model.Lines[index].TaxCodeId == option.Id)">@option.Label</option>
-                                }
-                            </select>
+                            @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+                            {
+                                Name = $"Lines[{index}].TaxCodeId",
+                                Id = $"Lines_{index}__TaxCodeId",
+                                CssClass = "form-select form-select-sm",
+                                SearchPlaceholder = T["Search"],
+                                EmptyOptionLabel = T["None"],
+                                IsDisabled = isReadOnly,
+                                SelectedValue = line.TaxCodeId.HasValue
+                                    ? line.TaxCodeId.Value.ToString(CultureInfo.InvariantCulture)
+                                    : null,
+                                Options = Model.TaxCodeOptions.Select(ToOption).ToList(),
+                                HtmlAttributes = new Dictionary<string, string> { ["data-field"] = "TaxCodeId" }
+                            })
                         </td>
                         <td>
-                            <input type="text" inputmode="decimal" class="form-control form-control-sm text-end sinara-text-number sinara-text-number-theme" data-field="TaxAmount" value="@Model.Lines[index].TaxAmount.ToString("N2", numberCulture)" readonly="@isReadOnly" />
+                            <input type="text" inputmode="decimal" class="form-control form-control-sm text-end sinara-text-number sinara-text-number-theme" data-field="TaxAmount" value="@line.TaxAmount.ToString("N2", numberCulture)" readonly="@isReadOnly" />
                         </td>
                         <td>
-                            <select class="form-select form-select-sm" data-field="AccountId" disabled="@isReadOnly">
-                                <option value="">@T["Select Account"]</option>
-                                @foreach (var option in Model.AccountOptions)
-                                {
-                                    <option value="@option.Id" selected="@(Model.Lines[index].AccountId == option.Id)">@option.Label</option>
-                                }
-                            </select>
+                            @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+                            {
+                                Name = $"Lines[{index}].AccountId",
+                                Id = $"Lines_{index}__AccountId",
+                                CssClass = "form-select form-select-sm",
+                                SearchPlaceholder = T["Search"],
+                                EmptyOptionLabel = T["Select Account"],
+                                IsDisabled = isReadOnly,
+                                SelectedValue = line.AccountId > 0
+                                    ? line.AccountId.ToString(CultureInfo.InvariantCulture)
+                                    : null,
+                                Options = Model.AccountOptions.Select(ToOption).ToList(),
+                                HtmlAttributes = new Dictionary<string, string> { ["data-field"] = "AccountId" }
+                            })
                         </td>
                         <td>
-                            <select class="form-select form-select-sm" data-field="CostCenterId" disabled="@isReadOnly">
-                                <option value="">@T["None"]</option>
-                                @foreach (var option in Model.CostCenterOptions)
-                                {
-                                    <option value="@option.Id" selected="@(Model.Lines[index].CostCenterId == option.Id)">@option.Label</option>
-                                }
-                            </select>
+                            @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+                            {
+                                Name = $"Lines[{index}].CostCenterId",
+                                Id = $"Lines_{index}__CostCenterId",
+                                CssClass = "form-select form-select-sm",
+                                SearchPlaceholder = T["Search"],
+                                EmptyOptionLabel = T["None"],
+                                IsDisabled = isReadOnly,
+                                SelectedValue = line.CostCenterId.HasValue
+                                    ? line.CostCenterId.Value.ToString(CultureInfo.InvariantCulture)
+                                    : null,
+                                Options = Model.CostCenterOptions.Select(ToOption).ToList(),
+                                HtmlAttributes = new Dictionary<string, string> { ["data-field"] = "CostCenterId" }
+                            })
                         </td>
                         <td class="text-end">
                             @if (!isReadOnly)
@@ -211,34 +263,43 @@
                 <span class="d-inline-block w-100 text-end sinara-text-number sinara-text-number-theme ap-line-amount">@((0m).ToString("N2", numberCulture))</span>
             </td>
             <td>
-                <select class="form-select form-select-sm" data-field="TaxCodeId">
-                    <option value="">@T["None"]</option>
-                    @foreach (var option in Model.TaxCodeOptions)
-                    {
-                        <option value="@option.Id">@option.Label</option>
-                    }
-                </select>
+                @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+                {
+                    Name = string.Empty,
+                    Id = "ap-line-template-taxcode",
+                    CssClass = "form-select form-select-sm",
+                    SearchPlaceholder = T["Search"],
+                    EmptyOptionLabel = T["None"],
+                    Options = Model.TaxCodeOptions.Select(ToOption).ToList(),
+                    HtmlAttributes = new Dictionary<string, string> { ["data-field"] = "TaxCodeId" }
+                })
             </td>
             <td>
                 <input type="text" inputmode="decimal" class="form-control form-control-sm text-end sinara-text-number sinara-text-number-theme" data-field="TaxAmount" value="@((0m).ToString("N2", numberCulture))" />
             </td>
             <td>
-                <select class="form-select form-select-sm" data-field="AccountId">
-                    <option value="">@T["Select Account"]</option>
-                    @foreach (var option in Model.AccountOptions)
-                    {
-                        <option value="@option.Id">@option.Label</option>
-                    }
-                </select>
+                @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+                {
+                    Name = string.Empty,
+                    Id = "ap-line-template-account",
+                    CssClass = "form-select form-select-sm",
+                    SearchPlaceholder = T["Search"],
+                    EmptyOptionLabel = T["Select Account"],
+                    Options = Model.AccountOptions.Select(ToOption).ToList(),
+                    HtmlAttributes = new Dictionary<string, string> { ["data-field"] = "AccountId" }
+                })
             </td>
             <td>
-                <select class="form-select form-select-sm" data-field="CostCenterId">
-                    <option value="">@T["None"]</option>
-                    @foreach (var option in Model.CostCenterOptions)
-                    {
-                        <option value="@option.Id">@option.Label</option>
-                    }
-                </select>
+                @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+                {
+                    Name = string.Empty,
+                    Id = "ap-line-template-costcenter",
+                    CssClass = "form-select form-select-sm",
+                    SearchPlaceholder = T["Search"],
+                    EmptyOptionLabel = T["None"],
+                    Options = Model.CostCenterOptions.Select(ToOption).ToList(),
+                    HtmlAttributes = new Dictionary<string, string> { ["data-field"] = "CostCenterId" }
+                })
             </td>
             <td class="text-end">
                 <button type="button" class="btn btn-sm btn-outline-danger remove-ap-line" title="@T["Delete"]">
@@ -482,21 +543,3 @@
         renumber();
     })();
 </script>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

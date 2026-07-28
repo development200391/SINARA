@@ -1,7 +1,7 @@
-﻿@model ERP.Web.ViewModels.Finance.FinanceApPaymentCreateViewModel
+@model ERP.Web.ViewModels.Finance.FinanceApPaymentCreateViewModel
 @using ERP.Domain.Enums
+@using ERP.Web.ViewModels.Shared
 @using System.Globalization
-@using System.Text.Json
 
 @{
     var initialApplications = Model.Applications.ToList();
@@ -10,12 +10,14 @@
         initialApplications.Add(new ERP.Web.ViewModels.Finance.FinanceApPaymentApplicationEditViewModel());
     }
 
-    var invoiceOptionsJson = JsonSerializer.Serialize(Model.OutstandingInvoiceOptions.Select(x => new
+    const string vendorSelectId = "ap-payment-vendor";
+
+    var invoiceOptions = Model.OutstandingInvoiceOptions.Select(option => new SearchableSelectOptionViewModel
     {
-        vendorId = x.VendorId,
-        id = x.InvoiceId,
-        label = x.Label
-    }));
+        Value = option.InvoiceId.ToString(CultureInfo.InvariantCulture),
+        Label = option.Label,
+        GroupValue = option.VendorId.ToString(CultureInfo.InvariantCulture)
+    }).ToList();
 }
 
 <div class="card border-0 shadow-sm">
@@ -28,12 +30,22 @@
 
             <div class="col-md-4">
                 <label asp-for="VendorId" class="form-label">@T["Vendor"]</label>
-                <select asp-for="VendorId" class="form-select" id="ap-payment-vendor">
-                    @foreach (var option in Model.VendorOptions)
+                @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+                {
+                    Name = nameof(Model.VendorId),
+                    Id = vendorSelectId,
+                    CssClass = "form-select",
+                    SearchPlaceholder = T["Search"],
+                    EmptyOptionLabel = T["Select"],
+                    SelectedValue = Model.VendorId > 0
+                        ? Model.VendorId.ToString(CultureInfo.InvariantCulture)
+                        : null,
+                    Options = Model.VendorOptions.Select(option => new SearchableSelectOptionViewModel
                     {
-                        <option value="@option.Id" selected="@(Model.VendorId == option.Id)">@option.Label</option>
-                    }
-                </select>
+                        Value = option.Id.ToString(CultureInfo.InvariantCulture),
+                        Label = option.Label
+                    }).ToList()
+                })
                 <span asp-validation-for="VendorId" class="text-danger"></span>
             </div>
 
@@ -45,12 +57,20 @@
 
             <div class="col-md-3">
                 <label asp-for="PaymentMethod" class="form-label">@T["Payment Method"]</label>
-                <select asp-for="PaymentMethod" class="form-select">
-                    @foreach (var method in Enum.GetValues<FinanceApPaymentMethod>())
+                @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+                {
+                    Name = nameof(Model.PaymentMethod),
+                    Id = Html.IdFor(x => x.PaymentMethod).ToString(),
+                    CssClass = "form-select",
+                    SearchPlaceholder = T["Search"],
+                    EmptyOptionLabel = T["Select"],
+                    SelectedValue = Model.PaymentMethod.ToString(),
+                    Options = Enum.GetValues<FinanceApPaymentMethod>().Select(method => new SearchableSelectOptionViewModel
                     {
-                        <option value="@method" selected="@(Model.PaymentMethod == method)">@T[method.ToString()]</option>
-                    }
-                </select>
+                        Value = method.ToString(),
+                        Label = T[method.ToString()]
+                    }).ToList()
+                })
                 <span asp-validation-for="PaymentMethod" class="text-danger"></span>
             </div>
 
@@ -62,12 +82,22 @@
 
             <div class="col-md-6">
                 <label asp-for="BankAccountId" class="form-label">@T["Bank Account"]</label>
-                <select asp-for="BankAccountId" class="form-select">
-                    @foreach (var option in Model.BankAccountOptions)
+                @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+                {
+                    Name = nameof(Model.BankAccountId),
+                    Id = Html.IdFor(x => x.BankAccountId).ToString(),
+                    CssClass = "form-select",
+                    SearchPlaceholder = T["Search"],
+                    EmptyOptionLabel = T["Select"],
+                    SelectedValue = Model.BankAccountId > 0
+                        ? Model.BankAccountId.ToString(CultureInfo.InvariantCulture)
+                        : null,
+                    Options = Model.BankAccountOptions.Select(option => new SearchableSelectOptionViewModel
                     {
-                        <option value="@option.Id" selected="@(Model.BankAccountId == option.Id)">@option.Label</option>
-                    }
-                </select>
+                        Value = option.Id.ToString(CultureInfo.InvariantCulture),
+                        Label = option.Label
+                    }).ToList()
+                })
                 <span asp-validation-for="BankAccountId" class="text-danger"></span>
             </div>
 
@@ -105,13 +135,28 @@
                         <tbody id="ap-payment-apps-body">
                             @for (var index = 0; index < initialApplications.Count; index++)
                             {
+                                var application = initialApplications[index];
+
                                 <tr class="ap-payment-app-row">
                                     <td class="line-no">@(index + 1)</td>
                                     <td>
-                                        <select class="form-select form-select-sm ap-payment-invoice" data-field="InvoiceId" data-selected="@initialApplications[index].InvoiceId"></select>
+                                        @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+                                        {
+                                            Name = $"Applications[{index}].InvoiceId",
+                                            Id = $"Applications_{index}__InvoiceId",
+                                            CssClass = "form-select form-select-sm",
+                                            SearchPlaceholder = T["Search"],
+                                            EmptyOptionLabel = T["Select Invoice"],
+                                            DependsOnElementId = vendorSelectId,
+                                            SelectedValue = application.InvoiceId > 0
+                                                ? application.InvoiceId.ToString(CultureInfo.InvariantCulture)
+                                                : null,
+                                            Options = invoiceOptions,
+                                            HtmlAttributes = new Dictionary<string, string> { ["data-field"] = "InvoiceId" }
+                                        })
                                     </td>
                                     <td>
-                                        <input type="number" class="form-control form-control-sm text-end ap-payment-applied" data-field="AppliedAmount" min="0.0001" step="0.0001" value="@initialApplications[index].AppliedAmount.ToString(CultureInfo.InvariantCulture)" />
+                                        <input type="number" class="form-control form-control-sm text-end ap-payment-applied" data-field="AppliedAmount" min="0.0001" step="0.0001" value="@application.AppliedAmount.ToString(CultureInfo.InvariantCulture)" />
                                     </td>
                                     <td class="text-end">
                                         <button type="button" class="btn btn-sm btn-outline-danger remove-ap-payment-app" title="@T["Delete"]">
@@ -144,7 +189,17 @@
     <tr class="ap-payment-app-row">
         <td class="line-no"></td>
         <td>
-            <select class="form-select form-select-sm ap-payment-invoice" data-field="InvoiceId"></select>
+            @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+            {
+                Name = string.Empty,
+                Id = "ap-payment-app-template-invoice",
+                CssClass = "form-select form-select-sm",
+                SearchPlaceholder = T["Search"],
+                EmptyOptionLabel = T["Select Invoice"],
+                DependsOnElementId = vendorSelectId,
+                Options = invoiceOptions,
+                HtmlAttributes = new Dictionary<string, string> { ["data-field"] = "InvoiceId" }
+            })
         </td>
         <td>
             <input type="number" class="form-control form-control-sm text-end ap-payment-applied" data-field="AppliedAmount" min="0.0001" step="0.0001" value="0" />
@@ -161,12 +216,11 @@
     <partial name="_ValidationScriptsPartial" />
     <script>
         (() => {
-            const vendorSelect = document.getElementById('ap-payment-vendor');
+            const vendorSelect = document.getElementById('@vendorSelectId');
             const body = document.getElementById('ap-payment-apps-body');
             const addButton = document.getElementById('add-ap-payment-app');
             const template = document.getElementById('ap-payment-app-template');
             const totalAppliedEl = document.getElementById('ap-payment-total-applied');
-            const invoiceOptions = @Html.Raw(invoiceOptionsJson);
 
             if (!vendorSelect || !body || !template) {
                 return;
@@ -178,35 +232,6 @@
             };
 
             const formatNumber = (value) => value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-            const populateInvoiceSelect = (select, selectedId) => {
-                const vendorId = Number.parseInt(vendorSelect.value || '0', 10);
-                const options = invoiceOptions.filter((item) => item.vendorId === vendorId);
-
-                const currentValue = Number.parseInt(String(selectedId || ''), 10);
-                const hasCurrentValue = Number.isFinite(currentValue) && options.some((item) => item.id === currentValue);
-
-                select.innerHTML = '';
-
-                const emptyOption = document.createElement('option');
-                emptyOption.value = '';
-                emptyOption.textContent = '@T["Select Invoice"]';
-                select.appendChild(emptyOption);
-
-                options.forEach((item) => {
-                    const option = document.createElement('option');
-                    option.value = String(item.id);
-                    option.textContent = item.label;
-                    if (hasCurrentValue && item.id === currentValue) {
-                        option.selected = true;
-                    }
-                    select.appendChild(option);
-                });
-
-                if (!hasCurrentValue) {
-                    select.value = '';
-                }
-            };
 
             const recalc = () => {
                 let totalApplied = 0;
@@ -238,25 +263,14 @@
                 recalc();
             };
 
-            const refreshInvoiceSelects = () => {
-                body.querySelectorAll('.ap-payment-invoice').forEach((select) => {
-                    const selected = select.getAttribute('data-selected') || select.value;
-                    populateInvoiceSelect(select, selected);
-                    select.setAttribute('data-selected', select.value);
-                });
-            };
-
             addButton?.addEventListener('click', () => {
                 const row = template.content.firstElementChild?.cloneNode(true);
                 if (!row) return;
                 body.appendChild(row);
-
-                const select = row.querySelector('.ap-payment-invoice');
-                if (select) {
-                    populateInvoiceSelect(select, null);
-                }
-
                 renumber();
+
+                // Re-apply the current vendor filter to the newly added invoice select.
+                vendorSelect.dispatchEvent(new Event('change'));
             });
 
             body.addEventListener('click', (event) => {
@@ -276,15 +290,6 @@
                 renumber();
             });
 
-            body.addEventListener('change', (event) => {
-                const target = event.target;
-                if (!(target instanceof HTMLSelectElement)) return;
-
-                if (target.classList.contains('ap-payment-invoice')) {
-                    target.setAttribute('data-selected', target.value);
-                }
-            });
-
             body.addEventListener('input', (event) => {
                 const target = event.target;
                 if (!(target instanceof HTMLInputElement)) return;
@@ -294,12 +299,6 @@
                 }
             });
 
-            vendorSelect.addEventListener('change', () => {
-                refreshInvoiceSelects();
-                renumber();
-            });
-
-            refreshInvoiceSelects();
             renumber();
         })();
     </script>

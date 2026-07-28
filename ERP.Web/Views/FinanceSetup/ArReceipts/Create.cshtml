@@ -1,7 +1,7 @@
 @model ERP.Web.ViewModels.Finance.FinanceArReceiptCreateViewModel
 @using ERP.Domain.Enums
+@using ERP.Web.ViewModels.Shared
 @using System.Globalization
-@using System.Text.Json
 
 @{
     var initialApplications = Model.Applications.ToList();
@@ -10,15 +10,16 @@
         initialApplications.Add(new ERP.Web.ViewModels.Finance.FinanceArReceiptApplicationEditViewModel());
     }
 
-    var invoiceOptionsJson = JsonSerializer.Serialize(Model.OutstandingInvoiceOptions.Select(x => new
-    {
-        customerId = x.CustomerId,
-        id = x.InvoiceId,
-        label = x.Label,
-        outstanding = x.OutstandingAmount
-    }));
-
+    const string customerSelectId = "ar-receipt-customer";
     var numberLocale = string.Equals(T.CurrentLanguage, "id", StringComparison.OrdinalIgnoreCase) ? "id-ID" : "en-US";
+    var numberCulture = CultureInfo.GetCultureInfo(numberLocale);
+
+    var invoiceOptions = Model.OutstandingInvoiceOptions.Select(option => new SearchableSelectOptionViewModel
+    {
+        Value = option.InvoiceId.ToString(CultureInfo.InvariantCulture),
+        Label = option.Label,
+        GroupValue = option.CustomerId.ToString(CultureInfo.InvariantCulture)
+    }).ToList();
 }
 
 <div class="card border-0 shadow-sm">
@@ -31,12 +32,22 @@
 
             <div class="col-md-4">
                 <label asp-for="CustomerId" class="form-label">@T["Customer"]</label>
-                <select asp-for="CustomerId" class="form-select" id="ar-receipt-customer">
-                    @foreach (var option in Model.CustomerOptions)
+                @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+                {
+                    Name = nameof(Model.CustomerId),
+                    Id = customerSelectId,
+                    CssClass = "form-select",
+                    SearchPlaceholder = T["Search"],
+                    EmptyOptionLabel = T["Select"],
+                    SelectedValue = Model.CustomerId > 0
+                        ? Model.CustomerId.ToString(CultureInfo.InvariantCulture)
+                        : null,
+                    Options = Model.CustomerOptions.Select(option => new SearchableSelectOptionViewModel
                     {
-                        <option value="@option.Id" selected="@(Model.CustomerId == option.Id)">@option.Label</option>
-                    }
-                </select>
+                        Value = option.Id.ToString(CultureInfo.InvariantCulture),
+                        Label = option.Label
+                    }).ToList()
+                })
                 <span asp-validation-for="CustomerId" class="text-danger"></span>
             </div>
 
@@ -48,29 +59,47 @@
 
             <div class="col-md-3">
                 <label asp-for="PaymentMethod" class="form-label">@T["Payment Method"]</label>
-                <select asp-for="PaymentMethod" class="form-select">
-                    @foreach (var method in Enum.GetValues<FinanceArReceiptMethod>())
+                @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+                {
+                    Name = nameof(Model.PaymentMethod),
+                    Id = Html.IdFor(x => x.PaymentMethod).ToString(),
+                    CssClass = "form-select",
+                    SearchPlaceholder = T["Search"],
+                    EmptyOptionLabel = T["Select"],
+                    SelectedValue = Model.PaymentMethod.ToString(),
+                    Options = Enum.GetValues<FinanceArReceiptMethod>().Select(method => new SearchableSelectOptionViewModel
                     {
-                        <option value="@method" selected="@(Model.PaymentMethod == method)">@T[method.ToString()]</option>
-                    }
-                </select>
+                        Value = method.ToString(),
+                        Label = T[method.ToString()]
+                    }).ToList()
+                })
                 <span asp-validation-for="PaymentMethod" class="text-danger"></span>
             </div>
 
             <div class="col-md-2">
                 <label asp-for="Amount" class="form-label">@T["Amount"]</label>
-                <input asp-for="Amount" id="ar-receipt-amount" class="form-control text-end sinara-text-number sinara-text-number-theme" type="text" inputmode="decimal" value="@Model.Amount.ToString("N2", CultureInfo.GetCultureInfo(numberLocale))" />
+                <input asp-for="Amount" id="ar-receipt-amount" class="form-control text-end sinara-text-number sinara-text-number-theme" type="text" inputmode="decimal" value="@Model.Amount.ToString("N2", numberCulture)" />
                 <span asp-validation-for="Amount" class="text-danger"></span>
             </div>
 
             <div class="col-md-6">
                 <label asp-for="BankAccountId" class="form-label">@T["Bank Account"]</label>
-                <select asp-for="BankAccountId" class="form-select">
-                    @foreach (var option in Model.BankAccountOptions)
+                @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+                {
+                    Name = nameof(Model.BankAccountId),
+                    Id = Html.IdFor(x => x.BankAccountId).ToString(),
+                    CssClass = "form-select",
+                    SearchPlaceholder = T["Search"],
+                    EmptyOptionLabel = T["Select"],
+                    SelectedValue = Model.BankAccountId > 0
+                        ? Model.BankAccountId.ToString(CultureInfo.InvariantCulture)
+                        : null,
+                    Options = Model.BankAccountOptions.Select(option => new SearchableSelectOptionViewModel
                     {
-                        <option value="@option.Id" selected="@(Model.BankAccountId == option.Id)">@option.Label</option>
-                    }
-                </select>
+                        Value = option.Id.ToString(CultureInfo.InvariantCulture),
+                        Label = option.Label
+                    }).ToList()
+                })
                 <span asp-validation-for="BankAccountId" class="text-danger"></span>
             </div>
 
@@ -108,13 +137,28 @@
                         <tbody id="ar-receipt-apps-body">
                             @for (var index = 0; index < initialApplications.Count; index++)
                             {
+                                var application = initialApplications[index];
+
                                 <tr class="ar-receipt-app-row">
                                     <td class="line-no">@(index + 1)</td>
                                     <td>
-                                        <select class="form-select form-select-sm ar-receipt-invoice" data-field="InvoiceId" data-selected="@initialApplications[index].InvoiceId"></select>
+                                        @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+                                        {
+                                            Name = $"Applications[{index}].InvoiceId",
+                                            Id = $"Applications_{index}__InvoiceId",
+                                            CssClass = "form-select form-select-sm",
+                                            SearchPlaceholder = T["Search"],
+                                            EmptyOptionLabel = T["Select Invoice"],
+                                            DependsOnElementId = customerSelectId,
+                                            SelectedValue = application.InvoiceId > 0
+                                                ? application.InvoiceId.ToString(CultureInfo.InvariantCulture)
+                                                : null,
+                                            Options = invoiceOptions,
+                                            HtmlAttributes = new Dictionary<string, string> { ["data-field"] = "InvoiceId" }
+                                        })
                                     </td>
                                     <td>
-                                        <input type="text" inputmode="decimal" class="form-control form-control-sm text-end ar-receipt-applied sinara-text-number sinara-text-number-theme" data-field="AppliedAmount" value="@initialApplications[index].AppliedAmount.ToString("N2", CultureInfo.GetCultureInfo(numberLocale))" />
+                                        <input type="text" inputmode="decimal" class="form-control form-control-sm text-end ar-receipt-applied sinara-text-number sinara-text-number-theme" data-field="AppliedAmount" value="@application.AppliedAmount.ToString("N2", numberCulture)" />
                                     </td>
                                     <td class="text-end">
                                         <button type="button" class="btn btn-sm btn-outline-danger remove-ar-receipt-app" title="@T["Delete"]">
@@ -147,7 +191,17 @@
     <tr class="ar-receipt-app-row">
         <td class="line-no"></td>
         <td>
-            <select class="form-select form-select-sm ar-receipt-invoice" data-field="InvoiceId"></select>
+            @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+            {
+                Name = string.Empty,
+                Id = "ar-receipt-app-template-invoice",
+                CssClass = "form-select form-select-sm",
+                SearchPlaceholder = T["Search"],
+                EmptyOptionLabel = T["Select Invoice"],
+                DependsOnElementId = customerSelectId,
+                Options = invoiceOptions,
+                HtmlAttributes = new Dictionary<string, string> { ["data-field"] = "InvoiceId" }
+            })
         </td>
         <td>
             <input type="text" inputmode="decimal" class="form-control form-control-sm text-end ar-receipt-applied sinara-text-number sinara-text-number-theme" data-field="AppliedAmount" value="0" />
@@ -164,14 +218,13 @@
     <partial name="_ValidationScriptsPartial" />
     <script>
         (() => {
-            const customerSelect = document.getElementById('ar-receipt-customer');
+            const customerSelect = document.getElementById('@customerSelectId');
             const amountInput = document.getElementById('ar-receipt-amount');
             const body = document.getElementById('ar-receipt-apps-body');
             const addButton = document.getElementById('add-ar-receipt-app');
             const template = document.getElementById('ar-receipt-app-template');
             const totalAppliedEl = document.getElementById('ar-receipt-total-applied');
             const form = document.getElementById('ar-receipt-form');
-            const invoiceOptions = @Html.Raw(invoiceOptionsJson);
             const numberLocale = '@numberLocale';
 
             if (!customerSelect || !body || !template) {
@@ -217,35 +270,6 @@
                 window.requestAnimationFrame(() => input.select());
             };
 
-            const populateInvoiceSelect = (select, selectedId) => {
-                const customerId = Number.parseInt(customerSelect.value || '0', 10);
-                const options = invoiceOptions.filter((item) => item.customerId === customerId);
-
-                const currentValue = Number.parseInt(String(selectedId || ''), 10);
-                const hasCurrentValue = Number.isFinite(currentValue) && options.some((item) => item.id === currentValue);
-
-                select.innerHTML = '';
-
-                const emptyOption = document.createElement('option');
-                emptyOption.value = '';
-                emptyOption.textContent = '@T["Select Invoice"]';
-                select.appendChild(emptyOption);
-
-                options.forEach((item) => {
-                    const option = document.createElement('option');
-                    option.value = String(item.id);
-                    option.textContent = item.label;
-                    if (hasCurrentValue && item.id === currentValue) {
-                        option.selected = true;
-                    }
-                    select.appendChild(option);
-                });
-
-                if (!hasCurrentValue) {
-                    select.value = '';
-                }
-            };
-
             const recalc = () => {
                 let totalApplied = 0;
                 body.querySelectorAll('.ar-receipt-applied').forEach((input) => {
@@ -280,14 +304,6 @@
                 recalc();
             };
 
-            const refreshInvoiceSelects = () => {
-                body.querySelectorAll('.ar-receipt-invoice').forEach((select) => {
-                    const selected = select.getAttribute('data-selected') || select.value;
-                    populateInvoiceSelect(select, selected);
-                    select.setAttribute('data-selected', select.value);
-                });
-            };
-
             const formatNumericInput = (input) => {
                 if (!(input instanceof HTMLInputElement)) return;
                 input.value = formatNumber(parseFreeNumber(input.value));
@@ -297,13 +313,10 @@
                 const row = template.content.firstElementChild?.cloneNode(true);
                 if (!row) return;
                 body.appendChild(row);
-
-                const select = row.querySelector('.ar-receipt-invoice');
-                if (select) {
-                    populateInvoiceSelect(select, null);
-                }
-
                 renumber();
+
+                // Re-apply the current customer filter to the newly added invoice select.
+                customerSelect.dispatchEvent(new Event('change'));
             });
 
             body.addEventListener('click', (event) => {
@@ -321,15 +334,6 @@
                 const row = removeButton.closest('.ar-receipt-app-row');
                 row?.remove();
                 renumber();
-            });
-
-            body.addEventListener('change', (event) => {
-                const target = event.target;
-                if (!(target instanceof HTMLSelectElement)) return;
-
-                if (target.classList.contains('ar-receipt-invoice')) {
-                    target.setAttribute('data-selected', target.value);
-                }
             });
 
             body.addEventListener('input', (event) => {
@@ -375,11 +379,6 @@
                 amountInput.addEventListener('focusout', () => formatNumericInput(amountInput));
             }
 
-            customerSelect.addEventListener('change', () => {
-                refreshInvoiceSelects();
-                renumber();
-            });
-
             if (form instanceof HTMLFormElement) {
                 form.addEventListener('submit', () => {
                     if (amountInput instanceof HTMLInputElement) {
@@ -394,7 +393,6 @@
                 });
             }
 
-            refreshInvoiceSelects();
             renumber();
 
             if (amountInput instanceof HTMLInputElement) {

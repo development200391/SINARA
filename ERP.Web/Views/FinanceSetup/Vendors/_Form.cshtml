@@ -1,4 +1,6 @@
-﻿@model ERP.Web.ViewModels.Finance.FinanceVendorEditViewModel
+@model ERP.Web.ViewModels.Finance.FinanceVendorEditViewModel
+@using ERP.Web.ViewModels.Shared
+@using System.Globalization
 
 <form method="post" class="row g-3">
     @Html.AntiForgeryToken()
@@ -48,25 +50,43 @@
 
     <div class="col-md-4">
         <label asp-for="DefaultAccountId" class="form-label">@T["Default Account"]</label>
-        <select asp-for="DefaultAccountId" class="form-select">
-            <option value="">@T["None"]</option>
-            @foreach (var option in Model.AccountOptions)
+        @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+        {
+            Name = nameof(Model.DefaultAccountId),
+            Id = Html.IdFor(x => x.DefaultAccountId).ToString(),
+            CssClass = "form-select",
+            SearchPlaceholder = T["Search"],
+            EmptyOptionLabel = T["None"],
+            SelectedValue = Model.DefaultAccountId.HasValue
+                ? Model.DefaultAccountId.Value.ToString(CultureInfo.InvariantCulture)
+                : null,
+            Options = Model.AccountOptions.Select(option => new SearchableSelectOptionViewModel
             {
-                <option value="@option.Id" selected="@(Model.DefaultAccountId == option.Id)">@option.Label</option>
-            }
-        </select>
+                Value = option.Id.ToString(CultureInfo.InvariantCulture),
+                Label = option.Label
+            }).ToList()
+        })
         <span asp-validation-for="DefaultAccountId" class="text-danger"></span>
     </div>
 
     <div class="col-md-5">
         <label asp-for="DefaultTaxCodeId" class="form-label">@T["Default Tax Code"]</label>
-        <select asp-for="DefaultTaxCodeId" class="form-select">
-            <option value="">@T["None"]</option>
-            @foreach (var option in Model.TaxCodeOptions)
+        @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+        {
+            Name = nameof(Model.DefaultTaxCodeId),
+            Id = Html.IdFor(x => x.DefaultTaxCodeId).ToString(),
+            CssClass = "form-select",
+            SearchPlaceholder = T["Search"],
+            EmptyOptionLabel = T["None"],
+            SelectedValue = Model.DefaultTaxCodeId.HasValue
+                ? Model.DefaultTaxCodeId.Value.ToString(CultureInfo.InvariantCulture)
+                : null,
+            Options = Model.TaxCodeOptions.Select(option => new SearchableSelectOptionViewModel
             {
-                <option value="@option.Id" selected="@(Model.DefaultTaxCodeId == option.Id)">@option.Label</option>
-            }
-        </select>
+                Value = option.Id.ToString(CultureInfo.InvariantCulture),
+                Label = option.Label
+            }).ToList()
+        })
         <span asp-validation-for="DefaultTaxCodeId" class="text-danger"></span>
     </div>
 
@@ -88,9 +108,14 @@
         <span asp-validation-for="Address" class="text-danger"></span>
     </div>
 
-    <div class="col-12 form-check mt-2">
-        <input asp-for="IsActive" class="form-check-input" />
-        <label asp-for="IsActive" class="form-check-label">@T["Active"]</label>
+    <div class="col-12">
+        @await Component.InvokeAsync("FormCheckbox", new FormCheckboxViewModel
+        {
+            Name = nameof(Model.IsActive),
+            Id = Html.IdFor(x => x.IsActive).ToString(),
+            Label = T["Active"],
+            Checked = Model.IsActive
+        })
     </div>
 
     <div class="col-12 d-flex gap-2">

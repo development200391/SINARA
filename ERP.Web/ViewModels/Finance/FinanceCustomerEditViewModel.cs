@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using ERP.Web.Validation;
 
 namespace ERP.Web.ViewModels.Finance;
 
@@ -36,7 +37,7 @@ public sealed class FinanceCustomerEditViewModel
     [Display(Name = "Contact Person")]
     public string? ContactPerson { get; set; }
 
-    [Range(typeof(decimal), "0", "79228162514264337593543950335")]
+    [DecimalRange("0", "79228162514264337593543950335")]
     [Display(Name = "Credit Limit")]
     public decimal CreditLimit { get; set; }
 

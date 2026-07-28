@@ -1,4 +1,5 @@
 @model ERP.Web.ViewModels.Shared.SearchableSelectViewModel
+@using Microsoft.AspNetCore.Mvc.Rendering
 
 @{
     var normalizedId = string.IsNullOrWhiteSpace(Model.Id) ? Model.Name : Model.Id;
@@ -6,14 +7,29 @@
     var selectedOption = Model.Options.FirstOrDefault(x => string.Equals(x.Value, selectedValue, StringComparison.OrdinalIgnoreCase));
     var selectedLabel = selectedOption?.Label ?? Model.EmptyOptionLabel;
     var buttonClass = string.IsNullOrWhiteSpace(Model.CssClass) ? "form-select" : Model.CssClass;
+
+    var hiddenInput = new TagBuilder("input");
+    hiddenInput.TagRenderMode = TagRenderMode.SelfClosing;
+    hiddenInput.Attributes["type"] = "hidden";
+    hiddenInput.Attributes["id"] = normalizedId;
+    hiddenInput.Attributes["name"] = Model.Name;
+    hiddenInput.Attributes["value"] = selectedValue;
+    hiddenInput.Attributes["data-searchable-select-value"] = "true";
+    if (Model.HtmlAttributes != null)
+    {
+        foreach (var attr in Model.HtmlAttributes)
+        {
+            hiddenInput.Attributes[attr.Key] = attr.Value;
+        }
+    }
+
+    using var hiddenInputWriter = new System.IO.StringWriter();
+    hiddenInput.WriteTo(hiddenInputWriter, System.Text.Encodings.Web.HtmlEncoder.Default);
+    var hiddenInputHtml = hiddenInputWriter.ToString();
 }
 
 <div class="dropdown sinara-searchable-select" data-searchable-select data-depends-on="@(string.IsNullOrWhiteSpace(Model.DependsOnElementId) ? null : Model.DependsOnElementId)">
-    <input type="hidden"
-           id="@normalizedId"
-           name="@Model.Name"
-           value="@selectedValue"
-           data-searchable-select-value />
+    @Html.Raw(hiddenInputHtml)
 
     <button type="button"
             class="@buttonClass text-start"

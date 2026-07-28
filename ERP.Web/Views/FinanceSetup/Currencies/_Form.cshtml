@@ -1,4 +1,5 @@
 @model ERP.Web.ViewModels.Finance.FinanceCurrencyEditViewModel
+@using ERP.Web.ViewModels.Shared
 
 <form method="post" class="row g-3">
     @Html.AntiForgeryToken()
@@ -22,14 +23,24 @@
         <span asp-validation-for="Symbol" class="text-danger"></span>
     </div>
 
-    <div class="col-md-3 form-check mt-2">
-        <input asp-for="IsBaseCurrency" class="form-check-input" />
-        <label asp-for="IsBaseCurrency" class="form-check-label"></label>
+    <div class="col-md-3">
+        @await Component.InvokeAsync("FormCheckbox", new FormCheckboxViewModel
+        {
+            Name = nameof(Model.IsBaseCurrency),
+            Id = Html.IdFor(x => x.IsBaseCurrency).ToString(),
+            Label = T["Base Currency"],
+            Checked = Model.IsBaseCurrency
+        })
     </div>
 
-    <div class="col-md-3 form-check mt-2">
-        <input asp-for="IsActive" class="form-check-input" />
-        <label asp-for="IsActive" class="form-check-label"></label>
+    <div class="col-md-3">
+        @await Component.InvokeAsync("FormCheckbox", new FormCheckboxViewModel
+        {
+            Name = nameof(Model.IsActive),
+            Id = Html.IdFor(x => x.IsActive).ToString(),
+            Label = T["Active"],
+            Checked = Model.IsActive
+        })
     </div>
 
     <div class="col-12 d-flex gap-2">

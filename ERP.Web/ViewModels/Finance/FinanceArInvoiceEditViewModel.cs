@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using ERP.Web.Validation;
 using ERP.Domain.Enums;
 
 namespace ERP.Web.ViewModels.Finance;
@@ -30,7 +31,7 @@ public sealed class FinanceArInvoiceEditViewModel
     [Display(Name = "Currency")]
     public string CurrencyCode { get; set; } = "IDR";
 
-    [Range(typeof(decimal), "0.01", "79228162514264337593543950335")]
+    [DecimalRange("0.01", "79228162514264337593543950335")]
     [Display(Name = "Exchange Rate")]
     public decimal ExchangeRate { get; set; } = 1m;
 
@@ -67,18 +68,18 @@ public sealed class FinanceArInvoiceLineEditViewModel
     [Display(Name = "Description")]
     public string Description { get; set; } = string.Empty;
 
-    [Range(typeof(decimal), "1", "79228162514264337593543950335")]
+    [DecimalRange("1", "79228162514264337593543950335")]
     [Display(Name = "Quantity")]
     public decimal Quantity { get; set; } = 1m;
 
-    [Range(typeof(decimal), "0", "79228162514264337593543950335")]
+    [DecimalRange("0", "79228162514264337593543950335")]
     [Display(Name = "Unit Price")]
     public decimal UnitPrice { get; set; }
 
     [Display(Name = "Tax Code")]
     public int? TaxCodeId { get; set; }
 
-    [Range(typeof(decimal), "0", "79228162514264337593543950335")]
+    [DecimalRange("0", "79228162514264337593543950335")]
     [Display(Name = "Tax Amount")]
     public decimal TaxAmount { get; set; }
 

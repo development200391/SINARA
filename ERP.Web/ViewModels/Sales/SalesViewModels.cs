@@ -1,3 +1,4 @@
+using ERP.Web.Validation;
 using System.ComponentModel.DataAnnotations;
 using ERP.Application.DTOs.Common;
 using ERP.Application.DTOs.HR;
@@ -147,7 +148,7 @@ public sealed class SalesPriceListItemEditViewModel
 
     public decimal UnitPrice { get; set; }
 
-    [Range(typeof(decimal), "0", "100")]
+    [DecimalRange("0", "100")]
     public decimal DiscountPct { get; set; }
 
     public IReadOnlyList<InventoryOptionDto> ItemOptions { get; set; } = [];
@@ -192,7 +193,7 @@ public sealed class SalesApprovalConfigEditViewModel
 
     public decimal? MaxAmount { get; set; }
 
-    [Range(typeof(decimal), "0", "100")]
+    [DecimalRange("0", "100")]
     public decimal? MaxDiscountPct { get; set; }
 
     public int? ApproverRoleId { get; set; }

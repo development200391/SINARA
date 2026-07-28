@@ -1,3 +1,4 @@
+using ERP.Web.Validation;
 using System.ComponentModel.DataAnnotations;
 using ERP.Application.DTOs.Approval;
 using ERP.Application.DTOs.Common;
@@ -83,13 +84,13 @@ public sealed class ApprovalTemplateEditViewModel
     [Required]
     public ApprovalType ApprovalType { get; set; } = ApprovalType.Sequential;
 
-    [Range(typeof(decimal), "0", "79228162514264337593543950335")]
+    [DecimalRange("0", "79228162514264337593543950335")]
     public decimal? MinAmount { get; set; }
 
-    [Range(typeof(decimal), "0", "79228162514264337593543950335")]
+    [DecimalRange("0", "79228162514264337593543950335")]
     public decimal? MaxAmount { get; set; }
 
-    [Range(typeof(decimal), "0", "79228162514264337593543950335")]
+    [DecimalRange("0", "79228162514264337593543950335")]
     public decimal? AutoApproveBelow { get; set; }
 
     [Range(1, 720)]

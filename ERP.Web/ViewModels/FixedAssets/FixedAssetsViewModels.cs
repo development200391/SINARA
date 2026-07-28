@@ -1,3 +1,4 @@
+using ERP.Web.Validation;
 using System.ComponentModel.DataAnnotations;
 using ERP.Application.DTOs.Common;
 using ERP.Application.DTOs.FixedAssets;
@@ -41,7 +42,7 @@ public sealed class FixedAssetCategoryEditViewModel
     [Range(1, 1200)]
     public int UsefulLifeMonths { get; set; } = 60;
 
-    [Range(typeof(decimal), "0", "100")]
+    [DecimalRange("0", "100")]
     public decimal? DepreciationRate { get; set; }
 
     public int? AssetAccountId { get; set; }
@@ -173,10 +174,10 @@ public sealed class FixedAssetEditViewModel
     [Required]
     public DateOnly InServiceDate { get; set; } = DateOnly.FromDateTime(DateTime.Today);
 
-    [Range(typeof(decimal), "0", "79228162514264337593543950335")]
+    [DecimalRange("0", "79228162514264337593543950335")]
     public decimal AcquisitionCost { get; set; }
 
-    [Range(typeof(decimal), "0", "79228162514264337593543950335")]
+    [DecimalRange("0", "79228162514264337593543950335")]
     public decimal SalvageValue { get; set; }
 
     [Range(1, 1200)]
@@ -185,7 +186,7 @@ public sealed class FixedAssetEditViewModel
     [Required]
     public DepreciationMethod DepreciationMethod { get; set; } = DepreciationMethod.StraightLine;
 
-    [Range(typeof(decimal), "0", "100")]
+    [DecimalRange("0", "100")]
     public decimal? DepreciationRate { get; set; }
 
     [Required]
@@ -311,7 +312,7 @@ public sealed class FixedAssetMaintenanceOrderEditViewModel
     [StringLength(150)]
     public string? VendorName { get; set; }
 
-    [Range(typeof(decimal), "0", "79228162514264337593543950335")]
+    [DecimalRange("0", "79228162514264337593543950335")]
     public decimal Cost { get; set; }
 
     public bool IsCapitalized { get; set; }
@@ -350,10 +351,10 @@ public sealed class FixedAssetDisposalEditViewModel
     [Required]
     public DisposalType DisposalType { get; set; } = DisposalType.Sale;
 
-    [Range(typeof(decimal), "0", "79228162514264337593543950335")]
+    [DecimalRange("0", "79228162514264337593543950335")]
     public decimal? SaleAmount { get; set; }
 
-    [Range(typeof(decimal), "0", "79228162514264337593543950335")]
+    [DecimalRange("0", "79228162514264337593543950335")]
     public decimal DisposalExpense { get; set; }
 
     [StringLength(2000)]
@@ -386,13 +387,13 @@ public sealed class FixedAssetRevaluationEditViewModel
     [Required]
     public DateOnly RevaluationDate { get; set; } = DateOnly.FromDateTime(DateTime.Today);
 
-    [Range(typeof(decimal), "0", "79228162514264337593543950335")]
+    [DecimalRange("0", "79228162514264337593543950335")]
     public decimal OldBookValue { get; set; }
 
-    [Range(typeof(decimal), "0", "79228162514264337593543950335")]
+    [DecimalRange("0", "79228162514264337593543950335")]
     public decimal NewBookValue { get; set; }
 
-    [Range(typeof(decimal), "0", "79228162514264337593543950335")]
+    [DecimalRange("0", "79228162514264337593543950335")]
     public decimal ImpairmentAmount { get; set; }
 
     [StringLength(2000)]

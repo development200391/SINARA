@@ -1,3 +1,4 @@
+using ERP.Web.Validation;
 using System.ComponentModel.DataAnnotations;
 
 namespace ERP.Web.ViewModels.Finance;
@@ -72,7 +73,7 @@ public sealed class FinanceBudgetLineEditViewModel
     [Display(Name = "Description")]
     public string? Description { get; set; }
 
-    [Range(typeof(decimal), "0", "79228162514264337593543950335")]
+    [DecimalRange("0", "79228162514264337593543950335")]
     [Display(Name = "Amount")]
     public decimal Amount { get; set; }
 }

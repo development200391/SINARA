@@ -1,4 +1,5 @@
 @model ERP.Web.ViewModels.Finance.FinanceExchangeRateCreateViewModel
+@using ERP.Web.ViewModels.Shared
 
 <div class="card border-0 shadow-sm">
     <div class="card-body">
@@ -10,23 +11,39 @@
 
             <div class="col-md-4">
                 <label asp-for="FromCurrencyCode" class="form-label">@T["From Currency"]</label>
-                <select asp-for="FromCurrencyCode" class="form-select">
-                    @foreach (var option in Model.CurrencyOptions)
+                @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+                {
+                    Name = nameof(Model.FromCurrencyCode),
+                    Id = Html.IdFor(x => x.FromCurrencyCode).ToString(),
+                    CssClass = "form-select",
+                    SearchPlaceholder = T["Search"],
+                    EmptyOptionLabel = T["Select"],
+                    SelectedValue = Model.FromCurrencyCode,
+                    Options = Model.CurrencyOptions.Select(option => new SearchableSelectOptionViewModel
                     {
-                        <option value="@option.Code" selected="@string.Equals(Model.FromCurrencyCode, option.Code, StringComparison.OrdinalIgnoreCase)">@option.Label</option>
-                    }
-                </select>
+                        Value = option.Code,
+                        Label = option.Label
+                    }).ToList()
+                })
                 <span asp-validation-for="FromCurrencyCode" class="text-danger"></span>
             </div>
 
             <div class="col-md-4">
                 <label asp-for="ToCurrencyCode" class="form-label">@T["To Currency"]</label>
-                <select asp-for="ToCurrencyCode" class="form-select">
-                    @foreach (var option in Model.CurrencyOptions)
+                @await Component.InvokeAsync("SearchableSelect", new SearchableSelectViewModel
+                {
+                    Name = nameof(Model.ToCurrencyCode),
+                    Id = Html.IdFor(x => x.ToCurrencyCode).ToString(),
+                    CssClass = "form-select",
+                    SearchPlaceholder = T["Search"],
+                    EmptyOptionLabel = T["Select"],
+                    SelectedValue = Model.ToCurrencyCode,
+                    Options = Model.CurrencyOptions.Select(option => new SearchableSelectOptionViewModel
                     {
-                        <option value="@option.Code" selected="@string.Equals(Model.ToCurrencyCode, option.Code, StringComparison.OrdinalIgnoreCase)">@option.Label</option>
-                    }
-                </select>
+                        Value = option.Code,
+                        Label = option.Label
+                    }).ToList()
+                })
                 <span asp-validation-for="ToCurrencyCode" class="text-danger"></span>
             </div>
 

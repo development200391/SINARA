@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using ERP.Web.Validation;
 using ERP.Domain.Enums;
 
 namespace ERP.Web.ViewModels.Finance;
@@ -26,7 +27,7 @@ public sealed class FinanceArReceiptCreateViewModel
     [Display(Name = "Notes")]
     public string? Notes { get; set; }
 
-    [Range(typeof(decimal), "0.0001", "79228162514264337593543950335")]
+    [DecimalRange("0.0001", "79228162514264337593543950335")]
     [Display(Name = "Amount")]
     public decimal Amount { get; set; }
 
@@ -43,7 +44,7 @@ public sealed class FinanceArReceiptApplicationEditViewModel
     [Display(Name = "Invoice")]
     public int InvoiceId { get; set; }
 
-    [Range(typeof(decimal), "0.0001", "79228162514264337593543950335")]
+    [DecimalRange("0.0001", "79228162514264337593543950335")]
     [Display(Name = "Applied Amount")]
     public decimal AppliedAmount { get; set; }
 }

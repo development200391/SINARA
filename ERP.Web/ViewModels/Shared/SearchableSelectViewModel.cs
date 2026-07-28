@@ -14,6 +14,7 @@ public sealed class SearchableSelectViewModel
     /// <summary>Id of another element whose value narrows down which options are shown (options are matched via <see cref="SearchableSelectOptionViewModel.GroupValue"/>).</summary>
     public string? DependsOnElementId { get; set; }
     public IReadOnlyList<SearchableSelectOptionViewModel> Options { get; set; } = [];
+    public IDictionary<string, string>? HtmlAttributes { get; set; }
 }
 
 public sealed class SearchableSelectOptionViewModel

@@ -1,3 +1,4 @@
+using ERP.Web.Validation;
 using System.ComponentModel.DataAnnotations;
 
 namespace ERP.Web.ViewModels.Finance;
@@ -14,7 +15,7 @@ public sealed class FinanceExchangeRateCreateViewModel
     [Display(Name = "To Currency")]
     public string ToCurrencyCode { get; set; } = string.Empty;
 
-    [Range(typeof(decimal), "0.000001", "79228162514264337593543950335")]
+    [DecimalRange("0.000001", "79228162514264337593543950335")]
     public decimal Rate { get; set; }
 
     [Display(Name = "Effective Date")]
